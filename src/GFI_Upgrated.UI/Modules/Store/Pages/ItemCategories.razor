@@ -1,0 +1,170 @@
+@page "/admin/item-category"
+@page "/store/w_itemcategoryaddlist"
+@page "/store/item-category"
+@page "/admin/w_itemcategoryaddlist"
+
+@using GFI_Upgrated.SharedDto.Store
+@using GFI_Upgrated.UI.Services
+@using GFI_Upgrated.UI.State
+@inject StoreApiClient ApiClient
+@inject ISnackbar Snackbar
+@inject IJSRuntime JS
+@inject NavigationManager Navigation
+@inject AppSessionState SessionState
+
+<PageTitle>Item Categories</PageTitle>
+
+<MudPaper Class="pa-4">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+        <MudStack Spacing="0">
+            <MudText Typo="Typo.h5">Item Categories</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">Manage hierarchical categories for items and products.</MudText>
+        </MudStack>
+        @if (_canInsert)
+        {
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OnAdd">
+                Add New
+            </MudButton>
+        }
+    </MudStack>
+
+    <MudStack Row="true" AlignItems="AlignItems.End" Spacing="2" Class="mb-4">
+        <MudTextField @bind-Value="_search" Label="Search categories" Variant="Variant.Outlined" Immediate="true" Clearable="true" OnClearButtonClick="SearchAsync" Class="flex-grow-1" />
+        <MudButton Variant="Variant.Outlined" OnClick="SearchAsync">Search</MudButton>
+    </MudStack>
+
+    <MudTable RowsPerPage="25" T="ItemCategoryDto" @ref="_table" ServerData="LoadServerDataAsync" Hover="true" Dense="true" Striped="true" Bordered="true" Breakpoint="Breakpoint.Sm">
+        <HeaderContent>
+            <MudTh><MudTableSortLabel T="ItemCategoryDto" SortLabel="ItemCatName">Category Name</MudTableSortLabel></MudTh>
+            <MudTh>Type</MudTh>
+            <MudTh>Parent Category</MudTh>
+            <MudTh Style="width: 100px; text-align: center;">Status</MudTh>
+            <MudTh Style="width: 120px; text-align: center;">Action</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Category Name">@context.ItemCatName</MudTd>
+            <MudTd DataLabel="Type">
+                <MudChip T="string" Color="@(context.IsMainCategory ? Color.Primary : Color.Info)" Size="Size.Small" Variant="Variant.Text">
+                    @(context.IsMainCategory ? "Main" : "Sub")
+                </MudChip>
+            </MudTd>
+            <MudTd DataLabel="Parent Category">@(context.ParentItemCatName ?? "-")</MudTd>
+            <MudTd DataLabel="Status" Style="text-align: center;">
+                <MudChip T="string" Color="@(context.IsActive ? Color.Success : Color.Error)" Size="Size.Small" Variant="Variant.Text">
+                    @(context.IsActive ? "Active" : "Inactive")
+                </MudChip>
+            </MudTd>
+            <MudTd DataLabel="Action" Style="text-align: center;">
+                <MudStack Row="true" Spacing="1" Justify="Justify.Center" AlignItems="AlignItems.Center">
+                    @if (_canUpdate)
+                    {
+                        <MudTooltip Text="Edit">
+                            <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Size="Size.Small" OnClick="@(() => OnEdit(context))" />
+                        </MudTooltip>
+                    }
+                    @if (_canDelete && context.IsEditable)
+                    {
+                        <MudTooltip Text="Delete">
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => OnDelete(context))" />
+                        </MudTooltip>
+                    }
+                </MudStack>
+            </MudTd>
+        </RowTemplate>
+        <PagerContent>
+            <MudTablePager PageSizeOptions="new[] { 10, 25, 50 }" />
+        </PagerContent>
+        <NoRecordsContent>
+            <MudText Class="pa-4">No item category records found.</MudText>
+        </NoRecordsContent>
+    </MudTable>
+</MudPaper>
+
+@code {
+    private MudTable<ItemCategoryDto>? _table;
+    private string? _search;
+    private bool _canInsert;
+    private bool _canUpdate;
+    private bool _canDelete;
+
+    protected override void OnInitialized()
+    {
+        if (!SessionState.IsLoggedIn)
+        {
+            Navigation.NavigateTo("/login");
+            return;
+        }
+
+        var permissions = SessionState.GetPermissions("/admin/item-category");
+        _canInsert = permissions.IsInsert;
+        _canUpdate = permissions.IsUpdate;
+        _canDelete = permissions.IsDelete;
+    }
+
+    private async Task<TableData<ItemCategoryDto>> LoadServerDataAsync(TableState state, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await ApiClient.GetItemCategoriesAsync(new PagedRequest
+            {
+                CurrentPage = state.Page + 1,
+                RecordPerPage = state.PageSize,
+                SortColumn = state.SortLabel ?? "ItemCatId",
+                SortType = state.SortDirection == SortDirection.Ascending ? "ASC" : "DESC"
+            }, _search, cancellationToken);
+
+            return new TableData<ItemCategoryDto>
+            {
+                TotalItems = result.TotalRecord,
+                Items = result.Items
+            };
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+            return new TableData<ItemCategoryDto> { TotalItems = 0, Items = Array.Empty<ItemCategoryDto>() };
+        }
+    }
+
+    private async Task SearchAsync()
+    {
+        if (_table is not null) await _table.ReloadServerData();
+    }
+
+    private void OnAdd() => Navigation.NavigateTo("/admin/item-category/new");
+
+    private void OnEdit(ItemCategoryDto category) => Navigation.NavigateTo($"/admin/item-category/edit/{category.ItemCatId}");
+
+    private async Task OnDelete(ItemCategoryDto category)
+    {
+        var confirmed = await JS.InvokeAsync<bool>("confirm", $"Are you sure you want to delete category: {category.ItemCatName}?");
+        if (!confirmed) return;
+
+        try
+        {
+            var result = await ApiClient.DeleteItemCategoryAsync(category.ItemCatId, SessionState.CurrentUser?.LoginName ?? "System");
+            if (result > 0)
+            {
+                Snackbar.Add("Item category deleted successfully.", Severity.Success);
+                if (_table is not null) await _table.ReloadServerData();
+            }
+            else
+            {
+                var message = result == -1 ? "Cannot delete Item Category because it is currently linked to items." : "Failed to delete item category.";
+                Snackbar.Add(message, Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            var message = ex.Message;
+            if (message.Contains("REFERENCE constraint") || message.Contains("conflict") || message.Contains("foreign key") || message.Contains("FK_"))
+            {
+                Snackbar.Add("Cannot delete this category because it is currently linked to items or subcategories.", Severity.Error);
+            }
+            else
+            {
+                Snackbar.Add(message, Severity.Error);
+            }
+        }
+    }
+}

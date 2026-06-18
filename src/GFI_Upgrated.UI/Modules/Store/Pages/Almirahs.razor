@@ -1,0 +1,168 @@
+@page "/admin/almirah"
+@page "/admin/w_masteralmirahshelfaddlist"
+@page "/store/w_masteralmirahshelfaddlist"
+@page "/store/almirah"
+
+@using GFI_Upgrated.SharedDto.Store
+@using GFI_Upgrated.UI.Services
+@using GFI_Upgrated.UI.State
+@inject StoreApiClient ApiClient
+@inject ISnackbar Snackbar
+@inject IJSRuntime JS
+@inject NavigationManager Navigation
+@inject AppSessionState SessionState
+
+<PageTitle>Almirahs & Shelves</PageTitle>
+
+<MudPaper Class="pa-4">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+        <MudStack Spacing="0">
+            <MudText Typo="Typo.h5">Almirahs & Shelves</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">Manage storage units and their respective shelf configurations.</MudText>
+        </MudStack>
+        @if (_canInsert)
+        {
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OnAdd">
+                Add New Almirah
+            </MudButton>
+        }
+    </MudStack>
+
+    <MudStack Row="true" AlignItems="AlignItems.End" Spacing="2" Class="mb-4">
+        <MudTextField @bind-Value="_search" Label="Search almirahs" Variant="Variant.Outlined" Immediate="true" Clearable="true" OnClearButtonClick="SearchAsync" Class="flex-grow-1" />
+        <MudSelect T="long?" Label="Warehouse" @bind-Value="_warehouseId" Variant="Variant.Outlined" Clearable="true" Class="flex-grow-1">
+            @foreach (var w in _warehouses)
+            {
+                <MudSelectItem T="long?" Value="@w.WarehouseId">@w.WarehouseName</MudSelectItem>
+            }
+        </MudSelect>
+        <MudButton Variant="Variant.Outlined" OnClick="SearchAsync">Search</MudButton>
+    </MudStack>
+
+    <MudTable RowsPerPage="25" T="AlmirahDto" @ref="_table" ServerData="LoadServerDataAsync" Hover="true" Dense="true" Striped="true" Bordered="true" Breakpoint="Breakpoint.Sm">
+        <HeaderContent>
+            <MudTh><MudTableSortLabel T="AlmirahDto" SortLabel="AlmirahShelfName">Almirah Name</MudTableSortLabel></MudTh>
+            <MudTh>Warehouse</MudTh>
+            <MudTh>Location</MudTh>
+            <MudTh Style="width: 100px; text-align: center;">Shelves</MudTh>
+            <MudTh Style="width: 120px; text-align: center;">Action</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Almirah Name">@context.AlmirahShelfName</MudTd>
+            <MudTd DataLabel="Warehouse">@context.WarehouseName</MudTd>
+            <MudTd DataLabel="Location">@(context.AlmirahLocation ?? "-")</MudTd>
+            <MudTd DataLabel="Shelves" Style="text-align: center;">
+                <MudChip T="string" Color="Color.Info" Size="Size.Small" Variant="Variant.Text">
+                    @(context.NoShelf ?? 0)
+                </MudChip>
+            </MudTd>
+            <MudTd DataLabel="Action" Style="text-align: center;">
+                <MudStack Row="true" Spacing="1" Justify="Justify.Center" AlignItems="AlignItems.Center">
+                    @if (_canUpdate)
+                    {
+                        <MudTooltip Text="Edit">
+                            <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Size="Size.Small" OnClick="@(() => OnEdit(context))" />
+                        </MudTooltip>
+                    }
+                    @if (_canDelete)
+                    {
+                        <MudTooltip Text="Delete">
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => OnDelete(context))" />
+                        </MudTooltip>
+                    }
+                </MudStack>
+            </MudTd>
+        </RowTemplate>
+        <PagerContent>
+            <MudTablePager PageSizeOptions="new[] { 10, 25, 50 }" />
+        </PagerContent>
+        <NoRecordsContent>
+            <MudText Class="pa-4">No almirah records found.</MudText>
+        </NoRecordsContent>
+    </MudTable>
+</MudPaper>
+
+@code {
+    private MudTable<AlmirahDto>? _table;
+    private string? _search;
+    private long? _warehouseId;
+    private bool _canInsert;
+    private bool _canUpdate;
+    private bool _canDelete;
+    private IReadOnlyList<WarehouseDto> _warehouses = Array.Empty<WarehouseDto>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!SessionState.IsLoggedIn)
+        {
+            Navigation.NavigateTo("/login");
+            return;
+        }
+
+        var permissions = SessionState.GetPermissions("/admin/almirah");
+        _canInsert = permissions.IsInsert;
+        _canUpdate = permissions.IsUpdate;
+        _canDelete = permissions.IsDelete;
+
+        var wResult = await ApiClient.GetWarehousesAsync(new PagedRequest { CurrentPage = 1, RecordPerPage = 100 });
+        _warehouses = wResult.Items;
+    }
+
+    private async Task<TableData<AlmirahDto>> LoadServerDataAsync(TableState state, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await ApiClient.GetAlmirahsAsync(new PagedRequest
+            {
+                CurrentPage = state.Page + 1,
+                RecordPerPage = state.PageSize,
+                SortColumn = state.SortLabel ?? "AlmirahShelfID",
+                SortType = state.SortDirection == SortDirection.Ascending ? "ASC" : "DESC"
+            }, _search, _warehouseId, cancellationToken);
+
+            return new TableData<AlmirahDto>
+            {
+                TotalItems = result.TotalRecord,
+                Items = result.Items
+            };
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+            return new TableData<AlmirahDto> { TotalItems = 0, Items = Array.Empty<AlmirahDto>() };
+        }
+    }
+
+    private async Task SearchAsync()
+    {
+        if (_table is not null) await _table.ReloadServerData();
+    }
+
+    private void OnAdd() => Navigation.NavigateTo("/admin/almirah/new");
+
+    private void OnEdit(AlmirahDto almirah) => Navigation.NavigateTo($"/admin/almirah/edit/{almirah.AlmirahShelfID}");
+
+    private async Task OnDelete(AlmirahDto almirah)
+    {
+        var confirmed = await JS.InvokeAsync<bool>("confirm", $"Are you sure you want to delete almirah: {almirah.AlmirahShelfName}? All associated shelves will also be deleted.");
+        if (!confirmed) return;
+
+        try
+        {
+            var result = await ApiClient.DeleteAlmirahAsync(almirah.AlmirahShelfID, SessionState.CurrentUser?.LoginName ?? "System");
+            if (result > 0)
+            {
+                Snackbar.Add("Almirah deleted successfully.", Severity.Success);
+                if (_table is not null) await _table.ReloadServerData();
+            }
+            else
+            {
+                Snackbar.Add("Failed to delete almirah. It might be in use.", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+        }
+    }
+}

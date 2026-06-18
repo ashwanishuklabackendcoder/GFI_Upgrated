@@ -1,0 +1,44 @@
+@page "/admin/resource-editor"
+@page "/admin/import"
+@page "/admin/pre-processing"
+@page "/admin/sku"
+@page "/admin/production-pre-processing"
+@page "/admin/order-return"
+@page "/admin/customers-suppliers"
+@page "/admin/reports"
+@inject AppSessionState SessionState
+@inject NavigationManager Navigation
+
+<PageTitle>@GetTitle()</PageTitle>
+
+<MudPaper Class="pa-4">
+    <MudText Typo="Typo.h5">@GetTitle()</MudText>
+    <MudText Class="mt-2">This section is queued for parity work. The navigation entry is in place, and we can wire the legacy behavior next.</MudText>
+</MudPaper>
+
+@code {
+    protected override void OnInitialized()
+    {
+        if (!SessionState.IsLoggedIn)
+        {
+            Navigation.NavigateTo("/login");
+        }
+    }
+
+    private string GetTitle()
+    {
+        var path = Navigation.ToBaseRelativePath(Navigation.Uri).Trim('/');
+        return path switch
+        {
+            "admin/resource-editor" => "Resource Editor",
+            "admin/import" => "Import",
+            "admin/pre-processing" => "Pre Processing",
+            "admin/sku" => "SKU",
+            "admin/production-pre-processing" => "Pre Processing",
+            "admin/order-return" => "Order Return",
+            "admin/customers-suppliers" => "Customers & Suppliers",
+            "admin/reports" => "Reports",
+            _ => "Admin"
+        };
+    }
+}

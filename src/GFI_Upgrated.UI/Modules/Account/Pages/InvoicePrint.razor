@@ -1,0 +1,290 @@
+@page "/admin/invoice/print/{Id:long}"
+@using GFI_Upgrated.SharedDto.Account
+@using GFI_Upgrated.UI.Services
+@using GFI_Upgrated.UI.State
+@inject AccountApiClient ApiClient
+@inject StoreApiClient StoreApiClient
+@inject NavigationManager Navigation
+@inject AppSessionState SessionState
+@inject IJSRuntime JS
+@inject ISnackbar Snackbar
+
+<PageTitle>Print Invoice @_invoice?.InvoiceNumber</PageTitle>
+
+<div class="pa-4 no-print">
+    <MudPaper Class="pa-4 mb-4" Style="background-color: var(--mud-palette-background-grey);">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+            <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.ArrowBack" OnClick="BackToInvoice">
+                Back to Invoice
+            </MudButton>
+            <MudStack Row="true" Spacing="2">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Print" OnClick="PrintAsync">
+                    Print Invoice
+                </MudButton>
+            </MudStack>
+        </MudStack>
+    </MudPaper>
+</div>
+
+@if (_invoice == null)
+{
+    @if (_loading)
+    {
+        <MudStack AlignItems="AlignItems.Center" Class="pa-12">
+            <MudProgressCircular Color="Color.Primary" Size="Size.Large" Indeterminate="true" />
+            <MudText Typo="Typo.body1">Loading invoice details...</MudText>
+        </MudStack>
+    }
+    else
+    {
+        <MudAlert Severity="Severity.Error" Class="ma-4">@_errorMessage</MudAlert>
+    }
+}
+else
+{
+    <div class="print-container pa-8 ma-auto" style="max-width: 900px; background-color: white; color: black; font-family: 'Inter', sans-serif; box-shadow: 0 4px 12px rgba(0,0,0,0.05); border-radius: 8px;">
+        <!-- Invoice Header -->
+        <div style="display: flex; justify-content: space-between; border-bottom: 2px solid #eaeaea; padding-bottom: 24px; margin-bottom: 24px;">
+            <div>
+                <h1 style="font-size: 28px; font-weight: 800; color: #1a1a1a; margin: 0; letter-spacing: -0.5px;">GFI</h1>
+                <p style="color: #666; font-size: 13px; margin: 4px 0 0 0; line-height: 1.4;">
+                    Standard Quality &amp; Trust<br />
+                    123 Industrial Area, Phase II<br />
+                    info@gfi-group.com
+                </p>
+            </div>
+            <div style="text-align: right;">
+                <h2 style="font-size: 20px; font-weight: 700; color: #1a1a1a; margin: 0; text-transform: uppercase; letter-spacing: 0.5px;">Sales Invoice</h2>
+                <div style="margin-top: 8px; font-size: 13px; color: #555; line-height: 1.5;">
+                    <div><strong>Invoice No:</strong> @_invoice.InvoiceNumber</div>
+                    <div><strong>Date:</strong> @(_invoice.InvoiceDate?.ToString("dd MMM yyyy") ?? "-")</div>
+                    <div><strong>Due Date:</strong> @(_invoice.DueDate?.ToString("dd MMM yyyy") ?? "-")</div>
+                    <div style="margin-top: 4px;">
+                        <span style="display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; text-transform: uppercase; background-color: @(_invoice.IsPaid == true || _invoice.InvoiceStatus == "Paid" ? "#e2f8f0" : "#fff3cd"); color: @(_invoice.IsPaid == true || _invoice.InvoiceStatus == "Paid" ? "#0d6847" : "#856404"); border: 1px solid @(_invoice.IsPaid == true || _invoice.InvoiceStatus == "Paid" ? "#a3e9d0" : "#ffeeba");">
+                            @(_invoice.IsPaid == true || _invoice.InvoiceStatus == "Paid" ? "Paid" : "Unpaid")
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Billing Info -->
+        <div style="margin-bottom: 32px;">
+            <h3 style="font-size: 12px; font-weight: 700; color: #888; text-transform: uppercase; margin: 0 0 8px 0; letter-spacing: 0.5px;">Billed To</h3>
+            <div style="font-size: 15px; font-weight: 600; color: #1a1a1a; margin-bottom: 4px;">@_invoice.AccountName</div>
+        </div>
+
+        <!-- Line Items Table -->
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 32px; font-size: 13px;">
+            <thead>
+                <tr style="border-bottom: 2px solid #1a1a1a; text-align: left;">
+                    <th style="padding: 10px 4px; font-weight: 700; color: #1a1a1a;">Item Details</th>
+                    <th style="padding: 10px 4px; font-weight: 700; color: #1a1a1a;">Batch Number</th>
+                    <th style="padding: 10px 4px; font-weight: 700; color: #1a1a1a; text-align: center; width: 80px;">Qty</th>
+                    <th style="padding: 10px 4px; font-weight: 700; color: #1a1a1a; text-align: right; width: 120px;">Unit Price</th>
+                    <th style="padding: 10px 4px; font-weight: 700; color: #1a1a1a; text-align: right; width: 130px;">Amount</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (_invoice.Items == null || !_invoice.Items.Any())
+                {
+                    <tr>
+                        <td colspan="5" style="padding: 16px 0; text-align: center; color: #888; font-style: italic;">No line items in this invoice.</td>
+                    </tr>
+                }
+                else
+                {
+                    @foreach (var item in _invoice.Items)
+                    {
+                        <tr style="border-bottom: 1px solid #eaeaea;">
+                            <td style="padding: 12px 4px; vertical-align: top;">
+                                <div style="font-weight: 600; color: #1a1a1a;">@item.ItemName</div>
+                                @if (!string.IsNullOrWhiteSpace(item.PrintHeading))
+                                {
+                                    <div style="font-size: 12px; color: #333; margin-top: 2px; font-style: italic;">@item.PrintHeading</div>
+                                }
+                                @if (!string.IsNullOrWhiteSpace(item.Description))
+                                {
+                                    <div style="font-size: 11px; color: #666; margin-top: 2px;">@item.Description</div>
+                                }
+                            </td>
+                            <td style="padding: 12px 4px; color: #555; vertical-align: top;">
+                                @(string.IsNullOrWhiteSpace(item.BatchNumber) ? "-" : item.BatchNumber)
+                            </td>
+                            <td style="padding: 12px 4px; text-align: center; color: #333; vertical-align: top;">
+                                @item.Quantity
+                            </td>
+                            <td style="padding: 12px 4px; text-align: right; color: #333; vertical-align: top;">
+                                @(_selectedCurrencySymbol ?? "$") @item.UnitPrice.ToString("N2")
+                            </td>
+                            <td style="padding: 12px 4px; text-align: right; font-weight: 600; color: #1a1a1a; vertical-align: top;">
+                                @(_selectedCurrencySymbol ?? "$") @((item.Quantity * item.UnitPrice).ToString("N2"))
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+
+        <!-- Totals & Remarks -->
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 40px;">
+            <div style="flex: 1; max-width: 50%;">
+                @if (!string.IsNullOrWhiteSpace(_invoice.Remarks))
+                {
+                    <h3 style="font-size: 11px; font-weight: 700; color: #888; text-transform: uppercase; margin: 0 0 6px 0; letter-spacing: 0.5px;">Notes &amp; Remarks</h3>
+                    <p style="font-size: 12px; color: #555; margin: 0; line-height: 1.5; white-space: pre-wrap;">@_invoice.Remarks</p>
+                }
+            </div>
+            <div style="width: 300px;">
+                <div style="display: flex; justify-content: space-between; padding: 8px 4px; font-size: 13px; color: #555;">
+                    <span>Subtotal:</span>
+                    <span>@(_selectedCurrencySymbol ?? "$") @(_subtotal.ToString("N2"))</span>
+                </div>
+                @if (_invoice.CurrencyConversion.HasValue && _invoice.CurrencyConversion.Value != 1.0)
+                {
+                    <div style="display: flex; justify-content: space-between; padding: 4px 4px; font-size: 12px; color: #666; font-style: italic;">
+                        <span>Exchange Rate (@(_selectedCurrencySymbol ?? "$") to Base):</span>
+                        <span>@_invoice.CurrencyConversion.Value.ToString("N4")</span>
+                    </div>
+                }
+                <div style="display: flex; justify-content: space-between; padding: 12px 4px; font-size: 16px; font-weight: 800; color: #1a1a1a; border-top: 2px solid #1a1a1a; margin-top: 8px;">
+                    <span>Total Due:</span>
+                    <span>@(_selectedCurrencySymbol ?? "$") @(_grandTotal.ToString("N2"))</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div style="margin-top: 64px; border-top: 1px solid #eaeaea; padding-top: 16px; text-align: center; font-size: 11px; color: #888;">
+            Thank you for your business! This is a system generated document.
+        </div>
+    </div>
+}
+
+<style>
+    @@media print {
+        body {
+            background-color: white !important;
+        }
+        .print-container {
+            box-shadow: none !important;
+            border-radius: 0 !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            max-width: 100% !important;
+        }
+        .mud-layout, .mud-main-content {
+            padding: 0 !important;
+            margin: 0 !important;
+        }
+    }
+</style>
+
+@code {
+    [Parameter]
+    public long Id { get; set; }
+
+    private InvoiceDto? _invoice;
+    private bool _loading = true;
+    private string? _errorMessage;
+    private string? _selectedCurrencySymbol = "$";
+    private double _subtotal = 0;
+    private double _grandTotal = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!SessionState.IsLoggedIn)
+        {
+            Navigation.NavigateTo("/login");
+            return;
+        }
+
+        await LoadInvoiceAsync();
+    }
+
+    private async Task LoadInvoiceAsync()
+    {
+        try
+        {
+            _loading = true;
+            _invoice = await ApiClient.GetInvoiceByIdAsync(Id);
+            if (_invoice == null)
+            {
+                _errorMessage = "Invoice not found.";
+            }
+            else
+            {
+                _subtotal = _invoice.Items.Sum(i => i.Quantity * i.UnitPrice);
+                _grandTotal = _subtotal;
+
+                // Load item names
+                try
+                {
+                    var itemsResult = await StoreApiClient.GetItemsForBomLookupAsync(null);
+                    var itemsLookup = itemsResult.ToList();
+                    foreach (var item in _invoice.Items)
+                    {
+                        if (string.IsNullOrWhiteSpace(item.ItemName))
+                        {
+                            var matchedProduct = itemsLookup.FirstOrDefault(p => p.ItemId == item.ItemId);
+                            if (matchedProduct != null)
+                            {
+                                item.ItemName = matchedProduct.ItemName;
+                            }
+                        }
+                    }
+                }
+                catch (Exception)
+                {
+                    // Fallback silently if mapping fails
+                }
+
+                // Load currency symbol
+                if (_invoice.CurrencyID.HasValue)
+                {
+                    var currenciesResult = await ApiClient.GetCurrenciesAsync(currencyId: _invoice.CurrencyID);
+                    var matchedCurrency = currenciesResult.Items.FirstOrDefault();
+                    if (matchedCurrency != null)
+                    {
+                        _selectedCurrencySymbol = GetCurrencySymbolOnly(matchedCurrency.CurrencySymbol, matchedCurrency.CurrencyString);
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Failed to load invoice details: {ex.Message}";
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private void BackToInvoice()
+    {
+        Navigation.NavigateTo($"/admin/invoice/edit/{Id}");
+    }
+
+    private async Task PrintAsync()
+    {
+        await JS.InvokeVoidAsync("window.print");
+    }
+
+    private string GetCurrencySymbolOnly(string? dbSymbol, string? dbString)
+    {
+        var clean = (dbSymbol ?? "").Trim().ToLowerInvariant();
+        var cleanStr = (dbString ?? "").Trim().ToUpperInvariant();
+
+        if (clean.Contains("rupee") || cleanStr == "INR") return "₹";
+        if (clean.Contains("dollar") || cleanStr == "USD" || cleanStr == "SRD") return "$";
+        if (clean.Contains("euro") || cleanStr == "EUR") return "€";
+        if (clean.Contains("pound") || cleanStr == "GBP") return "£";
+        if (clean.Contains("yuan") || clean.Contains("yen") || cleanStr == "CNY" || cleanStr == "JPY") return "¥";
+
+        // Fallback to the symbol/string itself
+        if (!string.IsNullOrWhiteSpace(dbSymbol) && dbSymbol.Length <= 3) return dbSymbol;
+        if (!string.IsNullOrWhiteSpace(dbString)) return dbString;
+        return "$";
+    }
+}

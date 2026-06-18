@@ -1,0 +1,309 @@
+@page "/admin/purchase/new"
+@page "/admin/purchase/edit/{Id:long}"
+@using GFI_Upgrated.SharedDto.Purchase
+@using GFI_Upgrated.SharedDto.Store
+@using GFI_Upgrated.SharedDto.AdminSecurity
+@using GFI_Upgrated.UI.Services
+@using GFI_Upgrated.UI.State
+@inject StoreApiClient ApiClient
+@inject AdminSecurityApiClient AdminApiClient
+@inject ISnackbar Snackbar
+@inject NavigationManager Navigation
+@inject AppSessionState SessionState
+
+<PageTitle>@(Id == 0 ? "New Goods Receipt" : "Edit Goods Receipt")</PageTitle>
+
+<MudPaper Class="pa-4">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+        <MudStack Spacing="0">
+            <MudText Typo="Typo.h5">@(Id == 0 ? "New Goods Receipt" : "Edit Goods Receipt")</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">Record incoming goods and update inventory.</MudText>
+        </MudStack>
+        <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.ArrowBack" OnClick="OnBack">Back to List</MudButton>
+    </MudStack>
+
+    <EditForm Model="_model" OnValidSubmit="OnSave">
+        <DataAnnotationsValidator />
+        <MudGrid>
+            <MudItem xs="12" md="3">
+                <MudTextField @bind-Value="_model.VoucherNumber" Label="Voucher Number" Variant="Variant.Outlined" Required="true" For="@(() => _model.VoucherNumber)" />
+            </MudItem>
+            <MudItem xs="12" md="3">
+                <MudAutocomplete T="AccountLookupDto" Label="Vendor" @bind-Value="_selectedVendor" SearchFunc="@SearchVendors"
+                                 ToStringFunc="@(a => a?.AccountName ?? "")" Variant="Variant.Outlined" Required="true" />
+            </MudItem>
+            <MudItem xs="12" md="3">
+                <MudAutocomplete T="PurchaseOrderDto" Label="Link PO" @bind-Value="_selectedPO" SearchFunc="@SearchPOs"
+                                 ToStringFunc="@(p => p?.VoucherNumber ?? "")" Variant="Variant.Outlined" />
+            </MudItem>
+            <MudItem xs="12" md="3">
+                <MudDatePicker Label="Received Date" @bind-Date="_model.GoodsRecievedDate" Variant="Variant.Outlined" Editable="true" />
+            </MudItem>
+
+            <MudItem xs="12" md="3">
+                <MudTextField @bind-Value="_model.InvoiceNo" Label="Invoice Number" Variant="Variant.Outlined" />
+            </MudItem>
+            <MudItem xs="12" md="3">
+                <MudDatePicker Label="Invoice Date" @bind-Date="_model.InvoiceDate" Variant="Variant.Outlined" Editable="true" />
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudTextField @bind-Value="_model.Narration" Label="Narration / Remarks" Variant="Variant.Outlined" />
+            </MudItem>
+
+            <!-- Items Section -->
+            <MudItem xs="12" Class="mt-6">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-2">
+                    <MudText Typo="Typo.subtitle1" Color="Color.Primary">Received Items & Batches</MudText>
+                    <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" Size="Size.Small" OnClick="AddRow">Add Item</MudButton>
+                </MudStack>
+                <MudDivider Class="mb-4" />
+
+                <MudTable Items="_model.Items" Hover="true" Dense="true" Striped="true" Bordered="true" Elevation="0" Context="itemContext">
+                    <HeaderContent>
+                        <MudTh>Item</MudTh>
+                        <MudTh Style="width: 100px;">Qty</MudTh>
+                        <MudTh Style="width: 120px;">Price</MudTh>
+                        <MudTh>Batch #</MudTh>
+                        <MudTh>Expiry</MudTh>
+                        <MudTh>Warehouse</MudTh>
+                        <MudTh Style="text-align: center; width: 60px;">Action</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd DataLabel="Item">
+                            <MudAutocomplete T="RawMaterialDto" Value="@(GetItemById(itemContext.ItemID))" ValueChanged="@((v) => OnItemChanged(itemContext, v))"
+                                             SearchFunc="@SearchItems" ToStringFunc="@(i => i?.ItemName ?? "")" 
+                                             Variant="Variant.Text" Dense="true" Required="true" />
+                        </MudTd>
+                        <MudTd DataLabel="Qty">
+                            <MudNumericField @bind-Value="itemContext.Quantity" Variant="Variant.Text" Dense="true" Min="1" />
+                        </MudTd>
+                        <MudTd DataLabel="Price">
+                            <MudNumericField @bind-Value="itemContext.UnitPrice" Variant="Variant.Text" Dense="true" Format="N2" />
+                        </MudTd>
+                        <MudTd DataLabel="Batch #">
+                            <MudTextField @bind-Value="itemContext.BatchNo" Variant="Variant.Text" Dense="true" Placeholder="AUTO" />
+                        </MudTd>
+                        <MudTd DataLabel="Expiry">
+                            <MudDatePicker @bind-Date="itemContext.ExpiryDate" Variant="Variant.Text" Dense="true" />
+                        </MudTd>
+                        <MudTd DataLabel="Warehouse">
+                            <MudSelect T="long?" @bind-Value="itemContext.WarehouseId" Variant="Variant.Text" Dense="true">
+                                <MudSelectItem T="long?" Value="null">Select</MudSelectItem>
+                                @foreach (var wh in _warehouses)
+                                {
+                                    <MudSelectItem T="long?" Value="wh.WarehouseId">@wh.WarehouseName</MudSelectItem>
+                                }
+                            </MudSelect>
+                        </MudTd>
+                        <MudTd Style="text-align: center;">
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => RemoveRow(itemContext))" />
+                        </MudTd>
+                    </RowTemplate>
+                </MudTable>
+            </MudItem>
+
+            <!-- Totals Section -->
+            <MudItem xs="12" md="8"></MudItem>
+            <MudItem xs="12" md="4">
+                <MudPaper Class="pa-4 mud-background-gray" Elevation="0">
+                    <MudStack Spacing="2">
+                        <div class="d-flex justify-space-between align-center">
+                            <MudText>Taxes:</MudText>
+                            <MudNumericField @bind-Value="_model.Taxes" Variant="Variant.Text" Dense="true" Style="width: 100px;" />
+                        </div>
+                        <div class="d-flex justify-space-between align-center">
+                            <MudText>Shipping:</MudText>
+                            <MudNumericField @bind-Value="_model.Shipping" Variant="Variant.Text" Dense="true" Style="width: 100px;" />
+                        </div>
+                        <div class="d-flex justify-space-between align-center">
+                            <MudText>Discount:</MudText>
+                            <MudNumericField @bind-Value="_model.Discount" Variant="Variant.Text" Dense="true" Style="width: 100px;" />
+                        </div>
+                        <MudDivider />
+                        <div class="d-flex justify-space-between">
+                            <MudText Typo="Typo.h6">Total Amount:</MudText>
+                            <MudText Typo="Typo.h6" Color="Color.Primary">@_totalAmount.ToString("N2")</MudText>
+                        </div>
+                    </MudStack>
+                </MudPaper>
+            </MudItem>
+
+            <MudItem xs="12">
+                <MudValidationSummary />
+            </MudItem>
+
+            <MudItem xs="12" Class="d-flex justify-end mt-6 gap-2">
+                <MudButton Variant="Variant.Outlined" OnClick="OnBack">Cancel</MudButton>
+                <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Loading="_saving" OnClick="OnSubmitClick">Record Receipt</MudButton>
+            </MudItem>
+        </MudGrid>
+    </EditForm>
+</MudPaper>
+
+@code {
+    private void OnSubmitClick()
+    {
+        Console.WriteLine("[DEBUG] Record Receipt button clicked");
+    }
+
+    [Parameter] public long Id { get; set; }
+
+    private PurchaseDto _model = new() { GoodsRecievedDate = DateTime.Now };
+    private AccountLookupDto? _selectedVendor;
+    private PurchaseOrderDto? _selectedPO;
+    private List<AccountLookupDto> _vendors = new();
+    private List<PurchaseOrderDto> _pendingPOs = new();
+    private List<WarehouseLookupDto> _warehouses = new();
+    private List<RawMaterialDto> _allItems = new();
+    private bool _saving;
+
+    private double _subtotal => _model.Items.Sum(i => i.Quantity * i.UnitPrice);
+    private double _totalAmount => _subtotal + (_model.Taxes ?? 0) + (_model.Shipping ?? 0) - (_model.Discount ?? 0);
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!SessionState.IsLoggedIn)
+        {
+            Navigation.NavigateTo("/login");
+            return;
+        }
+
+        await LoadLookups();
+
+        if (Id > 0)
+        {
+            await LoadData();
+        }
+        else
+        {
+            _model.CreatedBy = SessionState.CurrentUser?.LoginName ?? "System";
+            _model.VoucherNumber = $"GRN-{DateTime.Now:yyyyMMdd-HHmm}";
+        }
+    }
+
+    private async Task LoadLookups()
+    {
+        try
+        {
+            _vendors = (await ApiClient.GetAccountsLookupAsync()).ToList();
+            _warehouses = (await ApiClient.GetWarehousesLookupAsync()).ToList();
+            _allItems = (await ApiClient.GetItemsForBomLookupAsync(null)).ToList();
+            
+            var pos = await ApiClient.GetPurchaseOrdersAsync(null, null, null, 1, 100);
+            _pendingPOs = pos.Items.ToList();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error loading lookups: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task LoadData()
+    {
+        try
+        {
+            var result = await ApiClient.GetPurchasesAsync(Id, null, null, null);
+            if (result.Items.Any())
+            {
+                _model = result.Items.First();
+                _model.Items = await ApiClient.GetPurchaseItemsAsync(Id);
+                _selectedVendor = _vendors.FirstOrDefault(v => v.AccountId == _model.AccountID);
+                _selectedPO = _pendingPOs.FirstOrDefault(p => p.PurchaseOrderID == _model.PurchaseOrderID);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error loading receipt: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task<IEnumerable<AccountLookupDto>> SearchVendors(string value, CancellationToken token)
+    {
+        if (string.IsNullOrEmpty(value)) return _vendors;
+        return _vendors.Where(x => x.AccountName?.Contains(value, StringComparison.OrdinalIgnoreCase) == true);
+    }
+
+    private async Task<IEnumerable<PurchaseOrderDto>> SearchPOs(string value, CancellationToken token)
+    {
+        if (string.IsNullOrEmpty(value)) return _pendingPOs;
+        return _pendingPOs.Where(x => x.VoucherNumber?.Contains(value, StringComparison.OrdinalIgnoreCase) == true);
+    }
+
+    private async Task<IEnumerable<RawMaterialDto>> SearchItems(string value, CancellationToken token)
+    {
+        if (string.IsNullOrEmpty(value)) return _allItems;
+        return _allItems.Where(x => x.ItemName?.Contains(value, StringComparison.OrdinalIgnoreCase) == true);
+    }
+
+    private RawMaterialDto? GetItemById(long id) => _allItems.FirstOrDefault(x => x.ItemId == id);
+
+    private void OnItemChanged(PurchaseItemDto row, RawMaterialDto? item)
+    {
+        if (item != null)
+        {
+            row.ItemID = item.ItemId;
+            row.ItemName = item.ItemName;
+            row.UnitId = item.PurchaseUnit;
+        }
+    }
+
+    private void AddRow()
+    {
+        _model.Items.Add(new PurchaseItemDto { Quantity = 1, WarehouseId = _warehouses.FirstOrDefault()?.WarehouseId });
+    }
+
+    private void RemoveRow(PurchaseItemDto row)
+    {
+        _model.Items.Remove(row);
+    }
+
+    private async Task OnSave()
+    {
+        Console.WriteLine("[DEBUG] OnSave triggered");
+        if (_selectedVendor == null)
+        {
+            Snackbar.Add("Please select a vendor.", Severity.Warning);
+            return;
+        }
+
+        if (!_model.Items.Any())
+        {
+            Snackbar.Add("Please add at least one item.", Severity.Warning);
+            return;
+        }
+
+        _saving = true;
+        try
+        {
+            _model.AccountID = _selectedVendor.AccountId;
+            _model.PurchaseOrderID = _selectedPO?.PurchaseOrderID;
+            _model.TotalAmount = _totalAmount;
+            _model.CreatedBy = SessionState.CurrentUser?.LoginName ?? "System";
+            
+            var resultId = await ApiClient.SavePurchaseAsync(_model);
+            if (resultId > 0)
+            {
+                Snackbar.Add("Goods Receipt saved successfully.", Severity.Success);
+                Navigation.NavigateTo("/admin/purchase");
+            }
+            else if (resultId == -1)
+            {
+                Snackbar.Add("Voucher Number already exists. Please use a unique voucher number.", Severity.Error);
+            }
+            else
+            {
+                Snackbar.Add("Failed to save Goods Receipt. Please check your input.", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error saving: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    private void OnBack() => Navigation.NavigateTo("/admin/purchase");
+}

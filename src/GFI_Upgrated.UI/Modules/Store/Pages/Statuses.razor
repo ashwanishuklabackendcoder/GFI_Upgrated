@@ -1,0 +1,164 @@
+@page "/admin/status"
+@page "/store/w_masterstatusaddlist"
+@page "/store/status"
+@page "/admin/w_masterstatusaddlist"
+
+@using GFI_Upgrated.SharedDto.Store
+@using GFI_Upgrated.UI.Services
+@using GFI_Upgrated.UI.State
+@inject StoreApiClient ApiClient
+@inject ISnackbar Snackbar
+@inject IJSRuntime JS
+@inject NavigationManager Navigation
+@inject AppSessionState SessionState
+
+<PageTitle>Item Statuses</PageTitle>
+
+<MudPaper Class="pa-4">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+        <MudStack Spacing="0">
+            <MudText Typo="Typo.h5">Item Statuses</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">Manage life-cycle statuses for items and records.</MudText>
+        </MudStack>
+        @if (_canInsert)
+        {
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OnAdd">
+                Add New
+            </MudButton>
+        }
+    </MudStack>
+
+    <MudStack Row="true" AlignItems="AlignItems.End" Spacing="2" Class="mb-4">
+        <MudTextField @bind-Value="_search" Label="Search statuses" Variant="Variant.Outlined" Immediate="true" Clearable="true" OnClearButtonClick="SearchAsync" Class="flex-grow-1" />
+        <MudButton Variant="Variant.Outlined" OnClick="SearchAsync">Search</MudButton>
+    </MudStack>
+
+    <MudTable RowsPerPage="25" T="StatusDto" @ref="_table" ServerData="LoadServerDataAsync" Hover="true" Dense="true" Striped="true" Bordered="true" Breakpoint="Breakpoint.Sm">
+        <HeaderContent>
+            <MudTh><MudTableSortLabel T="StatusDto" SortLabel="StatusName">Status Name</MudTableSortLabel></MudTh>
+            <MudTh>Status Of</MudTh>
+            <MudTh Style="width: 100px; text-align: center;">Status</MudTh>
+            <MudTh Style="width: 120px; text-align: center;">Action</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Status Name">@context.StatusName</MudTd>
+            <MudTd DataLabel="Status Of">@GetStatusOfLabel(context.StatusOf)</MudTd>
+            <MudTd DataLabel="Status" Style="text-align: center;">
+                <MudChip T="string" Color="@(context.IsActive ? Color.Success : Color.Error)" Size="Size.Small" Variant="Variant.Text">
+                    @(context.IsActive ? "Active" : "Inactive")
+                </MudChip>
+            </MudTd>
+            <MudTd DataLabel="Action" Style="text-align: center;">
+                <MudStack Row="true" Spacing="1" Justify="Justify.Center" AlignItems="AlignItems.Center">
+                    @if (_canUpdate)
+                    {
+                        <MudTooltip Text="Edit">
+                            <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Size="Size.Small" OnClick="@(() => OnEdit(context))" />
+                        </MudTooltip>
+                    }
+                    @if (_canDelete && context.IsEditable)
+                    {
+                        <MudTooltip Text="Delete">
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => OnDelete(context))" />
+                        </MudTooltip>
+                    }
+                </MudStack>
+            </MudTd>
+        </RowTemplate>
+        <PagerContent>
+            <MudTablePager PageSizeOptions="new[] { 10, 25, 50 }" />
+        </PagerContent>
+        <NoRecordsContent>
+            <MudText Class="pa-4">No status records found.</MudText>
+        </NoRecordsContent>
+    </MudTable>
+</MudPaper>
+
+@code {
+    private MudTable<StatusDto>? _table;
+    private string? _search;
+    private bool _canInsert;
+    private bool _canUpdate;
+    private bool _canDelete;
+
+    protected override void OnInitialized()
+    {
+        if (!SessionState.IsLoggedIn)
+        {
+            Navigation.NavigateTo("/login");
+            return;
+        }
+
+        var permissions = SessionState.GetPermissions("/admin/status");
+        _canInsert = permissions.IsInsert;
+        _canUpdate = permissions.IsUpdate;
+        _canDelete = permissions.IsDelete;
+    }
+
+    private async Task<TableData<StatusDto>> LoadServerDataAsync(TableState state, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await ApiClient.GetStatusesAsync(new PagedRequest
+            {
+                CurrentPage = state.Page + 1,
+                RecordPerPage = state.PageSize,
+                SortColumn = state.SortLabel ?? "StatusId",
+                SortType = state.SortDirection == SortDirection.Ascending ? "ASC" : "DESC"
+            }, _search, cancellationToken);
+
+            return new TableData<StatusDto>
+            {
+                TotalItems = result.TotalRecord,
+                Items = result.Items
+            };
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+            return new TableData<StatusDto> { TotalItems = 0, Items = Array.Empty<StatusDto>() };
+        }
+    }
+
+    private async Task SearchAsync()
+    {
+        if (_table is not null) await _table.ReloadServerData();
+    }
+
+    private void OnAdd() => Navigation.NavigateTo("/admin/status/new");
+
+    private void OnEdit(StatusDto status) => Navigation.NavigateTo($"/admin/status/edit/{status.StatusId}");
+
+    private async Task OnDelete(StatusDto status)
+    {
+        var confirmed = await JS.InvokeAsync<bool>("confirm", $"Are you sure you want to delete status: {status.StatusName}?");
+        if (!confirmed) return;
+
+        try
+        {
+            var result = await ApiClient.DeleteStatusAsync(status.StatusId, SessionState.CurrentUser?.LoginName ?? "System");
+            if (result > 0)
+            {
+                Snackbar.Add("Status deleted successfully.", Severity.Success);
+                if (_table is not null) await _table.ReloadServerData();
+            }
+            else
+            {
+                var message = result == -1 ? "Cannot delete Status because it is currently linked to item or vendor records." : "Failed to delete status.";
+                Snackbar.Add(message, Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private string GetStatusOfLabel(int value) => value switch
+    {
+        1 => "Item",
+        2 => "Order",
+        3 => "Production",
+        _ => "General"
+    };
+}

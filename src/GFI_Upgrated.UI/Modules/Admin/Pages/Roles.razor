@@ -1,0 +1,111 @@
+@page "/admin/roles"
+@inject AppSessionState SessionState
+@inject NavigationManager Navigation
+@inject AdminSecurityApiClient ApiClient
+
+<PageTitle>Roles</PageTitle>
+
+<MudGrid>
+    <MudItem xs="12" md="7">
+        <MudPaper Class="pa-4">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+                <MudText Typo="Typo.h5">Roles</MudText>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="NewRole">New Role</MudButton>
+            </MudStack>
+            <MudTextField @bind-Value="_search" Placeholder="Search role name" Variant="Variant.Outlined" Immediate="true" />
+            <MudTable Items="_roles" Dense="true" Hover="true" Class="mt-4">
+                <HeaderContent>
+                    <MudTh>Name</MudTh>
+                    <MudTh>Module</MudTh>
+                    <MudTh>Active</MudTh>
+                    <MudTh></MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="Name">@context.RoleName</MudTd>
+                    <MudTd DataLabel="Module">@context.ModuleName</MudTd>
+                    <MudTd DataLabel="Active">@context.IsActive</MudTd>
+                    <MudTd DataLabel="">
+                        <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="@(() => LoadRoleAsync(context.RoleId))">Edit</MudButton>
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        </MudPaper>
+    </MudItem>
+
+    <MudItem xs="12" md="5">
+        <MudPaper Class="pa-4">
+            <MudText Typo="Typo.h5" Class="mb-4">Role Details</MudText>
+            <MudTextField @bind-Value="_editor.RoleName" Label="Role name" Variant="Variant.Outlined" Class="mb-3" />
+            <MudTextField @bind-Value="_editor.Description" Label="Description" Variant="Variant.Outlined" Lines="3" Class="mb-3" />
+            <MudNumericField @bind-Value="_editor.ModuleId" Label="Module ID" Variant="Variant.Outlined" Class="mb-3" />
+            <MudCheckBox T="bool" @bind-Value="_editor.IsAdmin" Label="Is Admin" />
+            <MudCheckBox T="bool" @bind-Value="_editor.IsActive" Label="Is Active" />
+            <MudStack Row="true" Spacing="2" Class="mt-4">
+                <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SaveAsync">Save</MudButton>
+                <MudButton Variant="Variant.Outlined" OnClick="NewRole">Reset</MudButton>
+            </MudStack>
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+@code {
+    private List<RoleDto> _roles = new();
+    private string? _search;
+    private SaveRoleRequest _editor = new();
+
+    protected override void OnInitialized()
+    {
+        if (!SessionState.IsLoggedIn)
+        {
+            Navigation.NavigateTo("/login");
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        var result = await ApiClient.GetRolesAsync(new PagedRequest { CurrentPage = 1, RecordPerPage = 100 }, _search);
+        _roles = result.Items.ToList();
+    }
+
+    private async Task SaveAsync()
+    {
+        _editor.CreatedBy = "System";
+        _editor.UpdatedBy = "System";
+        await ApiClient.SaveRoleAsync(_editor);
+        await LoadAsync();
+        NewRole();
+    }
+
+    private void NewRole()
+    {
+        _editor = new SaveRoleRequest
+        {
+            IsActive = true
+        };
+    }
+
+    private async Task LoadRoleAsync(long roleId)
+    {
+        var selected = await ApiClient.GetRoleByIdAsync(roleId);
+        if (selected is null)
+        {
+            return;
+        }
+
+        _editor = new SaveRoleRequest
+        {
+            RoleId = selected.RoleId,
+            RoleName = selected.RoleName,
+            Description = selected.Description,
+            IsActive = selected.IsActive,
+            IsAdmin = selected.IsAdmin,
+            ModuleId = selected.ModuleId,
+            SchoolId = selected.SchoolId
+        };
+    }
+}

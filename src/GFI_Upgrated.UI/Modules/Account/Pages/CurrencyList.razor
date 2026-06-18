@@ -1,0 +1,140 @@
+@page "/admin/currency"
+@using GFI_Upgrated.SharedDto.Account
+@using GFI_Upgrated.UI.Services
+@using MudBlazor
+@inject AccountApiClient ApiClient
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject IJSRuntime JS
+
+<PageTitle>Currency Master</PageTitle>
+
+<MudPaper Class="pa-4">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+        <MudStack Spacing="0">
+            <MudText Typo="Typo.h5">Currency Master</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">Manage currencies and exchange configurations</MudText>
+        </MudStack>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OnAddCurrency">
+            Add New
+        </MudButton>
+    </MudStack>
+
+    <MudStack Row="true" AlignItems="AlignItems.End" Spacing="2" Class="mb-4">
+        <MudTextField T="string" ValueChanged="@OnSearch" Label="Search currency" Variant="Variant.Outlined" Immediate="true" Class="flex-grow-1" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" />
+    </MudStack>
+
+    <MudTable RowsPerPage="25" T="CurrencyDto" @ref="_table" ServerData="LoadServerDataAsync" Hover="true" Dense="true" Striped="true" Bordered="true" Breakpoint="Breakpoint.Sm">
+        <HeaderContent>
+            <MudTh><MudTableSortLabel T="CurrencyDto" SortLabel="CurrencyID">ID</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel T="CurrencyDto" SortLabel="CurrencySymbol">Symbol</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel T="CurrencyDto" SortLabel="CurrencyString">String (Code)</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel T="CurrencyDto" SortLabel="CurrencySubString">Sub-String</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel T="CurrencyDto" SortLabel="CreatedDate">Created Date</MudTableSortLabel></MudTh>
+            <MudTh Style="width: 120px; text-align: center;">Action</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="ID">@context.CurrencyID</MudTd>
+            <MudTd DataLabel="Symbol">
+                <MudChip T="string" Variant="Variant.Text" Color="Color.Primary" Size="Size.Small">@context.CurrencySymbol</MudChip>
+            </MudTd>
+            <MudTd DataLabel="String">@context.CurrencyString</MudTd>
+            <MudTd DataLabel="Sub-String">@context.CurrencySubString</MudTd>
+            <MudTd DataLabel="Created Date">@context.CreatedDate.ToString("dd MMM yyyy")</MudTd>
+            <MudTd DataLabel="Action" Style="text-align: center;">
+                <MudStack Row="true" Spacing="1" Justify="Justify.Center" AlignItems="AlignItems.Center">
+                    <MudTooltip Text="Edit">
+                        <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Size="Size.Small" OnClick="@(() => OnEditCurrency(context))" />
+                    </MudTooltip>
+                    <MudTooltip Text="Delete">
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => OnDeleteCurrency(context))" />
+                    </MudTooltip>
+                </MudStack>
+            </MudTd>
+            </RowTemplate>
+        <PagerContent>
+            <MudTablePager PageSizeOptions="new int[] { 10, 25, 50 }" />
+        </PagerContent>
+    </MudTable>
+</MudPaper>
+
+@code {
+    private MudTable<CurrencyDto>? _table;
+    private string? _searchString;
+
+    private async Task<TableData<CurrencyDto>> LoadServerDataAsync(TableState state, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await ApiClient.GetCurrenciesAsync(
+                symbol: _searchString,
+                page: state.Page + 1,
+                pageSize: state.PageSize,
+                sortCol: state.SortLabel ?? "CurrencyID",
+                sortOrd: state.SortDirection == SortDirection.Ascending ? "ASC" : "DESC",
+                cancellationToken: cancellationToken
+            );
+
+            return new TableData<CurrencyDto>
+            {
+                TotalItems = result.TotalRecord,
+                Items = result.Items
+            };
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error loading currencies: {ex.Message}", Severity.Error);
+            return new TableData<CurrencyDto> { TotalItems = 0, Items = Array.Empty<CurrencyDto>() };
+        }
+    }
+
+    private async Task OnSearch(string text)
+    {
+        _searchString = text;
+        if (_table is not null) await _table.ReloadServerData();
+    }
+
+    private async Task OnAddCurrency()
+    {
+        await ShowEditDialog(new CurrencyDto());
+    }
+
+    private async Task OnEditCurrency(CurrencyDto currency)
+    {
+        await ShowEditDialog(currency);
+    }
+
+    private async Task ShowEditDialog(CurrencyDto currency)
+    {
+        var parameters = new DialogParameters { ["Model"] = currency };
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<CurrencyEditDialog>(currency.CurrencyID == 0 ? "Add Currency" : "Edit Currency", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            if (_table is not null) await _table.ReloadServerData();
+        }
+    }
+
+    private async Task OnDeleteCurrency(CurrencyDto currency)
+    {
+        bool confirm = await JS.InvokeAsync<bool>("confirm", "Are you sure you want to delete this currency?");
+        if (confirm)
+        {
+            try
+            {
+                var success = await ApiClient.DeleteCurrenciesAsync(currency.CurrencyID.ToString());
+                if (success)
+                {
+                    Snackbar.Add("Currency deleted successfully.", Severity.Success);
+                    if (_table is not null) await _table.ReloadServerData();
+                }
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Error deleting currency: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+}

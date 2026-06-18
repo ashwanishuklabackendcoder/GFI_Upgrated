@@ -1,0 +1,182 @@
+@page "/admin/users"
+@page "/admin/logins"
+@inject AppSessionState SessionState
+@inject NavigationManager Navigation
+@inject AdminSecurityApiClient ApiClient
+
+<PageTitle>Users</PageTitle>
+
+<MudGrid>
+    <MudItem xs="12" md="7">
+        <MudPaper Class="pa-4">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+                <MudText Typo="Typo.h5">Users</MudText>
+                <AuthorizeAction Action="insert">
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="NewUser">New User</MudButton>
+                </AuthorizeAction>
+            </MudStack>
+            <MudTextField @bind-Value="_search" Placeholder="Search login name" Variant="Variant.Outlined" Immediate="true" />
+            <MudTable Items="_users" Dense="true" Hover="true" Class="mt-4">
+                <HeaderContent>
+                    <MudTh>Login</MudTh>
+                    <MudTh>Name</MudTh>
+                    <MudTh>Active</MudTh>
+                    <MudTh></MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="Login">@context.LoginName</MudTd>
+                    <MudTd DataLabel="Name">@context.FirstName @context.LastName</MudTd>
+                    <MudTd DataLabel="Active">@context.IsActive</MudTd>
+                    <MudTd>
+                        <AuthorizeAction Action="update">
+                            <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary" OnClick="@(() => LoadUserAsync(context.LoginId))">Edit</MudButton>
+                        </AuthorizeAction>
+                        <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Secondary" Href="@($"/admin/user-roles?loginId={context.LoginId}")">Roles</MudButton>
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        </MudPaper>
+    </MudItem>
+
+    <MudItem xs="12" md="5">
+        <MudPaper Class="pa-4">
+            <MudText Typo="Typo.h5" Class="mb-4">User Details</MudText>
+            <MudTextField @bind-Value="_editor.LoginName" Label="Login name" Variant="Variant.Outlined" Class="mb-3" />
+            <MudTextField @bind-Value="_editor.Password" Label="Password" Variant="Variant.Outlined" InputType="InputType.Password" Class="mb-3" />
+            <MudTextField @bind-Value="_editor.ForgotEmail" Label="Email" Variant="Variant.Outlined" Class="mb-3" />
+            <MudSelect T="long" Label="Staff" Variant="Variant.Outlined" @bind-Value="_editor.StaffId" Class="mb-3">
+                <MudSelectItem T="long" Value="0">Select active staff</MudSelectItem>
+                @foreach (var staff in _activeStaff)
+                {
+                    <MudSelectItem T="long" Value="@staff.StaffId">@FormatStaff(staff)</MudSelectItem>
+                }
+            </MudSelect>
+            <MudSelect T="long" Label="Primary Role" Variant="Variant.Outlined" @bind-Value="_editor.RoleId" Class="mb-3">
+                <MudSelectItem T="long" Value="0">Select role</MudSelectItem>
+                @foreach (var role in _roles)
+                {
+                    <MudSelectItem T="long" Value="@role.RoleId">@role.RoleName</MudSelectItem>
+                }
+            </MudSelect>
+            <MudCheckBox T="bool" @bind-Value="_editor.IsActive" Label="Is Active" />
+            <MudStack Row="true" Spacing="2" Class="mt-4">
+                <AuthorizeAction Action="@(_editor.LoginId > 0 ? "update" : "insert")">
+                    <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SaveAsync">Save</MudButton>
+                </AuthorizeAction>
+                <MudButton Variant="Variant.Outlined" OnClick="NewUser">Reset</MudButton>
+            </MudStack>
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+@code {
+    private List<UserDto> _users = new();
+    private List<StaffLookupDto> _activeStaff = new();
+    private List<RoleDto> _roles = new();
+    private string? _search;
+    private SaveUserRequest _editor = new();
+
+    protected override void OnInitialized()
+    {
+        if (!SessionState.IsLoggedIn)
+        {
+            Navigation.NavigateTo("/login");
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+        await LoadActiveStaffAsync();
+        await LoadRolesAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        var result = await ApiClient.GetUsersAsync(new PagedRequest { CurrentPage = 1, RecordPerPage = 100 }, _search);
+        _users = result.Items.ToList();
+    }
+
+    private async Task LoadActiveStaffAsync()
+    {
+        _activeStaff = (await ApiClient.GetActiveStaffAsync()).ToList();
+    }
+
+    private async Task LoadRolesAsync()
+    {
+        var result = await ApiClient.GetRolesAsync(new PagedRequest { CurrentPage = 1, RecordPerPage = 1000 });
+        _roles = result.Items.ToList();
+    }
+
+    private async Task SaveAsync()
+    {
+        _editor.CreatedBy = "System";
+        _editor.UpdatedBy = "System";
+        await ApiClient.SaveUserAsync(_editor);
+        await LoadAsync();
+        NewUser();
+    }
+
+    private void NewUser()
+    {
+        _editor = new SaveUserRequest
+        {
+            IsActive = true
+        };
+    }
+
+    private async Task LoadUserAsync(long loginId)
+    {
+        var selected = await ApiClient.GetUserByIdAsync(loginId);
+        if (selected is null)
+        {
+            return;
+        }
+
+        _editor = new SaveUserRequest
+        {
+            LoginId = selected.LoginId,
+            LoginName = selected.LoginName,
+            Password = selected.Password ?? string.Empty,
+            ForgotEmail = selected.ForgotEmail,
+            StaffId = selected.StaffId,
+            IsActive = selected.IsActive,
+            RoleId = selected.RoleId
+        };
+
+        await EnsureStaffVisibleAsync(selected.StaffId);
+    }
+
+    private async Task EnsureStaffVisibleAsync(long staffId)
+    {
+        if (staffId == 0 || _activeStaff.Any(staff => staff.StaffId == staffId))
+        {
+            return;
+        }
+
+        var staff = await ApiClient.GetStaffByIdAsync(staffId);
+        if (staff is null)
+        {
+            return;
+        }
+
+        _activeStaff.Add(new StaffLookupDto
+        {
+            StaffId = staff.StaffId,
+            StaffName = staff.StaffName,
+            Email = staff.EmailIDOfficial,
+            Status = staff.Status,
+            IsActive = staff.Status == 1
+        });
+    }
+
+    private static string FormatStaff(StaffLookupDto staff)
+    {
+        if (!string.IsNullOrWhiteSpace(staff.Email))
+        {
+            return $"{staff.StaffName} ({staff.Email})";
+        }
+
+        return staff.StaffName;
+    }
+}

@@ -1,0 +1,5 @@
+.main-content {
+    padding: 1.5rem;
+    background: linear-gradient(180deg, rgba(247, 249, 252, 1) 0%, rgba(255, 255, 255, 1) 100%);
+    min-height: 100vh;
+}

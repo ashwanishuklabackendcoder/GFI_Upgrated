@@ -1,0 +1,179 @@
+@page "/admin"
+@inject AppSessionState SessionState
+@inject NavigationManager Navigation
+
+<PageTitle>Dashboard</PageTitle>
+
+<div class="dashboard-page">
+    <section class="dashboard-hero">
+        <h1 class="dashboard-hero-title">Dashboard</h1>
+        <p class="dashboard-hero-subtitle">A professional workspace for managing users, roles, menus, and permissions.</p>
+    </section>
+
+    <section class="dashboard-kpi-grid">
+        <article class="dashboard-kpi-card">
+            <div class="kpi-badge violet">
+                <i class="ti ti-shopping-cart"></i>
+            </div>
+            <div class="kpi-label">Order</div>
+            <div class="kpi-mini">
+                <span style="height: 42%"></span>
+                <span style="height: 58%"></span>
+                <span style="height: 73%"></span>
+                <span style="height: 36%"></span>
+                <span style="height: 64%"></span>
+                <span style="height: 48%"></span>
+                <span style="height: 78%"></span>
+            </div>
+            <div class="d-flex align-items-end justify-content-between">
+                <div class="kpi-value">124k</div>
+                <div class="kpi-growth">+12.6%</div>
+            </div>
+        </article>
+
+        <article class="dashboard-kpi-card">
+            <div class="kpi-badge green">
+                <i class="ti ti-trending-up"></i>
+            </div>
+            <div class="kpi-label">Sales</div>
+            <div class="kpi-mini">
+                <span style="height: 26%"></span>
+                <span style="height: 40%"></span>
+                <span style="height: 22%"></span>
+                <span style="height: 61%"></span>
+                <span style="height: 80%"></span>
+                <span style="height: 68%"></span>
+                <span style="height: 52%"></span>
+            </div>
+            <div class="d-flex align-items-end justify-content-between">
+                <div class="kpi-value">175k</div>
+                <div class="kpi-growth kpi-negative">-16.2%</div>
+            </div>
+        </article>
+
+        <article class="dashboard-kpi-card">
+            <div class="kpi-badge pink">
+                <i class="ti ti-cash"></i>
+            </div>
+            <div class="kpi-label">Total Profit</div>
+            <p class="mb-1 mt-3 text-secondary">Last week</p>
+            <div class="kpi-value mb-3">1.28k</div>
+            <span class="badge rounded-pill" style="background:#ffe7ea;color:#ff5b78;">-12.2%</span>
+        </article>
+
+        <article class="dashboard-kpi-card">
+            <div class="kpi-badge green">
+                <i class="ti ti-cash-banknote"></i>
+            </div>
+            <div class="kpi-label">Total Sales</div>
+            <p class="mb-1 mt-3 text-secondary">Last week</p>
+            <div class="kpi-value mb-3">24.67k</div>
+            <span class="badge rounded-pill" style="background:#e2f7e9;color:#16a34a;">+24.5%</span>
+        </article>
+
+        <article class="dashboard-kpi-card">
+            <div class="d-flex align-items-start justify-content-between gap-3">
+                <div>
+                    <h5 class="mb-1 fw-bold">Revenue Growth</h5>
+                    <div class="kpi-label">Weekly Report</div>
+                </div>
+                <div class="kpi-badge blue mb-0">
+                    <i class="ti ti-chart-bar"></i>
+                </div>
+            </div>
+
+            <div class="d-flex align-items-end justify-content-between mt-4">
+                <div class="kpi-value">$4,673</div>
+                <span class="badge rounded-pill" style="background:#e2f7e9;color:#16a34a;">+15.2%</span>
+            </div>
+
+            <div class="kpi-mini mt-4" style="height: 108px;">
+                <span style="height: 48%; background:rgba(115,103,240,.16)"></span>
+                <span style="height: 66%; background:rgba(115,103,240,.24)"></span>
+                <span style="height: 78%; background:rgba(115,103,240,.34)"></span>
+                <span style="height: 92%; background:rgba(115,103,240,.38)"></span>
+                <span style="height: 100%" class="highlight"></span>
+                <span style="height: 82%; background:rgba(115,103,240,.28)"></span>
+                <span style="height: 54%; background:rgba(115,103,240,.2)"></span>
+            </div>
+
+            <div class="d-flex justify-content-between text-uppercase text-secondary small">
+                <span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span><span>S</span>
+            </div>
+        </article>
+    </section>
+
+    <section class="dashboard-panels">
+        <article class="dashboard-panel">
+            <div class="panel-header">
+                <div>
+                    <h2 class="panel-title">Earning Reports</h2>
+                    <div class="panel-subtitle">Yearly earnings overview</div>
+                </div>
+                <i class="ti ti-dots-vertical"></i>
+            </div>
+
+            <div class="report-tabs">
+                <div class="report-tab active">
+                    <div class="report-tab-icon"><i class="ti ti-shopping-cart"></i></div>
+                    <div>Orders</div>
+                </div>
+                <div class="report-tab">
+                    <div class="report-tab-icon"><i class="ti ti-chart-bar"></i></div>
+                    <div>Sales</div>
+                </div>
+                <div class="report-tab">
+                    <div class="report-tab-icon"><i class="ti ti-cash"></i></div>
+                    <div>Profit</div>
+                </div>
+                <div class="report-tab">
+                    <div class="report-tab-icon"><i class="ti ti-clock"></i></div>
+                    <div>Income</div>
+                </div>
+                <div class="report-tab">
+                    <div class="report-tab-icon"><i class="ti ti-plus"></i></div>
+                    <div></div>
+                </div>
+            </div>
+
+            <div class="report-chart">
+                <div class="report-bar"><span>28k</span><div class="bar" style="height:28%"></div><small class="text-secondary">Jan</small></div>
+                <div class="report-bar"><span>10k</span><div class="bar" style="height:10%"></div><small class="text-secondary">Feb</small></div>
+                <div class="report-bar"><span>45k</span><div class="bar highlight" style="height:45%"></div><small class="text-secondary">Mar</small></div>
+                <div class="report-bar"><span>38k</span><div class="bar" style="height:38%"></div><small class="text-secondary">Apr</small></div>
+                <div class="report-bar"><span>15k</span><div class="bar" style="height:15%"></div><small class="text-secondary">May</small></div>
+                <div class="report-bar"><span>30k</span><div class="bar" style="height:30%"></div><small class="text-secondary">Jun</small></div>
+                <div class="report-bar"><span>35k</span><div class="bar" style="height:35%"></div><small class="text-secondary">Jul</small></div>
+                <div class="report-bar"><span>30k</span><div class="bar" style="height:30%"></div><small class="text-secondary">Aug</small></div>
+            </div>
+        </article>
+
+        <article class="dashboard-panel">
+            <div class="panel-header">
+                <div>
+                    <h2 class="panel-title">Sales</h2>
+                    <div class="panel-subtitle">Last 6 months</div>
+                </div>
+                <i class="ti ti-dots-vertical"></i>
+            </div>
+
+            <div class="report-radar">
+                <div class="radar-graphic"></div>
+                <div class="d-flex gap-4 mt-4">
+                    <span class="d-inline-flex align-items-center gap-2"><span class="rounded-circle d-inline-block" style="width:12px;height:12px;background:#7367f0"></span>Sales</span>
+                    <span class="d-inline-flex align-items-center gap-2"><span class="rounded-circle d-inline-block" style="width:12px;height:12px;background:#00b7ff"></span>Visits</span>
+                </div>
+            </div>
+        </article>
+    </section>
+</div>
+
+@code {
+    protected override void OnInitialized()
+    {
+        if (!SessionState.IsLoggedIn)
+        {
+            Navigation.NavigateTo("/login");
+        }
+    }
+}

@@ -1,0 +1,129 @@
+@page "/login"
+@layout AuthLayout
+@inject AdminSecurityApiClient ApiClient
+@inject AppSessionState SessionState
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+
+<PageTitle>Login - GFI Upgraded</PageTitle>
+
+<div class="row authentication-inner g-0 min-vh-100">
+    <div class="d-none d-lg-flex col-lg-7 p-0 auth-cover-left">
+        <div class="auth-cover-bg auth-cover-bg-color d-flex flex-column justify-content-center align-items-center position-relative w-100">
+            <img src="assets/img/illustrations/auth-login-illustration-light.png"
+                 alt="Login illustration"
+                 class="img-fluid auth-illustration"
+                 data-app-light-img="illustrations/auth-login-illustration-light.png"
+                 data-app-dark-img="illustrations/auth-login-illustration-dark.png" />
+
+            <img src="assets/img/illustrations/bg-shape-image-light.png"
+                 alt="Background shape"
+                 class="platform-bg"
+                 data-app-light-img="illustrations/bg-shape-image-light.png"
+                 data-app-dark-img="illustrations/bg-shape-image-dark.png" />
+        </div>
+    </div>
+
+    <div class="d-flex col-12 col-lg-5 align-items-center justify-content-center p-4 p-sm-5 auth-cover-right">
+        <div class="w-100 auth-form-panel">
+            <div class="mb-4 text-center text-lg-start">
+                <img src="assets/img/branding/logo.png" alt="GFI Traceability System" class="auth-brand-logo mb-4" />
+                <h3 class="mb-2 fw-bold login-title">GFI Traceability System</h3>
+                <p class="mb-0 login-subtitle">Please sign in to your account.</p>
+            </div>
+
+            <div class="card shadow-lg border-0 auth-card">
+                <div class="card-body p-4 p-md-5">
+                    <div id="loginError" class="alert alert-danger @(string.IsNullOrWhiteSpace(_message) ? "d-none" : string.Empty)" role="alert">
+                        @_message
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label" for="txtusername">Username</label>
+                        <input id="txtusername"
+                               class="form-control"
+                               autocomplete="username"
+                               @bind="_model.LoginName"
+                               @bind:event="oninput" />
+                    </div>
+
+                    <div class="mb-3 form-password-toggle">
+                        <div class="d-flex justify-content-between">
+                            <label class="form-label" for="password">Password</label>
+                        </div>
+                        <div class="input-group input-group-merge">
+                            <input id="password"
+                                   type="@_passwordType"
+                                   class="form-control"
+                                   autocomplete="current-password"
+                                   @bind="_model.Password"
+                                   @bind:event="oninput" />
+                            <span class="input-group-text cursor-pointer" @onclick="TogglePasswordVisibility">
+                                <i class="ti @(_showPassword ? "ti-eye" : "ti-eye-off")"></i>
+                            </span>
+                        </div>
+                    </div>
+
+                    <button type="button" class="btn btn-primary d-grid w-100" disabled="@_busy" @onclick="SubmitAsync">
+                        @if (_busy)
+                        {
+                            <span>Signing in...</span>
+                        }
+                        else
+                        {
+                            <span>Sign in</span>
+                        }
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private readonly LoginRequest _model = new();
+    private bool _busy;
+    private string? _message;
+    private bool _showPassword;
+    private string _passwordType => _showPassword ? "text" : "password";
+
+    private void TogglePasswordVisibility()
+    {
+        _showPassword = !_showPassword;
+    }
+
+    private async Task SubmitAsync()
+    {
+        _busy = true;
+        _message = null;
+
+        try
+        {
+            _model.IpAddress = "127.0.0.1";
+            _model.Browser = "Blazor WebAssembly";
+            _model.OperatingSystem = "Windows";
+            _model.ComputerName = "LocalBrowser";
+
+            var result = await ApiClient.LoginAsync(_model);
+            if (result is null)
+            {
+                _message = "Invalid username or password.";
+                return;
+            }
+
+            await SessionState.UpdateUserAsync(JSRuntime, result);
+            
+            // Dynamic redirection based on database-assigned dashboard
+            var target = !string.IsNullOrWhiteSpace(result.DashboardPath) ? result.DashboardPath : "/admin";
+            Navigation.NavigateTo(target);
+        }
+        catch (Exception ex)
+        {
+            _message = ex.Message;
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}

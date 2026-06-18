@@ -1,0 +1,282 @@
+@page "/store/production/new"
+@page "/store/production/edit/{Id:long}"
+@page "/admin/production/new"
+@page "/admin/production/edit/{Id:long}"
+@using GFI_Upgrated.SharedDto.Store
+@using GFI_Upgrated.SharedDto.AdminSecurity
+@using GFI_Upgrated.UI.Services
+@using GFI_Upgrated.UI.State
+@inject StoreApiClient ApiClient
+@inject AdminSecurityApiClient SecurityApiClient
+@inject ISnackbar Snackbar
+@inject NavigationManager NavigationManager
+@inject AppSessionState SessionState
+
+<PageTitle>@(_isEdit ? "Edit Production" : "New Production")</PageTitle>
+
+<MudPaper Class="pa-4">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+        <MudStack Spacing="0">
+            <MudText Typo="Typo.h5">@(_isEdit ? "Edit Production Run" : "New Production Run")</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">Create a manufacturing declarations header, packaging SKU, and warehouse allocation.</MudText>
+        </MudStack>
+        <MudIconButton Icon="@Icons.Material.Filled.Close" OnClick="OnCancel" />
+    </MudStack>
+
+    <EditForm Model="_editor" OnValidSubmit="SaveAsync">
+        <DataAnnotationsValidator />
+        <MudGrid>
+            <!-- BOM Details -->
+            <MudItem xs="12" md="4">
+                <MudSelect T="long" @bind-Value="_editor.BomId" Label="Select BOM" Variant="Variant.Outlined" For="@(() => _editor.BomId)" AnchorOrigin="Origin.BottomCenter" Required="true">
+                    <MudSelectItem Value="0L">-- Select BOM --</MudSelectItem>
+                    @foreach (var bom in _boms)
+                    {
+                        <MudSelectItem Value="@bom.BomId">@bom.BomName</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" md="4">
+                <MudNumericField @bind-Value="_editor.BomQty" Label="BOM Quantity" Variant="Variant.Outlined" For="@(() => _editor.BomQty)" Min="1" />
+            </MudItem>
+            <MudItem xs="12" md="4">
+                <MudSelect T="long" @bind-Value="_editor.SkuId" Label="SKU packaging" Variant="Variant.Outlined" For="@(() => _editor.SkuId)" AnchorOrigin="Origin.BottomCenter">
+                    <MudSelectItem Value="0L">-- Select SKU --</MudSelectItem>
+                    @foreach (var sku in _skus)
+                    {
+                        <MudSelectItem Value="@sku.SkuId">@sku.SkuName</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+
+            <!-- Dates -->
+            <MudItem xs="12" md="4">
+                <MudDatePicker @bind-Date="_editor.CookingDate" Label="Cooking Date" Variant="Variant.Outlined" For="@(() => _editor.CookingDate)" Required="true" />
+            </MudItem>
+            <MudItem xs="12" md="4">
+                <MudDatePicker @bind-Date="_editor.ExpiryDate" Label="Expiry Date" Variant="Variant.Outlined" For="@(() => _editor.ExpiryDate)" />
+            </MudItem>
+            <MudItem xs="12" md="4">
+                <MudDatePicker @bind-Date="_editor.FilledDate" Label="Filled Date" Variant="Variant.Outlined" For="@(() => _editor.FilledDate)" />
+            </MudItem>
+
+            <!-- Kettle Details -->
+            <MudItem xs="12" md="6">
+                <MudSelect T="string" Label="Kettles" MultiSelection="true" @bind-SelectedValues="_selectedKettles" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter">
+                    @foreach (var kettle in _kettles)
+                    {
+                        <MudSelectItem Value="@kettle.KettleId.ToString()">@kettle.KettleNumber</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudNumericField @bind-Value="_editor.KettleRun" Label="Kettle Run" Variant="Variant.Outlined" For="@(() => _editor.KettleRun)" Min="0" />
+            </MudItem>
+
+            <!-- Filling and Batch Info -->
+            <MudItem xs="12" md="4">
+                <MudTextField @bind-Value="_editor.BatchNo" Label="Batch Number" Variant="Variant.Outlined" HelperText="Leave blank for auto-generation" For="@(() => _editor.BatchNo)" />
+            </MudItem>
+            <MudItem xs="12" md="4">
+                <MudNumericField @bind-Value="_editor.FillingBottles" Label="Filling Bottles" Variant="Variant.Outlined" For="@(() => _editor.FillingBottles)" Min="0" />
+            </MudItem>
+            <MudItem xs="12" md="4">
+                <MudSelect T="long" @bind-Value="_editor.FillingPerBottleUnit" Label="Filling Per Bottle Unit" Variant="Variant.Outlined" For="@(() => _editor.FillingPerBottleUnit)" AnchorOrigin="Origin.BottomCenter">
+                    <MudSelectItem Value="0L">-- Select Unit --</MudSelectItem>
+                    @foreach (var unit in _units)
+                    {
+                        <MudSelectItem Value="@unit.UnitId">@unit.UnitName</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+
+            <MudItem xs="12" md="4">
+                <MudNumericField @bind-Value="_editor.ExtraBottles" Label="Extra Bottles" Variant="Variant.Outlined" For="@(() => _editor.ExtraBottles)" Min="0.0" Step="0.1" />
+            </MudItem>
+            <MudItem xs="12" md="4">
+                <MudSelect T="string" @bind-Value="_editor.PackedCountry" Label="Packed Country" Variant="Variant.Outlined" For="@(() => _editor.PackedCountry)" AnchorOrigin="Origin.BottomCenter">
+                    <MudSelectItem Value="@((string?)null)">-- Select Country --</MudSelectItem>
+                    @foreach (var country in _countries)
+                    {
+                        <MudSelectItem Value="@country.CountryId.ToString()">@country.CountryName</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" md="4">
+                <MudSelect T="long" @bind-Value="_editor.WarehouseId" Label="Output Warehouse" Variant="Variant.Outlined" For="@(() => _editor.WarehouseId)" AnchorOrigin="Origin.BottomCenter" Required="true">
+                    <MudSelectItem Value="0L">-- Select Warehouse --</MudSelectItem>
+                    @foreach (var wh in _warehouses)
+                    {
+                        <MudSelectItem Value="@wh.WarehouseId">@wh.WarehouseName</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+
+            <!-- Employees Multi-Select -->
+            <MudItem xs="12" md="6">
+                <MudSelect T="string" Label="Process Employees" MultiSelection="true" @bind-SelectedValues="_selectedEmployees" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter">
+                    @foreach (var staff in _staffList)
+                    {
+                        <MudSelectItem Value="@staff.StaffId.ToString()">@staff.StaffName</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudTextField @bind-Value="_editor.Colli" Label="Colli" Variant="Variant.Outlined" For="@(() => _editor.Colli)" />
+            </MudItem>
+
+            <MudItem xs="12" md="6">
+                <MudTextField @bind-Value="_editor.PalletNumber" Label="Pallet Number" Variant="Variant.Outlined" For="@(() => _editor.PalletNumber)" />
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudTextField @bind-Value="_editor.Remarks" Label="Remarks / Notes" Variant="Variant.Outlined" Lines="2" For="@(() => _editor.Remarks)" />
+            </MudItem>
+
+            <MudItem xs="12" Class="pt-4">
+                <MudStack Row="true" Spacing="2">
+                    <MudButton ButtonType="ButtonType.Submit" Color="Color.Primary" Variant="Variant.Filled" Disabled="_processing">
+                        @(_processing ? "Saving..." : (_isEdit ? "Update Details" : "Create Production & Add Materials"))
+                    </MudButton>
+                    <MudButton Variant="Variant.Outlined" OnClick="OnCancel" Disabled="_processing">Cancel</MudButton>
+                </MudStack>
+            </MudItem>
+        </MudGrid>
+    </EditForm>
+</MudPaper>
+
+@code {
+    [Parameter] public long? Id { get; set; }
+    private bool _isEdit => Id.HasValue && Id.Value > 0;
+    private SaveProductionRequest _editor = new() { CookingDate = DateTime.Today, ExpiryDate = DateTime.Today.AddYears(1) };
+    
+    private List<BomLookupDto> _boms = new();
+    private List<SkuLookupDto> _skus = new();
+    private List<KettleLookupDto> _kettles = new();
+    private List<UnitLookupDto> _units = new();
+    private List<CountryLookupDto> _countries = new();
+    private List<WarehouseLookupDto> _warehouses = new();
+    private List<StaffLookupDto> _staffList = new();
+    
+    private IReadOnlyCollection<string> _selectedEmployees { get; set; } = new HashSet<string>();
+    private IReadOnlyCollection<string> _selectedKettles { get; set; } = new HashSet<string>();
+    private bool _processing;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!SessionState.IsLoggedIn)
+        {
+            NavigationManager.NavigateTo("/login");
+            return;
+        }
+
+        await LoadLookupsAsync();
+
+        if (_isEdit)
+        {
+            var selected = await ApiClient.GetProductionByIdAsync(Id!.Value);
+            if (selected is not null)
+            {
+                _editor.ProductionId = selected.ProductionId;
+                _editor.BomId = selected.BomId;
+                _editor.BomQty = selected.BomQty;
+                _editor.CookingDate = DateTime.TryParse(selected.CookingDate, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var cd) ? cd : DateTime.Today;
+                _editor.ExpiryDate = DateTime.TryParse(selected.ExpiryDate, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var ed) ? ed : DateTime.Today.AddYears(1);
+                _editor.FilledDate = DateTime.TryParse(selected.FilledDate, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var fd) ? fd : null;
+                _editor.PackedCountry = selected.PackedCountry;
+                _editor.Colli = selected.Colli;
+                _editor.PalletNumber = selected.PalletNumber;
+                _editor.KettleId = selected.KettleId;
+                if (!string.IsNullOrWhiteSpace(selected.KettleId))
+                {
+                    _selectedKettles = selected.KettleId.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList();
+                }
+                _editor.KettleRun = selected.KettleRun;
+                _editor.BatchNo = selected.BatchNo;
+                _editor.SkuId = selected.SkuId;
+                _editor.DocumentUpload = selected.DocumentUpload;
+                _editor.FillingBottles = selected.FillingBottles;
+                _editor.FillingPerBottleUnit = selected.FillingPerBottleUnit;
+                _editor.ExtraBottles = selected.ExtraBottles;
+                _editor.WarehouseId = selected.WarehouseId;
+                _editor.Remarks = selected.Remarks;
+                _editor.ProcessEmployees = selected.ProcessEmployees;
+
+                if (!string.IsNullOrWhiteSpace(selected.ProcessEmployees))
+                {
+                    _selectedEmployees = selected.ProcessEmployees.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList();
+                }
+            }
+        }
+    }
+
+    private async Task LoadLookupsAsync()
+    {
+        try
+        {
+            var bomsTask = ApiClient.GetBomsLookupAsync();
+            var skusTask = ApiClient.GetSkusLookupAsync();
+            var kettlesTask = ApiClient.GetKettlesLookupAsync();
+            var unitsTask = ApiClient.GetUnitsLookupAsync();
+            var countriesTask = ApiClient.GetCountriesLookupAsync();
+            var whTask = ApiClient.GetWarehousesLookupAsync();
+            var staffTask = SecurityApiClient.GetActiveStaffAsync();
+
+            await Task.WhenAll(bomsTask, skusTask, kettlesTask, unitsTask, countriesTask, whTask, staffTask);
+
+            _boms = (await bomsTask).Where(b => b.ItemTypeId == (long)MasterItemType.FinishedProduct).ToList();
+            _skus = (await skusTask).ToList();
+            _kettles = (await kettlesTask).ToList();
+            _units = (await unitsTask).ToList();
+            _countries = (await countriesTask).ToList();
+            _warehouses = (await whTask).ToList();
+            _staffList = (await staffTask).ToList();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error loading lookups: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        if (_editor.BomId == 0) { Snackbar.Add("Please select a BOM.", Severity.Warning); return; }
+        if (_editor.WarehouseId == 0) { Snackbar.Add("Please select an Output Warehouse.", Severity.Warning); return; }
+
+        _processing = true;
+        try
+        {
+            _editor.ProcessEmployees = string.Join(",", _selectedEmployees);
+            _editor.KettleId = string.Join(",", _selectedKettles);
+            _editor.UpdatedBy = SessionState.CurrentUser?.LoginName ?? "System";
+
+            var result = await ApiClient.SaveProductionAsync(_editor);
+            if (result > 0)
+            {
+                Snackbar.Add("Production record saved successfully.", Severity.Success);
+                if (!_isEdit)
+                {
+                    // Navigate to Items management if new to fill materials consumed
+                    NavigationManager.NavigateTo($"/store/production/items/{result}");
+                }
+                else
+                {
+                    NavigationManager.NavigateTo("/store/production");
+                }
+            }
+            else
+            {
+                Snackbar.Add("Failed to save production run.", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _processing = false;
+        }
+    }
+
+    private void OnCancel() => NavigationManager.NavigateTo("/store/production");
+}

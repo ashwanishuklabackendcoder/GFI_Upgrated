@@ -1,0 +1,335 @@
+@page "/admin/user-roles"
+@page "/admin/assign-roles"
+@inject AppSessionState SessionState
+@inject NavigationManager Navigation
+@inject AdminSecurityApiClient ApiClient
+@inject IJSRuntime JSRuntime
+
+<PageTitle>User Roles</PageTitle>
+
+<MudPaper Class="pa-4">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+        <div>
+            <MudText Typo="Typo.h5">User Role Assignments</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                Pick a login, assign roles, and choose the default role in one place.
+            </MudText>
+        </div>
+        <MudStack Row="true" Spacing="2">
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="ReloadAsync" Disabled="_busy">Reload</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="@(_busy || _selectedLoginId == 0)">
+                Save Changes
+            </MudButton>
+        </MudStack>
+    </MudStack>
+
+    @if (!string.IsNullOrWhiteSpace(_message))
+    {
+        <MudAlert Severity="@_messageSeverity" Variant="Variant.Filled" Class="mb-4">@_message</MudAlert>
+    }
+
+    <MudGrid Class="mb-4">
+        <MudItem xs="12" md="5">
+            <MudSelect T="long"
+                       Label="Login"
+                       Variant="Variant.Outlined"
+                       Value="_selectedLoginId"
+                       ValueChanged="OnLoginChangedAsync"
+                       Disabled="_busy">
+                @foreach (var user in _users)
+                {
+                    <MudSelectItem T="long" Value="@user.LoginId">@FormatUser(user)</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" md="7">
+            <MudPaper Class="pa-4 user-role-summary" Elevation="0">
+                @if (_selectedUser is null)
+                {
+                    <MudText Typo="Typo.body1">Select a login to load the role assignment grid.</MudText>
+                }
+                else
+                {
+                    <MudText Typo="Typo.subtitle1" Class="fw-semibold">@FormatUser(_selectedUser)</MudText>
+                    <MudText Typo="Typo.body2">Login ID: @_selectedUser.LoginId</MudText>
+                    <MudText Typo="Typo.body2">Staff ID: @_selectedUser.StaffId</MudText>
+                    <MudText Typo="Typo.body2">Status: @(_selectedUser.IsActive ? "Active" : "Inactive")</MudText>
+                }
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    <MudTable Items="_roleRows" Dense="true" Hover="true" Bordered="true" Striped="true">
+        <HeaderContent>
+            <MudTh>Assign</MudTh>
+            <MudTh>Default</MudTh>
+            <MudTh>Role</MudTh>
+            <MudTh>Module</MudTh>
+            <MudTh>Status</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Assign">
+                <MudCheckBox T="bool"
+                             Checked="context.IsAssigned"
+                             CheckedChanged="@((bool value) => OnAssignedChanged(context, value))"
+                             Disabled="_busy" />
+            </MudTd>
+            <MudTd DataLabel="Default">
+                <MudButton Size="Size.Small"
+                           Variant="@(context.RoleId == _defaultRoleId ? Variant.Filled : Variant.Outlined)"
+                           Color="Color.Primary"
+                           Disabled="@(_busy || !context.IsAssigned)"
+                           OnClick="@(() => SetDefaultRole(context.RoleId))">
+                    @(context.RoleId == _defaultRoleId ? "Default" : "Set Default")
+                </MudButton>
+            </MudTd>
+            <MudTd DataLabel="Role">@context.RoleName</MudTd>
+            <MudTd DataLabel="Module">@context.ModuleName</MudTd>
+            <MudTd DataLabel="Status">@context.StatusText</MudTd>
+        </RowTemplate>
+    </MudTable>
+</MudPaper>
+
+@code {
+    private readonly List<UserDto> _users = new();
+    private readonly List<RoleRow> _roleRows = new();
+    private bool _busy;
+    private long _selectedLoginId;
+    private UserDto? _selectedUser;
+    private long _defaultRoleId;
+    private string? _message;
+    private Severity _messageSeverity = Severity.Info;
+
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public long? LoginId { get; set; }
+
+    protected override void OnInitialized()
+    {
+        if (!SessionState.IsLoggedIn)
+        {
+            Navigation.NavigateTo("/login");
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await ReloadAsync();
+    }
+
+    private async Task ReloadAsync()
+    {
+        _busy = true;
+        _message = null;
+
+        try
+        {
+            var usersResult = await ApiClient.GetUsersAsync(new PagedRequest { CurrentPage = 1, RecordPerPage = 500 });
+            _users.Clear();
+            _users.AddRange(usersResult.Items);
+
+            var rolesResult = await ApiClient.GetRolesAsync(new PagedRequest { CurrentPage = 1, RecordPerPage = 500 });
+            var roles = rolesResult.Items.ToList();
+
+            _roleRows.Clear();
+            _roleRows.AddRange(roles.Select(role => new RoleRow
+            {
+                RoleId = role.RoleId,
+                RoleName = role.RoleName,
+                ModuleName = role.ModuleName ?? string.Empty,
+                IsActive = role.IsActive,
+                StatusText = role.IsActive ? "Active" : "Inactive"
+            }));
+
+            if (_users.Count == 0)
+            {
+                _selectedLoginId = 0;
+                _selectedUser = null;
+                _message = "No login records were found.";
+                _messageSeverity = Severity.Warning;
+                return;
+            }
+
+            if (LoginId.HasValue && LoginId.Value > 0 && _users.Any(u => u.LoginId == LoginId.Value))
+            {
+                _selectedLoginId = LoginId.Value;
+            }
+            else if (_selectedLoginId == 0 || !_users.Any(user => user.LoginId == _selectedLoginId))
+            {
+                _selectedLoginId = _users[0].LoginId;
+            }
+
+            await LoadAssignmentsAsync(_selectedLoginId);
+        }
+        catch (Exception ex)
+        {
+            _message = ex.Message;
+            _messageSeverity = Severity.Error;
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task OnLoginChangedAsync(long loginId)
+    {
+        _selectedLoginId = loginId;
+        await LoadAssignmentsAsync(loginId);
+    }
+
+    private async Task LoadAssignmentsAsync(long loginId)
+    {
+        _busy = true;
+
+        try
+        {
+            _selectedUser = _users.FirstOrDefault(user => user.LoginId == loginId);
+            _defaultRoleId = 0;
+
+            var savedRoles = await ApiClient.GetUserRolesAsync(loginId);
+            var assigned = savedRoles.ToDictionary(role => role.RoleId, role => role);
+
+            foreach (var row in _roleRows)
+            {
+                if (assigned.TryGetValue(row.RoleId, out var role))
+                {
+                    row.IsAssigned = true;
+                    row.IsDefault = role.IsDefault;
+                    if (role.IsDefault)
+                    {
+                        _defaultRoleId = row.RoleId;
+                    }
+                }
+                else
+                {
+                    row.IsAssigned = false;
+                    row.IsDefault = false;
+                }
+            }
+
+            if (_defaultRoleId == 0)
+            {
+                _defaultRoleId = _roleRows.FirstOrDefault(row => row.IsAssigned)?.RoleId ?? 0;
+            }
+
+            _message = null;
+        }
+        catch (Exception ex)
+        {
+            _message = ex.Message;
+            _messageSeverity = Severity.Error;
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private void SetDefaultRole(long roleId)
+    {
+        _defaultRoleId = roleId;
+        foreach (var row in _roleRows)
+        {
+            row.IsDefault = row.RoleId == roleId && row.IsAssigned;
+        }
+    }
+
+    private void OnAssignedChanged(RoleRow row, bool isAssigned)
+    {
+        row.IsAssigned = isAssigned;
+        if (!isAssigned)
+        {
+            row.IsDefault = false;
+            if (_defaultRoleId == row.RoleId)
+            {
+                _defaultRoleId = _roleRows.FirstOrDefault(item => item.IsAssigned && item.RoleId != row.RoleId)?.RoleId ?? 0;
+                if (_defaultRoleId != 0)
+                {
+                    SetDefaultRole(_defaultRoleId);
+                }
+            }
+        }
+        else if (_defaultRoleId == 0)
+        {
+            SetDefaultRole(row.RoleId);
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        if (_selectedLoginId == 0)
+        {
+            _message = "Select a login before saving.";
+            _messageSeverity = Severity.Warning;
+            return;
+        }
+
+        var roles = _roleRows
+            .Where(row => row.IsAssigned)
+            .Select(row => new UserRoleAssignmentDto
+            {
+                RoleId = row.RoleId,
+                LoginId = _selectedLoginId,
+                IsDefault = row.RoleId == _defaultRoleId
+            })
+            .ToList();
+
+        if (roles.Count == 0)
+        {
+            _message = "Select at least one role before saving.";
+            _messageSeverity = Severity.Warning;
+            return;
+        }
+
+        _busy = true;
+
+        try
+        {
+            await ApiClient.SaveUserRolesAsync(_selectedLoginId, new SaveUserRolesRequest
+            {
+                LoginId = _selectedLoginId,
+                Roles = roles
+            });
+
+            _message = "User roles saved successfully.";
+            _messageSeverity = Severity.Success;
+
+            // If the updated user is the current user, refresh the local session
+            if (_selectedLoginId == SessionState.CurrentUser?.LoginId)
+            {
+                var refreshResult = await ApiClient.RefreshSessionAsync(SessionState.CurrentUser.LoginId, _defaultRoleId);
+                if (refreshResult != null)
+                {
+                    await SessionState.UpdateUserAsync(JSRuntime, refreshResult);
+                    _message = "Your roles have been updated and your session has been refreshed.";
+                }
+            }
+
+            await LoadAssignmentsAsync(_selectedLoginId);
+        }
+        catch (Exception ex)
+        {
+            _message = ex.Message;
+            _messageSeverity = Severity.Error;
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private static string FormatUser(UserDto user)
+        => string.Join(" ", new[] { user.LoginName, user.FirstName, user.LastName }.Where(value => !string.IsNullOrWhiteSpace(value)));
+
+    private sealed class RoleRow
+    {
+        public long RoleId { get; set; }
+        public string RoleName { get; set; } = string.Empty;
+        public string ModuleName { get; set; } = string.Empty;
+        public bool IsActive { get; set; }
+        public bool IsAssigned { get; set; }
+        public bool IsDefault { get; set; }
+        public string StatusText { get; set; } = string.Empty;
+    }
+}

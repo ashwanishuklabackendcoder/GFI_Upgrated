@@ -1,0 +1,143 @@
+@using GFI_Upgrated.SharedDto.Account
+@using GFI_Upgrated.UI.Services
+@using MudBlazor
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.body1" Class="mb-4">
+            Select the dispatched batches and specify the quantity to return for <b>@Item?.ItemName</b>.
+        </MudText>
+
+        <MudTable Items="_items" Hover="true" Dense="true" Striped="true" Bordered="true" Breakpoint="Breakpoint.Sm">
+            <HeaderContent>
+                <MudTh>Batch Number</MudTh>
+                <MudTh>Dispatched Quantity</MudTh>
+                <MudTh>Already Returned</MudTh>
+                <MudTh Style="width: 150px;">Quantity to Return</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Batch Number">@context.BatchNo</MudTd>
+                <MudTd DataLabel="Dispatched Quantity">@context.Quantity.ToString("N2")</MudTd>
+                <MudTd DataLabel="Already Returned">@context.AlreadyReturned.ToString("N2")</MudTd>
+                <MudTd DataLabel="Quantity to Return">
+                    <MudNumericField @bind-Value="context.ReturnQtyInput" 
+                                     Min="0.0" 
+                                     Max="@(context.Quantity - context.AlreadyReturned)" 
+                                     Step="1.0" 
+                                     Variant="Variant.Outlined" 
+                                     Margin="Margin.Dense" />
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Save" Disabled="_saving">
+            @if (_saving)
+            {
+                <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
+                <MudText Class="ms-2">Saving...</MudText>
+            }
+            else
+            {
+                <MudText>Save Return</MudText>
+            }
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter] public CustomerOrderItemDto Item { get; set; } = default!;
+    [Parameter] public IReadOnlyList<ItemStockUsedForBOMDto> StockUsedList { get; set; } = default!;
+    [Parameter] public DateTime ReturnDate { get; set; }
+    [Parameter] public string ReturnReason { get; set; } = string.Empty;
+    [Parameter] public long OrderID { get; set; }
+    [Parameter] public AccountApiClient ApiClient { get; set; } = default!;
+
+    private List<BatchReturnItemModel> _items = new();
+    private bool _saving;
+
+    protected override void OnInitialized()
+    {
+        if (StockUsedList != null)
+        {
+            _items = StockUsedList.Select(s => new BatchReturnItemModel
+            {
+                ItemStockUsedID = s.ItemStockUsedID,
+                ItemStockByBatchId = s.ItemStockByBatchID,
+                BatchNo = s.BatchNo ?? $"Batch #{s.ItemStockByBatchID}",
+                Quantity = s.Quantity,
+                AlreadyReturned = s.ReturnQty,
+                ReturnQtyInput = 0.0
+            }).ToList();
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task Save()
+    {
+        var returnsToSave = _items.Where(i => i.ReturnQtyInput > 0).ToList();
+        if (returnsToSave.Count == 0)
+        {
+            Snackbar.Add("Please enter return quantity greater than 0 for at least one batch.", Severity.Warning);
+            return;
+        }
+
+        // Validate max allowed returns
+        foreach (var returnItem in returnsToSave)
+        {
+            var maxAllowed = returnItem.Quantity - returnItem.AlreadyReturned;
+            if (returnItem.ReturnQtyInput > maxAllowed)
+            {
+                Snackbar.Add($"Return quantity for batch {returnItem.BatchNo} cannot exceed {maxAllowed:N2}.", Severity.Error);
+                return;
+            }
+        }
+
+        _saving = true;
+        try
+        {
+            foreach (var r in returnsToSave)
+            {
+                var returnDto = new CustomerOrderReturnDto
+                {
+                    OrderReturnID = 0, // 0 for new return
+                    OrderID = OrderID,
+                    OrderDetailsID = Item.OrderItemId,
+                    ItemStockByBatchId = r.ItemStockByBatchId,
+                    ItemStockUsedID = r.ItemStockUsedID,
+                    ReturnDate = ReturnDate,
+                    Quantity = r.ReturnQtyInput,
+                    ReturnReason = ReturnReason,
+                    CreatedBy = "System"
+                };
+
+                await ApiClient.SaveCustomerOrderReturnAsync(returnDto);
+            }
+
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error saving return: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    private class BatchReturnItemModel
+    {
+        public long ItemStockUsedID { get; set; }
+        public long ItemStockByBatchId { get; set; }
+        public string BatchNo { get; set; } = string.Empty;
+        public double Quantity { get; set; }
+        public double AlreadyReturned { get; set; }
+        public double ReturnQtyInput { get; set; }
+    }
+}

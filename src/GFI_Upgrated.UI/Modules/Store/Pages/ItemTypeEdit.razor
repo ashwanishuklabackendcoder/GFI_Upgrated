@@ -1,0 +1,117 @@
+@page "/admin/item-type/new"
+@page "/admin/item-type/edit/{Id:long}"
+@using GFI_Upgrated.SharedDto.Store
+@using GFI_Upgrated.UI.Services
+@using GFI_Upgrated.UI.State
+@inject StoreApiClient ApiClient
+@inject ISnackbar Snackbar
+@inject NavigationManager NavigationManager
+@inject AppSessionState SessionState
+
+<PageTitle>@(_isEdit ? "Edit Item Type" : "Add New Item Type")</PageTitle>
+
+<MudPaper Class="pa-4">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+        <MudStack Spacing="0">
+            <MudText Typo="Typo.h5">@(_isEdit ? "Edit Item Type" : "Add New Item Type")</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">Enter type details below.</MudText>
+        </MudStack>
+        <MudIconButton Icon="@Icons.Material.Filled.Close" OnClick="OnCancel" />
+    </MudStack>
+
+    <EditForm Model="_editor" OnValidSubmit="SaveAsync">
+        <DataAnnotationsValidator />
+        <MudGrid>
+            <MudItem xs="12" md="6">
+                <MudTextField @bind-Value="_editor.ItemTypeName" Label="Type Name" Variant="Variant.Outlined" For="@(() => _editor.ItemTypeName)" />
+            </MudItem>
+            
+            <MudItem xs="12" md="6">
+                <MudSelect T="long?" Label="Parent Type" @bind-Value="_editor.MainTypeId" Variant="Variant.Outlined" Clearable="true" Placeholder="Select Main Type (Optional)" Disabled="_editor.IsMainType">
+                    @foreach (var t in _parents)
+                    {
+                        <MudSelectItem T="long?" Value="@t.ItemTypeId">@t.ItemTypeName</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+
+            <MudItem xs="12" md="4">
+                <MudCheckBox @bind-Value="_editor.IsMainType" Label="Is Main Type?" Color="Color.Primary" />
+            </MudItem>
+
+            <MudItem xs="12" md="4">
+                <MudCheckBox @bind-Value="_editor.IsActive" Label="Active" Color="Color.Success" />
+            </MudItem>
+
+            <MudItem xs="12" Class="pt-4">
+                <MudStack Row="true" Spacing="2">
+                    <MudButton ButtonType="ButtonType.Submit" Color="Color.Primary" Variant="Variant.Filled" Disabled="_processing">@(_processing ? "Saving..." : "Save Type")</MudButton>
+                    <MudButton Variant="Variant.Outlined" OnClick="OnCancel" Disabled="_processing">Cancel</MudButton>
+                </MudStack>
+            </MudItem>
+        </MudGrid>
+    </EditForm>
+</MudPaper>
+
+@code {
+    [Parameter] public long? Id { get; set; }
+    private bool _isEdit => Id.HasValue && Id.Value > 0;
+    private SaveItemTypeRequest _editor = new();
+    private bool _processing;
+    private IReadOnlyList<ParentTypeLookupDto> _parents = Array.Empty<ParentTypeLookupDto>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!SessionState.IsLoggedIn)
+        {
+            NavigationManager.NavigateTo("/login");
+            return;
+        }
+
+        _parents = await ApiClient.GetParentTypesLookupAsync();
+        
+        if (_isEdit)
+        {
+            var selected = await ApiClient.GetItemTypeByIdAsync(Id!.Value);
+            if (selected is not null)
+            {
+                _editor.ItemTypeId = selected.ItemTypeId;
+                _editor.ItemTypeName = selected.ItemTypeName;
+                _editor.IsMainType = selected.IsMainType;
+                _editor.MainTypeId = selected.MainTypeId;
+                _editor.IsActive = selected.IsActive;
+            }
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        _processing = true;
+        try
+        {
+            if (_editor.IsMainType) _editor.MainTypeId = null;
+
+            _editor.UpdatedBy = SessionState.CurrentUser?.LoginName ?? "System";
+            var result = await ApiClient.SaveItemTypeAsync(_editor);
+            if (result > 0)
+            {
+                Snackbar.Add("Item Type saved successfully.", Severity.Success);
+                NavigationManager.NavigateTo("/admin/item-type");
+            }
+            else
+            {
+                Snackbar.Add("Failed to save item type.", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _processing = false;
+        }
+    }
+
+    private void OnCancel() => NavigationManager.NavigateTo("/admin/item-type");
+}

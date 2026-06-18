@@ -1,0 +1,84 @@
+@using GFI_Upgrated.SharedDto.AdminSecurity
+@inject AdminSecurityApiClient ApiClient
+
+<MudDialog>
+    <DialogContent>
+        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-3">
+            <MudText Typo="Typo.h6">@_title</MudText>
+            <MudIconButton Icon="@Icons.Material.Filled.Close" OnClick="Close" />
+        </MudStack>
+
+        <MudForm @ref="_form">
+            <MudTextField @bind-Value="_editor.DisplayText" Label="Display Text" Variant="Variant.Outlined" Required="true" RequiredError="Display text is required." Class="mb-3" />
+            <MudCheckBox T="bool" @bind-Value="_editor.IsActive" Label="Is Active" />
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Outlined" OnClick="Close">Cancel</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SaveAsync" Disabled="_saving">Save</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter]
+    public long DropDownMasterId { get; set; }
+
+    [Parameter]
+    public long ValueId { get; set; }
+
+    private MudForm? _form;
+    private bool _saving;
+    private string _title = "Add Value";
+    private SaveDropDownValueRequest _editor = new()
+    {
+        IsActive = true
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        _editor.DropDownMasterId = DropDownMasterId;
+        if (ValueId > 0)
+        {
+            _title = "Edit Value";
+            var selected = await ApiClient.GetDropDownValueByIdAsync(ValueId);
+            if (selected is not null)
+            {
+                _editor.Id = selected.Id;
+                _editor.DropDownMasterId = selected.DropDownMasterId;
+                _editor.DisplayText = selected.DisplayText;
+                _editor.IsActive = selected.IsActive;
+            }
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        _saving = true;
+        try
+        {
+            if (_form is not null)
+            {
+                await _form.Validate();
+                if (!_form.IsValid)
+                {
+                    return;
+                }
+            }
+
+            var result = await ApiClient.SaveDropDownValueAsync(_editor);
+            if (result > 0)
+            {
+                MudDialog.Close(DialogResult.Ok(true));
+            }
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    private void Close() => MudDialog.Cancel();
+}

@@ -1,0 +1,97 @@
+2026-06-18 12:54:29.231 +05:30 [INF] User profile is available. Using 'C:\Users\Hp\AppData\Local\ASP.NET\DataProtection-Keys' as key repository and Windows DPAPI to encrypt keys at rest.
+2026-06-18 12:54:34.925 +05:30 [ERR] Hosting failed to start
+System.IO.IOException: Failed to bind to address http://127.0.0.1:5122: address already in use.
+ ---> Microsoft.AspNetCore.Connections.AddressInUseException: Only one usage of each socket address (protocol/network address/port) is normally permitted.
+ ---> System.Net.Sockets.SocketException (10048): Only one usage of each socket address (protocol/network address/port) is normally permitted.
+   at System.Net.Sockets.Socket.UpdateStatusAfterSocketErrorAndThrowException(SocketError error, Boolean disconnectOnFailure, String callerName)
+   at System.Net.Sockets.Socket.DoBind(EndPoint endPointSnapshot, SocketAddress socketAddress)
+   at System.Net.Sockets.Socket.Bind(EndPoint localEP)
+   at Microsoft.AspNetCore.Server.Kestrel.Transport.Sockets.SocketTransportOptions.CreateDefaultBoundListenSocket(EndPoint endpoint)
+   at Microsoft.AspNetCore.Server.Kestrel.Transport.Sockets.SocketConnectionListener.Bind()
+   --- End of inner exception stack trace ---
+   at Microsoft.AspNetCore.Server.Kestrel.Transport.Sockets.SocketConnectionListener.Bind()
+   at Microsoft.AspNetCore.Server.Kestrel.Transport.Sockets.SocketTransportFactory.BindAsync(EndPoint endpoint, CancellationToken cancellationToken)
+   at Microsoft.AspNetCore.Server.Kestrel.Core.Internal.Infrastructure.TransportManager.BindAsync(EndPoint endPoint, ConnectionDelegate connectionDelegate, EndpointConfig endpointConfig, CancellationToken cancellationToken)
+   at Microsoft.AspNetCore.Server.Kestrel.Core.KestrelServerImpl.<>c__DisplayClass28_0`1.<<StartAsync>g__OnBind|0>d.MoveNext()
+--- End of stack trace from previous location ---
+   at Microsoft.AspNetCore.Server.Kestrel.Core.Internal.AddressBinder.BindEndpointAsync(ListenOptions endpoint, AddressBindContext context, CancellationToken cancellationToken)
+   --- End of inner exception stack trace ---
+   at Microsoft.AspNetCore.Server.Kestrel.Core.Internal.AddressBinder.BindEndpointAsync(ListenOptions endpoint, AddressBindContext context, CancellationToken cancellationToken)
+   at Microsoft.AspNetCore.Server.Kestrel.Core.LocalhostListenOptions.BindAsync(AddressBindContext context, CancellationToken cancellationToken)
+   at Microsoft.AspNetCore.Server.Kestrel.Core.Internal.AddressBinder.AddressesStrategy.BindAsync(AddressBindContext context, CancellationToken cancellationToken)
+   at Microsoft.AspNetCore.Server.Kestrel.Core.KestrelServerImpl.BindAsync(CancellationToken cancellationToken)
+   at Microsoft.AspNetCore.Server.Kestrel.Core.KestrelServerImpl.StartAsync[TContext](IHttpApplication`1 application, CancellationToken cancellationToken)
+   at Microsoft.AspNetCore.Hosting.GenericWebHostService.StartAsync(CancellationToken cancellationToken)
+   at Microsoft.Extensions.Hosting.Internal.Host.<StartAsync>b__14_1(IHostedService service, CancellationToken token)
+   at Microsoft.Extensions.Hosting.Internal.Host.ForeachService[T](IEnumerable`1 services, CancellationToken token, Boolean concurrent, Boolean abortOnFirstException, List`1 exceptions, Func`3 operation)
+2026-06-18 12:59:23.614 +05:30 [INF] User profile is available. Using 'C:\Users\Hp\AppData\Local\ASP.NET\DataProtection-Keys' as key repository and Windows DPAPI to encrypt keys at rest.
+2026-06-18 12:59:23.860 +05:30 [INF] Now listening on: http://localhost:5122
+2026-06-18 12:59:23.863 +05:30 [INF] Application started. Press Ctrl+C to shut down.
+2026-06-18 12:59:23.864 +05:30 [INF] Hosting environment: Development
+2026-06-18 12:59:23.864 +05:30 [INF] Content root path: d:\GFI\GFI_Upgrated\src\GFI_Upgrated.ServiceApi
+2026-06-18 13:06:21.826 +05:30 [INF] User profile is available. Using 'C:\Users\Hp\AppData\Local\ASP.NET\DataProtection-Keys' as key repository and Windows DPAPI to encrypt keys at rest.
+2026-06-18 13:06:23.205 +05:30 [INF] Now listening on: https://localhost:7162
+2026-06-18 13:06:24.589 +05:30 [INF] Now listening on: http://localhost:5122
+2026-06-18 13:06:24.880 +05:30 [INF] Application started. Press Ctrl+C to shut down.
+2026-06-18 13:06:24.882 +05:30 [INF] Hosting environment: Development
+2026-06-18 13:06:24.883 +05:30 [INF] Content root path: D:\GFI\GFI_Upgrated\src\GFI_Upgrated.ServiceApi
+2026-06-18 13:06:29.086 +05:30 [INF] Request starting HTTP/2 GET https://localhost:7162/swagger/index.html - null null
+2026-06-18 13:06:30.390 +05:30 [INF] HTTP GET /swagger/index.html responded 200 in 258.1984 ms
+2026-06-18 13:06:30.410 +05:30 [INF] Request finished HTTP/2 GET https://localhost:7162/swagger/index.html - 200 null text/html;charset=utf-8 1337.4836ms
+2026-06-18 13:06:30.635 +05:30 [INF] Request starting HTTP/2 GET https://localhost:7162/_framework/aspnetcore-browser-refresh.js - null null
+2026-06-18 13:06:30.689 +05:30 [INF] Request starting HTTP/2 GET https://localhost:7162/swagger/index.js - null null
+2026-06-18 13:06:30.832 +05:30 [INF] HTTP GET /swagger/index.js responded 200 in 1.7085 ms
+2026-06-18 13:06:30.838 +05:30 [INF] Request finished HTTP/2 GET https://localhost:7162/_framework/aspnetcore-browser-refresh.js - 200 16531 application/javascript; charset=utf-8 203.0365ms
+2026-06-18 13:06:30.841 +05:30 [INF] Request finished HTTP/2 GET https://localhost:7162/swagger/index.js - 200 null application/javascript;charset=utf-8 155.498ms
+2026-06-18 13:06:33.409 +05:30 [INF] Request starting HTTP/2 GET https://localhost:7162/_vs/browserLink - null null
+2026-06-18 13:06:33.643 +05:30 [INF] Request finished HTTP/2 GET https://localhost:7162/_vs/browserLink - 200 null text/javascript; charset=UTF-8 233.9034ms
+2026-06-18 13:06:34.078 +05:30 [INF] Request starting HTTP/2 GET https://localhost:7162/swagger/v1/swagger.json - null null
+2026-06-18 13:06:34.793 +05:30 [INF] Request starting HTTP/2 GET https://localhost:7162/swagger/favicon-32x32.png - null null
+2026-06-18 13:06:34.814 +05:30 [INF] The file /favicon-32x32.png was not modified
+2026-06-18 13:06:34.816 +05:30 [INF] HTTP GET /swagger/favicon-32x32.png responded 304 in 11.1079 ms
+2026-06-18 13:06:34.819 +05:30 [INF] Request finished HTTP/2 GET https://localhost:7162/swagger/favicon-32x32.png - 304 null image/png 131.6202ms
+2026-06-18 13:06:34.970 +05:30 [INF] HTTP GET /swagger/v1/swagger.json responded 200 in 167.5010 ms
+2026-06-18 13:06:34.975 +05:30 [INF] Request finished HTTP/2 GET https://localhost:7162/swagger/v1/swagger.json - 200 null application/json;charset=utf-8 897.7284ms
+2026-06-18 13:08:41.624 +05:30 [INF] User profile is available. Using 'C:\Users\Hp\AppData\Local\ASP.NET\DataProtection-Keys' as key repository and Windows DPAPI to encrypt keys at rest.
+2026-06-18 13:08:41.901 +05:30 [INF] Now listening on: http://localhost:5122
+2026-06-18 13:08:41.904 +05:30 [INF] Application started. Press Ctrl+C to shut down.
+2026-06-18 13:08:41.904 +05:30 [INF] Hosting environment: Development
+2026-06-18 13:08:41.904 +05:30 [INF] Content root path: d:\GFI\GFI_Upgrated\src\GFI_Upgrated.ServiceApi
+2026-06-18 13:15:54.337 +05:30 [INF] User profile is available. Using 'C:\Users\Hp\AppData\Local\ASP.NET\DataProtection-Keys' as key repository and Windows DPAPI to encrypt keys at rest.
+2026-06-18 13:15:54.869 +05:30 [INF] Now listening on: https://localhost:7162
+2026-06-18 13:15:54.876 +05:30 [INF] Now listening on: http://localhost:5122
+2026-06-18 13:15:55.670 +05:30 [INF] Application started. Press Ctrl+C to shut down.
+2026-06-18 13:15:55.737 +05:30 [INF] Hosting environment: Development
+2026-06-18 13:15:55.739 +05:30 [INF] Content root path: D:\GFI\GFI_Upgrated\src\GFI_Upgrated.ServiceApi
+2026-06-18 13:16:01.659 +05:30 [INF] Request starting HTTP/2 GET https://localhost:7162/swagger/index.html - null null
+2026-06-18 13:16:02.229 +05:30 [INF] HTTP GET /swagger/index.html responded 200 in 142.4335 ms
+2026-06-18 13:16:02.257 +05:30 [INF] Request finished HTTP/2 GET https://localhost:7162/swagger/index.html - 200 null text/html;charset=utf-8 613.9566ms
+2026-06-18 13:16:02.391 +05:30 [INF] Request starting HTTP/2 GET https://localhost:7162/_framework/aspnetcore-browser-refresh.js - null null
+2026-06-18 13:16:02.640 +05:30 [INF] Request starting HTTP/2 GET https://localhost:7162/swagger/index.js - null null
+2026-06-18 13:16:02.640 +05:30 [INF] Request starting HTTP/2 GET https://localhost:7162/_vs/browserLink - null null
+2026-06-18 13:16:02.710 +05:30 [INF] HTTP GET /swagger/index.js responded 200 in 1.6493 ms
+2026-06-18 13:16:02.725 +05:30 [INF] Request finished HTTP/2 GET https://localhost:7162/_framework/aspnetcore-browser-refresh.js - 200 16531 application/javascript; charset=utf-8 333.4176ms
+2026-06-18 13:16:02.855 +05:30 [INF] Request finished HTTP/2 GET https://localhost:7162/swagger/index.js - 200 null application/javascript;charset=utf-8 314.9712ms
+2026-06-18 13:16:02.929 +05:30 [INF] Request finished HTTP/2 GET https://localhost:7162/_vs/browserLink - 200 null text/javascript; charset=UTF-8 289.1363ms
+2026-06-18 13:16:03.140 +05:30 [INF] Request starting HTTP/2 GET https://localhost:7162/swagger/v1/swagger.json - null null
+2026-06-18 13:16:03.450 +05:30 [INF] HTTP GET /swagger/v1/swagger.json responded 200 in 293.3873 ms
+2026-06-18 13:16:03.454 +05:30 [INF] Request finished HTTP/2 GET https://localhost:7162/swagger/v1/swagger.json - 200 null application/json;charset=utf-8 313.9631ms
+2026-06-18 13:24:12.302 +05:30 [INF] User profile is available. Using 'C:\Users\Hp\AppData\Local\ASP.NET\DataProtection-Keys' as key repository and Windows DPAPI to encrypt keys at rest.
+2026-06-18 13:24:13.023 +05:30 [INF] Now listening on: https://localhost:7162
+2026-06-18 13:24:13.025 +05:30 [INF] Now listening on: http://localhost:5122
+2026-06-18 13:24:14.011 +05:30 [INF] Application started. Press Ctrl+C to shut down.
+2026-06-18 13:24:14.016 +05:30 [INF] Hosting environment: Development
+2026-06-18 13:24:14.019 +05:30 [INF] Content root path: D:\GFI\GFI_Upgrated\src\GFI_Upgrated.ServiceApi
+2026-06-18 13:24:21.834 +05:30 [INF] Request starting HTTP/2 GET https://localhost:7162/swagger/index.html - null null
+2026-06-18 13:24:24.984 +05:30 [INF] HTTP GET /swagger/index.html responded 200 in 1681.3939 ms
+2026-06-18 13:24:24.998 +05:30 [INF] Request finished HTTP/2 GET https://localhost:7162/swagger/index.html - 200 null text/html;charset=utf-8 3235.3878ms
+2026-06-18 13:24:25.059 +05:30 [INF] Request starting HTTP/2 GET https://localhost:7162/_framework/aspnetcore-browser-refresh.js - null null
+2026-06-18 13:24:25.061 +05:30 [INF] Request starting HTTP/2 GET https://localhost:7162/swagger/index.js - null null
+2026-06-18 13:24:25.355 +05:30 [INF] Request starting HTTP/2 GET https://localhost:7162/_vs/browserLink - null null
+2026-06-18 13:24:25.959 +05:30 [INF] HTTP GET /swagger/index.js responded 200 in 32.7457 ms
+2026-06-18 13:24:26.006 +05:30 [INF] Request finished HTTP/2 GET https://localhost:7162/_framework/aspnetcore-browser-refresh.js - 200 16531 application/javascript; charset=utf-8 947.21ms
+2026-06-18 13:24:26.021 +05:30 [INF] Request finished HTTP/2 GET https://localhost:7162/swagger/index.js - 200 null application/javascript;charset=utf-8 960.4263ms
+2026-06-18 13:24:26.469 +05:30 [INF] Request finished HTTP/2 GET https://localhost:7162/_vs/browserLink - 200 null text/javascript; charset=UTF-8 1114.0486ms
+2026-06-18 13:24:26.831 +05:30 [INF] Request starting HTTP/2 GET https://localhost:7162/swagger/v1/swagger.json - null null
+2026-06-18 13:24:28.426 +05:30 [INF] HTTP GET /swagger/v1/swagger.json responded 200 in 330.0291 ms
+2026-06-18 13:24:28.927 +05:30 [INF] Request finished HTTP/2 GET https://localhost:7162/swagger/v1/swagger.json - 200 null application/json;charset=utf-8 2096.0559ms

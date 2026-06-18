@@ -1,0 +1,126 @@
+@page "/admin/units/new"
+@page "/admin/units/edit/{Id:long}"
+@using GFI_Upgrated.SharedDto.Store
+@using GFI_Upgrated.UI.Services
+@using GFI_Upgrated.UI.State
+@inject StoreApiClient ApiClient
+@inject ISnackbar Snackbar
+@inject NavigationManager NavigationManager
+@inject AppSessionState SessionState
+
+<PageTitle>@(_isEdit ? "Edit Unit" : "Add New Unit")</PageTitle>
+
+<MudPaper Class="pa-4">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+        <MudStack Spacing="0">
+            <MudText Typo="Typo.h5">@(_isEdit ? "Edit Unit" : "Add New Unit")</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">Enter unit details below.</MudText>
+        </MudStack>
+        <MudIconButton Icon="@Icons.Material.Filled.Close" OnClick="OnCancel" />
+    </MudStack>
+
+    <EditForm Model="_editor" OnValidSubmit="SaveAsync">
+        <DataAnnotationsValidator />
+        <MudGrid>
+            <MudItem xs="12" md="6">
+                <MudTextField @bind-Value="_editor.UnitName" Label="Unit Name" Variant="Variant.Outlined" For="@(() => _editor.UnitName)" />
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudNumericField @bind-Value="_editor.ConversionValue" Label="Conversion Value"  Variant="Variant.Outlined" For="@(() => _editor.ConversionValue)" HideSpinButtons="true" Min="1" />
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudSelect T="long?" @bind-Value="_editor.BaseUnit" Label="Base Unit" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter" Clearable="true">
+                    <MudSelectItem Value="(long?)null">None</MudSelectItem>
+                    @foreach (var unit in _baseUnits)
+                    {
+                        <MudSelectItem Value="(long?)unit.UnitId">@unit.UnitName</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" md="6" Class="d-flex align-center">
+                <MudCheckBox T="bool" @bind-Value="_editor.IsActive" Label="Is Active" Color="Color.Primary" />
+            </MudItem>
+
+            <MudItem xs="12" Class="pt-4">
+                <MudStack Row="true" Spacing="2">
+                    <MudButton ButtonType="ButtonType.Submit" Color="Color.Primary" Variant="Variant.Filled" Disabled="_processing">@(_processing ? "Saving..." : "Save Unit")</MudButton>
+                    <MudButton Variant="Variant.Outlined" OnClick="OnCancel" Disabled="_processing">Cancel</MudButton>
+                </MudStack>
+            </MudItem>
+        </MudGrid>
+    </EditForm>
+</MudPaper>
+
+@code {
+    [Parameter] public long? Id { get; set; }
+    private bool _isEdit => Id.HasValue && Id.Value > 0;
+    private SaveUnitRequest _editor = new();
+    private List<BaseUnitLookupDto> _baseUnits = new();
+    private bool _processing;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!SessionState.IsLoggedIn)
+        {
+            NavigationManager.NavigateTo("/login");
+            return;
+        }
+
+        await LoadBaseUnitsAsync();
+        
+        if (_isEdit)
+        {
+            var selected = await ApiClient.GetUnitByIdAsync(Id!.Value);
+            if (selected is not null)
+            {
+                _editor.UnitId = selected.UnitId;
+                _editor.UnitName = selected.UnitName;
+                _editor.ConversionValue = selected.ConversionValue;
+                _editor.BaseUnit = selected.BaseUnit;
+                _editor.IsActive = selected.IsActive;
+            }
+        }
+    }
+
+    private async Task LoadBaseUnitsAsync()
+    {
+        try
+        {
+            var result = await ApiClient.GetBaseUnitsLookupAsync();
+            _baseUnits = result.ToList();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error loading base units: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        _processing = true;
+        try
+        {
+            _editor.UpdatedBy = SessionState.CurrentUser?.LoginName ?? "System";
+            var result = await ApiClient.SaveUnitAsync(_editor);
+            if (result > 0)
+            {
+                Snackbar.Add("Unit saved successfully.", Severity.Success);
+                NavigationManager.NavigateTo("/admin/units");
+            }
+            else
+            {
+                Snackbar.Add("Failed to save unit.", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _processing = false;
+        }
+    }
+
+    private void OnCancel() => NavigationManager.NavigateTo("/admin/units");
+}

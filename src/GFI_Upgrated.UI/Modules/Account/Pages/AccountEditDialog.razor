@@ -1,0 +1,109 @@
+@using GFI_Upgrated.SharedDto.Account
+@using GFI_Upgrated.UI.Services
+@using GFI_Upgrated.UI.State
+@using MudBlazor
+@inject AccountApiClient ApiClient
+@inject ISnackbar Snackbar
+@inject AppSessionState SessionState
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="_form" Model="@Model">
+            <MudGrid>
+                <MudItem xs="12" md="6">
+                    <MudStack Spacing="4">
+                        <MudTextField @bind-Value="Model.AccountName" Label="Account Name" Required="true" RequiredError="Account name is required" Variant="Variant.Outlined" />
+                        
+                        <MudSelect T="long" Label="Account Group" @bind-Value="Model.AccountGroupID" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter" Required="true" RequiredError="Account group is required">
+                            <MudSelectItem T="long" Value="0">-- Select Group --</MudSelectItem>
+                            @foreach (var group in _groups)
+                            {
+                                <MudSelectItem T="long" Value="@group.AccountGroupID">@group.AccountGroupName</MudSelectItem>
+                            }
+                        </MudSelect>
+
+                        <MudSelect T="long?" Label="Currency" @bind-Value="Model.CurrencyID" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter">
+                            <MudSelectItem T="long?" Value="null">-- Select Currency --</MudSelectItem>
+                            @foreach (var curr in _currencies)
+                            {
+                                <MudSelectItem T="long?" Value="@curr.CurrencyID">@curr.CurrencySymbol (@curr.CurrencyString)</MudSelectItem>
+                            }
+                        </MudSelect>
+
+                        <MudNumericField @bind-Value="Model.OpeningBalance" Label="Opening Balance" Variant="Variant.Outlined" HideSpinButtons="true" />
+                        <MudDatePicker @bind-Date="Model.OpeningBalanceDate" Label="Balance Date" Variant="Variant.Outlined" />
+                    </MudStack>
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudStack Spacing="4">
+                        <MudTextField @bind-Value="Model.MobileNo" Label="Mobile Number" Variant="Variant.Outlined" />
+                        <MudTextField @bind-Value="Model.ContactNo" Label="Contact Number" Variant="Variant.Outlined" />
+                        <MudTextField @bind-Value="Model.EmailID" Label="Email Address" Variant="Variant.Outlined" InputType="InputType.Email" />
+                        <MudTextField @bind-Value="Model.Address" Label="Address" Variant="Variant.Outlined" Lines="3" />
+                    </MudStack>
+                </MudItem>
+            </MudGrid>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit">Save Account</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public AccountMasterDto Model { get; set; } = new();
+
+    private MudForm _form = default!;
+    private IReadOnlyList<AccountGroupLookupDto> _groups = Array.Empty<AccountGroupLookupDto>();
+    private List<CurrencyDto> _currencies = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _groups = await ApiClient.GetAccountGroupsLookupAsync();
+            var currResult = await ApiClient.GetCurrenciesAsync();
+            _currencies = currResult.Items.ToList();
+            
+            if (Model.AccountID == 0 && Model.OpeningBalanceDate == null)
+            {
+                Model.OpeningBalanceDate = DateTime.Today;
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error loading lookups: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task Submit()
+    {
+        await _form.Validate();
+        if (_form.IsValid)
+        {
+            try
+            {
+                Model.CreatedBy = SessionState.CurrentUser?.LoginName ?? "System";
+                var id = await ApiClient.SaveAccountAsync(Model);
+                if (id > 0)
+                {
+                    Snackbar.Add("Account saved successfully.", Severity.Success);
+                    MudDialog.Close(DialogResult.Ok(id));
+                }
+                else
+                {
+                    Snackbar.Add("Failed to save account.", Severity.Error);
+                }
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Error saving account: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+}

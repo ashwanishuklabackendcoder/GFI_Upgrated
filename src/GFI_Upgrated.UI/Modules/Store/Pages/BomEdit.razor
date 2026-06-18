@@ -1,0 +1,319 @@
+@page "/store/bom/new"
+@page "/store/bom/edit/{Id:long}"
+@using GFI_Upgrated.SharedDto.Store
+@using GFI_Upgrated.UI.Services
+@using GFI_Upgrated.UI.State
+@inject StoreApiClient ApiClient
+@inject ISnackbar Snackbar
+@inject NavigationManager Navigation
+@inject AppSessionState SessionState
+
+<MudPaper Class="pa-4">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+        <MudStack Spacing="0">
+            <MudText Typo="Typo.h5">@(Id == 0 ? "New Bill of Materials (BOM)" : "Edit BOM")</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">Define the recipe and components for your products.</MudText>
+        </MudStack>
+        <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.ArrowBack" OnClick="OnBack">Back to List</MudButton>
+    </MudStack>
+
+    <EditForm Model="_model" OnValidSubmit="SaveBom">
+        <DataAnnotationsValidator />
+        <MudGrid>
+            <!-- Header Section -->
+            <MudItem xs="12">
+                <MudText Typo="Typo.subtitle1" Color="Color.Primary" Class="mb-2">BOM Configuration</MudText>
+                <MudDivider Class="mb-4" />
+            </MudItem>
+
+
+
+            <MudItem xs="12" md="4">
+                <MudTextField @bind-Value="_model.BomName" Label="BOM Name" Required="true" Variant="Variant.Outlined" For="@(() => _model.BomName)" />
+            </MudItem>
+            <MudItem xs="12" md="4">
+                <MudSelect T="MasterItemType?" Label="BOM Target Type" Value="@((MasterItemType?)_model.ItemTypeId)" ValueChanged="OnBomTypeChanged" Variant="Variant.Outlined" Required="true" AnchorOrigin="Origin.BottomCenter">
+                    <MudSelectItem Value="@((MasterItemType?)MasterItemType.FinishedProduct)">Finished Product</MudSelectItem>
+                    <MudSelectItem Value="@((MasterItemType?)MasterItemType.SemiFinished)">Semi-Finished</MudSelectItem>
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" md="4">
+                <MudAutocomplete T="RawMaterialDto" Label="Parent Product" @bind-Value="_selectedParent" SearchFunc="@SearchParentProducts"
+                                 ToStringFunc="@(p => p?.ItemName ?? "")" Variant="Variant.Outlined" Required="true" 
+                                 Placeholder="Search items..." AdornmentIcon="@Icons.Material.Filled.Search" />
+            </MudItem>
+            <MudItem xs="12" md="3">
+                <MudNumericField @bind-Value="_model.Quantity" Label="Yield Quantity" Variant="Variant.Outlined" Min="1" For="@(() => _model.Quantity)" />
+            </MudItem>
+            <MudItem xs="12" md="3">
+                <MudSelect T="long" @bind-Value="_model.UnitId" Label="Yield Unit" Variant="Variant.Outlined" Required="true" AnchorOrigin="Origin.BottomCenter">
+                    <MudSelectItem Value="0L">Select Unit</MudSelectItem>
+                    @foreach (var unit in _units)
+                    {
+                        <MudSelectItem Value="unit.UnitId">@unit.UnitName</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" md="3">
+                <MudNumericField @bind-Value="_model.ExtraExpensesPerPiece" Label="Extra Expenses" Variant="Variant.Outlined" Format="N2" />
+            </MudItem>
+            <MudItem xs="12" md="3" Class="d-flex align-center">
+                <MudCheckBox @bind-Value="_model.IsActive" Label="Is Active" Color="Color.Primary" />
+            </MudItem>
+
+            <!-- Components Section -->
+            <MudItem xs="12" Class="mt-6">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-2">
+                    <MudText Typo="Typo.subtitle1" Color="Color.Primary">Components (BOM Items)</MudText>
+                    <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" Size="Size.Small" OnClick="AddRow">Add Component</MudButton>
+                </MudStack>
+                <MudDivider Class="mb-4" />
+
+                <MudTable Items="_model.Items" Hover="true" Dense="true" Striped="true" Bordered="true" Elevation="0" Context="itemContext">
+                    <HeaderContent>
+                        <MudTh>Component Item</MudTh>
+                        <MudTh Style="width: 150px;">Quantity</MudTh>
+                        <MudTh Style="width: 200px;">Unit</MudTh>
+                        <MudTh Style="text-align: center; width: 80px;">Action</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd DataLabel="Item">
+                            <MudAutocomplete T="RawMaterialDto" Value="@(GetItemById(itemContext.ItemID))" ValueChanged="@((v) => OnComponentChanged(itemContext, v))"
+                                             SearchFunc="@SearchComponents" ToStringFunc="@(i => i?.ItemName ?? "")" 
+                                             Variant="Variant.Text" Dense="true" />
+                        </MudTd>
+                        <MudTd DataLabel="Qty">
+                            <MudNumericField @bind-Value="itemContext.Quantity" Variant="Variant.Text" Min="1" Dense="true" />
+                        </MudTd>
+                        <MudTd DataLabel="Unit">
+                            <MudSelect T="long" @bind-Value="itemContext.UnitId" Variant="Variant.Text" Dense="true">
+                                @foreach (var unit in _units)
+                                {
+                                    <MudSelectItem Value="unit.UnitId">@unit.UnitName</MudSelectItem>
+                                }
+                            </MudSelect>
+                        </MudTd>
+                        <MudTd Style="text-align: center;">
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => RemoveRow(itemContext))" />
+                        </MudTd>
+                    </RowTemplate>
+                </MudTable>
+                @if (!_model.Items.Any())
+                {
+                    <MudAlert Severity="Severity.Info" Class="mt-2">No components added. Click 'Add Component' to start building the recipe.</MudAlert>
+                }
+            </MudItem>
+
+            <MudItem xs="12" Class="d-flex justify-end mt-6 gap-2">
+                <MudButton Variant="Variant.Outlined" OnClick="OnBack">Back to List</MudButton>
+                <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Loading="_saving">Save BOM</MudButton>
+            </MudItem>
+        </MudGrid>
+    </EditForm>
+</MudPaper>
+
+@code {
+    [Parameter] public long Id { get; set; }
+
+    private SaveBomRequest _model = new() { Quantity = 1 };
+    private RawMaterialDto? _selectedParent;
+    private List<UnitDto> _units = new();
+    private List<RawMaterialDto> _allProducts = new();
+    private List<RawMaterialDto> _allComponents = new();
+    private bool _saving;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!SessionState.IsLoggedIn)
+        {
+            Navigation.NavigateTo("/login");
+            return;
+        }
+
+        if (Id > 0)
+        {
+            await LoadData();
+        }
+        else
+        {
+            _model.CreatedBy = SessionState.CurrentUser?.LoginName ?? "System";
+            _model.ItemTypeId = (long)MasterItemType.FinishedProduct; // Default
+        }
+
+        await LoadLookups();
+    }
+
+    private async Task LoadLookups()
+    {
+        try
+        {
+            var units = await ApiClient.GetUnitsAsync(new PagedRequest { CurrentPage = 1, RecordPerPage = 1000 });
+            _units = units.Items.ToList();
+
+            // Load parent products based on the selected BOM type
+            if (_model.ItemTypeId > 0)
+            {
+                _allProducts = (await ApiClient.GetItemsForBomLookupAsync((int)_model.ItemTypeId)).OrderBy(x => x.ItemName).ToList();
+            }
+
+            // Components: Raw Materials (3) or others
+            _allComponents = (await ApiClient.GetItemsForBomLookupAsync(null)).OrderBy(x => x.ItemName).ToList();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error loading data: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task OnBomTypeChanged(MasterItemType? newType)
+    {
+        _model.ItemTypeId = newType.HasValue ? (long)newType.Value : 0;
+        _selectedParent = null;
+        _model.ItemId = 0;
+        if (newType.HasValue)
+        {
+            try
+            {
+                _allProducts = (await ApiClient.GetItemsForBomLookupAsync((int)newType.Value)).OrderBy(x => x.ItemName).ToList();
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Error loading parent items: {ex.Message}", Severity.Error);
+            }
+        }
+        else
+        {
+            _allProducts.Clear();
+        }
+    }
+
+    private async Task LoadData()
+    {
+        try
+        {
+            var bom = await ApiClient.GetBomByIdAsync(Id);
+            if (bom != null)
+            {
+                _model = new SaveBomRequest
+                {
+                    BomId = bom.BomId,
+                    ItemId = bom.ItemId,
+                    BomName = bom.BomName,
+                    Quantity = bom.Quantity,
+                    UnitId = bom.UnitId,
+                    ExtraExpensesPerPiece = bom.ExtraExpensesPerPiece,
+                    IsActive = bom.IsActive,
+                    CreatedBy = bom.CreatedBy,
+                    ItemTypeId = bom.ItemTypeId
+                };
+                
+                var p1 = await ApiClient.GetItemsForBomLookupAsync(1);
+                var p2 = await ApiClient.GetItemsForBomLookupAsync(2);
+                var allPotentialParents = p1.Concat(p2).ToList();
+                _selectedParent = allPotentialParents.FirstOrDefault(p => p.ItemId == bom.ItemId);
+                
+                if (_selectedParent != null)
+                {
+                    _allProducts = (_model.ItemTypeId == 2 ? p2 : p1).OrderBy(x => x.ItemName).ToList();
+                }
+                
+                var items = await ApiClient.GetBomComponentsAsync(Id);
+                _model.Items = items.ToList();
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error loading BOM: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task<IEnumerable<RawMaterialDto>> SearchParentProducts(string value, CancellationToken token)
+    {
+        if (string.IsNullOrEmpty(value)) return _allProducts;
+        return _allProducts.Where(x => x.ItemName?.Contains(value, StringComparison.OrdinalIgnoreCase) == true);
+    }
+
+    private async Task<IEnumerable<RawMaterialDto>> SearchComponents(string value, CancellationToken token)
+    {
+        if (string.IsNullOrEmpty(value)) return _allComponents;
+        return _allComponents.Where(x => x.ItemName?.Contains(value, StringComparison.OrdinalIgnoreCase) == true);
+    }
+
+    private RawMaterialDto? GetItemById(long id) => _allComponents.FirstOrDefault(x => x.ItemId == id);
+
+    private void OnComponentChanged(BomItemDto row, RawMaterialDto? item)
+    {
+        if (item != null)
+        {
+            row.ItemID = item.ItemId;
+            row.ItemName = item.ItemName;
+            // Default to base unit of item if possible, but here we just keep existing or default
+        }
+    }
+
+    private void AddRow()
+    {
+        _model.Items.Add(new BomItemDto { Quantity = 1, UnitId = _units.FirstOrDefault()?.UnitId ?? 0 });
+    }
+
+    private void RemoveRow(BomItemDto row)
+    {
+        _model.Items.Remove(row);
+    }
+
+    private async Task SaveBom()
+    {
+        if (_selectedParent == null)
+        {
+            Snackbar.Add("Please select a parent product.", Severity.Warning);
+            return;
+        }
+
+        // Validate all items have an item selected
+        if (_model.Items.Any(i => i.ItemID == 0))
+        {
+            Snackbar.Add("All components must have an item selected.", Severity.Warning);
+            return;
+        }
+
+        if (!_model.Items.Any())
+        {
+            Snackbar.Add("Please add at least one component.", Severity.Warning);
+            return;
+        }
+
+        _saving = true;
+        try
+        {
+            _model.ItemId = _selectedParent.ItemId;
+            _model.CreatedBy = SessionState.CurrentUser?.LoginName ?? "System";
+            
+            var resultId = await ApiClient.SaveBomAsync(_model);
+            if (resultId > 0)
+            {
+                Snackbar.Add("BOM saved successfully.", Severity.Success);
+                // Navigate to edit page (or reload current edit) so user can verify saved components
+                if (Id == 0)
+                {
+                    Navigation.NavigateTo($"/store/bom/edit/{resultId}");
+                }
+                else
+                {
+                    // Reload data on same page to confirm components
+                    await LoadData();
+                    StateHasChanged();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error saving BOM: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    private void OnBack() => Navigation.NavigateTo("/store/bom");
+}

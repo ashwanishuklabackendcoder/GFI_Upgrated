@@ -1,0 +1,448 @@
+@page "/admin/invoice/new"
+@page "/admin/invoice/edit/{Id:long}"
+@using GFI_Upgrated.SharedDto.Account
+@using GFI_Upgrated.SharedDto.Store
+@using GFI_Upgrated.UI.Services
+@using GFI_Upgrated.UI.State
+@inject AccountApiClient ApiClient
+@inject StoreApiClient StoreApiClient
+@inject ISnackbar Snackbar
+@inject AppSessionState SessionState
+@inject NavigationManager Navigation
+
+<PageTitle>@_title</PageTitle>
+
+<MudPaper Class="pa-4">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+        <MudStack Spacing="0">
+            <MudText Typo="Typo.h5">@_title</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">Enter sales invoice details, exchange rates, and line items below.</MudText>
+        </MudStack>
+        <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.ArrowBack" OnClick="BackToList">Back to List</MudButton>
+    </MudStack>
+
+    <EditForm Model="_invoice" OnValidSubmit="SaveInvoice">
+        <DataAnnotationsValidator />
+        <MudGrid>
+            <MudItem xs="12" md="4">
+                <MudTextField @bind-Value="_invoice.InvoiceNumber" Label="Invoice Number" Required="true" Variant="Variant.Outlined" For="@(() => _invoice.InvoiceNumber)" />
+            </MudItem>
+            <MudItem xs="12" md="4">
+                <MudSelect T="long" Label="Customer" Value="@_invoice.AccountID" ValueChanged="OnCustomerChanged" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter" Required="true">
+                    <MudSelectItem T="long" Value="0">-- Select Customer --</MudSelectItem>
+                    @foreach (var cust in _customers)
+                    {
+                        <MudSelectItem T="long" Value="@((long)cust.AccountId)">@cust.AccountName</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" md="4">
+                <MudCheckBox T="bool?" @bind-Value="_invoice.IsPaid" Label="Mark as Paid" Color="Color.Success" />
+            </MudItem>
+
+            <MudItem xs="12" md="4">
+                <MudDatePicker @bind-Date="_invoice.InvoiceDate" Label="Invoice Date" Required="true" Variant="Variant.Outlined" />
+            </MudItem>
+            <MudItem xs="12" md="4">
+                <MudDatePicker @bind-Date="_invoice.DueDate" Label="Due Date" Required="true" Variant="Variant.Outlined" />
+            </MudItem>
+            <MudItem xs="12" md="4">
+                <MudSelect T="string" Label="Status" @bind-Value="_invoice.InvoiceStatus" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter">
+                    <MudSelectItem Value="@("Draft")">Draft</MudSelectItem>
+                    <MudSelectItem Value="@("Sent")">Sent</MudSelectItem>
+                    <MudSelectItem Value="@("Paid")">Paid</MudSelectItem>
+                    <MudSelectItem Value="@("Overdue")">Overdue</MudSelectItem>
+                </MudSelect>
+            </MudItem>
+
+            <MudItem xs="12" md="4">
+                <MudSelect T="long?" Label="Currency" Value="@_invoice.CurrencyID" ValueChanged="OnCurrencyChanged" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter">
+                    <MudSelectItem T="long?" Value="null">-- Select Currency --</MudSelectItem>
+                    @foreach (var curr in _currencies)
+                    {
+                        <MudSelectItem T="long?" Value="@curr.CurrencyID">@curr.CurrencySymbol (@curr.CurrencyString)</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" md="4">
+                <MudNumericField @bind-Value="_invoice.CurrencyConversion" Label="Exchange Rate (to Base)" HideSpinButtons="true" Variant="Variant.Outlined" />
+            </MudItem>
+            <MudItem xs="12" md="4" Class="d-flex align-center">
+                <MudText Typo="Typo.subtitle1" Style="font-weight: bold;">
+                    Total Due: @(_selectedCurrencySymbol ?? "$") @(CalculateTotalAmount().ToString("N2"))
+                </MudText>
+            </MudItem>
+
+            <MudItem xs="12">
+                <MudTextField @bind-Value="_invoice.Remarks" Label="Remarks / Payment Instructions" Variant="Variant.Outlined" Lines="2" />
+            </MudItem>
+
+            <MudItem xs="12" Class="mt-4">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-2">
+                    <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">Invoice Line Items</MudText>
+                    <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="AddInvoiceItem" Size="Size.Small">
+                        Add Line Item
+                    </MudButton>
+                </MudStack>
+
+                <MudTable Items="@_invoice.Items" Hover="true" Dense="true" Striped="true" Bordered="true" Elevation="0" Class="mb-4">
+                    <HeaderContent>
+                        <MudTh>Item (SKU)</MudTh>
+                        <MudTh>Related Order</MudTh>
+                        <MudTh Style="width: 110px; text-align: center;">Qty</MudTh>
+                        <MudTh Style="width: 140px; text-align: right;">Unit Price</MudTh>
+                        <MudTh Style="width: 140px; text-align: right;">Amount</MudTh>
+                        <MudTh>Print Heading</MudTh>
+                        <MudTh>Batch No.</MudTh>
+                        <MudTh Style="width: 80px; text-align: center;">Action</MudTh>
+                    </HeaderContent>
+                    <RowTemplate Context="row">
+                        <MudTd DataLabel="Item (SKU)">
+                            <MudSelect T="long" Value="@row.ItemId" ValueChanged="@((val) => OnItemChanged(row, val))" Variant="Variant.Outlined" Dense="true" Margin="Margin.Dense" AnchorOrigin="Origin.BottomCenter">
+                                <MudSelectItem T="long" Value="0">-- Select Item --</MudSelectItem>
+                                @foreach (var item in _items)
+                                {
+                                    <MudSelectItem T="long" Value="@item.ItemId">@item.ItemName</MudSelectItem>
+                                }
+                            </MudSelect>
+                        </MudTd>
+                        <MudTd DataLabel="Related Order">
+                            <MudSelect T="long" Value="@row.OrderID" ValueChanged="@((val) => OnOrderChanged(row, val))" Variant="Variant.Outlined" Dense="true" Margin="Margin.Dense" AnchorOrigin="Origin.BottomCenter">
+                                <MudSelectItem T="long" Value="0">-- None --</MudSelectItem>
+                                @foreach (var ord in _orders)
+                                {
+                                    <MudSelectItem T="long" Value="@ord.OrderID">@ord.OrderNo</MudSelectItem>
+                                }
+                            </MudSelect>
+                        </MudTd>
+                        <MudTd DataLabel="Qty" Style="text-align: center;">
+                            <MudNumericField @bind-Value="row.Quantity" Variant="Variant.Outlined" Dense="true" Margin="Margin.Dense" Min="1" Style="text-align: center;" />
+                        </MudTd>
+                        <MudTd DataLabel="Unit Price" Style="text-align: right;">
+                            <MudNumericField @bind-Value="row.UnitPrice" Variant="Variant.Outlined" Dense="true" Margin="Margin.Dense" Min="0.0" HideSpinButtons="true" Style="text-align: right;" />
+                        </MudTd>
+                        <MudTd DataLabel="Amount" Style="text-align: right; font-weight: bold;">
+                            @((row.Quantity * row.UnitPrice).ToString("N2"))
+                        </MudTd>
+                        <MudTd DataLabel="Print Heading">
+                            <MudTextField @bind-Value="row.PrintHeading" Variant="Variant.Outlined" Dense="true" Margin="Margin.Dense" />
+                        </MudTd>
+                        <MudTd DataLabel="Batch No.">
+                            <MudTextField @bind-Value="row.BatchNumber" Variant="Variant.Outlined" Dense="true" Margin="Margin.Dense" />
+                        </MudTd>
+                        <MudTd DataLabel="Action" Style="text-align: center;">
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => RemoveInvoiceItem(row))" />
+                        </MudTd>
+                    </RowTemplate>
+                </MudTable>
+            </MudItem>
+
+            <MudItem xs="12" Class="pt-4">
+                <MudStack Row="true" Spacing="2">
+                    <MudButton ButtonType="ButtonType.Submit" Color="Color.Primary" Variant="Variant.Filled" Disabled="_busy">Save Invoice</MudButton>
+                    @if (Id > 0)
+                    {
+                        <MudButton Variant="Variant.Filled" Color="Color.Info" StartIcon="@Icons.Material.Filled.Print" OnClick="PrintInvoice" Disabled="_busy">Print Invoice</MudButton>
+                    }
+                    <MudButton Variant="Variant.Outlined" OnClick="BackToList" Disabled="_busy">Cancel</MudButton>
+                </MudStack>
+            </MudItem>
+        </MudGrid>
+    </EditForm>
+
+    @if (!string.IsNullOrWhiteSpace(_message))
+    {
+        <MudAlert Severity="Severity.Info" Class="mt-4" ContentAlignment="HorizontalAlignment.Center">@_message</MudAlert>
+    }
+</MudPaper>
+
+@code {
+    [Parameter] public long Id { get; set; }
+
+    private InvoiceDto _invoice = new();
+    private List<AccountLookupDto> _customers = new();
+    private List<CurrencyDto> _currencies = new();
+    private List<RawMaterialDto> _items = new();
+    private List<CustomerOrderDto> _orders = new();
+    private List<long> _deletedItemIds = new();
+    private string? _selectedCurrencySymbol = "$";
+    private bool _busy;
+    private string? _message;
+    private string _title = "Add Sales Invoice";
+
+    protected override void OnInitialized()
+    {
+        if (!SessionState.IsLoggedIn)
+        {
+            Navigation.NavigateTo("/login");
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // Load lookups
+            var custResult = await StoreApiClient.GetAccountsLookupAsync();
+            _customers = custResult.ToList();
+
+            var currResult = await ApiClient.GetCurrenciesAsync(pageSize: 1000);
+            _currencies = currResult.Items.ToList();
+
+            var itemResult = await StoreApiClient.GetItemsForBomLookupAsync(null);
+            _items = itemResult.ToList();
+
+            var orderResult = await ApiClient.GetCustomerOrdersAsync(pageSize: 1000);
+            _orders = orderResult.Items.ToList();
+
+            if (Id > 0)
+            {
+                _customers = custResult.ToList();
+            }
+            else
+            {
+                var completedCustomerIds = _orders
+                    .Where(o => o.SentDate.HasValue)
+                    .Select(o => o.CustomerID)
+                    .Distinct()
+                    .ToList();
+                _customers = custResult.Where(c => completedCustomerIds.Contains(c.AccountId)).ToList();
+            }
+
+            if (Id > 0)
+            {
+                _title = "Edit Sales Invoice";
+                var fetched = await ApiClient.GetInvoiceByIdAsync(Id);
+                if (fetched != null)
+                {
+                    _invoice = fetched;
+                    var c = _currencies.FirstOrDefault(curr => curr.CurrencyID == _invoice.CurrencyID);
+                    _selectedCurrencySymbol = c?.CurrencySymbol ?? "$";
+                }
+                else
+                {
+                    Snackbar.Add("Invoice not found.", Severity.Error);
+                    BackToList();
+                }
+            }
+            else
+            {
+                _invoice = new InvoiceDto
+                {
+                    InvoiceDate = DateTime.Today,
+                    DueDate = DateTime.Today.AddDays(30),
+                    CurrencyConversion = 1.0,
+                    IsPaid = false,
+                    InvoiceStatus = "Draft"
+                };
+            }
+        }
+        catch (Exception ex)
+        {
+            _message = ex.Message;
+        }
+    }
+
+    private void AddInvoiceItem()
+    {
+        _invoice.Items.Add(new InvoiceItemDto
+        {
+            Quantity = 1,
+            UnitPrice = 0.0,
+            Amount = 0.0
+        });
+    }
+
+    private void RemoveInvoiceItem(InvoiceItemDto item)
+    {
+        if (item.InvoiceChildID > 0)
+        {
+            _deletedItemIds.Add(item.InvoiceChildID);
+        }
+        _invoice.Items.Remove(item);
+    }
+
+    private void OnItemChanged(InvoiceItemDto row, long val)
+    {
+        row.ItemId = val;
+        var item = _items.FirstOrDefault(i => i.ItemId == val);
+        if (item != null)
+        {
+            row.ItemName = item.ItemName;
+        }
+    }
+
+    private void OnOrderChanged(InvoiceItemDto row, long val)
+    {
+        row.OrderID = val;
+        var order = _orders.FirstOrDefault(o => o.OrderID == val);
+        if (order != null)
+        {
+            row.OrderNo = order.OrderNo;
+        }
+    }
+
+    private void OnCurrencyChanged(long? val)
+    {
+        _invoice.CurrencyID = val;
+        var c = _currencies.FirstOrDefault(curr => curr.CurrencyID == val);
+        _selectedCurrencySymbol = c?.CurrencySymbol ?? "$";
+    }
+
+    private double CalculateTotalAmount()
+    {
+        double sum = 0;
+        foreach (var item in _invoice.Items)
+        {
+            item.Amount = item.Quantity * item.UnitPrice;
+            sum += item.Amount;
+        }
+        _invoice.TotalAmount = sum;
+        return sum;
+    }
+
+    private async Task SaveInvoice()
+    {
+        if (_invoice.AccountID == 0)
+        {
+            Snackbar.Add("Please select a customer.", Severity.Warning);
+            return;
+        }
+
+        if (!_invoice.Items.Any())
+        {
+            Snackbar.Add("Invoice must contain at least one line item.", Severity.Warning);
+            return;
+        }
+
+        if (_invoice.Items.Any(i => i.ItemId == 0))
+        {
+            Snackbar.Add("All selected products must be valid items.", Severity.Warning);
+            return;
+        }
+
+        _busy = true;
+        _message = null;
+        try
+        {
+            _invoice.CreatedBy = SessionState.CurrentUser?.LoginName ?? "System";
+            _invoice.CreatedDate = DateTime.Now;
+            _invoice.TotalAmount = CalculateTotalAmount();
+
+            if (_invoice.IsPaid == true || _invoice.InvoiceStatus == "Paid")
+            {
+                _invoice.IsPaid = true;
+                _invoice.InvoiceStatus = "Paid";
+            }
+            else
+            {
+                _invoice.IsPaid = false;
+            }
+
+            // 1. Save main invoice
+            var invoiceId = await ApiClient.SaveInvoiceAsync(_invoice);
+            if (invoiceId > 0)
+            {
+                // 2. Handle deleted items
+                if (_deletedItemIds.Any())
+                {
+                    var idString = string.Join(",", _deletedItemIds);
+                    await ApiClient.DeleteInvoiceItemAsync(idString);
+                }
+
+                // 3. Save each item
+                foreach (var item in _invoice.Items)
+                {
+                    item.InvoiceID = invoiceId;
+                    item.Amount = item.Quantity * item.UnitPrice;
+                    await ApiClient.SaveInvoiceItemAsync(item);
+                }
+
+                Snackbar.Add("Invoice saved successfully.", Severity.Success);
+                BackToList();
+            }
+            else
+            {
+                _message = "Failed to save invoice.";
+            }
+        }
+        catch (Exception ex)
+        {
+            _message = ex.Message;
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private void BackToList()
+    {
+        Navigation.NavigateTo("/admin/invoice");
+    }
+
+    private void PrintInvoice()
+    {
+        Navigation.NavigateTo($"/admin/invoice/print/{Id}");
+    }
+
+    private async Task OnCustomerChanged(long customerId)
+    {
+        _invoice.AccountID = customerId;
+        
+        if (Id == 0 && customerId > 0)
+        {
+            _invoice.Items.Clear();
+            
+            // Get all completed orders of this customer
+            var customerOrders = _orders
+                .Where(o => o.CustomerID == customerId && o.SentDate.HasValue)
+                .ToList();
+                
+            foreach (var order in customerOrders)
+            {
+                // Fetch the full order details including items
+                var fullOrder = await ApiClient.GetCustomerOrderByIdAsync(order.OrderID);
+                if (fullOrder != null && fullOrder.Items != null)
+                {
+                    foreach (var orderItem in fullOrder.Items)
+                    {
+                        double unitPrice = 0.0;
+                        
+                        // Fetch dispatched stock batches for this order item
+                        string batchNumbersStr = "";
+                        try
+                        {
+                            var stockUsedList = await ApiClient.GetItemStockUsedForBOMByOrderDetailIdAsync(orderItem.OrderItemId);
+                            if (stockUsedList != null)
+                            {
+                                batchNumbersStr = string.Join(", ", stockUsedList
+                                    .Where(su => !string.IsNullOrEmpty(su.BatchNo))
+                                    .Select(su => su.BatchNo)
+                                    .Distinct());
+                            }
+                        }
+                        catch (Exception)
+                        {
+                            // Fallback silently if stock fetch fails
+                        }
+
+                        _invoice.Items.Add(new InvoiceItemDto
+                        {
+                            ItemId = orderItem.ItemId,
+                            ItemName = orderItem.ItemName,
+                            Quantity = orderItem.Qty,
+                            OrderID = order.OrderID,
+                            OrderNo = order.OrderNo,
+                            UnitPrice = unitPrice,
+                            Amount = orderItem.Qty * unitPrice,
+                            BatchNumber = batchNumbersStr
+                        });
+                    }
+                }
+            }
+            
+            StateHasChanged();
+        }
+    }
+}

@@ -1,0 +1,119 @@
+@page "/store/purchase-return"
+
+@using GFI_Upgrated.SharedDto.Purchase
+@using GFI_Upgrated.UI.Services
+@using GFI_Upgrated.UI.State
+@inject StoreApiClient ApiClient
+@inject ISnackbar Snackbar
+@inject NavigationManager Navigation
+@inject AppSessionState SessionState
+@inject IJSRuntime JS
+
+<PageTitle>Purchase Returns</PageTitle>
+
+<MudPaper Class="pa-4">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+        <MudText Typo="Typo.h5">Purchase Returns</MudText>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.AssignmentReturn" OnClick="OnAddNew" Disabled="!_canInsert">
+            Create Return
+        </MudButton>
+    </MudStack>
+
+    <MudTable RowsPerPage="25" T="PurchaseReturnDto" @ref="_table" ServerData="LoadServerDataAsync" Hover="true" Dense="true" Striped="true" Bordered="true" Loading="_loading">
+        <HeaderContent>
+            <MudTh><MudTableSortLabel SortLabel="ReturnDate" T="PurchaseReturnDto">Date</MudTableSortLabel></MudTh>
+            <MudTh>Item</MudTh>
+            <MudTh>Batch #</MudTh>
+            <MudTh>Quantity</MudTh>
+            <MudTh>Vendor</MudTh>
+            <MudTh>Reason</MudTh>
+            <MudTh Style="text-align: center; width: 80px;">Action</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Date">@context.ReturnDate?.ToString("dd/MM/yyyy")</MudTd>
+            <MudTd DataLabel="Item">@context.ItemName</MudTd>
+            <MudTd DataLabel="Batch #">@context.BatchNo</MudTd>
+            <MudTd DataLabel="Quantity">@context.Quantity</MudTd>
+            <MudTd DataLabel="Vendor">@context.VendorName</MudTd>
+            <MudTd DataLabel="Reason">@context.ReasonName</MudTd>
+            <MudTd DataLabel="Action" Style="text-align: center;">
+                <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => OnDelete(context))" Disabled="!_canDelete" />
+            </MudTd>
+        </RowTemplate>
+        <PagerContent>
+            <MudTablePager />
+        </PagerContent>
+    </MudTable>
+</MudPaper>
+
+@code {
+    private MudTable<PurchaseReturnDto>? _table;
+    private bool _loading;
+    private bool _canInsert;
+    private bool _canDelete;
+
+    protected override void OnInitialized()
+    {
+        if (!SessionState.IsLoggedIn)
+        {
+            Navigation.NavigateTo("/login");
+            return;
+        }
+
+        var path = "admin/purchase-return";
+        var perms = SessionState.GetPermissions(path);
+        
+        if (SessionState.IsAdmin)
+        {
+            _canInsert = _canDelete = true;
+        }
+        else
+        {
+            _canInsert = perms.IsInsert;
+            _canDelete = perms.IsDelete;
+        }
+    }
+
+    private async Task<TableData<PurchaseReturnDto>> LoadServerDataAsync(TableState state, CancellationToken cancellationToken)
+    {
+        _loading = true;
+        try
+        {
+            var result = await ApiClient.GetPurchaseReturnsAsync(null, null, state.Page + 1, state.PageSize, cancellationToken);
+            return new TableData<PurchaseReturnDto> { TotalItems = result.TotalRecord, Items = result.Items };
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+            return new TableData<PurchaseReturnDto> { Items = Array.Empty<PurchaseReturnDto>(), TotalItems = 0 };
+        }
+        finally { _loading = false; }
+    }
+
+    private void OnAddNew() => Navigation.NavigateTo("/store/purchase-return/new");
+
+    private async Task OnDelete(PurchaseReturnDto item)
+    {
+        var confirmed = await JS.InvokeAsync<bool>("confirm", $"Are you sure you want to delete purchase return for item: {item.ItemName}?");
+        if (!confirmed) return;
+
+        try
+        {
+            var user = SessionState.CurrentUser?.LoginName ?? "System";
+            var success = await ApiClient.DeletePurchaseReturnsAsync(item.PurchaseReturnID.ToString(), user);
+            if (success)
+            {
+                Snackbar.Add("Purchase return deleted successfully.", Severity.Success);
+                if (_table is not null) await _table.ReloadServerData();
+            }
+            else
+            {
+                Snackbar.Add("Failed to delete purchase return.", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+        }
+    }
+}

@@ -1,0 +1,180 @@
+@page "/admin/invoice"
+@page "/admin/invoices"
+@using GFI_Upgrated.SharedDto.Account
+@using GFI_Upgrated.UI.Services
+@using GFI_Upgrated.UI.State
+@inject AccountApiClient ApiClient
+@inject NavigationManager Navigation
+@inject AppSessionState SessionState
+@inject IJSRuntime JS
+@inject ISnackbar Snackbar
+
+<PageTitle>Sales Invoices</PageTitle>
+
+<MudPaper Class="pa-4">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+        <MudStack Spacing="0">
+            <MudText Typo="Typo.h5">Sales Invoices</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">Manage customer sales invoices, amounts, and payment statuses.</MudText>
+        </MudStack>
+        @if (_canInsert)
+        {
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="NewInvoice">
+                Add New
+            </MudButton>
+        }
+    </MudStack>
+
+    <MudStack Row="true" AlignItems="AlignItems.End" Spacing="2" Class="mb-4">
+        <MudTextField @bind-Value="_search" Label="Search invoices" Variant="Variant.Outlined" Immediate="true" Class="flex-grow-1" />
+        <MudButton Variant="Variant.Outlined" OnClick="SearchAsync">Search</MudButton>
+    </MudStack>
+
+    <MudTable RowsPerPage="25" T="InvoiceDto" @ref="_table" ServerData="LoadServerDataAsync" Hover="true" Dense="true" Striped="true" Bordered="true" Breakpoint="Breakpoint.Sm">
+        <HeaderContent>
+            <MudTh><MudTableSortLabel T="InvoiceDto" SortLabel="InvoiceNumber">Invoice Number</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel T="InvoiceDto" SortLabel="AccountName">Customer / Account</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel T="InvoiceDto" SortLabel="InvoiceDate">Invoice Date</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel T="InvoiceDto" SortLabel="DueDate">Due Date</MudTableSortLabel></MudTh>
+            <MudTh Style="text-align: right;"><MudTableSortLabel T="InvoiceDto" SortLabel="TotalAmount">Total Amount</MudTableSortLabel></MudTh>
+            <MudTh Style="text-align: center;"><MudTableSortLabel T="InvoiceDto" SortLabel="IsPaid">Status</MudTableSortLabel></MudTh>
+            <MudTh Style="width: 120px; text-align: center;">Action</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Invoice Number">@context.InvoiceNumber</MudTd>
+            <MudTd DataLabel="Customer / Account">@context.AccountName</MudTd>
+            <MudTd DataLabel="Invoice Date">@context.InvoiceDate?.ToString("dd MMM yyyy")</MudTd>
+            <MudTd DataLabel="Due Date">@context.DueDate?.ToString("dd MMM yyyy")</MudTd>
+            <MudTd DataLabel="Total Amount" Style="text-align: right; font-weight: bold;">
+                @context.CurrencySymbol @(context.TotalAmount.ToString("N2"))
+            </MudTd>
+            <MudTd DataLabel="Status" Style="text-align: center;">
+                <MudChip T="string" Color="@(context.IsPaid == true || context.InvoiceStatus == "Paid" ? Color.Success : Color.Warning)" Size="Size.Small" Variant="Variant.Text">
+                    @(context.IsPaid == true || context.InvoiceStatus == "Paid" ? "Paid" : "Unpaid")
+                </MudChip>
+            </MudTd>
+            <MudTd DataLabel="Action" Style="text-align: center;">
+                <MudStack Row="true" Spacing="1" Justify="Justify.Center" AlignItems="AlignItems.Center">
+                    @if (_canUpdate)
+                    {
+                        <MudTooltip Text="Edit">
+                            <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Size="Size.Small" OnClick="@(() => OnEdit(context))" />
+                        </MudTooltip>
+                    }
+                    <MudTooltip Text="Print Invoice">
+                        <MudIconButton Icon="@Icons.Material.Filled.Print" Color="Color.Info" Size="Size.Small" OnClick="@(() => OnPrint(context))" />
+                    </MudTooltip>
+                    @if (_canDelete)
+                    {
+                        <MudTooltip Text="Delete">
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => OnDelete(context))" />
+                        </MudTooltip>
+                    }
+                </MudStack>
+            </MudTd>
+        </RowTemplate>
+        <PagerContent>
+            <MudTablePager PageSizeOptions="new[] { 10, 25, 50 }" />
+        </PagerContent>
+        <NoRecordsContent>
+            <MudText Class="pa-4">No invoice records found.</MudText>
+        </NoRecordsContent>
+    </MudTable>
+</MudPaper>
+
+@code {
+    private MudTable<InvoiceDto>? _table;
+    private string? _search;
+    
+    private bool _canInsert;
+    private bool _canUpdate;
+    private bool _canDelete;
+
+    protected override void OnInitialized()
+    {
+        if (!SessionState.IsLoggedIn)
+        {
+            Navigation.NavigateTo("/login");
+            return;
+        }
+
+        var path = Navigation.ToBaseRelativePath(Navigation.Uri).Split('?')[0];
+        _canInsert = SessionState.HasPermission(path, "insert");
+        _canUpdate = SessionState.HasPermission(path, "update");
+        _canDelete = SessionState.HasPermission(path, "delete");
+    }
+
+    private async Task<TableData<InvoiceDto>> LoadServerDataAsync(TableState state, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await ApiClient.GetInvoicesAsync(
+                page: state.Page + 1,
+                pageSize: state.PageSize,
+                invoiceNumber: _search
+            );
+    
+            return new TableData<InvoiceDto>
+            {
+                TotalItems = result.TotalRecord,
+                Items = result.Items
+            };
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("console.error", $"LoadServerDataAsync Error: {ex.Message}");
+            return new TableData<InvoiceDto>
+            {
+                TotalItems = 0,
+                Items = Array.Empty<InvoiceDto>()
+            };
+        }
+    }
+
+    private async Task SearchAsync()
+    {
+        if (_table is not null)
+        {
+            await _table.ReloadServerData();
+        }
+    }
+
+    private void NewInvoice()
+    {
+        Navigation.NavigateTo("/admin/invoice/new");
+    }
+
+    private void OnEdit(InvoiceDto invoice)
+    {
+        Navigation.NavigateTo($"/admin/invoice/edit/{invoice.InvoiceID}");
+    }
+
+    private void OnPrint(InvoiceDto invoice)
+    {
+        Navigation.NavigateTo($"/admin/invoice/print/{invoice.InvoiceID}");
+    }
+
+    private async Task OnDelete(InvoiceDto invoice)
+    {
+        var confirmed = await JS.InvokeAsync<bool>("confirm", $"Are you sure you want to delete invoice: {invoice.InvoiceNumber}?");
+        if (!confirmed) return;
+
+        try
+        {
+            var success = await ApiClient.DeleteInvoicesAsync(invoice.InvoiceID.ToString());
+            if (success)
+            {
+                Snackbar.Add("Invoice deleted successfully.", Severity.Success);
+                if (_table is not null) await _table.ReloadServerData();
+            }
+            else
+            {
+                Snackbar.Add("Failed to delete invoice.", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+        }
+    }
+}

@@ -1,0 +1,148 @@
+@page "/admin/drop-down-editor"
+@inject AppSessionState SessionState
+@inject NavigationManager Navigation
+@inject AdminSecurityApiClient ApiClient
+@inject IJSRuntime JS
+
+<PageTitle>Drop Down Editor</PageTitle>
+
+<MudPaper Class="pa-4">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+        <MudText Typo="Typo.h5">Drop Down Editor</MudText>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="ExportAsync">Export</MudButton>
+    </MudStack>
+
+    <MudStack Row="true" AlignItems="AlignItems.End" Spacing="2" Class="mb-4">
+        <MudTextField @bind-Value="_search" Placeholder="Search display text" Variant="Variant.Outlined" Immediate="true" Class="flex-grow-1" />
+        <MudButton Variant="Variant.Outlined" OnClick="SearchAsync">Search</MudButton>
+    </MudStack>
+
+    <MudTable RowsPerPage="25" T="DropDownMasterDto" @ref="_table" ServerData="LoadServerDataAsync" Hover="true" Dense="true" Striped="true" Bordered="true">
+        <HeaderContent>
+            <MudTh Style="width:48px;">
+                <MudCheckBox T="bool" Value="@(_selection.Count > 0 && _selection.Count == _loadedItems.Count)" ValueChanged="ToggleAll" />
+            </MudTh>
+            <MudTh><MudTableSortLabel T="DropDownMasterDto" SortLabel="DisplayText">Display Text</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel T="DropDownMasterDto" SortLabel="ValuesCount">Number of Values</MudTableSortLabel></MudTh>
+            <MudTh Style="width:70px;"></MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Select">
+                <MudCheckBox T="bool" Checked="@_selection.Contains(context.Id)" CheckedChanged="@((bool value) => ToggleSelection(context.Id, value))" />
+            </MudTd>
+            <MudTd DataLabel="Display Text">@context.DisplayText</MudTd>
+            <MudTd DataLabel="Number of Values">@context.ValuesCount</MudTd>
+            <MudTd DataLabel="">
+                <MudIconButton Icon="@Icons.Material.Filled.Add" Color="Color.Primary" OnClick="@(() => OpenValuesAsync(context.Id))" />
+            </MudTd>
+        </RowTemplate>
+        <PagerContent>
+            <MudTablePager PageSizeOptions="new[] { 10, 25, 50 }" />
+        </PagerContent>
+        <NoRecordsContent>
+            <MudText Class="pa-4">No dropdown masters found.</MudText>
+        </NoRecordsContent>
+    </MudTable>
+</MudPaper>
+
+@code {
+    private MudTable<DropDownMasterDto>? _table;
+    private readonly List<DropDownMasterDto> _loadedItems = new();
+    private readonly HashSet<long> _selection = new();
+    private string? _search;
+
+    protected override void OnInitialized()
+    {
+        if (!SessionState.IsLoggedIn)
+        {
+            Navigation.NavigateTo("/login");
+        }
+    }
+
+    private async Task<TableData<DropDownMasterDto>> LoadServerDataAsync(TableState state, CancellationToken cancellationToken)
+    {
+        var result = await ApiClient.GetDropDownMastersAsync(new PagedRequest
+        {
+            CurrentPage = state.Page + 1,
+            RecordPerPage = state.PageSize,
+            SortColumn = string.IsNullOrWhiteSpace(state.SortLabel) ? "DisplayText" : state.SortLabel,
+            SortType = state.SortDirection == SortDirection.Ascending ? "ASC" : "DESC"
+        }, _search, cancellationToken);
+
+        _loadedItems.Clear();
+        _loadedItems.AddRange(result.Items);
+        _selection.RemoveWhere(id => !_loadedItems.Any(item => item.Id == id));
+
+        return new TableData<DropDownMasterDto>
+        {
+            TotalItems = result.TotalRecord,
+            Items = result.Items
+        };
+    }
+
+    private async Task SearchAsync()
+    {
+        if (_table is not null)
+        {
+            await _table.ReloadServerData();
+        }
+    }
+
+    private async Task ExportAsync()
+    {
+        var result = await ApiClient.GetDropDownMastersAsync(new PagedRequest
+        {
+            CurrentPage = 1,
+            RecordPerPage = 5000,
+            SortColumn = "DisplayText",
+            SortType = "ASC"
+        }, _search);
+
+        var csv = new StringBuilder();
+        csv.AppendLine("Display Text,Number of Values,Is Active");
+        foreach (var item in result.Items)
+        {
+            csv.AppendLine(ToCsvLine(item));
+        }
+
+        await JS.InvokeVoidAsync("gfiDownloadTextFile", $"dropdown-masters-{DateTime.Now:yyyyMMddHHmmss}.csv", csv.ToString(), "text/csv;charset=utf-8");
+    }
+
+    private async Task OpenValuesAsync(long masterId)
+    {
+        Navigation.NavigateTo($"/admin/drop-down-values/{masterId}");
+        await Task.CompletedTask;
+    }
+
+    private void ToggleSelection(long id, bool value)
+    {
+        if (value)
+        {
+            _selection.Add(id);
+        }
+        else
+        {
+            _selection.Remove(id);
+        }
+    }
+
+    private Task ToggleAll(bool value)
+    {
+        _selection.Clear();
+        if (value)
+        {
+            foreach (var item in _loadedItems)
+            {
+                _selection.Add(item.Id);
+            }
+        }
+
+        return Task.CompletedTask;
+    }
+
+    private static string EscapeCsv(string value)
+        => "\"" + value.Replace("\"", "\"\"") + "\"";
+
+    private static string ToCsvLine(DropDownMasterDto item)
+        => string.Join(",", EscapeCsv(item.DisplayText), item.ValuesCount.ToString(), item.IsActive ? "Yes" : "No");
+}

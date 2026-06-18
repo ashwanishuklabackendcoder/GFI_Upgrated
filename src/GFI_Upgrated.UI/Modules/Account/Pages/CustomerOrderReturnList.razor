@@ -1,0 +1,389 @@
+@page "/acc/customerorderreturnlist"
+@using GFI_Upgrated.SharedDto.Account
+@using GFI_Upgrated.UI.Services
+@using GFI_Upgrated.UI.State
+@inject AccountApiClient ApiClient
+@inject StoreApiClient StoreApiClient
+@inject NavigationManager Navigation
+@inject AppSessionState SessionState
+@inject IJSRuntime JS
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
+<PageTitle>Customer Order Returns</PageTitle>
+
+@if (!_isAdding)
+{
+    <MudPaper Class="pa-4">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+            <MudStack Spacing="0">
+                <MudText Typo="Typo.h5">Customer Order Returns</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">Manage customer returns and inventory restoration.</MudText>
+            </MudStack>
+            @if (_canInsert)
+            {
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="ShowAddView">
+                    Add Return
+                </MudButton>
+            }
+        </MudStack>
+
+        <MudStack Row="true" AlignItems="AlignItems.End" Spacing="2" Class="mb-4">
+            <MudTextField @bind-Value="_search" Label="Search returns" Variant="Variant.Outlined" Immediate="true" Class="flex-grow-1" />
+            <MudButton Variant="Variant.Outlined" OnClick="SearchAsync">Search</MudButton>
+        </MudStack>
+
+        <MudTable RowsPerPage="25" T="CustomerOrderReturnDto" @ref="_table" ServerData="LoadServerDataAsync" Hover="true" Dense="true" Striped="true" Bordered="true" Breakpoint="Breakpoint.Sm">
+            <HeaderContent>
+                <MudTh><MudTableSortLabel T="CustomerOrderReturnDto" SortLabel="ReturnDate">Return Date</MudTableSortLabel></MudTh>
+                <MudTh><MudTableSortLabel T="CustomerOrderReturnDto" SortLabel="AccountName">Customer / Account</MudTableSortLabel></MudTh>
+                <MudTh><MudTableSortLabel T="CustomerOrderReturnDto" SortLabel="ItemName">Item Name</MudTableSortLabel></MudTh>
+                <MudTh><MudTableSortLabel T="CustomerOrderReturnDto" SortLabel="BatchNo">Batch Number</MudTableSortLabel></MudTh>
+                <MudTh><MudTableSortLabel T="CustomerOrderReturnDto" SortLabel="Quantity">Quantity Returned</MudTableSortLabel></MudTh>
+                <MudTh>Return Reason</MudTh>
+                <MudTh Style="width: 80px; text-align: center;">Action</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Return Date">@context.ReturnDate?.ToString("dd MMM yyyy")</MudTd>
+                <MudTd DataLabel="Customer / Account">@context.AccountName</MudTd>
+                <MudTd DataLabel="Item Name">@context.ItemName</MudTd>
+                <MudTd DataLabel="Batch Number">@context.BatchNo</MudTd>
+                <MudTd DataLabel="Quantity Returned">@context.Quantity.ToString("N2")</MudTd>
+                <MudTd DataLabel="Return Reason">@context.ReturnReason</MudTd>
+                <MudTd DataLabel="Action" Style="text-align: center;">
+                    @if (_canDelete)
+                    {
+                        <MudTooltip Text="Delete">
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => OnDelete(context))" />
+                        </MudTooltip>
+                    }
+                </MudTd>
+            </RowTemplate>
+            <PagerContent>
+                <MudTablePager PageSizeOptions="new[] { 10, 25, 50 }" />
+            </PagerContent>
+            <NoRecordsContent>
+                <MudText Class="pa-4">No return records found.</MudText>
+            </NoRecordsContent>
+        </MudTable>
+    </MudPaper>
+}
+else
+{
+    <MudPaper Class="pa-4">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+            <MudStack Spacing="0">
+                <MudText Typo="Typo.h5">Create Customer Order Return</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">Record dispatched items returned by customers.</MudText>
+            </MudStack>
+            <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.ArrowBack" OnClick="HideAddView">
+                Back to List
+            </MudButton>
+        </MudStack>
+
+        <MudGrid Class="mb-4">
+            <MudItem xs="12" md="6">
+                <MudAutocomplete T="AccountLookupDto" Label="Select Customer" SearchFunc="SearchCustomers"
+                                 Value="_selectedCustomer" ValueChanged="OnCustomerChanged"
+                                 ToStringFunc="@(c => c?.AccountName ?? "")" Required="true" Variant="Variant.Outlined" />
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudSelect T="CustomerOrderDto" Label="Select Customer Order" Value="_selectedOrder" ValueChanged="OnOrderChanged" Required="true" Variant="Variant.Outlined" Disabled="@(_selectedCustomer == null)">
+                    @foreach (var order in _customerOrders)
+                    {
+                        <MudSelectItem Value="order">@order.OrderNo</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudTextField Label="Order Date" Value="@(_selectedOrder?.OrderDate?.ToString("dd MMM yyyy") ?? "")" ReadOnly="true" Variant="Variant.Outlined" />
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudTextField Label="Sent Date" Value="@(_selectedOrder?.SentDate?.ToString("dd MMM yyyy") ?? "")" ReadOnly="true" Variant="Variant.Outlined" />
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudDatePicker Label="Return Date" @bind-Date="_returnDate" Required="true" Variant="Variant.Outlined" />
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudTextField Label="Return Reason" @bind-Value="_returnReason" Lines="2" Required="true" Variant="Variant.Outlined" />
+            </MudItem>
+        </MudGrid>
+
+        @if (_selectedOrder != null)
+        {
+            <MudText Typo="Typo.h6" Class="mb-2">Order Items Details</MudText>
+            <MudTable RowsPerPage="25" Items="_orderDetails.Items" Hover="true" Dense="true" Striped="true" Bordered="true" Breakpoint="Breakpoint.Sm">
+                <HeaderContent>
+                    <MudTh>Item Name</MudTh>
+                    <MudTh>Ordered Quantity</MudTh>
+                    <MudTh>Remarks</MudTh>
+                    <MudTh Style="width: 120px; text-align: center;">Status</MudTh>
+                    <MudTh Style="width: 120px; text-align: center;">Action</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="Item Name">@context.ItemName</MudTd>
+                    <MudTd DataLabel="Ordered Quantity">@context.Qty</MudTd>
+                    <MudTd DataLabel="Remarks">@context.Remarks</MudTd>
+                    <MudTd DataLabel="Status" Style="text-align: center;">
+                        @if (context.IsComplete == true)
+                        {
+                            <MudChip T="string" Color="Color.Success" Size="Size.Small">Completed</MudChip>
+                        }
+                        else
+                        {
+                            <MudChip T="string" Color="Color.Warning" Size="Size.Small">Incomplete</MudChip>
+                        }
+                    </MudTd>
+                    <MudTd DataLabel="Action" Style="text-align: center;">
+                        @if (context.IsComplete == true)
+                        {
+                            <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small" OnClick="@(() => OpenBatchReturnDialog(context))">
+                                Return Item
+                            </MudButton>
+                        }
+                        else
+                        {
+                            <MudText Color="Color.Error" Typo="Typo.caption">Cannot Return</MudText>
+                        }
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        }
+    </MudPaper>
+}
+
+@code {
+    private MudTable<CustomerOrderReturnDto>? _table;
+    private string? _search;
+    
+    private bool _canInsert;
+    private bool _canDelete;
+    private bool _isAdding;
+
+    // Form fields
+    private AccountLookupDto? _selectedCustomer;
+    private CustomerOrderDto? _selectedOrder;
+    private DateTime? _returnDate = DateTime.Today;
+    private string? _returnReason;
+    
+    private List<AccountLookupDto> _customers = new();
+    private IReadOnlyList<CustomerOrderDto> _customerOrders = Array.Empty<CustomerOrderDto>();
+    private CustomerOrderDto _orderDetails = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!SessionState.IsLoggedIn)
+        {
+            Navigation.NavigateTo("/login");
+            return;
+        }
+
+        var path = Navigation.ToBaseRelativePath(Navigation.Uri).Split('?')[0];
+        _canInsert = SessionState.HasPermission(path, "insert");
+        _canDelete = SessionState.HasPermission(path, "delete");
+
+        // Preload all accounts to match Customer Order Edit screen
+        try
+        {
+            var lookupResult = await StoreApiClient.GetAccountsLookupAsync();
+            _customers = lookupResult.ToList();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error loading customers: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task<TableData<CustomerOrderReturnDto>> LoadServerDataAsync(TableState state, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await ApiClient.GetCustomerOrderReturnsAsync(
+                page: state.Page + 1,
+                pageSize: state.PageSize,
+                cancellationToken: cancellationToken
+            );
+
+            // Filter if search criteria exists
+            var items = result.Items;
+            if (!string.IsNullOrEmpty(_search))
+            {
+                items = items.Where(i => 
+                    (i.AccountName?.Contains(_search, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                    (i.ItemName?.Contains(_search, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                    (i.BatchNo?.Contains(_search, StringComparison.OrdinalIgnoreCase) ?? false) ||
+                    (i.ReturnReason?.Contains(_search, StringComparison.OrdinalIgnoreCase) ?? false)
+                ).ToList();
+            }
+
+            return new TableData<CustomerOrderReturnDto>
+            {
+                TotalItems = items.Count,
+                Items = items
+            };
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("console.error", $"LoadServerDataAsync Error: {ex.Message}");
+            return new TableData<CustomerOrderReturnDto>
+            {
+                TotalItems = 0,
+                Items = Array.Empty<CustomerOrderReturnDto>()
+            };
+        }
+    }
+
+    private async Task SearchAsync()
+    {
+        if (_table is not null)
+        {
+            await _table.ReloadServerData();
+        }
+    }
+
+    private void ShowAddView()
+    {
+        _isAdding = true;
+        _selectedCustomer = null;
+        _selectedOrder = null;
+        _returnDate = DateTime.Today;
+        _returnReason = null;
+        _customerOrders = Array.Empty<CustomerOrderDto>();
+        _orderDetails = new();
+    }
+
+    private void HideAddView()
+    {
+        _isAdding = false;
+    }
+
+    private async Task<IEnumerable<AccountLookupDto>> SearchCustomers(string text, CancellationToken token)
+    {
+        if (string.IsNullOrEmpty(text))
+            return _customers;
+        return _customers.Where(c => c.AccountName.Contains(text, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private async Task OnCustomerChanged(AccountLookupDto customer)
+    {
+        _selectedCustomer = customer;
+        _selectedOrder = null;
+        _orderDetails = new();
+        _customerOrders = Array.Empty<CustomerOrderDto>();
+
+        if (customer != null)
+        {
+            try
+            {
+                _customerOrders = await ApiClient.GetCustomerOrdersByCustomerIdAsync((long)customer.AccountId);
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Error loading customer orders: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+
+    private async Task OnOrderChanged(CustomerOrderDto order)
+    {
+        _selectedOrder = order;
+        _orderDetails = new();
+
+        if (order != null)
+        {
+            try
+            {
+                var fullOrder = await ApiClient.GetCustomerOrderByIdAsync(order.OrderID);
+                if (fullOrder != null)
+                {
+                    _orderDetails = fullOrder;
+                }
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Error loading order details: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+
+    private async Task OpenBatchReturnDialog(CustomerOrderItemDto item)
+    {
+        if (_returnDate == null)
+        {
+            Snackbar.Add("Please select a Return Date first.", Severity.Warning);
+            return;
+        }
+
+        if (string.IsNullOrEmpty(_returnReason))
+        {
+            Snackbar.Add("Please enter a Return Reason first.", Severity.Warning);
+            return;
+        }
+
+        // Load used stocks/batches for this order detail row
+        IReadOnlyList<ItemStockUsedForBOMDto> stockUsedList;
+        try
+        {
+            stockUsedList = await ApiClient.GetItemStockUsedForBOMByOrderDetailIdAsync(item.OrderItemId);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error loading batches: {ex.Message}", Severity.Error);
+            return;
+        }
+
+        if (stockUsedList.Count == 0)
+        {
+            Snackbar.Add("No dispatched batches found for this item.", Severity.Warning);
+            return;
+        }
+
+        var parameters = new DialogParameters
+        {
+            { "Item", item },
+            { "StockUsedList", stockUsedList },
+            { "ReturnDate", _returnDate.Value },
+            { "ReturnReason", _returnReason },
+            { "OrderID", _selectedOrder!.OrderID },
+            { "ApiClient", ApiClient }
+        };
+
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Medium, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<BatchReturnDialog>($"Return Batches for: {item.ItemName}", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            Snackbar.Add("Item returns successfully recorded.", Severity.Success);
+            // Refresh order details to update status if needed
+            if (_selectedOrder != null)
+            {
+                await OnOrderChanged(_selectedOrder);
+            }
+        }
+    }
+
+    private async Task OnDelete(CustomerOrderReturnDto returnDto)
+    {
+        var confirmed = await JS.InvokeAsync<bool>("confirm", $"Are you sure you want to delete return for {returnDto.ItemName}?");
+        if (!confirmed) return;
+
+        try
+        {
+            var success = await ApiClient.DeleteCustomerOrderReturnsAsync(returnDto.OrderReturnID.ToString());
+            if (success)
+            {
+                Snackbar.Add("Return record deleted and inventory restored successfully.", Severity.Success);
+                if (_table is not null) await _table.ReloadServerData();
+            }
+            else
+            {
+                Snackbar.Add("Failed to delete return.", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+        }
+    }
+}

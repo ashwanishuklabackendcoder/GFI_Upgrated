@@ -1,0 +1,127 @@
+@inject AppSessionState SessionState
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+@implements IDisposable
+
+<div class="sidebar-shell">
+    <a class="sidebar-brand" href="/">
+        <span class="sidebar-brand-mark">
+            <img src="assets/img/branding/brand-img-small.png" alt="GFI" />
+        </span>
+        <span class="sidebar-brand-text">GFI Upgraded</span>
+    </a>
+
+@*     <div class="sidebar-label">
+        Apps & Pages (@(SessionState.CurrentUser?.Menus?.Count ?? 0))
+        @if (SessionState.CurrentUser != null)
+        {
+            <div class="mt-1" style="font-size: 0.65rem; color: #888;">
+                <div class="d-flex justify-content-between">
+                    <span>Role:</span> <strong>@SessionState.CurrentUser.RoleId (@SessionState.CurrentUser.RoleName)</strong>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <span>DB IsAdmin:</span> <strong>@SessionState.CurrentUser.IsAdmin</strong>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <span>Menus:</span> <strong>@SessionState.CurrentUser.Menus.Count</strong>
+                </div>
+            </div>
+        }
+    </div> *@
+
+    <nav class="sidebar-nav">
+        @if (SessionState.CurrentUser?.Menus != null)
+        {
+            @foreach (var group in SessionState.CurrentUser.Menus.Where(m => m.ShowInMenu).OrderBy(m => m.SequenceNo))
+            {
+                var validChildren = group.SubMenus
+                    .Where(s => s.IsView && s.ShowInMenu && !string.IsNullOrWhiteSpace(s.PagePath))
+                    .OrderBy(s => s.SequenceNo)
+                    .ToList();
+
+                if (group.IsView && !string.IsNullOrWhiteSpace(group.PagePath) && group.PagePath != "#")
+                {
+                    var parentPath = SessionState.GetHardmappedRoute(group.PagePath, group.PageHeading);
+                    if (!validChildren.Any(c => SessionState.GetHardmappedRoute(c.PagePath, c.PageHeading) == parentPath))
+                    {
+                        validChildren.Insert(0, new GFI_Upgrated.SharedDto.AdminSecurity.MenuDto 
+                        { 
+                            PageHeading = group.PageHeading, 
+                            DisplayName = group.DisplayName,
+                            IconClass = group.IconClass,
+                            PagePath = group.PagePath, 
+                            IsView = true 
+                        });
+                    }
+                }
+
+                if (validChildren.Count == 0) continue;
+
+                var groupTitle = !string.IsNullOrWhiteSpace(group.DisplayName) ? group.DisplayName : CleanLabel(group.PageHeading);
+                var groupId = $"nav-{group.LinkId}";
+                var groupIcon = !string.IsNullOrWhiteSpace(group.IconClass) ? group.IconClass : "ti ti-category";
+
+                <div class="sidebar-group">
+                    <button class="sidebar-link sidebar-group-toggle" type="button" @onclick="() => ToggleGroup(groupId)">
+                        <i class="@groupIcon"></i>
+                        <span>@groupTitle</span>
+                        <i class="ti ti-chevron-down sidebar-group-chevron @(IsExpanded(groupId) ? "is-open" : string.Empty)"></i>
+                    </button>
+                    <div class="sidebar-group-items @(IsExpanded(groupId) ? "is-open" : string.Empty)">
+                        @foreach (var item in validChildren)
+                        {
+                            var itemTitle = !string.IsNullOrWhiteSpace(item.DisplayName) ? item.DisplayName : CleanLabel(item.PageHeading);
+                            var itemIcon = !string.IsNullOrWhiteSpace(item.IconClass) ? item.IconClass : "ti ti-point";
+                            var itemHref = SessionState.GetHardmappedRoute(item.PagePath, item.PageHeading);
+                            var match = itemHref == "/admin" ? NavLinkMatch.All : NavLinkMatch.Prefix;
+
+                            <NavLink class="sidebar-link sidebar-sub-link" href="@itemHref" Match="@match">
+                                <i class="@itemIcon"></i>
+                                <span>@itemTitle</span>
+                            </NavLink>
+                        }
+                    </div>
+                </div>
+            }
+        }
+    </nav>
+</div>
+
+@code {
+    private readonly HashSet<string> _expandedGroups = new(StringComparer.OrdinalIgnoreCase);
+
+    protected override void OnInitialized()
+    {
+        SessionState.OnChange += StateHasChanged;
+        
+        if (SessionState.CurrentUser?.Menus != null)
+        {
+            var currentPath = "/" + Navigation.ToBaseRelativePath(Navigation.Uri).Trim('/').ToLower();
+            foreach (var group in SessionState.CurrentUser.Menus)
+            {
+                var groupHref = SessionState.GetHardmappedRoute(group.PagePath, group.PageHeading).Trim('/').ToLower();
+                if (groupHref == currentPath || group.SubMenus.Any(s => SessionState.GetHardmappedRoute(s.PagePath, s.PageHeading).Trim('/').ToLower() == currentPath))
+                {
+                    _expandedGroups.Add($"nav-{group.LinkId}");
+                }
+            }
+        }
+    }
+
+    private void ToggleGroup(string groupId)
+    {
+        if (!_expandedGroups.Add(groupId)) _expandedGroups.Remove(groupId);
+    }
+
+    private bool IsExpanded(string groupId) => _expandedGroups.Contains(groupId);
+
+    private string CleanLabel(string? label)
+    {
+        if (string.IsNullOrWhiteSpace(label)) return "";
+        var clean = label.TrimStart('_').Trim();
+        // Add spaces before capital letters if not already spaced
+        return System.Text.RegularExpressions.Regex.Replace(clean, "([a-z])([A-Z])", "$1 $2");
+    }
+
+    public void Dispose() => SessionState.OnChange -= StateHasChanged;
+}

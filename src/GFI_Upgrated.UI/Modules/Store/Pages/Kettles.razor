@@ -1,0 +1,150 @@
+@page "/admin/kettle"
+@page "/store/w_masterkettlelist"
+@page "/store/kettle"
+@page "/admin/w_masterkettlelist"
+
+@using GFI_Upgrated.SharedDto.Store
+@using GFI_Upgrated.UI.Services
+@using GFI_Upgrated.UI.State
+@inject StoreApiClient ApiClient
+@inject ISnackbar Snackbar
+@inject IJSRuntime JS
+@inject NavigationManager Navigation
+@inject AppSessionState SessionState
+
+<PageTitle>Kettles</PageTitle>
+
+<MudPaper Class="pa-4">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+        <MudStack Spacing="0">
+            <MudText Typo="Typo.h5">Kettles</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">Manage kettles used in production processes.</MudText>
+        </MudStack>
+        @if (_canInsert)
+        {
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OnAdd">
+                Add New
+            </MudButton>
+        }
+    </MudStack>
+
+    <MudStack Row="true" AlignItems="AlignItems.End" Spacing="2" Class="mb-4">
+        <MudTextField @bind-Value="_search" Label="Search kettles" Variant="Variant.Outlined" Immediate="true" Clearable="true" OnClearButtonClick="SearchAsync" Class="flex-grow-1" />
+        <MudButton Variant="Variant.Outlined" OnClick="SearchAsync">Search</MudButton>
+    </MudStack>
+
+    <MudTable RowsPerPage="25" T="KettleDto" @ref="_table" ServerData="LoadServerDataAsync" Hover="true" Dense="true" Striped="true" Bordered="true" Breakpoint="Breakpoint.Sm">
+        <HeaderContent>
+            <MudTh><MudTableSortLabel T="KettleDto" SortLabel="KettleNumber">Kettle Number</MudTableSortLabel></MudTh>
+            <MudTh>Remarks</MudTh>
+            <MudTh Style="width: 120px; text-align: center;">Action</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Kettle Number">@context.KettleNumber</MudTd>
+            <MudTd DataLabel="Remarks">@(context.Remarks ?? "-")</MudTd>
+            <MudTd DataLabel="Action" Style="text-align: center;">
+                <MudStack Row="true" Spacing="1" Justify="Justify.Center" AlignItems="AlignItems.Center">
+                    @if (_canUpdate)
+                    {
+                        <MudTooltip Text="Edit">
+                            <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Size="Size.Small" OnClick="@(() => OnEdit(context))" />
+                        </MudTooltip>
+                    }
+                    @if (_canDelete)
+                    {
+                        <MudTooltip Text="Delete">
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => OnDelete(context))" />
+                        </MudTooltip>
+                    }
+                </MudStack>
+            </MudTd>
+        </RowTemplate>
+        <PagerContent>
+            <MudTablePager PageSizeOptions="new[] { 10, 25, 50 }" />
+        </PagerContent>
+        <NoRecordsContent>
+            <MudText Class="pa-4">No kettle records found.</MudText>
+        </NoRecordsContent>
+    </MudTable>
+</MudPaper>
+
+@code {
+    private MudTable<KettleDto>? _table;
+    private string? _search;
+    private bool _canInsert;
+    private bool _canUpdate;
+    private bool _canDelete;
+
+    protected override void OnInitialized()
+    {
+        if (!SessionState.IsLoggedIn)
+        {
+            Navigation.NavigateTo("/login");
+            return;
+        }
+
+        var permissions = SessionState.GetPermissions("/admin/kettle");
+        _canInsert = permissions.IsInsert;
+        _canUpdate = permissions.IsUpdate;
+        _canDelete = permissions.IsDelete;
+    }
+
+    private async Task<TableData<KettleDto>> LoadServerDataAsync(TableState state, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await ApiClient.GetKettlesAsync(new PagedRequest
+            {
+                CurrentPage = state.Page + 1,
+                RecordPerPage = state.PageSize,
+                SortColumn = state.SortLabel ?? "KettleId",
+                SortType = state.SortDirection == SortDirection.Ascending ? "ASC" : "DESC"
+            }, _search, cancellationToken);
+
+            return new TableData<KettleDto>
+            {
+                TotalItems = result.TotalRecord,
+                Items = result.Items
+            };
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+            return new TableData<KettleDto> { TotalItems = 0, Items = Array.Empty<KettleDto>() };
+        }
+    }
+
+    private async Task SearchAsync()
+    {
+        if (_table is not null) await _table.ReloadServerData();
+    }
+
+    private void OnAdd() => Navigation.NavigateTo("/admin/kettle/new");
+
+    private void OnEdit(KettleDto kettle) => Navigation.NavigateTo($"/admin/kettle/edit/{kettle.KettleId}");
+
+    private async Task OnDelete(KettleDto kettle)
+    {
+        var confirmed = await JS.InvokeAsync<bool>("confirm", $"Are you sure you want to delete kettle: {kettle.KettleNumber}?");
+        if (!confirmed) return;
+
+        try
+        {
+            var result = await ApiClient.DeleteKettleAsync(kettle.KettleId, SessionState.CurrentUser?.LoginName ?? "System");
+            if (result > 0)
+            {
+                Snackbar.Add("Kettle deleted successfully.", Severity.Success);
+                if (_table is not null) await _table.ReloadServerData();
+            }
+            else
+            {
+                var message = result == -1 ? "Cannot delete Kettle because it is currently linked to production records." : "Failed to delete kettle.";
+                Snackbar.Add(message, Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+        }
+    }
+}

@@ -1,0 +1,210 @@
+@page "/admin/drop-down-values/{DropDownMasterId:long}"
+@inject AppSessionState SessionState
+@inject NavigationManager Navigation
+@inject AdminSecurityApiClient ApiClient
+@inject IJSRuntime JS
+@inject IDialogService DialogService
+
+<PageTitle>Drop Down Values</PageTitle>
+
+<MudPaper Class="pa-4">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+        <MudStack Spacing="0">
+            <MudText Typo="Typo.h5">Drop Down Values</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">@_masterName</MudText>
+        </MudStack>
+        <MudStack Row="true" Spacing="2">
+            <MudButton Variant="Variant.Outlined" OnClick="Back">Back</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="AddNewAsync">Add New</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="ExportAsync">Export</MudButton>
+        </MudStack>
+    </MudStack>
+
+    <MudStack Row="true" AlignItems="AlignItems.End" Spacing="2" Class="mb-4">
+        <MudTextField @bind-Value="_search" Placeholder="Search display text" Variant="Variant.Outlined" Immediate="true" Class="flex-grow-1" />
+        <MudButton Variant="Variant.Outlined" OnClick="SearchAsync">Search</MudButton>
+    </MudStack>
+
+    <MudTable RowsPerPage="25" T="DropDownValueDto" @ref="_table" ServerData="LoadServerDataAsync" Hover="true" Dense="true" Striped="true" Bordered="true">
+        <HeaderContent>
+            <MudTh Style="width:48px;">
+                <MudCheckBox T="bool" Value="@(_selection.Count > 0 && _selection.Count == _loadedItems.Count)" ValueChanged="ToggleAll" />
+            </MudTh>
+            <MudTh><MudTableSortLabel T="DropDownValueDto" SortLabel="DisplayText">Display Text</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel T="DropDownValueDto" SortLabel="IsActive">Active</MudTableSortLabel></MudTh>
+            <MudTh Style="width:110px;">Action</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Select">
+                <MudCheckBox T="bool" Checked="@_selection.Contains(context.Id)" CheckedChanged="@((bool value) => ToggleSelection(context.Id, value))" />
+            </MudTd>
+            <MudTd DataLabel="Display Text">@context.DisplayText</MudTd>
+            <MudTd DataLabel="Active">@context.IsActive</MudTd>
+            <MudTd DataLabel="Action">
+                <MudStack Row="true" Spacing="1">
+                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" OnClick="@(() => EditAsync(context.Id))" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" OnClick="@(() => DeleteAsync(context.Id))" />
+                </MudStack>
+            </MudTd>
+        </RowTemplate>
+        <PagerContent>
+            <MudTablePager PageSizeOptions="new[] { 10, 25, 50 }" />
+        </PagerContent>
+        <NoRecordsContent>
+            <MudText Class="pa-4">No dropdown values found.</MudText>
+        </NoRecordsContent>
+    </MudTable>
+</MudPaper>
+
+@code {
+    [Parameter]
+    public long DropDownMasterId { get; set; }
+
+    private MudTable<DropDownValueDto>? _table;
+    private readonly List<DropDownValueDto> _loadedItems = new();
+    private readonly HashSet<long> _selection = new();
+    private string? _search;
+    private string _masterName = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!SessionState.IsLoggedIn)
+        {
+            Navigation.NavigateTo("/login");
+            return;
+        }
+
+        var master = await ApiClient.GetDropDownMasterByIdAsync(DropDownMasterId);
+        _masterName = master?.DisplayText ?? $"Master #{DropDownMasterId}";
+    }
+
+    private async Task<TableData<DropDownValueDto>> LoadServerDataAsync(TableState state, CancellationToken cancellationToken)
+    {
+        var result = await ApiClient.GetDropDownValuesAsync(DropDownMasterId, new PagedRequest
+        {
+            CurrentPage = state.Page + 1,
+            RecordPerPage = state.PageSize,
+            SortColumn = string.IsNullOrWhiteSpace(state.SortLabel) ? "DisplayText" : state.SortLabel,
+            SortType = state.SortDirection == SortDirection.Ascending ? "ASC" : "DESC"
+        }, _search, cancellationToken);
+
+        _loadedItems.Clear();
+        _loadedItems.AddRange(result.Items);
+        _selection.RemoveWhere(id => !_loadedItems.Any(item => item.Id == id));
+
+        return new TableData<DropDownValueDto>
+        {
+            TotalItems = result.TotalRecord,
+            Items = result.Items
+        };
+    }
+
+    private async Task SearchAsync()
+    {
+        if (_table is not null)
+        {
+            await _table.ReloadServerData();
+        }
+    }
+
+    private async Task AddNewAsync()
+    {
+        var parameters = new DialogParameters
+        {
+            { nameof(DropDownValueDialog.DropDownMasterId), DropDownMasterId },
+            { nameof(DropDownValueDialog.ValueId), 0L }
+        };
+
+        var dialog = await DialogService.ShowAsync<DropDownValueDialog>("Add Value", parameters);
+        var result = await dialog.Result;
+        if (!result.Canceled && _table is not null)
+        {
+            await _table.ReloadServerData();
+        }
+    }
+
+    private async Task EditAsync(long valueId)
+    {
+        var parameters = new DialogParameters
+        {
+            { nameof(DropDownValueDialog.DropDownMasterId), DropDownMasterId },
+            { nameof(DropDownValueDialog.ValueId), valueId }
+        };
+
+        var dialog = await DialogService.ShowAsync<DropDownValueDialog>("Edit Value", parameters);
+        var result = await dialog.Result;
+        if (!result.Canceled && _table is not null)
+        {
+            await _table.ReloadServerData();
+        }
+    }
+
+    private async Task DeleteAsync(long valueId)
+    {
+        var confirmed = await JS.InvokeAsync<bool>("confirm", "Delete this dropdown value?");
+        if (!confirmed)
+        {
+            return;
+        }
+
+        await ApiClient.DeleteDropDownValueAsync(valueId, SessionState.CurrentUser?.LoginName ?? "System");
+        if (_table is not null)
+        {
+            await _table.ReloadServerData();
+        }
+    }
+
+    private async Task ExportAsync()
+    {
+        var result = await ApiClient.GetDropDownValuesAsync(DropDownMasterId, new PagedRequest
+        {
+            CurrentPage = 1,
+            RecordPerPage = 5000,
+            SortColumn = "DisplayText",
+            SortType = "ASC"
+        }, _search);
+
+        var csv = new StringBuilder();
+        csv.AppendLine("Display Text,Is Active");
+        foreach (var item in result.Items)
+        {
+            csv.AppendLine(ToCsvLine(item));
+        }
+
+        await JS.InvokeVoidAsync("gfiDownloadTextFile", $"dropdown-values-{DropDownMasterId}-{DateTime.Now:yyyyMMddHHmmss}.csv", csv.ToString(), "text/csv;charset=utf-8");
+    }
+
+    private void Back() => Navigation.NavigateTo("/admin/drop-down-editor");
+
+    private void ToggleSelection(long id, bool value)
+    {
+        if (value)
+        {
+            _selection.Add(id);
+        }
+        else
+        {
+            _selection.Remove(id);
+        }
+    }
+
+    private Task ToggleAll(bool value)
+    {
+        _selection.Clear();
+        if (value)
+        {
+            foreach (var item in _loadedItems)
+            {
+                _selection.Add(item.Id);
+            }
+        }
+
+        return Task.CompletedTask;
+    }
+
+    private static string EscapeCsv(string value)
+        => "\"" + value.Replace("\"", "\"\"") + "\"";
+
+    private static string ToCsvLine(DropDownValueDto item)
+        => string.Join(",", EscapeCsv(item.DisplayText), item.IsActive ? "Yes" : "No");
+}

@@ -1,0 +1,143 @@
+@page "/store/purchase-request"
+@using GFI_Upgrated.SharedDto.Purchase
+@using GFI_Upgrated.UI.Services
+@using GFI_Upgrated.UI.State
+@inject StoreApiClient ApiClient
+@inject ISnackbar Snackbar
+@inject NavigationManager Navigation
+@inject AppSessionState SessionState
+
+<PageTitle>Purchase Requests</PageTitle>
+
+<MudPaper Class="pa-4">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+        <MudText Typo="Typo.h5">Purchase Requests</MudText>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OnAddNew" Disabled="!_canInsert">
+            Create Request
+        </MudButton>
+    </MudStack>
+
+    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-4">
+        <MudTextField @bind-Value="_search" Placeholder="Search by request number..." Variant="Variant.Outlined" Immediate="true" Clearable="true" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" OnClearButtonClick="OnSearch" />
+        <MudButton Variant="Variant.Outlined" OnClick="OnSearch">Search</MudButton>
+    </MudStack>
+
+    <MudTable RowsPerPage="25" T="PurchaseRequestDto" @ref="_table" ServerData="LoadServerDataAsync" Hover="true" Dense="true" Striped="true" Bordered="true" Loading="_loading">
+        <HeaderContent>
+            <MudTh><MudTableSortLabel SortLabel="RequestNumber" T="PurchaseRequestDto">Request #</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel SortLabel="CreatedDate" T="PurchaseRequestDto">Date</MudTableSortLabel></MudTh>
+            <MudTh>Requested By</MudTh>
+            <MudTh>Description</MudTh>
+            <MudTh>Status</MudTh>
+            <MudTh Style="text-align: center; width: 120px;">Action</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Request #">@context.RequestNumber</MudTd>
+            <MudTd DataLabel="Date">@context.CreatedDate?.ToString("dd/MM/yyyy")</MudTd>
+            <MudTd DataLabel="Requested By">@context.RequestedByName</MudTd>
+            <MudTd DataLabel="Description">@context.Description</MudTd>
+            <MudTd DataLabel="Status">
+                @if (context.ConfirmedBy.HasValue)
+                {
+                    <MudChip T="string" Color="Color.Success" Size="Size.Small">Confirmed</MudChip>
+                }
+                else if (context.CheckedBy.HasValue)
+                {
+                    <MudChip T="string" Color="Color.Info" Size="Size.Small">Checked</MudChip>
+                }
+                else
+                {
+                    <MudChip T="string" Color="Color.Default" Size="Size.Small">Pending</MudChip>
+                }
+            </MudTd>
+            <MudTd DataLabel="Action" Style="text-align: center;">
+                <MudStack Row="true" Justify="Justify.Center" Spacing="1">
+                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Size="Size.Small" OnClick="@(() => OnEdit(context.PurchaseRequestMasterID))" Disabled="!_canUpdate" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => OnDelete(context))" Disabled="!_canDelete" />
+                </MudStack>
+            </MudTd>
+        </RowTemplate>
+        <PagerContent>
+            <MudTablePager />
+        </PagerContent>
+        <NoRecordsContent>
+            <MudText Class="pa-4">No purchase requests found.</MudText>
+        </NoRecordsContent>
+    </MudTable>
+</MudPaper>
+
+@code {
+    private MudTable<PurchaseRequestDto>? _table;
+    private string _search = "";
+    private bool _loading;
+    private bool _canInsert;
+    private bool _canUpdate;
+    private bool _canDelete;
+
+    protected override void OnInitialized()
+    {
+        if (!SessionState.IsLoggedIn)
+        {
+            Navigation.NavigateTo("/login");
+            return;
+        }
+
+        var path = "store/purchase-request";
+        var perms = SessionState.GetPermissions(path);
+        
+        if (SessionState.IsAdmin)
+        {
+            _canInsert = _canUpdate = _canDelete = true;
+        }
+        else
+        {
+            _canInsert = perms.IsInsert;
+            _canUpdate = perms.IsUpdate;
+            _canDelete = perms.IsDelete;
+        }
+    }
+
+    private async Task<TableData<PurchaseRequestDto>> LoadServerDataAsync(TableState state, CancellationToken cancellationToken)
+    {
+        _loading = true;
+        try
+        {
+            var result = await ApiClient.GetPurchaseRequestsAsync(
+                null, 
+                _search, 
+                null, 
+                state.Page + 1, 
+                state.PageSize, 
+                cancellationToken);
+
+            return new TableData<PurchaseRequestDto>
+            {
+                TotalItems = result.TotalRecord,
+                Items = result.Items
+            };
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error loading requests: {ex.Message}", Severity.Error);
+            return new TableData<PurchaseRequestDto> { Items = Array.Empty<PurchaseRequestDto>(), TotalItems = 0 };
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task OnSearch()
+    {
+        if (_table != null) await _table.ReloadServerData();
+    }
+
+    private void OnAddNew() => Navigation.NavigateTo("/store/purchase-request/new");
+
+    private void OnEdit(long id) => Navigation.NavigateTo($"/store/purchase-request/edit/{id}");
+
+    private async Task OnDelete(PurchaseRequestDto item)
+    {
+        Snackbar.Add("Deleting items is not yet implemented for PR.", Severity.Info);
+    }
+}

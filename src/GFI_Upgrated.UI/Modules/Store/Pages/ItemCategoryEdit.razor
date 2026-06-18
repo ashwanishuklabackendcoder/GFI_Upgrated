@@ -1,0 +1,117 @@
+@page "/admin/item-category/new"
+@page "/admin/item-category/edit/{Id:long}"
+@using GFI_Upgrated.SharedDto.Store
+@using GFI_Upgrated.UI.Services
+@using GFI_Upgrated.UI.State
+@inject StoreApiClient ApiClient
+@inject ISnackbar Snackbar
+@inject NavigationManager NavigationManager
+@inject AppSessionState SessionState
+
+<PageTitle>@(_isEdit ? "Edit Item Category" : "Add New Item Category")</PageTitle>
+
+<MudPaper Class="pa-4">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+        <MudStack Spacing="0">
+            <MudText Typo="Typo.h5">@(_isEdit ? "Edit Item Category" : "Add New Item Category")</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">Enter category details below.</MudText>
+        </MudStack>
+        <MudIconButton Icon="@Icons.Material.Filled.Close" OnClick="OnCancel" />
+    </MudStack>
+
+    <EditForm Model="_editor" OnValidSubmit="SaveAsync">
+        <DataAnnotationsValidator />
+        <MudGrid>
+            <MudItem xs="12" md="6">
+                <MudTextField @bind-Value="_editor.ItemCatName" Label="Category Name" Variant="Variant.Outlined" For="@(() => _editor.ItemCatName)" />
+            </MudItem>
+            
+            <MudItem xs="12" md="6">
+                <MudSelect T="long?" Label="Parent Category" @bind-Value="_editor.MainCategoryId" Variant="Variant.Outlined" Clearable="true" Placeholder="Select Main Category (Optional)" Disabled="_editor.IsMainCategory">
+                    @foreach (var cat in _parents)
+                    {
+                        <MudSelectItem T="long?" Value="@cat.ItemCatId">@cat.ItemCatName</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+
+            <MudItem xs="12" md="4">
+                <MudCheckBox @bind-Value="_editor.IsMainCategory" Label="Is Main Category?" Color="Color.Primary" />
+            </MudItem>
+
+            <MudItem xs="12" md="4">
+                <MudCheckBox @bind-Value="_editor.IsActive" Label="Active" Color="Color.Success" />
+            </MudItem>
+
+            <MudItem xs="12" Class="pt-4">
+                <MudStack Row="true" Spacing="2">
+                    <MudButton ButtonType="ButtonType.Submit" Color="Color.Primary" Variant="Variant.Filled" Disabled="_processing">@(_processing ? "Saving..." : "Save Category")</MudButton>
+                    <MudButton Variant="Variant.Outlined" OnClick="OnCancel" Disabled="_processing">Cancel</MudButton>
+                </MudStack>
+            </MudItem>
+        </MudGrid>
+    </EditForm>
+</MudPaper>
+
+@code {
+    [Parameter] public long? Id { get; set; }
+    private bool _isEdit => Id.HasValue && Id.Value > 0;
+    private SaveItemCategoryRequest _editor = new();
+    private bool _processing;
+    private IReadOnlyList<ParentCategoryLookupDto> _parents = Array.Empty<ParentCategoryLookupDto>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!SessionState.IsLoggedIn)
+        {
+            NavigationManager.NavigateTo("/login");
+            return;
+        }
+
+        _parents = await ApiClient.GetParentCategoriesLookupAsync();
+        
+        if (_isEdit)
+        {
+            var selected = await ApiClient.GetItemCategoryByIdAsync(Id!.Value);
+            if (selected is not null)
+            {
+                _editor.ItemCatId = selected.ItemCatId;
+                _editor.ItemCatName = selected.ItemCatName;
+                _editor.IsMainCategory = selected.IsMainCategory;
+                _editor.MainCategoryId = selected.MainCategoryId;
+                _editor.IsActive = selected.IsActive;
+            }
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        _processing = true;
+        try
+        {
+            if (_editor.IsMainCategory) _editor.MainCategoryId = null;
+
+            _editor.UpdatedBy = SessionState.CurrentUser?.LoginName ?? "System";
+            var result = await ApiClient.SaveItemCategoryAsync(_editor);
+            if (result > 0)
+            {
+                Snackbar.Add("Item Category saved successfully.", Severity.Success);
+                NavigationManager.NavigateTo("/admin/item-category");
+            }
+            else
+            {
+                Snackbar.Add("Failed to save item category.", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _processing = false;
+        }
+    }
+
+    private void OnCancel() => NavigationManager.NavigateTo("/admin/item-category");
+}

@@ -1,0 +1,172 @@
+@page "/store/rawmaterials"
+@page "/store/w_masteritemlist"
+
+@page "/admin/w_masteritemlist"
+@page "/admin/rawmaterials"
+@page "/admin/raw-materials"
+@using GFI_Upgrated.SharedDto.Store
+@using GFI_Upgrated.UI.Services
+@using GFI_Upgrated.UI.State
+@inject StoreApiClient ApiClient
+@inject ISnackbar Snackbar
+@inject NavigationManager Navigation
+@inject AppSessionState SessionState
+@inject IJSRuntime JS
+
+<PageTitle>Raw Materials</PageTitle>
+
+<MudPaper Class="pa-4">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+        <MudText Typo="Typo.h5">Raw Materials</MudText>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OnAddNew" Disabled="!_canInsert">
+            Add New Item
+        </MudButton>
+    </MudStack>
+
+    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-4">
+        <MudTextField @bind-Value="_search" Placeholder="Search by name, code or short name..." Variant="Variant.Outlined" Immediate="true" Clearable="true" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" OnClearButtonClick="OnSearch" />
+        <MudButton Variant="Variant.Outlined" OnClick="OnSearch">Search</MudButton>
+    </MudStack>
+
+    <MudTable RowsPerPage="25" T="RawMaterialDto" @ref="_table" ServerData="LoadServerDataAsync" Hover="true" Dense="true" Striped="true" Bordered="true" Loading="_loading">
+        <HeaderContent>
+            <MudTh><MudTableSortLabel SortLabel="ItemCode" T="RawMaterialDto">Code</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel SortLabel="ItemName" T="RawMaterialDto">Item Name</MudTableSortLabel></MudTh>
+            <MudTh>Short Name</MudTh>
+            <MudTh><MudTableSortLabel SortLabel="ItemCatId" T="RawMaterialDto">Category</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel SortLabel="ItemTypeId" T="RawMaterialDto">Type</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel SortLabel="PurchaseUnit" T="RawMaterialDto">Unit</MudTableSortLabel></MudTh>
+            <MudTh Style="text-align: center;">Status</MudTh>
+            <MudTh Style="text-align: center; width: 120px;">Action</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Code">@context.ItemCode</MudTd>
+            <MudTd DataLabel="Item Name">@context.ItemName</MudTd>
+            <MudTd DataLabel="Short Name">@context.ShortName</MudTd>
+            <MudTd DataLabel="Category">@context.ItemCategoryName</MudTd>
+            <MudTd DataLabel="Type">@context.ItemTypeName</MudTd>
+            <MudTd DataLabel="Unit">@context.UnitName</MudTd>
+            <MudTd DataLabel="Status" Style="text-align: center;">
+                <MudChip T="string" Color="@(context.IsActive ? Color.Success : Color.Error)" Size="Size.Small">
+                    @(context.IsActive ? "Active" : "Inactive")
+                </MudChip>
+            </MudTd>
+            <MudTd DataLabel="Action" Style="text-align: center;">
+                <MudStack Row="true" Justify="Justify.Center" Spacing="1">
+                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Size="Size.Small" OnClick="@(() => OnEdit(context.ItemId))" Disabled="!_canUpdate" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => OnDelete(context))" Disabled="!_canDelete" />
+                </MudStack>
+            </MudTd>
+        </RowTemplate>
+        <PagerContent>
+            <MudTablePager />
+        </PagerContent>
+        <NoRecordsContent>
+            <MudText Class="pa-4">No raw materials found.</MudText>
+        </NoRecordsContent>
+    </MudTable>
+</MudPaper>
+
+@code {
+    private MudTable<RawMaterialDto>? _table;
+    private string _search = "";
+    private bool _loading;
+    private bool _canInsert;
+    private bool _canUpdate;
+    private bool _canDelete;
+
+    protected override void OnInitialized()
+    {
+        if (!SessionState.IsLoggedIn)
+        {
+            Navigation.NavigateTo("/login");
+            return;
+        }
+
+        var path = "store/rawmaterials";
+        var perms = SessionState.GetPermissions(path);
+
+        // Priority logic: If Super Admin, allow all. Otherwise, use DB permissions.
+        if (SessionState.IsAdmin)
+        {
+            _canInsert = _canUpdate = _canDelete = true;
+        }
+        else
+        {
+            _canInsert = perms.IsInsert;
+            _canUpdate = perms.IsUpdate;
+            _canDelete = perms.IsDelete;
+        }
+
+        // Diagnostic logging for RBAC auditing
+        Console.WriteLine($"[RBAC] Raw Materials Permissions Resolved: Path='{path}', IsAdmin={SessionState.IsAdmin}, Insert={_canInsert}, Update={_canUpdate}, Delete={_canDelete}");
+    }
+
+    private async Task<TableData<RawMaterialDto>> LoadServerDataAsync(TableState state, CancellationToken cancellationToken)
+    {
+        _loading = true;
+        try
+        {
+            var result = await ApiClient.GetRawMaterialsAsync(new RawMaterialListRequest
+            {
+                SearchTerm = _search,
+                PageNumber = state.Page + 1,
+                PageSize = state.PageSize,
+                SortColumn = state.SortLabel,
+                SortType = state.SortDirection == SortDirection.Ascending ? "ASC" : "DESC"
+            }, cancellationToken);
+            if (result.CurrentPage != state.Page + 1 && _table != null)
+            {
+                _table.NavigateTo(result.CurrentPage - 1);
+            }
+
+            return new TableData<RawMaterialDto>
+            {
+                TotalItems = result.TotalRecord,
+                Items = result.Items
+            };
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error loading raw materials: {ex.Message}", Severity.Error);
+            return new TableData<RawMaterialDto> { Items = Array.Empty<RawMaterialDto>(), TotalItems = 0 };
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task OnSearch()
+    {
+        if (_table != null) await _table.ReloadServerData();
+    }
+
+    private void OnAddNew() => Navigation.NavigateTo("/store/rawmaterials/new");
+
+    private void OnEdit(long id) => Navigation.NavigateTo($"/store/rawmaterials/edit/{id}");
+
+    private async Task OnDelete(RawMaterialDto item)
+    {
+        var confirmed = await JS.InvokeAsync<bool>("confirm", $"Are you sure you want to delete raw material: {item.ItemName}?");
+        if (!confirmed) return;
+
+        try
+        {
+            var success = await ApiClient.DeleteRawMaterialAsync(item.ItemId, SessionState.CurrentUser?.LoginName ?? "System");
+            if (success)
+            {
+                Snackbar.Add("Raw material deleted successfully.", Severity.Success);
+                await OnSearch();
+            }
+            else
+            {
+                Snackbar.Add("Cannot delete raw material because it is currently linked to transactions, recipes (BOM), or stock batches. You should deactivate it instead.", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error deleting item: {ex.Message}", Severity.Error);
+        }
+    }
+}

@@ -1,0 +1,286 @@
+@page "/admin/rolepermission"
+@using GFI_Upgrated.SharedDto.AdminSecurity
+@using GFI_Upgrated.SharedDto.Common
+@inject AppSessionState SessionState
+@inject NavigationManager Navigation
+@inject AdminSecurityApiClient ApiClient
+@inject ISnackbar Snackbar
+@inject IJSRuntime JS
+
+<PageTitle>Permissions</PageTitle>
+
+<MudPaper Class="pa-4">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+        <MudText Typo="Typo.h5">Role Permissions</MudText>
+        <AuthorizeAction Action="update">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" 
+                       Disabled="@(_selectedRoleId == 0 || _selectedModuleId == 0 || _isSaving)">
+                @(_isSaving ? "Saving..." : "Save Permissions")
+            </MudButton>
+        </AuthorizeAction>
+    </MudStack>
+
+    <MudGrid Class="mb-4">
+        <MudItem xs="12" md="4">
+            <MudSelect T="long" Label="Role" Variant="Variant.Outlined" Value="_selectedRoleId" ValueChanged="OnRoleChanged" Dense="true">
+                <MudSelectItem T="long" Value="0L">Select Role</MudSelectItem>
+                @foreach (var role in _roles)
+                {
+                    <MudSelectItem T="long" Value="@role.RoleId">@role.RoleName</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" md="4">
+            <MudSelect T="long" Label="Module" Variant="Variant.Outlined" Value="_selectedModuleId" ValueChanged="OnModuleChanged" Dense="true">
+                <MudSelectItem T="long" Value="0L">Select Module</MudSelectItem>
+                @foreach (var mod in _modules)
+                {
+                    <MudSelectItem T="long" Value="@mod.ModuleId">@mod.ModuleName</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" md="4">
+            @* Dashboard selection hidden until DB schema is updated to support it *@
+            @*
+            <MudSelect T="string" Label="Dashboard" Variant="Variant.Outlined" @bind-Value="_selectedDashboard" Dense="true">
+                <MudSelectItem T="string" Value="@("")">Default Dashboard</MudSelectItem>
+                @foreach (var db in _dashboards)
+                {
+                    <MudSelectItem T="string" Value="@db.PagePath">@db.PageHeading</MudSelectItem>
+                }
+            </MudSelect>
+            *@
+        </MudItem>
+    </MudGrid>
+
+    @if (_isLoading)
+    {
+        <div class="d-flex justify-center pa-8">
+            <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+        </div>
+    }
+    else if (_permissions.Count == 0)
+    {
+        <MudAlert Severity="Severity.Info">Select a Role and Module to manage permissions.</MudAlert>
+    }
+    else
+    {
+        <MudTable Items="_permissions" Dense="true" Hover="true" FixedHeader="true" Height="600px" Elevation="0" Class="border">
+            <HeaderContent>
+                <MudTh Style="width: 40%">Menu / Page</MudTh>
+                <MudTh Style="text-align: center">View</MudTh>
+                <MudTh Style="text-align: center">Insert</MudTh>
+                <MudTh Style="text-align: center">Update</MudTh>
+                <MudTh Style="text-align: center">Delete</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd>
+                    <div style="padding-left: @(context.ParentID == 0 ? "0" : "24px")">
+                        @if (context.ParentID == 0)
+                        {
+                            <MudIcon Icon="@Icons.Material.Filled.Folder" Size="Size.Small" Class="mr-2" Color="Color.Primary" />
+                            <strong>@context.PageHeading</strong>
+                        }
+                        else
+                        {
+                            <MudIcon Icon="@Icons.Material.Filled.Description" Size="Size.Small" Class="mr-2" />
+                            @context.PageHeading
+                        }
+                    </div>
+                </MudTd>
+                <MudTd>
+                    <div class="d-flex justify-center">
+                        <MudCheckBox T="bool" Value="@context.ViewPer" ValueChanged="@(v => OnPermissionChanged(context, "View", v))" Color="Color.Primary" Dense="true" />
+                    </div>
+                </MudTd>
+                <MudTd>
+                    <div class="d-flex justify-center">
+                        <MudCheckBox T="bool" Value="@context.InsertPer" ValueChanged="@(v => OnPermissionChanged(context, "Insert", v))" Color="Color.Success" Dense="true" />
+                    </div>
+                </MudTd>
+                <MudTd>
+                    <div class="d-flex justify-center">
+                        <MudCheckBox T="bool" Value="@context.UpdatePer" ValueChanged="@(v => OnPermissionChanged(context, "Update", v))" Color="Color.Warning" Dense="true" />
+                    </div>
+                </MudTd>
+                <MudTd>
+                    <div class="d-flex justify-center">
+                        <MudCheckBox T="bool" Value="@context.DeletePer" ValueChanged="@(v => OnPermissionChanged(context, "Delete", v))" Color="Color.Error" Dense="true" />
+                    </div>
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+    }
+</MudPaper>
+
+@code {
+    private List<RoleDto> _roles = new();
+    private List<ModuleDto> _modules = new();
+    private List<MenuDto> _dashboards = new();
+    private List<RolePermissionDto> _permissions = new();
+    
+    private long _selectedRoleId;
+    private long _selectedModuleId;
+    private string? _selectedDashboard;
+    
+    private bool _isLoading;
+    private bool _isSaving;
+
+    protected override void OnInitialized()
+    {
+        if (!SessionState.IsLoggedIn)
+        {
+            Navigation.NavigateTo("/login");
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _isLoading = true;
+            var rolesTask = ApiClient.GetRolesAsync(new PagedRequest { RecordPerPage = 1000 });
+            var modulesTask = ApiClient.GetModulesAsync();
+            var dashboardsTask = ApiClient.GetDashboardsAsync();
+
+            await Task.WhenAll(rolesTask, modulesTask, dashboardsTask);
+
+            _roles = rolesTask.Result.Items.ToList();
+            _modules = modulesTask.Result.ToList();
+            _dashboards = dashboardsTask.Result.ToList();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error loading data: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task OnRoleChanged(long roleId)
+    {
+        _selectedRoleId = roleId;
+        await LoadPermissionsAsync();
+    }
+
+    private async Task OnModuleChanged(long moduleId)
+    {
+        _selectedModuleId = moduleId;
+        await LoadPermissionsAsync();
+    }
+
+    private async Task LoadPermissionsAsync()
+    {
+        if (_selectedRoleId == 0 || _selectedModuleId == 0)
+        {
+            _permissions.Clear();
+            return;
+        }
+
+        try
+        {
+            _isLoading = true;
+            var existing = await ApiClient.GetRolePermissionsAsync(_selectedRoleId, _selectedModuleId);
+            
+            var allMenus = await ApiClient.GetMenusAsync();
+            var moduleMenus = allMenus.Where(x => x.ModuleId == _selectedModuleId).OrderBy(x => x.ParentId).ThenBy(x => x.SequenceNo).ToList();
+
+            _permissions = moduleMenus.Select(menu => 
+            {
+                var perm = existing.FirstOrDefault(e => e.LinkID == menu.LinkId);
+                return new RolePermissionDto
+                {
+                    RoleFormID = perm?.RoleFormID ?? 0,
+                    RoleID = _selectedRoleId,
+                    ModuleID = _selectedModuleId,
+                    LinkID = menu.LinkId,
+                    PageHeading = menu.PageHeading,
+                    PagePath = menu.PagePath,
+                    ParentID = menu.ParentId,
+                    SequenceNo = menu.SequenceNo,
+                    ViewPer = perm?.ViewPer ?? false,
+                    InsertPer = perm?.InsertPer ?? false,
+                    UpdatePer = perm?.UpdatePer ?? false,
+                    DeletePer = perm?.DeletePer ?? false
+                };
+            }).ToList();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error loading permissions: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private void OnPermissionChanged(RolePermissionDto item, string type, bool value)
+    {
+        switch (type)
+        {
+            case "View": item.ViewPer = value; break;
+            case "Insert": item.InsertPer = value; break;
+            case "Update": item.UpdatePer = value; break;
+            case "Delete": item.DeletePer = value; break;
+        }
+
+        if (item.ParentID == 0)
+        {
+            var children = _permissions.Where(x => x.ParentID == item.LinkID).ToList();
+            foreach (var child in children)
+            {
+                switch (type)
+                {
+                    case "View": child.ViewPer = value; break;
+                    case "Insert": child.InsertPer = value; break;
+                    case "Update": child.UpdatePer = value; break;
+                    case "Delete": child.DeletePer = value; break;
+                }
+            }
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        if (_selectedRoleId == 0 || _selectedModuleId == 0) return;
+
+        try
+        {
+            _isSaving = true;
+            var request = new SaveRolePermissionsRequest
+            {
+                RoleID = _selectedRoleId,
+                ModuleID = _selectedModuleId,
+                DashboardPage = _selectedDashboard,
+                Permissions = _permissions.ToList()
+            };
+
+            await ApiClient.SaveRolePermissionsAsync(_selectedRoleId, _selectedModuleId, request);
+            Snackbar.Add("Permissions saved successfully!", Severity.Success);
+
+            // If the updated role belongs to the current user, refresh the sidebar immediately
+            if (SessionState.CurrentUser?.RoleId == _selectedRoleId)
+            {
+                var result = await ApiClient.RefreshSessionAsync(SessionState.CurrentUser.LoginId, _selectedRoleId);
+
+                if (result != null)
+                {
+                    await SessionState.UpdateUserAsync(JS, result);
+                }
+            }
+
+            await LoadPermissionsAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error saving permissions: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isSaving = false;
+        }
+    }
+}

@@ -1,0 +1,219 @@
+@page "/admin/item-write-off/new"
+@page "/admin/item-write-off/edit/{Id:long}"
+@using GFI_Upgrated.SharedDto.Purchase
+@using GFI_Upgrated.SharedDto.AdminSecurity
+@using GFI_Upgrated.UI.Services
+@using GFI_Upgrated.UI.State
+@inject StoreApiClient ApiClient
+@inject AdminSecurityApiClient AdminApiClient
+@inject ISnackbar Snackbar
+@inject NavigationManager Navigation
+@inject AppSessionState SessionState
+
+<PageTitle>@(Id == 0 ? "New Item Write Off" : "Edit Item Write Off")</PageTitle>
+
+<MudPaper Class="pa-4">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+        <MudStack Spacing="0">
+            <MudText Typo="Typo.h5">@(Id == 0 ? "New Item Write Off" : "Edit Item Write Off")</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">Record or edit items written off from batch stock.</MudText>
+        </MudStack>
+        <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.ArrowBack" OnClick="OnBack">Back to List</MudButton>
+    </MudStack>
+
+    <EditForm Model="_model" OnValidSubmit="OnSave">
+        <DataAnnotationsValidator />
+        <MudGrid>
+            <MudItem xs="12" md="6">
+                <MudAutocomplete T="WriteOffBatchLookupDto" Label="Item (Batch)" @bind-Value="_selectedBatch" SearchFunc="@SearchBatches"
+                                 ToStringFunc="@(b => b == null ? "" : $"{b.ItemName} - Batch: {b.BatchNo} (Available: {b.FinalQuantityLeft} {b.UnitName})")" 
+                                 Variant="Variant.Outlined" Required="true" />
+            </MudItem>
+            
+            <MudItem xs="12" md="6">
+                <MudNumericField @bind-Value="_model.Quantity" Label="Quantity" Variant="Variant.Outlined" Required="true"
+                                 Validation="@(new Func<double, string?>(ValidateQuantity))" />
+            </MudItem>
+
+            <MudItem xs="12" md="3">
+                <MudTextField @bind-Value="_model.SellingPrice" Label="Selling Price" Variant="Variant.Outlined" />
+            </MudItem>
+
+            <MudItem xs="12" md="3">
+                <MudTextField @bind-Value="_model.PurchasePrice" Label="Purchase Price" Variant="Variant.Outlined" />
+            </MudItem>
+
+            <MudItem xs="12" md="3">
+                <MudDatePicker Label="Removal Date" @bind-Date="_model.RemovalDate" Variant="Variant.Outlined" Editable="true" Required="true" />
+            </MudItem>
+
+            <MudItem xs="12" md="3">
+                <MudSelect T="long?" Label="Reason" @bind-Value="_model.ReasonFor" Variant="Variant.Outlined" Required="true">
+                    <MudSelectItem T="long?" Value="null">Select Reason</MudSelectItem>
+                    @foreach (var reason in _reasons)
+                    {
+                        <MudSelectItem T="long?" Value="reason.Value">@reason.Text</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+
+            <MudItem xs="12">
+                <MudTextField @bind-Value="_model.Remarks" Label="Remarks / Explanation" Variant="Variant.Outlined" Lines="3" />
+            </MudItem>
+
+            <MudItem xs="12">
+                <MudValidationSummary />
+            </MudItem>
+
+            <MudItem xs="12" Class="d-flex justify-end mt-6 gap-2">
+                <MudButton Variant="Variant.Outlined" OnClick="OnBack">Cancel</MudButton>
+                <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Loading="_saving">Save Write Off</MudButton>
+            </MudItem>
+        </MudGrid>
+    </EditForm>
+</MudPaper>
+
+@code {
+    [Parameter] public long Id { get; set; }
+
+    private ItemWriteOffDto _model = new() { RemovalDate = DateTime.Today };
+    private WriteOffBatchLookupDto? _selectedBatch;
+    private List<WriteOffBatchLookupDto> _batches = new();
+    private IReadOnlyList<LookupItemDto> _reasons = Array.Empty<LookupItemDto>();
+    private bool _saving;
+    private double _originalQuantity;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!SessionState.IsLoggedIn)
+        {
+            Navigation.NavigateTo("/login");
+            return;
+        }
+
+        // Load reasons (DropDownCategory = 3 for Item Write Off reasons)
+        try
+        {
+            _reasons = await AdminApiClient.GetMasterDropdownAsync(3);
+            _batches = (await ApiClient.GetWriteOffBatchesLookupAsync()).ToList();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error loading setup data: {ex.Message}", Severity.Error);
+        }
+
+        if (Id > 0)
+        {
+            await LoadData();
+        }
+        else
+        {
+            _model.CreatedBy = SessionState.CurrentUser?.LoginName ?? "System";
+        }
+    }
+
+    private async Task LoadData()
+    {
+        try
+        {
+            var result = await ApiClient.GetItemWriteOffsAsync(Id, null, 1, 1);
+            if (result.Items.Any())
+            {
+                _model = result.Items.First();
+                _originalQuantity = _model.Quantity;
+                _selectedBatch = _batches.FirstOrDefault(b => b.ItemStockByBatchId == _model.ItemStockByBatchId);
+                
+                // If not found in lookup (e.g. legacy/archived), add a dummy lookup entry to show details properly
+                if (_selectedBatch == null && _model.ItemStockByBatchId > 0)
+                {
+                    _selectedBatch = new WriteOffBatchLookupDto
+                    {
+                        ItemStockByBatchId = _model.ItemStockByBatchId,
+                        ItemName = _model.ItemName,
+                        BatchNo = _model.BatchNo,
+                        UnitName = _model.UnitName,
+                        FinalQuantityLeft = 0 // Inactive batch
+                    };
+                }
+            }
+            else
+            {
+                Snackbar.Add("Write off record not found.", Severity.Warning);
+                Navigation.NavigateTo("/admin/item-write-off");
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error loading write off record: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task<IEnumerable<WriteOffBatchLookupDto>> SearchBatches(string value, CancellationToken token)
+    {
+        if (string.IsNullOrEmpty(value)) return _batches;
+        return _batches.Where(x => (x.ItemName?.Contains(value, StringComparison.OrdinalIgnoreCase) == true) || (x.BatchNo?.Contains(value, StringComparison.OrdinalIgnoreCase) == true));
+    }
+
+    private string? ValidateQuantity(double qty)
+    {
+        if (qty <= 0) return "Quantity must be greater than zero.";
+        if (_selectedBatch == null) return null;
+
+        var maxAllowed = _selectedBatch.FinalQuantityLeft;
+        if (Id > 0)
+        {
+            maxAllowed += _originalQuantity;
+        }
+
+        if (qty > maxAllowed)
+        {
+            return $"Quantity cannot exceed available stock ({maxAllowed} {_selectedBatch.UnitName}).";
+        }
+
+        return null;
+    }
+
+    private async Task OnSave()
+    {
+        if (_selectedBatch == null)
+        {
+            Snackbar.Add("Please select an item batch.", Severity.Warning);
+            return;
+        }
+
+        var qtyError = ValidateQuantity(_model.Quantity);
+        if (qtyError != null)
+        {
+            Snackbar.Add(qtyError, Severity.Warning);
+            return;
+        }
+
+        _saving = true;
+        try
+        {
+            _model.ItemStockByBatchId = _selectedBatch.ItemStockByBatchId;
+            _model.CreatedBy = SessionState.CurrentUser?.LoginName ?? "System";
+
+            var resultId = await ApiClient.SaveItemWriteOffAsync(_model);
+            if (resultId > 0)
+            {
+                Snackbar.Add("Item write off saved successfully.", Severity.Success);
+                Navigation.NavigateTo("/admin/item-write-off");
+            }
+            else
+            {
+                Snackbar.Add("Failed to save item write off. Please check your inputs.", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error saving write off: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    private void OnBack() => Navigation.NavigateTo("/admin/item-write-off");
+}

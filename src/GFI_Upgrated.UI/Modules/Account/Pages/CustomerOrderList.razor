@@ -1,0 +1,201 @@
+@page "/acc/customerorderlist"
+@page "/admin/customer-orders"
+@using GFI_Upgrated.SharedDto.Account
+@using GFI_Upgrated.UI.Services
+@using GFI_Upgrated.UI.State
+@inject AccountApiClient ApiClient
+@inject NavigationManager Navigation
+@inject AppSessionState SessionState
+@inject IJSRuntime JS
+@inject ISnackbar Snackbar
+
+<PageTitle>Customer Orders</PageTitle>
+
+<MudPaper Class="pa-4">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+        <MudStack Spacing="0">
+            <MudText Typo="Typo.h5">Customer Orders</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">Manage customer order sheets and dispatch records.</MudText>
+        </MudStack>
+        @if (_canInsert)
+        {
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="NewOrder">
+                Add New
+            </MudButton>
+        }
+    </MudStack>
+
+    <MudStack Row="true" AlignItems="AlignItems.End" Spacing="2" Class="mb-4">
+        <MudTextField @bind-Value="_search" Label="Search orders" Variant="Variant.Outlined" Immediate="true" Class="flex-grow-1" />
+        <MudButton Variant="Variant.Outlined" OnClick="SearchAsync">Search</MudButton>
+    </MudStack>
+
+    <MudTable RowsPerPage="25" T="CustomerOrderDto" @ref="_table" ServerData="LoadServerDataAsync" Hover="true" Dense="true" Striped="true" Bordered="true" Breakpoint="Breakpoint.Sm">
+        <HeaderContent>
+            <MudTh><MudTableSortLabel T="CustomerOrderDto" SortLabel="OrderNo">Order Number</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel T="CustomerOrderDto" SortLabel="CustomerName">Customer / Account</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel T="CustomerOrderDto" SortLabel="OrderDate">Order Date</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel T="CustomerOrderDto" SortLabel="SentDate">Sent Date</MudTableSortLabel></MudTh>
+            <MudTh>Remarks</MudTh>
+            <MudTh Style="width: 120px; text-align: center;">Action</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Order Number">@context.OrderNo</MudTd>
+            <MudTd DataLabel="Customer / Account">@context.CustomerName</MudTd>
+            <MudTd DataLabel="Order Date">@context.OrderDate?.ToString("dd MMM yyyy")</MudTd>
+            <MudTd DataLabel="Sent Date">@context.SentDate?.ToString("dd MMM yyyy")</MudTd>
+            <MudTd DataLabel="Remarks">@context.Remarks</MudTd>
+            <MudTd DataLabel="Action" Style="text-align: center;">
+                <MudStack Row="true" Spacing="1" Justify="Justify.Center" AlignItems="AlignItems.Center">
+                    @if (_canUpdate)
+                    {
+                        <MudTooltip Text="Edit">
+                            <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Size="Size.Small" OnClick="@(() => OnEdit(context))" />
+                        </MudTooltip>
+                    }
+                    <MudTooltip Text="Print Invoice">
+                        <MudIconButton Icon="@Icons.Material.Filled.Print" Color="Color.Info" Size="Size.Small" OnClick="@(() => OnPrintInvoice(context))" />
+                    </MudTooltip>
+                    @if (_canDelete)
+                    {
+                        <MudTooltip Text="Delete">
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => OnDelete(context))" />
+                        </MudTooltip>
+                    }
+                </MudStack>
+            </MudTd>
+        </RowTemplate>
+        <PagerContent>
+            <MudTablePager PageSizeOptions="new[] { 10, 25, 50 }" />
+        </PagerContent>
+        <NoRecordsContent>
+            <MudText Class="pa-4">No order records found.</MudText>
+        </NoRecordsContent>
+    </MudTable>
+</MudPaper>
+
+@code {
+    private MudTable<CustomerOrderDto>? _table;
+    private string? _search;
+    
+    private bool _canInsert;
+    private bool _canUpdate;
+    private bool _canDelete;
+
+    protected override void OnInitialized()
+    {
+        if (!SessionState.IsLoggedIn)
+        {
+            Navigation.NavigateTo("/login");
+            return;
+        }
+
+        var path = Navigation.ToBaseRelativePath(Navigation.Uri).Split('?')[0];
+        _canInsert = SessionState.HasPermission(path, "insert");
+        _canUpdate = SessionState.HasPermission(path, "update");
+        _canDelete = SessionState.HasPermission(path, "delete");
+    }
+
+    private async Task<TableData<CustomerOrderDto>> LoadServerDataAsync(TableState state, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await ApiClient.GetCustomerOrdersAsync(
+                page: state.Page + 1,
+                pageSize: state.PageSize,
+                orderNo: _search
+            );
+    
+            return new TableData<CustomerOrderDto>
+            {
+                TotalItems = result.TotalRecord,
+                Items = result.Items
+            };
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("console.error", $"LoadServerDataAsync Error: {ex.Message}");
+            return new TableData<CustomerOrderDto>
+            {
+                TotalItems = 0,
+                Items = Array.Empty<CustomerOrderDto>()
+            };
+        }
+    }
+
+    private async Task SearchAsync()
+    {
+        if (_table is not null)
+        {
+            await _table.ReloadServerData();
+        }
+    }
+
+    private void NewOrder()
+    {
+        Navigation.NavigateTo("/acc/customerorderlist/new");
+    }
+
+    private void OnEdit(CustomerOrderDto order)
+    {
+        Navigation.NavigateTo($"/acc/customerorderlist/edit/{order.OrderID}");
+    }
+
+    private async Task OnDelete(CustomerOrderDto order)
+    {
+        var confirmed = await JS.InvokeAsync<bool>("confirm", $"Are you sure you want to delete order: {order.OrderNo}?");
+        if (!confirmed) return;
+
+        try
+        {
+            var success = await ApiClient.DeleteCustomerOrdersAsync(order.OrderID.ToString());
+            if (success)
+            {
+                Snackbar.Add("Order deleted successfully.", Severity.Success);
+                if (_table is not null) await _table.ReloadServerData();
+            }
+            else
+            {
+                Snackbar.Add("Failed to delete order.", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task OnPrintInvoice(CustomerOrderDto order)
+    {
+        try
+        {
+            var invoicesResult = await ApiClient.GetInvoicesAsync(pageSize: 1000);
+            InvoiceDto? matchedInvoice = null;
+            
+            var customerInvoices = invoicesResult.Items.Where(i => i.AccountID == order.CustomerID).ToList();
+            
+            foreach (var inv in customerInvoices)
+            {
+                var fullInvoice = await ApiClient.GetInvoiceByIdAsync(inv.InvoiceID);
+                if (fullInvoice != null && fullInvoice.Items.Any(item => item.OrderID == order.OrderID))
+                {
+                    matchedInvoice = fullInvoice;
+                    break;
+                }
+            }
+            
+            if (matchedInvoice != null)
+            {
+                Navigation.NavigateTo($"/admin/invoice/print/{matchedInvoice.InvoiceID}");
+            }
+            else
+            {
+                Snackbar.Add($"No invoice has been created for Order: {order.OrderNo} yet.", Severity.Warning);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+        }
+    }
+}

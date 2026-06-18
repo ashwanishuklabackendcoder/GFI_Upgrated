@@ -1,0 +1,22 @@
+@inject AppSessionState SessionState
+
+@if (SessionState.HasPermission(Path, Action))
+{
+    @ChildContent
+}
+
+@code {
+    [Parameter] public string Path { get; set; } = string.Empty;
+    [Parameter] public string Action { get; set; } = "view";
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    [Inject] private NavigationManager Navigation { get; set; } = default!;
+
+    protected override void OnInitialized()
+    {
+        if (string.IsNullOrEmpty(Path))
+        {
+            Path = new Uri(Navigation.Uri).AbsolutePath;
+        }
+    }
+}

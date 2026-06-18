@@ -1,0 +1,251 @@
+@page "/store/reports/batch-wise-items"
+@page "/admin/reports/batch-wise-items"
+@page "/store/reportbatchwiseitems"
+@page "/admin/reportbatchwiseitems"
+@using GFI_Upgrated.SharedDto.Store
+@using GFI_Upgrated.SharedDto.Common
+@using GFI_Upgrated.UI.Services
+@using GFI_Upgrated.UI.State
+@using System.Text
+@inject StoreApiClient ApiClient
+@inject ISnackbar Snackbar
+@inject NavigationManager Navigation
+@inject AppSessionState SessionState
+@inject IJSRuntime JS
+
+<PageTitle>Batch Number Wise Items</PageTitle>
+
+<MudPaper Class="pa-4">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4 no-print">
+        <MudText Typo="Typo.h5">Batch Number Wise Items</MudText>
+        <MudMenu Label="Export" StartIcon="@Icons.Material.Filled.SaveAlt" EndIcon="@Icons.Material.Filled.KeyboardArrowDown" Color="Color.Primary" Variant="Variant.Filled">
+            <MudMenuItem OnClick="ExportToCopyAsync" Icon="@Icons.Material.Filled.ContentCopy">Copy to Clipboard</MudMenuItem>
+            <MudMenuItem OnClick="ExportToCsvAsync" Icon="@Icons.Material.Filled.InsertDriveFile">Export to CSV</MudMenuItem>
+            <MudMenuItem OnClick="ExportToPrintAsync" Icon="@Icons.Material.Filled.Print">Print Report</MudMenuItem>
+            <MudMenuItem OnClick="ExportToPdfAsync" Icon="@Icons.Material.Filled.PictureAsPdf">Save as PDF</MudMenuItem>
+        </MudMenu>
+    </MudStack>
+
+    <MudGrid Class="mb-4 no-print" Spacing="2">
+        <MudItem xs="12" md="4">
+            <MudTextField T="string" Label="Batch Number" Value="_batchNumber" ValueChanged="OnBatchNumberChanged" 
+                          Variant="Variant.Outlined" Placeholder="Enter batch number..." Clearable="true" />
+        </MudItem>
+        <MudItem xs="12" md="4">
+            <MudAutocomplete T="RawMaterialDto" Label="Select Item" Value="_selectedItem" ValueChanged="OnItemChanged"
+                             SearchFunc="@SearchItems" ToStringFunc="@(i => i?.ItemName ?? "")" Variant="Variant.Outlined" 
+                             Clearable="true" Placeholder="Search items..." AdornmentIcon="@Icons.Material.Filled.Search" />
+        </MudItem>
+        <MudItem xs="12" md="4" Class="d-flex align-end">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="OnSearch" FullWidth="true" Class="py-3">
+                Search
+            </MudButton>
+        </MudItem>
+    </MudGrid>
+
+    <div class="print-only mb-6">
+        <div style="text-align: center; border-bottom: 2px solid #333; padding-bottom: 12px; margin-bottom: 16px;">
+            <h2 style="margin: 0; font-size: 24px; font-weight: bold; color: #111;">GFI</h2>
+            <h3 style="margin: 4px 0 0; font-size: 18px; color: #555;">Batch Number Wise Items</h3>
+            <p style="margin: 4px 0 0; font-size: 12px; color: #777;">Generated on: @DateTime.Now.ToString("g")</p>
+        </div>
+        <div style="font-size: 14px; margin-bottom: 16px;">
+            <strong>Filters Applied:</strong><br />
+            Batch Number: @(string.IsNullOrWhiteSpace(_batchNumber) ? "Any" : _batchNumber) | 
+            Item: @(_selectedItem?.ItemName ?? "Any Item")
+        </div>
+    </div>
+
+    <MudTable RowsPerPage="25" T="BatchWiseItemDto" @ref="_table" ServerData="LoadServerDataAsync" Hover="true" Dense="true" Striped="true" Bordered="true" Loading="_loading">
+        <HeaderContent>
+            <MudTh>Batch No.</MudTh>
+            <MudTh>Item Name</MudTh>
+            <MudTh>Account Name</MudTh>
+            <MudTh>Processing Date</MudTh>
+            <MudTh>Expiry Date</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Batch No.">@context.BatchNo</MudTd>
+            <MudTd DataLabel="Item Name">@context.ItemName</MudTd>
+            <MudTd DataLabel="Account Name">@context.AccountName</MudTd>
+            <MudTd DataLabel="Processing Date">@context.ProcessingDate</MudTd>
+            <MudTd DataLabel="Expiry Date">@context.ExpiryDate</MudTd>
+        </RowTemplate>
+        <PagerContent>
+            <MudTablePager Class="no-print" />
+        </PagerContent>
+        <NoRecordsContent>
+            <MudText Class="pa-4">No batch items found. Please enter a Batch Number or select an Item to search.</MudText>
+        </NoRecordsContent>
+    </MudTable>
+</MudPaper>
+
+@code {
+    private MudTable<BatchWiseItemDto>? _table;
+    private string _batchNumber = "";
+    private RawMaterialDto? _selectedItem;
+    private bool _loading;
+    private string _currentSortDirection = "DESC";
+    private List<RawMaterialDto> _items = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!SessionState.IsLoggedIn)
+        {
+            Navigation.NavigateTo("/login");
+            return;
+        }
+
+        try
+        {
+            var itemResult = await ApiClient.GetItemsForBomLookupAsync(null);
+            _items = itemResult.OrderBy(x => x.ItemName).ToList();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error loading items lookup: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private void OnBatchNumberChanged(string val)
+    {
+        _batchNumber = val;
+        if (!string.IsNullOrEmpty(val))
+        {
+            _selectedItem = null;
+        }
+    }
+
+    private void OnItemChanged(RawMaterialDto? val)
+    {
+        _selectedItem = val;
+        if (val != null)
+        {
+            _batchNumber = "";
+        }
+    }
+
+    private async Task<IEnumerable<RawMaterialDto>> SearchItems(string value, CancellationToken token)
+    {
+        if (string.IsNullOrEmpty(value)) return _items;
+        return _items.Where(x => x.ItemName?.Contains(value, StringComparison.OrdinalIgnoreCase) == true);
+    }
+
+    private async Task<TableData<BatchWiseItemDto>> LoadServerDataAsync(TableState state, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(_batchNumber) && _selectedItem == null)
+        {
+            return new TableData<BatchWiseItemDto> { Items = Array.Empty<BatchWiseItemDto>(), TotalItems = 0 };
+        }
+
+        _loading = true;
+        try
+        {
+            PagedResult<BatchWiseItemDto> result;
+            _currentSortDirection = state.SortDirection == SortDirection.Ascending ? "ASC" : "DESC";
+
+            if (!string.IsNullOrWhiteSpace(_batchNumber))
+            {
+                result = await ApiClient.GetBatchWiseItemsByBatchNoAsync(_batchNumber, state.Page + 1, state.PageSize, _currentSortDirection, cancellationToken);
+            }
+            else
+            {
+                result = await ApiClient.GetBatchWiseItemsByItemAsync(_selectedItem!.ItemId, state.Page + 1, state.PageSize, _currentSortDirection, cancellationToken);
+            }
+
+            if (result.CurrentPage != state.Page + 1 && _table != null)
+            {
+                _table.NavigateTo(result.CurrentPage - 1);
+            }
+
+            return new TableData<BatchWiseItemDto>
+            {
+                TotalItems = result.TotalRecord,
+                Items = result.Items
+            };
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error loading batch wise report: {ex.Message}", Severity.Error);
+            return new TableData<BatchWiseItemDto> { Items = Array.Empty<BatchWiseItemDto>(), TotalItems = 0 };
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task OnSearch()
+    {
+        if (_table != null) await _table.ReloadServerData();
+    }
+
+    private async Task<List<BatchWiseItemDto>> GetAllDataAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_batchNumber) && _selectedItem == null) return new();
+        try
+        {
+            PagedResult<BatchWiseItemDto> result;
+            if (!string.IsNullOrWhiteSpace(_batchNumber))
+            {
+                result = await ApiClient.GetBatchWiseItemsByBatchNoAsync(_batchNumber, 1, 1000000, _currentSortDirection);
+            }
+            else
+            {
+                result = await ApiClient.GetBatchWiseItemsByItemAsync(_selectedItem!.ItemId, 1, 1000000, _currentSortDirection);
+            }
+            return result.Items.ToList();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error loading export data: {ex.Message}", Severity.Error);
+            return new();
+        }
+    }
+
+    private async Task ExportToCopyAsync()
+    {
+        var data = await GetAllDataAsync();
+        var sb = new StringBuilder();
+        sb.AppendLine("Batch No.\tItem Name\tAccount Name\tProcessing Date\tExpiry Date");
+        foreach (var item in data)
+        {
+            sb.AppendLine($"{item.BatchNo}\t{item.ItemName}\t{item.AccountName}\t{item.ProcessingDate}\t{item.ExpiryDate}");
+        }
+        var success = await JS.InvokeAsync<bool>("gfiCopyToClipboard", sb.ToString());
+        if (success)
+        {
+            Snackbar.Add("Report data copied to clipboard.", Severity.Success);
+        }
+        else
+        {
+            Snackbar.Add("Failed to copy data to clipboard.", Severity.Error);
+        }
+    }
+
+    private async Task ExportToCsvAsync()
+    {
+        var data = await GetAllDataAsync();
+        var sb = new StringBuilder();
+        sb.AppendLine("Batch No.,Item Name,Account Name,Processing Date,Expiry Date");
+        foreach (var item in data)
+        {
+            var name = (item.ItemName ?? "").Replace("\"", "\"\"");
+            var accName = (item.AccountName ?? "").Replace("\"", "\"\"");
+            sb.AppendLine($"\"{item.BatchNo}\",\"{name}\",\"{accName}\",\"{item.ProcessingDate}\",\"{item.ExpiryDate}\"");
+        }
+        await JS.InvokeVoidAsync("gfiDownloadTextFile", $"batch-wise-items-report-{DateTime.Now:yyyyMMddHHmmss}.csv", sb.ToString(), "text/csv;charset=utf-8");
+        Snackbar.Add("Report data exported as CSV.", Severity.Success);
+    }
+
+    private async Task ExportToPrintAsync()
+    {
+        await JS.InvokeVoidAsync("window.print");
+    }
+
+    private async Task ExportToPdfAsync()
+    {
+        Snackbar.Add("Tip: Choose 'Save as PDF' as the destination in the print window.", Severity.Info);
+        await JS.InvokeVoidAsync("window.print");
+    }
+}

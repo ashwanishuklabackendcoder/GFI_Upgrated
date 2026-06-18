@@ -1,0 +1,161 @@
+@page "/admin/item-type"
+@page "/admin/w_itemtypeaddlist"
+@page "/store/w_itemtypeaddlist"
+@page "/store/item-type"
+
+@using GFI_Upgrated.SharedDto.Store
+@using GFI_Upgrated.UI.Services
+@using GFI_Upgrated.UI.State
+@inject StoreApiClient ApiClient
+@inject ISnackbar Snackbar
+@inject IJSRuntime JS
+@inject NavigationManager Navigation
+@inject AppSessionState SessionState
+
+<PageTitle>Item Types</PageTitle>
+
+<MudPaper Class="pa-4">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+        <MudStack Spacing="0">
+            <MudText Typo="Typo.h5">Item Types</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">Manage hierarchical types for items (Raw Material, WIP, etc.).</MudText>
+        </MudStack>
+        @if (_canInsert)
+        {
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OnAdd">
+                Add New
+            </MudButton>
+        }
+    </MudStack>
+
+    <MudStack Row="true" AlignItems="AlignItems.End" Spacing="2" Class="mb-4">
+        <MudTextField @bind-Value="_search" Label="Search types" Variant="Variant.Outlined" Immediate="true" Class="flex-grow-1" />
+        <MudButton Variant="Variant.Outlined" OnClick="SearchAsync">Search</MudButton>
+    </MudStack>
+
+    <MudTable RowsPerPage="25" T="ItemTypeDto" @ref="_table" ServerData="LoadServerDataAsync" Hover="true" Dense="true" Striped="true" Bordered="true" Breakpoint="Breakpoint.Sm">
+        <HeaderContent>
+            <MudTh><MudTableSortLabel T="ItemTypeDto" SortLabel="ItemTypeName">Type Name</MudTableSortLabel></MudTh>
+            <MudTh>Type</MudTh>
+            <MudTh>Parent Type</MudTh>
+            <MudTh Style="width: 100px; text-align: center;">Status</MudTh>
+            <MudTh Style="width: 120px; text-align: center;">Action</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Type Name">@context.ItemTypeName</MudTd>
+            <MudTd DataLabel="Type">
+                <MudChip T="string" Color="@(context.IsMainType ? Color.Primary : Color.Info)" Size="Size.Small" Variant="Variant.Text">
+                    @(context.IsMainType ? "Main" : "Sub")
+                </MudChip>
+            </MudTd>
+            <MudTd DataLabel="Parent Type">@(context.ParentItemTypeName ?? "-")</MudTd>
+            <MudTd DataLabel="Status" Style="text-align: center;">
+                <MudChip T="string" Color="@(context.IsActive ? Color.Success : Color.Error)" Size="Size.Small" Variant="Variant.Text">
+                    @(context.IsActive ? "Active" : "Inactive")
+                </MudChip>
+            </MudTd>
+            <MudTd DataLabel="Action" Style="text-align: center;">
+                <MudStack Row="true" Spacing="1" Justify="Justify.Center" AlignItems="AlignItems.Center">
+                    @if (_canUpdate)
+                    {
+                        <MudTooltip Text="Edit">
+                            <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Size="Size.Small" OnClick="@(() => OnEdit(context))" />
+                        </MudTooltip>
+                    }
+                    @if (_canDelete && context.IsEditable)
+                    {
+                        <MudTooltip Text="Delete">
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => OnDelete(context))" />
+                        </MudTooltip>
+                    }
+                </MudStack>
+            </MudTd>
+        </RowTemplate>
+        <PagerContent>
+            <MudTablePager PageSizeOptions="new[] { 10, 25, 50 }" />
+        </PagerContent>
+        <NoRecordsContent>
+            <MudText Class="pa-4">No item type records found.</MudText>
+        </NoRecordsContent>
+    </MudTable>
+</MudPaper>
+
+@code {
+    private MudTable<ItemTypeDto>? _table;
+    private string? _search;
+    private bool _canInsert;
+    private bool _canUpdate;
+    private bool _canDelete;
+
+    protected override void OnInitialized()
+    {
+        if (!SessionState.IsLoggedIn)
+        {
+            Navigation.NavigateTo("/login");
+            return;
+        }
+
+        var permissions = SessionState.GetPermissions("/admin/item-type");
+        _canInsert = permissions.IsInsert;
+        _canUpdate = permissions.IsUpdate;
+        _canDelete = permissions.IsDelete;
+    }
+
+    private async Task<TableData<ItemTypeDto>> LoadServerDataAsync(TableState state, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await ApiClient.GetItemTypesAsync(new PagedRequest
+            {
+                CurrentPage = state.Page + 1,
+                RecordPerPage = state.PageSize,
+                SortColumn = state.SortLabel ?? "ItemTypeId",
+                SortType = state.SortDirection == SortDirection.Ascending ? "ASC" : "DESC"
+            }, _search, cancellationToken);
+
+            return new TableData<ItemTypeDto>
+            {
+                TotalItems = result.TotalRecord,
+                Items = result.Items
+            };
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+            return new TableData<ItemTypeDto> { TotalItems = 0, Items = Array.Empty<ItemTypeDto>() };
+        }
+    }
+
+    private async Task SearchAsync()
+    {
+        if (_table is not null) await _table.ReloadServerData();
+    }
+
+    private void OnAdd() => Navigation.NavigateTo("/admin/item-type/new");
+
+    private void OnEdit(ItemTypeDto type) => Navigation.NavigateTo($"/admin/item-type/edit/{type.ItemTypeId}");
+
+    private async Task OnDelete(ItemTypeDto type)
+    {
+        var confirmed = await JS.InvokeAsync<bool>("confirm", $"Are you sure you want to delete type: {type.ItemTypeName}?");
+        if (!confirmed) return;
+
+        try
+        {
+            var result = await ApiClient.DeleteItemTypeAsync(type.ItemTypeId, SessionState.CurrentUser?.LoginName ?? "System");
+            if (result > 0)
+            {
+                Snackbar.Add("Item type deleted successfully.", Severity.Success);
+                if (_table is not null) await _table.ReloadServerData();
+            }
+            else
+            {
+                Snackbar.Add("Cannot delete Item Type because it is currently linked to items or is not editable.", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+        }
+    }
+}

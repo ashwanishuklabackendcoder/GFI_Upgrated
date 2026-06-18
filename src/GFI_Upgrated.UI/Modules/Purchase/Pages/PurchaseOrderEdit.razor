@@ -1,0 +1,289 @@
+@page "/admin/purchase-order/new"
+@page "/admin/purchase-order/edit/{Id:long}"
+@using GFI_Upgrated.SharedDto.Purchase
+@using GFI_Upgrated.SharedDto.Store
+@using GFI_Upgrated.SharedDto.AdminSecurity
+@using GFI_Upgrated.UI.Services
+@using GFI_Upgrated.UI.State
+@inject StoreApiClient ApiClient
+@inject AdminSecurityApiClient AdminApiClient
+@inject ISnackbar Snackbar
+@inject NavigationManager Navigation
+@inject AppSessionState SessionState
+
+<PageTitle>@(Id == 0 ? "New Purchase Order" : "Edit Purchase Order")</PageTitle>
+
+<MudPaper Class="pa-4">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+        <MudStack Spacing="0">
+            <MudText Typo="Typo.h5">@(Id == 0 ? "New Purchase Order" : "Edit Purchase Order")</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">Generate formal orders for vendors.</MudText>
+        </MudStack>
+        <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.ArrowBack" OnClick="OnBack">Back to List</MudButton>
+    </MudStack>
+
+    <EditForm Model="_model" OnValidSubmit="OnSave">
+        <DataAnnotationsValidator />
+        <MudGrid>
+            <MudItem xs="12" md="3">
+                <MudTextField @bind-Value="_model.VoucherNumber" Label="Order Number" Variant="Variant.Outlined" Required="true" For="@(() => _model.VoucherNumber)" />
+            </MudItem>
+            <MudItem xs="12" md="3">
+                <MudAutocomplete T="AccountLookupDto" Label="Vendor" @bind-Value="_selectedVendor" SearchFunc="@SearchVendors"
+                                 ToStringFunc="@(a => a?.AccountName ?? "")" Variant="Variant.Outlined" Required="true"
+                                 AdornmentIcon="@Icons.Material.Filled.Search" />
+            </MudItem>
+            <MudItem xs="12" md="3">
+                <MudAutocomplete T="PurchaseRequestDto" Label="Link PR" @bind-Value="_selectedPR" SearchFunc="@SearchPRs"
+                                 ToStringFunc="@(p => p?.RequestNumber ?? "")" Variant="Variant.Outlined"
+                                 AdornmentIcon="@Icons.Material.Filled.Link" />
+            </MudItem>
+            <MudItem xs="12" md="3">
+                <MudDatePicker Label="Order Date" @bind-Date="_model.OrderDate" Variant="Variant.Outlined" Editable="true" />
+            </MudItem>
+
+            <!-- Items Section -->
+            <MudItem xs="12" Class="mt-6">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-2">
+                    <MudText Typo="Typo.subtitle1" Color="Color.Primary">Order Items</MudText>
+                    <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" Size="Size.Small" OnClick="AddRow">Add Item</MudButton>
+                </MudStack>
+                <MudDivider Class="mb-4" />
+
+                <MudTable Items="_model.Items" Hover="true" Dense="true" Striped="true" Bordered="true" Elevation="0" Context="itemContext">
+                    <HeaderContent>
+                        <MudTh>Item</MudTh>
+                        <MudTh Style="width: 120px;">Quantity</MudTh>
+                        <MudTh Style="width: 150px;">Unit</MudTh>
+                        <MudTh Style="width: 150px;">Price</MudTh>
+                        <MudTh Style="width: 150px;">Amount</MudTh>
+                        <MudTh Style="text-align: center; width: 80px;">Action</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd DataLabel="Item">
+                            <MudAutocomplete T="RawMaterialDto" Value="@(GetItemById(itemContext.ItemID))" ValueChanged="@((v) => OnItemChanged(itemContext, v))"
+                                             SearchFunc="@SearchItems" ToStringFunc="@(i => i?.ItemName ?? "")" 
+                                             Variant="Variant.Text" Dense="true" Required="true" />
+                        </MudTd>
+                        <MudTd DataLabel="Qty">
+                            <MudNumericField @bind-Value="itemContext.Quantity" Variant="Variant.Text" Dense="true" Min="1" />
+                        </MudTd>
+                        <MudTd DataLabel="Unit">
+                            <MudSelect T="long?" @bind-Value="itemContext.UnitId" Variant="Variant.Text" Dense="true">
+                                <MudSelectItem T="long?" Value="null">Select Unit</MudSelectItem>
+                                @foreach (var unit in _units)
+                                {
+                                    <MudSelectItem T="long?" Value="unit.UnitId">@unit.UnitName</MudSelectItem>
+                                }
+                            </MudSelect>
+                        </MudTd>
+                        <MudTd DataLabel="Price">
+                            <MudNumericField @bind-Value="itemContext.Price" Variant="Variant.Text" Dense="true" Format="N2" />
+                        </MudTd>
+                        <MudTd DataLabel="Amount">
+                            <MudText>@((itemContext.Quantity * itemContext.Price).ToString("N2"))</MudText>
+                        </MudTd>
+                        <MudTd Style="text-align: center;">
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => RemoveRow(itemContext))" />
+                        </MudTd>
+                    </RowTemplate>
+                </MudTable>
+            </MudItem>
+
+            <!-- Summary Section -->
+            <MudItem xs="12" md="8">
+                <MudTextField @bind-Value="_model.Remarks" Label="Remarks" Variant="Variant.Outlined" Lines="3" />
+            </MudItem>
+            <MudItem xs="12" md="4">
+                <MudPaper Class="pa-4 mud-background-gray" Elevation="0">
+                    <MudStack Spacing="2">
+                        <div class="d-flex justify-space-between">
+                            <MudText>Subtotal:</MudText>
+                            <MudText>@_subtotal.ToString("N2")</MudText>
+                        </div>
+                        <div class="d-flex justify-space-between align-center">
+                            <MudText>Discount (%):</MudText>
+                            <MudNumericField @bind-Value="_model.DiscountPercent" Variant="Variant.Text" Dense="true" Style="width: 80px;" OnBlur="CalculateTotals" />
+                        </div>
+                        <div class="d-flex justify-space-between align-center">
+                            <MudText>Discount Amt:</MudText>
+                            <MudNumericField @bind-Value="_model.DiscountAmount" Variant="Variant.Text" Dense="true" Style="width: 80px;" OnBlur="CalculateTotals" />
+                        </div>
+                        <MudDivider />
+                        <div class="d-flex justify-space-between">
+                            <MudText Typo="Typo.h6">Total:</MudText>
+                            <MudText Typo="Typo.h6" Color="Color.Primary">@_total.ToString("N2")</MudText>
+                        </div>
+                    </MudStack>
+                </MudPaper>
+            </MudItem>
+
+            <MudItem xs="12" Class="d-flex justify-end mt-6 gap-2">
+                <MudButton Variant="Variant.Outlined" OnClick="OnBack">Cancel</MudButton>
+                <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Loading="_saving">Save Order</MudButton>
+            </MudItem>
+        </MudGrid>
+    </EditForm>
+</MudPaper>
+
+@code {
+    [Parameter] public long Id { get; set; }
+
+    private PurchaseOrderDto _model = new() { OrderDate = DateTime.Now };
+    private AccountLookupDto? _selectedVendor;
+    private PurchaseRequestDto? _selectedPR;
+    private List<AccountLookupDto> _vendors = new();
+    private List<PurchaseRequestDto> _pendingPRs = new();
+    private List<UnitDto> _units = new();
+    private List<RawMaterialDto> _allItems = new();
+    private bool _saving;
+    
+    private double _subtotal => _model.Items.Sum(i => i.Quantity * i.Price);
+    private double _total => _subtotal - (_model.DiscountAmount ?? 0);
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!SessionState.IsLoggedIn)
+        {
+            Navigation.NavigateTo("/login");
+            return;
+        }
+
+        await LoadLookups();
+
+        if (Id > 0)
+        {
+            await LoadData();
+        }
+        else
+        {
+            _model.CreatedBy = SessionState.CurrentUser?.LoginName ?? "System";
+            _model.VoucherNumber = $"PO-{DateTime.Now:yyyyMMdd-HHmm}";
+        }
+    }
+
+    private async Task LoadLookups()
+    {
+        try
+        {
+            _vendors = (await ApiClient.GetAccountsLookupAsync()).ToList();
+            var units = await ApiClient.GetUnitsAsync(new PagedRequest { CurrentPage = 1, RecordPerPage = 1000 });
+            _units = units.Items.ToList();
+            _allItems = (await ApiClient.GetItemsForBomLookupAsync(null)).ToList();
+            
+            var prs = await ApiClient.GetPurchaseRequestsAsync(null, null, null, 1, 100);
+            _pendingPRs = prs.Items.ToList();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error loading lookups: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task LoadData()
+    {
+        try
+        {
+            var result = await ApiClient.GetPurchaseOrdersAsync(Id, null, null);
+            if (result.Items.Any())
+            {
+                _model = result.Items.First();
+                _model.Items = await ApiClient.GetPurchaseOrderItemsAsync(Id);
+                _selectedVendor = _vendors.FirstOrDefault(v => v.AccountId == _model.AccountID);
+                _selectedPR = _pendingPRs.FirstOrDefault(p => p.PurchaseRequestMasterID == _model.PurchaseRequestID);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error loading order: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task<IEnumerable<AccountLookupDto>> SearchVendors(string value, CancellationToken token)
+    {
+        if (string.IsNullOrEmpty(value)) return _vendors;
+        return _vendors.Where(x => x.AccountName?.Contains(value, StringComparison.OrdinalIgnoreCase) == true);
+    }
+
+    private async Task<IEnumerable<PurchaseRequestDto>> SearchPRs(string value, CancellationToken token)
+    {
+        if (string.IsNullOrEmpty(value)) return _pendingPRs;
+        return _pendingPRs.Where(x => x.RequestNumber?.Contains(value, StringComparison.OrdinalIgnoreCase) == true);
+    }
+
+    private async Task<IEnumerable<RawMaterialDto>> SearchItems(string value, CancellationToken token)
+    {
+        if (string.IsNullOrEmpty(value)) return _allItems;
+        return _allItems.Where(x => x.ItemName?.Contains(value, StringComparison.OrdinalIgnoreCase) == true);
+    }
+
+    private RawMaterialDto? GetItemById(long id) => _allItems.FirstOrDefault(x => x.ItemId == id);
+
+    private void OnItemChanged(PurchaseOrderItemDto row, RawMaterialDto? item)
+    {
+        if (item != null)
+        {
+            row.ItemID = item.ItemId;
+            row.ItemName = item.ItemName;
+        }
+    }
+
+    private void AddRow()
+    {
+        _model.Items.Add(new PurchaseOrderItemDto { Quantity = 1, UnitId = _units.FirstOrDefault()?.UnitId });
+    }
+
+    private void RemoveRow(PurchaseOrderItemDto row)
+    {
+        _model.Items.Remove(row);
+    }
+
+    private void CalculateTotals()
+    {
+        if (_model.DiscountPercent > 0)
+        {
+            _model.DiscountAmount = _subtotal * (_model.DiscountPercent / 100);
+        }
+    }
+
+    private async Task OnSave()
+    {
+        if (_selectedVendor == null)
+        {
+            Snackbar.Add("Please select a vendor.", Severity.Warning);
+            return;
+        }
+
+        if (!_model.Items.Any())
+        {
+            Snackbar.Add("Please add at least one item.", Severity.Warning);
+            return;
+        }
+
+        _saving = true;
+        try
+        {
+            _model.AccountID = _selectedVendor.AccountId;
+            _model.PurchaseRequestID = _selectedPR?.PurchaseRequestMasterID;
+            _model.CreatedBy = SessionState.CurrentUser?.LoginName ?? "System";
+            _model.TotalAmount = _total;
+            
+            var resultId = await ApiClient.SavePurchaseOrderAsync(_model);
+            if (resultId > 0)
+            {
+                Snackbar.Add("Purchase Order saved successfully.", Severity.Success);
+                Navigation.NavigateTo("/admin/purchase-order");
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error saving: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    private void OnBack() => Navigation.NavigateTo("/admin/purchase-order");
+}

@@ -1,0 +1,126 @@
+@page "/admin/item-write-off"
+@using GFI_Upgrated.SharedDto.Purchase
+@using GFI_Upgrated.UI.Services
+@using GFI_Upgrated.UI.State
+@inject StoreApiClient ApiClient
+@inject ISnackbar Snackbar
+@inject NavigationManager Navigation
+@inject AppSessionState SessionState
+@inject IJSRuntime JS
+
+<PageTitle>Item Write Offs</PageTitle>
+
+<MudPaper Class="pa-4">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+        <MudStack Spacing="0">
+            <MudText Typo="Typo.h5">Item Write Offs</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">Record and track inventory items written off from stock.</MudText>
+        </MudStack>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OnAddNew" Disabled="!_canInsert">
+            Write Off Item
+        </MudButton>
+    </MudStack>
+
+    <MudTable RowsPerPage="25" T="ItemWriteOffDto" @ref="_table" ServerData="LoadServerDataAsync" Hover="true" Dense="true" Striped="true" Bordered="true" Loading="_loading">
+        <HeaderContent>
+            <MudTh><MudTableSortLabel SortLabel="RemovalDate" T="ItemWriteOffDto">Date</MudTableSortLabel></MudTh>
+            <MudTh>Item</MudTh>
+            <MudTh>Batch #</MudTh>
+            <MudTh>Quantity</MudTh>
+            <MudTh>Reason</MudTh>
+            <MudTh>Remarks</MudTh>
+            <MudTh Style="text-align: center; width: 100px;">Action</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Date">@context.RemovalDate?.ToString("dd/MM/yyyy")</MudTd>
+            <MudTd DataLabel="Item">@context.ItemName</MudTd>
+            <MudTd DataLabel="Batch #">@context.BatchNo</MudTd>
+            <MudTd DataLabel="Quantity">@context.Quantity @context.UnitName</MudTd>
+            <MudTd DataLabel="Reason">@context.ReasonName</MudTd>
+            <MudTd DataLabel="Remarks">@context.Remarks</MudTd>
+            <MudTd DataLabel="Action" Style="text-align: center;">
+                <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Size="Size.Small" OnClick="@(() => OnEdit(context))" Disabled="!_canUpdate" />
+                <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => OnDelete(context))" Disabled="!_canDelete" />
+            </MudTd>
+        </RowTemplate>
+        <PagerContent>
+            <MudTablePager />
+        </PagerContent>
+    </MudTable>
+</MudPaper>
+
+@code {
+    private MudTable<ItemWriteOffDto>? _table;
+    private bool _loading;
+    private bool _canInsert;
+    private bool _canUpdate;
+    private bool _canDelete;
+
+    protected override void OnInitialized()
+    {
+        if (!SessionState.IsLoggedIn)
+        {
+            Navigation.NavigateTo("/login");
+            return;
+        }
+
+        var path = "admin/item-write-off";
+        var perms = SessionState.GetPermissions(path);
+        
+        if (SessionState.IsAdmin)
+        {
+            _canInsert = _canUpdate = _canDelete = true;
+        }
+        else
+        {
+            _canInsert = perms.IsInsert;
+            _canUpdate = perms.IsUpdate;
+            _canDelete = perms.IsDelete;
+        }
+    }
+
+    private async Task<TableData<ItemWriteOffDto>> LoadServerDataAsync(TableState state, CancellationToken cancellationToken)
+    {
+        _loading = true;
+        try
+        {
+            var result = await ApiClient.GetItemWriteOffsAsync(null, null, state.Page + 1, state.PageSize, cancellationToken);
+            return new TableData<ItemWriteOffDto> { TotalItems = result.TotalRecord, Items = result.Items };
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+            return new TableData<ItemWriteOffDto> { Items = Array.Empty<ItemWriteOffDto>(), TotalItems = 0 };
+        }
+        finally { _loading = false; }
+    }
+
+    private void OnAddNew() => Navigation.NavigateTo("/admin/item-write-off/new");
+
+    private void OnEdit(ItemWriteOffDto item) => Navigation.NavigateTo($"/admin/item-write-off/edit/{item.ItemWriteOffID}");
+
+    private async Task OnDelete(ItemWriteOffDto item)
+    {
+        var confirmed = await JS.InvokeAsync<bool>("confirm", $"Are you sure you want to delete write off for: {item.ItemName}?");
+        if (!confirmed) return;
+
+        try
+        {
+            var user = SessionState.CurrentUser?.LoginName ?? "System";
+            var success = await ApiClient.DeleteItemWriteOffsAsync(item.ItemWriteOffID.ToString(), user);
+            if (success)
+            {
+                Snackbar.Add("Item write off deleted successfully.", Severity.Success);
+                if (_table is not null) await _table.ReloadServerData();
+            }
+            else
+            {
+                Snackbar.Add("Failed to delete write off.", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+        }
+    }
+}

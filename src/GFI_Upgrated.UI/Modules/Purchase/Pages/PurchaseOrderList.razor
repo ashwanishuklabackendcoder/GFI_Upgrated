@@ -1,0 +1,143 @@
+@page "/admin/purchase-order"
+@using GFI_Upgrated.SharedDto.Purchase
+@using GFI_Upgrated.UI.Services
+@using GFI_Upgrated.UI.State
+@inject StoreApiClient ApiClient
+@inject ISnackbar Snackbar
+@inject NavigationManager Navigation
+@inject AppSessionState SessionState
+
+<PageTitle>Purchase Orders</PageTitle>
+
+<MudPaper Class="pa-4">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+        <MudText Typo="Typo.h5">Purchase Orders</MudText>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OnAddNew" Disabled="!_canInsert">
+            New Purchase Order
+        </MudButton>
+    </MudStack>
+
+    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-4">
+        <MudTextField @bind-Value="_search" Placeholder="Search by order number..." Variant="Variant.Outlined" Immediate="true" Clearable="true" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" OnClearButtonClick="OnSearch" />
+        <MudButton Variant="Variant.Outlined" OnClick="OnSearch">Search</MudButton>
+    </MudStack>
+
+    <MudTable RowsPerPage="25" T="PurchaseOrderDto" @ref="_table" ServerData="LoadServerDataAsync" Hover="true" Dense="true" Striped="true" Bordered="true" Loading="_loading">
+        <HeaderContent>
+            <MudTh><MudTableSortLabel SortLabel="VoucherNumber" T="PurchaseOrderDto">Order #</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel SortLabel="OrderDate" T="PurchaseOrderDto">Date</MudTableSortLabel></MudTh>
+            <MudTh>Vendor</MudTh>
+            <MudTh>Total Amount</MudTh>
+            <MudTh>Status</MudTh>
+            <MudTh Style="text-align: center; width: 120px;">Action</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Order #">@context.VoucherNumber</MudTd>
+            <MudTd DataLabel="Date">@context.OrderDate?.ToString("dd/MM/yyyy")</MudTd>
+            <MudTd DataLabel="Vendor">@context.VendorName</MudTd>
+            <MudTd DataLabel="Total Amount">@context.TotalAmount.ToString("N2")</MudTd>
+            <MudTd DataLabel="Status">
+                @if (context.ConfirmedBy.HasValue)
+                {
+                    <MudChip T="string" Color="Color.Success" Size="Size.Small">Confirmed</MudChip>
+                }
+                else if (context.CheckedBy.HasValue)
+                {
+                    <MudChip T="string" Color="Color.Info" Size="Size.Small">Checked</MudChip>
+                }
+                else
+                {
+                    <MudChip T="string" Color="Color.Default" Size="Size.Small">Pending</MudChip>
+                }
+            </MudTd>
+            <MudTd DataLabel="Action" Style="text-align: center;">
+                <MudStack Row="true" Justify="Justify.Center" Spacing="1">
+                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Size="Size.Small" OnClick="@(() => OnEdit(context.PurchaseOrderID))" Disabled="!_canUpdate" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => OnDelete(context))" Disabled="!_canDelete" />
+                </MudStack>
+            </MudTd>
+        </RowTemplate>
+        <PagerContent>
+            <MudTablePager />
+        </PagerContent>
+        <NoRecordsContent>
+            <MudText Class="pa-4">No purchase orders found.</MudText>
+        </NoRecordsContent>
+    </MudTable>
+</MudPaper>
+
+@code {
+    private MudTable<PurchaseOrderDto>? _table;
+    private string _search = "";
+    private bool _loading;
+    private bool _canInsert;
+    private bool _canUpdate;
+    private bool _canDelete;
+
+    protected override void OnInitialized()
+    {
+        if (!SessionState.IsLoggedIn)
+        {
+            Navigation.NavigateTo("/login");
+            return;
+        }
+
+        var path = "admin/purchase-order";
+        var perms = SessionState.GetPermissions(path);
+        
+        if (SessionState.IsAdmin)
+        {
+            _canInsert = _canUpdate = _canDelete = true;
+        }
+        else
+        {
+            _canInsert = perms.IsInsert;
+            _canUpdate = perms.IsUpdate;
+            _canDelete = perms.IsDelete;
+        }
+    }
+
+    private async Task<TableData<PurchaseOrderDto>> LoadServerDataAsync(TableState state, CancellationToken cancellationToken)
+    {
+        _loading = true;
+        try
+        {
+            var result = await ApiClient.GetPurchaseOrdersAsync(
+                null, 
+                _search, 
+                null, 
+                state.Page + 1, 
+                state.PageSize, 
+                cancellationToken);
+
+            return new TableData<PurchaseOrderDto>
+            {
+                TotalItems = result.TotalRecord,
+                Items = result.Items
+            };
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error loading orders: {ex.Message}", Severity.Error);
+            return new TableData<PurchaseOrderDto> { Items = Array.Empty<PurchaseOrderDto>(), TotalItems = 0 };
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task OnSearch()
+    {
+        if (_table != null) await _table.ReloadServerData();
+    }
+
+    private void OnAddNew() => Navigation.NavigateTo("/admin/purchase-order/new");
+
+    private void OnEdit(long id) => Navigation.NavigateTo($"/admin/purchase-order/edit/{id}");
+
+    private async Task OnDelete(PurchaseOrderDto item)
+    {
+        Snackbar.Add("Deletion not implemented for PO.", Severity.Info);
+    }
+}

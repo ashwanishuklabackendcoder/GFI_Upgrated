@@ -1,0 +1,125 @@
+@page "/admin/z_usersactivitylog"
+@using GFI_Upgrated.SharedDto.AdminSecurity
+@using GFI_Upgrated.SharedDto.Common
+@using GFI_Upgrated.UI.Services
+@using GFI_Upgrated.UI.State
+@inject AdminSecurityApiClient ApiClient
+@inject ISnackbar Snackbar
+@inject NavigationManager Navigation
+@inject AppSessionState SessionState
+
+<PageTitle>User Activity Logs</PageTitle>
+
+<MudPaper Class="pa-4 mb-4">
+    <MudText Typo="Typo.h5" Class="mb-2">User Activity Logs</MudText>
+    <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">Monitor and track database-level activity logs of application users.</MudText>
+    
+    <MudGrid>
+        <MudItem xs="12" sm="6" md="3">
+            <MudTextField @bind-Value="_userName" Label="User Name" Variant="Variant.Outlined" Dense="true" Clearable="true" Placeholder="e.g. Administrator" />
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudTextField @bind-Value="_loginName" Label="Login Name" Variant="Variant.Outlined" Dense="true" Clearable="true" Placeholder="e.g. admin" />
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudTextField @bind-Value="_eventName" Label="Event Name" Variant="Variant.Outlined" Dense="true" Clearable="true" Placeholder="e.g. INSERT, UPDATE" />
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudTextField @bind-Value="_eventModule" Label="Module" Variant="Variant.Outlined" Dense="true" Clearable="true" Placeholder="e.g. Purchase" />
+        </MudItem>
+        <MudItem xs="12" Class="d-flex justify-end gap-2">
+            <MudButton Variant="Variant.Outlined" OnClick="OnClearFilters" StartIcon="@Icons.Material.Filled.Clear">Clear</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="OnSearch" StartIcon="@Icons.Material.Filled.Search">Search</MudButton>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+<MudPaper Class="pa-4">
+    <MudTable RowsPerPage="25" T="UserActivityLogDto" @ref="_table" ServerData="LoadServerDataAsync" Hover="true" Dense="true" Striped="true" Bordered="true" Loading="_loading">
+        <HeaderContent>
+            <MudTh><MudTableSortLabel SortLabel="DT" T="UserActivityLogDto" InitialDirection="SortDirection.Descending">Timestamp</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel SortLabel="UserName" T="UserActivityLogDto">User Name</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel SortLabel="LoginName" T="UserActivityLogDto">Login Name</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel SortLabel="EventModule" T="UserActivityLogDto">Module</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel SortLabel="EventName" T="UserActivityLogDto">Event</MudTableSortLabel></MudTh>
+            <MudTh>Ref Key</MudTh>
+            <MudTh>Remarks</MudTh>
+            <MudTh>URL</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Timestamp">@context.DT?.ToString("dd/MM/yyyy HH:mm:ss")</MudTd>
+            <MudTd DataLabel="User Name">@context.UserName</MudTd>
+            <MudTd DataLabel="Login Name">@context.LoginName</MudTd>
+            <MudTd DataLabel="Module">@context.EventModule</MudTd>
+            <MudTd DataLabel="Event">@context.EventName</MudTd>
+            <MudTd DataLabel="Ref Key">@context.RefKey</MudTd>
+            <MudTd DataLabel="Remarks">@context.Remarks</MudTd>
+            <MudTd DataLabel="URL" Style="word-break: break-all; max-width: 200px;">@context.Url</MudTd>
+        </RowTemplate>
+        <PagerContent>
+            <MudTablePager />
+        </PagerContent>
+    </MudTable>
+</MudPaper>
+
+@code {
+    private MudTable<UserActivityLogDto>? _table;
+    private bool _loading;
+    private string? _userName;
+    private string? _loginName;
+    private string? _eventName;
+    private string? _eventModule;
+
+    protected override void OnInitialized()
+    {
+        if (!SessionState.IsLoggedIn)
+        {
+            Navigation.NavigateTo("/login");
+        }
+    }
+
+    private async Task<TableData<UserActivityLogDto>> LoadServerDataAsync(TableState state, CancellationToken cancellationToken)
+    {
+        _loading = true;
+        try
+        {
+            var request = new PagedRequest
+            {
+                CurrentPage = state.Page + 1,
+                RecordPerPage = state.PageSize,
+                SortColumn = state.SortLabel ?? "DT",
+                SortType = state.SortDirection == SortDirection.Ascending ? "ASC" : "DESC"
+            };
+
+            var result = await ApiClient.GetUserActivityLogsAsync(_userName, _loginName, _eventName, _eventModule, request, cancellationToken);
+            return new TableData<UserActivityLogDto>
+            {
+                TotalItems = result.TotalRecord,
+                Items = result.Items
+            };
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+            return new TableData<UserActivityLogDto> { Items = Array.Empty<UserActivityLogDto>(), TotalItems = 0 };
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private void OnSearch()
+    {
+        _table?.ReloadServerData();
+    }
+
+    private void OnClearFilters()
+    {
+        _userName = null;
+        _loginName = null;
+        _eventName = null;
+        _eventModule = null;
+        _table?.ReloadServerData();
+    }
+}

@@ -1,0 +1,128 @@
+@page "/admin/purchase"
+@using GFI_Upgrated.SharedDto.Purchase
+@using GFI_Upgrated.UI.Services
+@using GFI_Upgrated.UI.State
+@inject StoreApiClient ApiClient
+@inject ISnackbar Snackbar
+@inject NavigationManager Navigation
+@inject AppSessionState SessionState
+
+<PageTitle>Goods Receipts (Purchase)</PageTitle>
+
+<MudPaper Class="pa-4">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+        <MudText Typo="Typo.h5">Goods Receipts (Purchase)</MudText>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OnAddNew" Disabled="!_canInsert">
+            Record New Receipt
+        </MudButton>
+    </MudStack>
+
+    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-4">
+        <MudTextField @bind-Value="_search" Placeholder="Search by voucher or invoice..." Variant="Variant.Outlined" Immediate="true" Clearable="true" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" OnClearButtonClick="OnSearch" />
+        <MudButton Variant="Variant.Outlined" OnClick="OnSearch">Search</MudButton>
+    </MudStack>
+
+    <MudTable RowsPerPage="25" T="PurchaseDto" @ref="_table" ServerData="LoadServerDataAsync" Hover="true" Dense="true" Striped="true" Bordered="true" Loading="_loading">
+        <HeaderContent>
+            <MudTh><MudTableSortLabel SortLabel="VoucherNumber" T="PurchaseDto">Voucher #</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel SortLabel="InvoiceNo" T="PurchaseDto">Invoice #</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel SortLabel="GoodsRecievedDate" T="PurchaseDto">Received Date</MudTableSortLabel></MudTh>
+            <MudTh>Vendor</MudTh>
+            <MudTh>Total Amount</MudTh>
+            <MudTh Style="text-align: center; width: 120px;">Action</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Voucher #">@context.VoucherNumber</MudTd>
+            <MudTd DataLabel="Invoice #">@context.InvoiceNo</MudTd>
+            <MudTd DataLabel="Received Date">@context.GoodsRecievedDate?.ToString("dd/MM/yyyy")</MudTd>
+            <MudTd DataLabel="Vendor">@context.VendorName</MudTd>
+            <MudTd DataLabel="Total Amount">@context.TotalAmount.ToString("N2")</MudTd>
+            <MudTd DataLabel="Action" Style="text-align: center;">
+                <MudStack Row="true" Justify="Justify.Center" Spacing="1">
+                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Size="Size.Small" OnClick="@(() => OnEdit(context.PurchaseID))" Disabled="!_canUpdate" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => OnDelete(context))" Disabled="!_canDelete" />
+                </MudStack>
+            </MudTd>
+        </RowTemplate>
+        <PagerContent>
+            <MudTablePager />
+        </PagerContent>
+    </MudTable>
+</MudPaper>
+
+@code {
+    private MudTable<PurchaseDto>? _table;
+    private string _search = "";
+    private bool _loading;
+    private bool _canInsert;
+    private bool _canUpdate;
+    private bool _canDelete;
+
+    protected override void OnInitialized()
+    {
+        if (!SessionState.IsLoggedIn)
+        {
+            Navigation.NavigateTo("/login");
+            return;
+        }
+
+        var path = "admin/purchase";
+        var perms = SessionState.GetPermissions(path);
+        
+        if (SessionState.IsAdmin)
+        {
+            _canInsert = _canUpdate = _canDelete = true;
+        }
+        else
+        {
+            _canInsert = perms.IsInsert;
+            _canUpdate = perms.IsUpdate;
+            _canDelete = perms.IsDelete;
+        }
+    }
+
+    private async Task<TableData<PurchaseDto>> LoadServerDataAsync(TableState state, CancellationToken cancellationToken)
+    {
+        _loading = true;
+        try
+        {
+            var result = await ApiClient.GetPurchasesAsync(
+                null, 
+                _search, 
+                null, 
+                null,
+                state.Page + 1, 
+                state.PageSize, 
+                cancellationToken);
+
+            return new TableData<PurchaseDto>
+            {
+                TotalItems = result.TotalRecord,
+                Items = result.Items
+            };
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error loading receipts: {ex.Message}", Severity.Error);
+            return new TableData<PurchaseDto> { Items = Array.Empty<PurchaseDto>(), TotalItems = 0 };
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task OnSearch()
+    {
+        if (_table != null) await _table.ReloadServerData();
+    }
+
+    private void OnAddNew() => Navigation.NavigateTo("/admin/purchase/new");
+
+    private void OnEdit(long id) => Navigation.NavigateTo($"/admin/purchase/edit/{id}");
+
+    private async Task OnDelete(PurchaseDto item)
+    {
+        Snackbar.Add("Deletion not implemented for GRN.", Severity.Info);
+    }
+}

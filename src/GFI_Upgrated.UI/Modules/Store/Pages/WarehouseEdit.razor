@@ -1,0 +1,96 @@
+@page "/admin/warehouse/new"
+@page "/admin/warehouse/edit/{Id:long}"
+@using GFI_Upgrated.SharedDto.Store
+@using GFI_Upgrated.UI.Services
+@using GFI_Upgrated.UI.State
+@inject StoreApiClient ApiClient
+@inject ISnackbar Snackbar
+@inject NavigationManager NavigationManager
+@inject AppSessionState SessionState
+
+<PageTitle>@(_isEdit ? "Edit Warehouse" : "Add New Warehouse")</PageTitle>
+
+<MudPaper Class="pa-4">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+        <MudStack Spacing="0">
+            <MudText Typo="Typo.h5">@(_isEdit ? "Edit Warehouse" : "Add New Warehouse")</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">Enter warehouse details below.</MudText>
+        </MudStack>
+        <MudIconButton Icon="@Icons.Material.Filled.Close" OnClick="OnCancel" />
+    </MudStack>
+
+    <EditForm Model="_editor" OnValidSubmit="SaveAsync">
+        <DataAnnotationsValidator />
+        <MudGrid>
+            <MudItem xs="12">
+                <MudTextField @bind-Value="_editor.WarehouseName" Label="Warehouse Name" Variant="Variant.Outlined" For="@(() => _editor.WarehouseName)" />
+            </MudItem>
+            <MudItem xs="12">
+                <MudTextField @bind-Value="_editor.Description" Label="Description" Variant="Variant.Outlined" Lines="3" For="@(() => _editor.Description)" />
+            </MudItem>
+
+            <MudItem xs="12" Class="pt-4">
+                <MudStack Row="true" Spacing="2">
+                    <MudButton ButtonType="ButtonType.Submit" Color="Color.Primary" Variant="Variant.Filled" Disabled="_processing">@(_processing ? "Saving..." : "Save Warehouse")</MudButton>
+                    <MudButton Variant="Variant.Outlined" OnClick="OnCancel" Disabled="_processing">Cancel</MudButton>
+                </MudStack>
+            </MudItem>
+        </MudGrid>
+    </EditForm>
+</MudPaper>
+
+@code {
+    [Parameter] public long? Id { get; set; }
+    private bool _isEdit => Id.HasValue && Id.Value > 0;
+    private SaveWarehouseRequest _editor = new();
+    private bool _processing;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!SessionState.IsLoggedIn)
+        {
+            NavigationManager.NavigateTo("/login");
+            return;
+        }
+        
+        if (_isEdit)
+        {
+            var selected = await ApiClient.GetWarehouseByIdAsync(Id!.Value);
+            if (selected is not null)
+            {
+                _editor.WarehouseId = selected.WarehouseId;
+                _editor.WarehouseName = selected.WarehouseName;
+                _editor.Description = selected.Description;
+            }
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        _processing = true;
+        try
+        {
+            _editor.UpdatedBy = SessionState.CurrentUser?.LoginName ?? "System";
+            var result = await ApiClient.SaveWarehouseAsync(_editor);
+            if (result > 0)
+            {
+                Snackbar.Add("Warehouse saved successfully.", Severity.Success);
+                NavigationManager.NavigateTo("/admin/warehouse");
+            }
+            else
+            {
+                Snackbar.Add("Failed to save warehouse.", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _processing = false;
+        }
+    }
+
+    private void OnCancel() => NavigationManager.NavigateTo("/admin/warehouse");
+}

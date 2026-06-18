@@ -1,0 +1,55 @@
+@using GFI_Upgrated.SharedDto.Account
+@using GFI_Upgrated.UI.Services
+@using MudBlazor
+@inject AccountApiClient ApiClient
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="_form" Model="@Model">
+            <MudStack Spacing="4">
+                <MudTextField @bind-Value="Model.CurrencySymbol" Label="Symbol (e.g. $, €)" Required="true" RequiredError="Symbol is required" Variant="Variant.Outlined" />
+                <MudTextField @bind-Value="Model.CurrencyString" Label="Currency Code (e.g. USD, EUR)" Required="true" RequiredError="Code is required" Variant="Variant.Outlined" />
+                <MudTextField @bind-Value="Model.CurrencySubString" Label="Sub-Currency (e.g. Cents)" Variant="Variant.Outlined" />
+            </MudStack>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit">Save</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public CurrencyDto Model { get; set; } = new();
+
+    private MudForm _form = default!;
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task Submit()
+    {
+        await _form.Validate();
+        if (_form.IsValid)
+        {
+            try
+            {
+                var id = await ApiClient.SaveCurrencyAsync(Model);
+                if (id > 0)
+                {
+                    Snackbar.Add("Currency saved successfully.", Severity.Success);
+                    MudDialog.Close(DialogResult.Ok(id));
+                }
+                else
+                {
+                    Snackbar.Add("Failed to save currency.", Severity.Error);
+                }
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Error saving currency: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+}

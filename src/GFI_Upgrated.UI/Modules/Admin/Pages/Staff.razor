@@ -1,0 +1,122 @@
+@page "/admin/staff"
+@inject AppSessionState SessionState
+@inject NavigationManager Navigation
+@inject AdminSecurityApiClient ApiClient
+@inject IJSRuntime JS
+
+<PageTitle>Staff</PageTitle>
+
+<MudPaper Class="pa-4">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+        <MudStack Spacing="0">
+            <MudText Typo="Typo.h5">Staff</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">Legacy staff master parity</MudText>
+        </MudStack>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="NewStaff">
+            Add New
+        </MudButton>
+    </MudStack>
+
+    <MudStack Row="true" AlignItems="AlignItems.End" Spacing="2" Class="mb-4">
+        <MudTextField @bind-Value="_search" Label="Search staff" Variant="Variant.Outlined" Immediate="true" Class="flex-grow-1" />
+        <MudButton Variant="Variant.Outlined" OnClick="SearchAsync">Search</MudButton>
+    </MudStack>
+
+    <MudTable RowsPerPage="25" T="StaffDto" @ref="_table" ServerData="LoadServerDataAsync" Hover="true" Dense="true" Striped="true" Bordered="true" Breakpoint="Breakpoint.Sm">
+        <HeaderContent>
+            <MudTh><MudTableSortLabel T="StaffDto" SortLabel="StaffFirstName">Staff Name</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel T="StaffDto" SortLabel="StaffNumber">Staff Number</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel T="StaffDto" SortLabel="DOB">D.O.B</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel T="StaffDto" SortLabel="MobileNo">Mobile No</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel T="StaffDto" SortLabel="EmailIDOfficial">EmailID Official</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel T="StaffDto" SortLabel="GenderName">Gender</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel T="StaffDto" SortLabel="Status">Status</MudTableSortLabel></MudTh>
+            <MudTh>Action</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Staff Name">@context.StaffName</MudTd>
+            <MudTd DataLabel="Staff Number">@context.StaffNumber</MudTd>
+            <MudTd DataLabel="D.O.B">@context.DOB?.ToString("dd MMM yyyy")</MudTd>
+            <MudTd DataLabel="Mobile No">@context.MobileNo</MudTd>
+            <MudTd DataLabel="EmailID Official">@context.EmailIDOfficial</MudTd>
+            <MudTd DataLabel="Gender">@context.GenderName</MudTd>
+            <MudTd DataLabel="Status">@context.Status</MudTd>
+            <MudTd DataLabel="Action">
+                <MudStack Row="true" Spacing="1">
+                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Size="Size.Small" OnClick="@(() => EditStaffAsync(context.StaffId))" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => DeleteStaffAsync(context.StaffId))" />
+                </MudStack>
+            </MudTd>
+        </RowTemplate>
+        <PagerContent>
+            <MudTablePager PageSizeOptions="new[] { 10, 25, 50 }" />
+        </PagerContent>
+        <NoRecordsContent>
+            <MudText Class="pa-4">No staff records found.</MudText>
+        </NoRecordsContent>
+    </MudTable>
+</MudPaper>
+
+@code {
+    private MudTable<StaffDto>? _table;
+    private string? _search;
+
+    protected override void OnInitialized()
+    {
+        if (!SessionState.IsLoggedIn)
+        {
+            Navigation.NavigateTo("/login");
+        }
+    }
+
+    private async Task<TableData<StaffDto>> LoadServerDataAsync(TableState state, CancellationToken cancellationToken)
+    {
+        var result = await ApiClient.GetStaffsAsync(new PagedRequest
+        {
+            CurrentPage = state.Page + 1,
+            RecordPerPage = state.PageSize,
+            SortColumn = string.IsNullOrWhiteSpace(state.SortLabel) ? "StaffId" : state.SortLabel,
+            SortType = state.SortDirection == SortDirection.Ascending ? "ASC" : "DESC"
+        }, _search, cancellationToken);
+
+        return new TableData<StaffDto>
+        {
+            TotalItems = result.TotalRecord,
+            Items = result.Items
+        };
+    }
+
+    private async Task SearchAsync()
+    {
+        if (_table is not null)
+        {
+            await _table.ReloadServerData();
+        }
+    }
+
+    private void NewStaff()
+    {
+        Navigation.NavigateTo("/admin/staff/new");
+    }
+
+    private void EditStaffAsync(long staffId)
+    {
+        Navigation.NavigateTo($"/admin/staff/edit/{staffId}");
+    }
+
+    private async Task DeleteStaffAsync(long staffId)
+    {
+        var confirmed = await JS.InvokeAsync<bool>("confirm", $"Delete staff record {staffId}?");
+        if (!confirmed)
+        {
+            return;
+        }
+
+        await ApiClient.DeleteStaffAsync(staffId, SessionState.CurrentUser?.LoginName ?? "System");
+
+        if (_table is not null)
+        {
+            await _table.ReloadServerData();
+        }
+    }
+}

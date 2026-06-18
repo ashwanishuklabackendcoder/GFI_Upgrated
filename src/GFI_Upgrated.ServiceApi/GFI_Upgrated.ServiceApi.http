@@ -1,0 +1,6 @@
+@GFI_Upgrated.ServiceApi_HostAddress = http://localhost:5122
+
+GET {{GFI_Upgrated.ServiceApi_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

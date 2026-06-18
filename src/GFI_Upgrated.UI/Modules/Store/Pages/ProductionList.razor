@@ -1,0 +1,191 @@
+@page "/admin/production"
+@page "/store/production"
+@page "/store/w_productionlist"
+@page "/admin/w_productionlist"
+@using GFI_Upgrated.SharedDto.Store
+@using GFI_Upgrated.UI.Services
+@using GFI_Upgrated.UI.State
+@inject StoreApiClient ApiClient
+@inject ISnackbar Snackbar
+@inject IJSRuntime JS
+@inject NavigationManager Navigation
+@inject AppSessionState SessionState
+
+<PageTitle>Production List</PageTitle>
+
+<MudPaper Class="pa-4">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+        <MudStack Spacing="0">
+            <MudText Typo="Typo.h5">Production</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">Manage manufacturing runs, batch packing, and ingredient consumption.</MudText>
+        </MudStack>
+        @if (_canInsert)
+        {
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OnAdd">
+                Add New Production
+            </MudButton>
+        }
+    </MudStack>
+
+    <MudStack Row="true" AlignItems="AlignItems.End" Spacing="2" Class="mb-4">
+        <MudTextField @bind-Value="_searchRemarks" Label="Remarks / Notes" Variant="Variant.Outlined" Immediate="true" Clearable="true" OnClearButtonClick="SearchAsync" Class="flex-grow-1" />
+        <MudButton Variant="Variant.Outlined" OnClick="SearchAsync">Search</MudButton>
+    </MudStack>
+
+    <MudTable RowsPerPage="25" T="ProductionDto" @ref="_table" ServerData="LoadServerDataAsync" Hover="true" Dense="true" Striped="true" Bordered="true" Breakpoint="Breakpoint.Sm">
+        <HeaderContent>
+            <MudTh><MudTableSortLabel T="ProductionDto" SortLabel="ProductionId">ID</MudTableSortLabel></MudTh>
+            <MudTh>Product Name</MudTh>
+            <MudTh>SKU Name</MudTh>
+            <MudTh>Cooking Date</MudTh>
+            <MudTh>Expiry Date</MudTh>
+            <MudTh>Country</MudTh>
+            <MudTh>Batch Number</MudTh>
+            <MudTh>Warehouse</MudTh>
+            <MudTh>Status</MudTh>
+            <MudTh Style="width: 150px; text-align: center;">Action</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="ID">@context.ProductionId</MudTd>
+            <MudTd DataLabel="Product Name">@context.BomName</MudTd>
+            <MudTd DataLabel="SKU Name">@context.SkuName</MudTd>
+            <MudTd DataLabel="Cooking Date">@context.CookingDate</MudTd>
+            <MudTd DataLabel="Expiry Date">@context.ExpiryDate</MudTd>
+            <MudTd DataLabel="Country">@context.PackedCountryName</MudTd>
+            <MudTd DataLabel="Batch Number">@context.BatchNo</MudTd>
+            <MudTd DataLabel="Warehouse">@context.WarehouseName</MudTd>
+            <MudTd DataLabel="Status">
+                @if (context.IsComplete == 1)
+                {
+                    <MudChip T="string" Color="Color.Success" Size="Size.Small">Complete</MudChip>
+                }
+                else
+                {
+                    <MudChip T="string" Color="Color.Error" Size="Size.Small">Incomplete</MudChip>
+                }
+            </MudTd>
+            <MudTd DataLabel="Action" Style="text-align: center;">
+                <MudStack Row="true" Spacing="1" Justify="Justify.Center" AlignItems="AlignItems.Center">
+                    @if (_canUpdate)
+                    {
+                        <MudTooltip Text="Edit Details">
+                            <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Size="Size.Small" OnClick="@(() => OnEdit(context))" />
+                        </MudTooltip>
+                        <MudTooltip Text="Manage Ingredients">
+                            <MudIconButton Icon="@Icons.Material.Filled.FactCheck" Color="Color.Warning" Size="Size.Small" OnClick="@(() => OnManageItems(context))" />
+                        </MudTooltip>
+                    }
+                    <MudTooltip Text="View Details">
+                        <MudIconButton Icon="@Icons.Material.Filled.Visibility" Color="Color.Info" Size="Size.Small" OnClick="@(() => OnView(context))" />
+                    </MudTooltip>
+                    @if (_canDelete)
+                    {
+                        <MudTooltip Text="Delete">
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => OnDelete(context))" />
+                        </MudTooltip>
+                    }
+                </MudStack>
+            </MudTd>
+        </RowTemplate>
+        <PagerContent>
+            <MudTablePager PageSizeOptions="new[] { 10, 25, 50 }" />
+        </PagerContent>
+        <NoRecordsContent>
+            <MudText Class="pa-4">No records found.</MudText>
+        </NoRecordsContent>
+    </MudTable>
+</MudPaper>
+
+<style>
+    .mud-chip.mud-chip-size-small {
+        font-weight: 600;
+    }
+</style>
+
+@code {
+    private MudTable<ProductionDto>? _table;
+    private string? _searchRemarks;
+    private bool _canInsert;
+    private bool _canUpdate;
+    private bool _canDelete;
+
+    protected override void OnInitialized()
+    {
+        if (!SessionState.IsLoggedIn)
+        {
+            Navigation.NavigateTo("/login");
+            return;
+        }
+
+        var path = "/admin/production"; // Aligning permissions check to the menu path
+        _canInsert = SessionState.HasPermission(path, "insert");
+        _canUpdate = SessionState.HasPermission(path, "update");
+        _canDelete = SessionState.HasPermission(path, "delete");
+    }
+
+    private async Task<TableData<ProductionDto>> LoadServerDataAsync(TableState state, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await ApiClient.GetProductionListAsync(new ProductionListRequest
+            {
+                CurrentPage = state.Page + 1,
+                RecordPerPage = state.PageSize,
+                SortColumn = state.SortLabel ?? "ProductionId",
+                SortType = state.SortDirection == SortDirection.Ascending ? "ASC" : "DESC",
+                Remarks = _searchRemarks
+            }, cancellationToken);
+
+            return new TableData<ProductionDto>
+            {
+                TotalItems = result.TotalRecord,
+                Items = result.Items
+            };
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+            return new TableData<ProductionDto> { TotalItems = 0, Items = Array.Empty<ProductionDto>() };
+        }
+    }
+
+    private async Task SearchAsync()
+    {
+        if (_table is not null) await _table.ReloadServerData();
+    }
+
+    private void OnAdd() => Navigation.NavigateTo("/store/production/new");
+
+    private void OnEdit(ProductionDto dto) => Navigation.NavigateTo($"/store/production/edit/{dto.ProductionId}");
+
+    private void OnManageItems(ProductionDto dto) => Navigation.NavigateTo($"/store/production/items/{dto.ProductionId}");
+
+    private void OnView(ProductionDto dto)
+    {
+        Navigation.NavigateTo($"/store/production/items/{dto.ProductionId}");
+    }
+
+    private async Task OnDelete(ProductionDto dto)
+    {
+        var confirmed = await JS.InvokeAsync<bool>("confirm", $"Are you sure you want to delete Production run {dto.ProductionId} ({dto.BatchNo})?");
+        if (!confirmed) return;
+
+        try
+        {
+            var result = await ApiClient.DeleteProductionAsync(dto.ProductionId, SessionState.CurrentUser?.LoginName ?? "System");
+            if (result > 0)
+            {
+                Snackbar.Add("Production record deleted successfully.", Severity.Success);
+                if (_table is not null) await _table.ReloadServerData();
+            }
+            else
+            {
+                Snackbar.Add("Failed to delete record.", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+        }
+    }
+}

@@ -1,0 +1,581 @@
+@page "/store/finished-products/new"
+@page "/store/finished-products/edit/{Id:long}"
+@page "/admin/finished-products/new"
+@page "/admin/finished-products/edit/{Id:long}"
+@using GFI_Upgrated.SharedDto.Store
+@using GFI_Upgrated.UI.Services
+@using GFI_Upgrated.UI.State
+@inject StoreApiClient ApiClient
+@inject ISnackbar Snackbar
+@inject NavigationManager Navigation
+@inject AppSessionState SessionState
+@inject IJSRuntime JS
+
+<MudPaper Class="pa-4">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+        <MudStack Spacing="0">
+            <MudText Typo="Typo.h5">@(Id == 0 ? "New Finished Product" : "Edit Finished Product")</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">Manage finished product details and inventory settings.</MudText>
+        </MudStack>
+        <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.ArrowBack" OnClick="OnBack">Back to List</MudButton>
+    </MudStack>
+
+    <MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-6" Color="Color.Primary" Outlined="true">
+        <MudTabPanel Text="General Info" Icon="@Icons.Material.Filled.Info">
+            <EditForm Model="_model" OnValidSubmit="SaveGeneralInfo">
+                <DataAnnotationsValidator />
+                <MudGrid>
+                    <MudItem xs="12" md="6">
+                        <MudTextField @bind-Value="_model.ItemName" Label="Product Name" Required="true" Variant="Variant.Outlined" For="@(() => _model.ItemName)" />
+                    </MudItem>
+                    <MudItem xs="12" md="3">
+                        <MudTextField @bind-Value="_model.ItemCode" Label="Product Code" Variant="Variant.Outlined" For="@(() => _model.ItemCode)" />
+                    </MudItem>
+                    <MudItem xs="12" md="3">
+                        <MudTextField @bind-Value="_model.ShortName" Label="Short Name" Variant="Variant.Outlined" For="@(() => _model.ShortName)" />
+                    </MudItem>
+
+                    <MudItem xs="12" md="4">
+                        <MudSelect T="long" @bind-Value="_model.ItemCatId" Label="Category" Variant="Variant.Outlined" Required="true" AnchorOrigin="Origin.BottomCenter">
+                            <MudSelectItem Value="0L">Select Category</MudSelectItem>
+                            @foreach (var cat in _categories)
+                            {
+                                <MudSelectItem Value="cat.ItemCatId">@cat.ItemCatName</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+                    <MudItem xs="12" md="4">
+                        <MudSelect T="long" @bind-Value="_model.ItemTypeId" Label="Item Type" Variant="Variant.Outlined" Required="true" AnchorOrigin="Origin.BottomCenter" Disabled="true">
+                            <MudSelectItem Value="1L">Finished Product</MudSelectItem>
+                        </MudSelect>
+                    </MudItem>
+                    <MudItem xs="12" md="4">
+                        <MudSelect T="long" @bind-Value="_model.PurchaseUnit" Label="Base Unit" Variant="Variant.Outlined" Required="true" AnchorOrigin="Origin.BottomCenter">
+                            <MudSelectItem Value="0L">Select Unit</MudSelectItem>
+                            @foreach (var unit in _units)
+                            {
+                                <MudSelectItem Value="unit.UnitId">@unit.UnitName</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+
+                    <MudItem xs="12" md="4">
+                        <MudSelect T="long" @bind-Value="_model.BrandId" Label="Brand" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter">
+                            <MudSelectItem Value="0L">Select Brand</MudSelectItem>
+                            @foreach (var brand in _brands)
+                            {
+                                <MudSelectItem Value="brand.BrandId">@brand.BrandName</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+                    <MudItem xs="12" md="4">
+                        <MudSelect T="int" @bind-Value="_model.StatusId" Label="Status" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter">
+                            @foreach (var status in _statuses)
+                            {
+                                <MudSelectItem Value="(int)status.StatusId">@status.StatusName</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+                    <MudItem xs="12" md="4">
+                        <MudNumericField @bind-Value="_model.TentativeExpiryDays" Label="Tentative Expiry (Days)" Variant="Variant.Outlined" Min="0" />
+                    </MudItem>
+
+                    <MudItem xs="12">
+                        <MudTextField @bind-Value="_model.Description" Label="Description" Variant="Variant.Outlined" Lines="2" />
+                    </MudItem>
+                    <MudItem xs="12">
+                        <MudTextField @bind-Value="_model.Tags" Label="Tags (Comma separated)" Variant="Variant.Outlined" />
+                    </MudItem>
+
+                    <MudItem xs="12" Class="d-flex justify-end">
+                        <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Loading="_savingGeneral">Save General Info</MudButton>
+                    </MudItem>
+                </MudGrid>
+            </EditForm>
+        </MudTabPanel>
+
+        <MudTabPanel Text="Inventory Details" Icon="@Icons.Material.Filled.Inventory" Disabled="Id == 0">
+            <MudGrid>
+                <MudItem xs="12" md="4">
+                    <MudNumericField @bind-Value="_details.CurrentQuantity" Label="Current Quantity" Variant="Variant.Outlined" Disabled="true" Min="0" />
+                </MudItem>
+                <MudItem xs="12" md="4">
+                    <MudNumericField @bind-Value="_details.MaximumQuantity" Label="Maximum Quantity" Variant="Variant.Outlined" Min="0" />
+                </MudItem>
+
+                <MudItem xs="12" md="4">
+                    <MudNumericField @bind-Value="_details.CriticalLevelQuantity" Label="Critical Level Quantity" Variant="Variant.Outlined" Min="0" />
+                </MudItem>
+                <MudItem xs="12" md="4">
+                    <MudNumericField @bind-Value="_details.ReorderLevelQuantity" Label="Reorder Level Quantity" Variant="Variant.Outlined" Min="0" />
+                </MudItem>
+                <MudItem xs="12" md="4">
+                    <MudNumericField @bind-Value="_details.ReorderLevelDays" Label="Reorder Level (Days)" Variant="Variant.Outlined" Min="0" />
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudCheckBox @bind-Value="_details.CriticalLevelAlert" Label="Enable Critical Level Alert" Color="Color.Primary" />
+                </MudItem>
+
+                <MudItem xs="12" Class="d-flex justify-end">
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveInventoryDetails" Loading="_savingDetails">Save Details</MudButton>
+                </MudItem>
+            </MudGrid>
+        </MudTabPanel>
+
+        <MudTabPanel Text="Pricing/Vendors" Icon="@Icons.Material.Filled.People" Disabled="Id == 0">
+            <MudStack Spacing="4">
+                <MudPaper Class="pa-4" Outlined="true" Elevation="0">
+                    <MudText Typo="Typo.subtitle1" Class="mb-2">Add/Edit Product Price</MudText>
+                    <MudGrid>
+                        <MudItem xs="12" md="4">
+                            <MudSelect T="int" @bind-Value="_vendorModel.VendorAccountId" Label="Account/Customer" Variant="Variant.Outlined" Required="true" AnchorOrigin="Origin.BottomCenter">
+                                <MudSelectItem Value="0">Select Account</MudSelectItem>
+                                @foreach (var acc in _accounts)
+                                {
+                                    <MudSelectItem Value="acc.AccountId">@acc.AccountName</MudSelectItem>
+                                }
+                            </MudSelect>
+                        </MudItem>
+                        <MudItem xs="12" md="4">
+                            <MudNumericField @bind-Value="_vendorModel.PurchasePrice" Label="Price" Variant="Variant.Outlined" Format="N2" Min="0" />
+                        </MudItem>
+                        <MudItem xs="12" md="4">
+                            <MudSelect T="long" @bind-Value="_vendorModel.CurrencyId" Label="Currency" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter">
+                                @foreach (var curr in _currencies)
+                                {
+                                    <MudSelectItem Value="curr.CurrencyId">@curr.CurrencyName</MudSelectItem>
+                                }
+                            </MudSelect>
+                        </MudItem>
+
+                        <MudItem xs="12" md="4">
+                            <MudDatePicker @bind-Date="_vendorModel.StartDate" Label="Start Date" Variant="Variant.Outlined" />
+                        </MudItem>
+                        <MudItem xs="12" md="4">
+                            <MudDatePicker @bind-Date="_vendorModel.EndDate" Label="End Date" Variant="Variant.Outlined" />
+                        </MudItem>
+                        <MudItem xs="12" md="4">
+                            <MudSelect T="int" @bind-Value="_vendorModel.StatusId" Label="Price Status" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter">
+                                @foreach (var status in _statuses)
+                                {
+                                    <MudSelectItem Value="(int)status.StatusId">@status.StatusName</MudSelectItem>
+                                }
+                            </MudSelect>
+                        </MudItem>
+
+                        <MudItem xs="12" Class="d-flex justify-end gap-2">
+                            <MudButton Variant="Variant.Outlined" OnClick="ResetVendorForm">Reset</MudButton>
+                            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveVendor" Loading="_savingVendor">@( _vendorModel.ItemVendorId == 0 ? "Add Price" : "Update Price")</MudButton>
+                        </MudItem>
+                    </MudGrid>
+                </MudPaper>
+
+                <MudTable Items="_vendors" Hover="true" Dense="true" Striped="true" Bordered="true" Elevation="0">
+                    <HeaderContent>
+                        <MudTh>Account Name</MudTh>
+                        <MudTh>Price</MudTh>
+                        <MudTh>Currency</MudTh>
+                        <MudTh>Date Range</MudTh>
+                        <MudTh Style="text-align: center;">Action</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd DataLabel="Account">@context.VendorName</MudTd>
+                        <MudTd DataLabel="Price">@context.PurchasePrice.ToString("N2")</MudTd>
+                        <MudTd DataLabel="Currency">@(_currencies.FirstOrDefault(c => c.CurrencyId == context.CurrencyId)?.CurrencyName ?? "N/A")</MudTd>
+                        <MudTd DataLabel="Dates">@(context.StartDate?.ToShortDateString() ?? "-") to @(context.EndDate?.ToShortDateString() ?? "-")</MudTd>
+                        <MudTd Style="text-align: center;">
+                            <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Size="Size.Small" OnClick="@(() => EditVendor(context))" />
+                        </MudTd>
+                    </RowTemplate>
+                </MudTable>
+            </MudStack>
+        </MudTabPanel>
+
+        <MudTabPanel Text="Stock Batches" Icon="@Icons.Material.Filled.Layers" Disabled="Id == 0">
+            <MudStack Spacing="4">
+                <MudPaper Class="pa-4" Outlined="true" Elevation="0">
+                    <MudGrid>
+                        <MudItem xs="12" md="4">
+                            <MudTextField @bind-Value="_batchModel.BatchNo" Label="Batch Number" Variant="Variant.Outlined" />
+                        </MudItem>
+                        <MudItem xs="12" md="4">
+                            <MudNumericField @bind-Value="_batchModel.Quantity" Label="Quantity" Variant="Variant.Outlined" Min="0" />
+                        </MudItem>
+                        <MudItem xs="12" md="4">
+                            <MudSelect T="int" @bind-Value="_batchModel.WarehouseId" Label="Warehouse" Variant="Variant.Outlined" Required="true" AnchorOrigin="Origin.BottomCenter">
+                                <MudSelectItem Value="0">Select Warehouse</MudSelectItem>
+                                @foreach (var wh in _warehouses)
+                                {
+                                    <MudSelectItem Value="(int)wh.WarehouseId">@wh.WarehouseName</MudSelectItem>
+                                }
+                            </MudSelect>
+                        </MudItem>
+                        <MudItem xs="12" md="4">
+                            <MudDatePicker @bind-Date="_batchModel.ExpiryDate" Label="Expiry Date" Variant="Variant.Outlined" />
+                        </MudItem>
+                        <MudItem xs="12" md="8" Class="d-flex align-center justify-end gap-2">
+                             <MudButton Variant="Variant.Outlined" OnClick="ResetBatchForm">Reset</MudButton>
+                             <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveBatch" Loading="_savingBatch">@( _batchModel.ItemStockByBatchId == 0 ? "Add Batch" : "Update Batch")</MudButton>
+                        </MudItem>
+                    </MudGrid>
+                </MudPaper>
+
+                <MudTable Items="_batches" Hover="true" Dense="true" Striped="true" Bordered="true" Elevation="0">
+                    <HeaderContent>
+                        <MudTh>Batch No</MudTh>
+                        <MudTh>Quantity</MudTh>
+                        <MudTh>Warehouse</MudTh>
+                        <MudTh>Expiry</MudTh>
+                        <MudTh Style="text-align: center;">Action</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd DataLabel="Batch">@context.BatchNo</MudTd>
+                        <MudTd DataLabel="Qty">@context.Quantity</MudTd>
+                        <MudTd DataLabel="Warehouse">@context.WarehouseName</MudTd>
+                        <MudTd DataLabel="Expiry">@context.ExpiryDate?.ToShortDateString()</MudTd>
+                        <MudTd Style="text-align: center;">
+                            <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Size="Size.Small" OnClick="@(() => EditBatch(context))" />
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => DeleteBatch(context))" />
+                        </MudTd>
+                    </RowTemplate>
+                </MudTable>
+            </MudStack>
+        </MudTabPanel>
+    </MudTabs>
+</MudPaper>
+
+@code {
+    [Parameter] public long Id { get; set; }
+
+    private SaveFinishedProductRequest _model = new();
+    private FinishedProductDetailDto _details = new();
+    private FinishedProductVendorDto _vendorModel = new() { StatusId = 1, CurrencyId = 1 };
+    private FinishedProductBatchDto _batchModel = new();
+
+    private List<ItemCategoryDto> _categories = new();
+    private List<UnitDto> _units = new();
+    private List<BrandDto> _brands = new();
+    private List<StatusDto> _statuses = new();
+    private List<AccountLookupDto> _accounts = new();
+    private List<WarehouseLookupDto> _warehouses = new();
+    private List<CurrencyLookupDto> _currencies = new();
+    private List<FinishedProductVendorDto> _vendors = new();
+    private List<FinishedProductBatchDto> _batches = new();
+
+    private bool _savingGeneral;
+    private bool _savingDetails;
+    private bool _savingVendor;
+    private bool _savingBatch;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!SessionState.IsLoggedIn)
+        {
+            Navigation.NavigateTo("/login");
+            return;
+        }
+
+        await LoadLookups();
+
+        if (Id > 0)
+        {
+            await LoadData();
+        }
+        else
+        {
+            _model.StatusId = 1;
+            _model.ItemTypeId = 1; // Finished Product
+            _model.CreatedBy = SessionState.CurrentUser?.LoginName ?? "System";
+        }
+    }
+
+    private async Task LoadLookups()
+    {
+        try
+        {
+            var cats = await ApiClient.GetItemCategoriesAsync(new PagedRequest { CurrentPage = 1, RecordPerPage = 1000 });
+            _categories = cats.Items.ToList();
+
+            var units = await ApiClient.GetUnitsAsync(new PagedRequest { CurrentPage = 1, RecordPerPage = 1000 });
+            _units = units.Items.ToList();
+
+            var brands = await ApiClient.GetBrandsAsync(new PagedRequest { CurrentPage = 1, RecordPerPage = 1000 });
+            _brands = brands.Items.ToList();
+
+            var statuses = await ApiClient.GetStatusesAsync(new PagedRequest { CurrentPage = 1, RecordPerPage = 1000 });
+            _statuses = statuses.Items.ToList();
+
+            _accounts = (await ApiClient.GetAccountsLookupAsync()).ToList();
+            _warehouses = (await ApiClient.GetWarehousesLookupAsync()).ToList();
+            _currencies = (await ApiClient.GetCurrenciesLookupAsync()).ToList();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error loading lookups: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task LoadData()
+    {
+        try
+        {
+            var item = await ApiClient.GetFinishedProductByIdAsync(Id);
+            if (item != null)
+            {
+                _model = new SaveFinishedProductRequest
+                {
+                    ItemId = item.ItemId,
+                    ItemName = item.ItemName,
+                    ItemCode = item.ItemCode,
+                    ShortName = item.ShortName,
+                    IsActive = item.IsActive,
+                    ItemCatId = item.ItemCatId,
+                    ItemTypeId = item.ItemTypeId,
+                    StatusId = item.StatusId,
+                    Description = item.Description,
+                    StorageDetails = item.StorageDetails,
+                    Tags = item.Tags,
+                    TentativeExpiryDays = item.TentativeExpiryDays,
+                    PurchaseUnit = item.PurchaseUnit,
+                    BrandId = item.BrandId,
+                    CreatedBy = item.CreatedBy
+                };
+            }
+
+            var details = await ApiClient.GetFinishedProductDetailAsync(Id);
+            if (details != null) _details = details;
+
+            _vendors = (await ApiClient.GetFinishedProductVendorsAsync(Id)).ToList();
+            _batches = (await ApiClient.GetFinishedProductBatchesAsync(Id)).ToList();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error loading product data: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task SaveGeneralInfo()
+    {
+        _savingGeneral = true;
+        try
+        {
+            _model.CreatedBy = SessionState.CurrentUser?.LoginName ?? "System";
+            var newItemId = await ApiClient.SaveFinishedProductAsync(_model);
+            if (Id == 0)
+            {
+                Id = newItemId;
+                Snackbar.Add("Product created successfully. You can now add details and stock.", Severity.Success);
+                Navigation.NavigateTo($"/store/finished-products/edit/{Id}");
+            }
+            else
+            {
+                Snackbar.Add("General info updated successfully.", Severity.Success);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error saving product: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _savingGeneral = false;
+        }
+    }
+
+    private async Task SaveInventoryDetails()
+    {
+        _details.OpeningQuantity = 0;
+        if (_details.MaximumQuantity < 0 || _details.CriticalLevelQuantity < 0 || _details.ReorderLevelQuantity < 0 || _details.ReorderLevelDays < 0)
+        {
+            Snackbar.Add("Stock-related values cannot be negative.", Severity.Warning);
+            return;
+        }
+
+        _savingDetails = true;
+        try
+        {
+            _details.ItemId = Id;
+            await ApiClient.SaveFinishedProductDetailAsync(_details);
+            Snackbar.Add("Inventory details saved successfully.", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error saving details: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _savingDetails = false;
+        }
+    }
+
+    private async Task SaveVendor()
+    {
+        if (_vendorModel.VendorAccountId == 0)
+        {
+            Snackbar.Add("Please select an account.", Severity.Warning);
+            return;
+        }
+
+        if (!_vendorModel.StartDate.HasValue || !_vendorModel.EndDate.HasValue)
+        {
+            Snackbar.Add("Start Date and End Date are required.", Severity.Warning);
+            return;
+        }
+
+        if (_vendorModel.EndDate.Value.Date < DateTime.Today)
+        {
+            Snackbar.Add("End Date cannot be from the past.", Severity.Warning);
+            return;
+        }
+
+        if (_vendorModel.EndDate.Value.Date < _vendorModel.StartDate.Value.Date)
+        {
+            Snackbar.Add("End Date must always be later than the Start Date.", Severity.Warning);
+            return;
+        }
+
+        if (_vendorModel.EndDate.Value.Date == _vendorModel.StartDate.Value.Date)
+        {
+            Snackbar.Add("Start Date and End Date should not be the same.", Severity.Warning);
+            return;
+        }
+
+        _savingVendor = true;
+        try
+        {
+            _vendorModel.ItemId = Id;
+            _vendorModel.CreatedBy = SessionState.CurrentUser?.LoginName ?? "System";
+            if (_vendorModel.PurchaseUnit == 0) _vendorModel.PurchaseUnit = (decimal)_model.PurchaseUnit;
+
+            await ApiClient.SaveFinishedProductVendorAsync(_vendorModel);
+            Snackbar.Add("Pricing saved successfully.", Severity.Success);
+            _vendors = (await ApiClient.GetFinishedProductVendorsAsync(Id)).ToList();
+            ResetVendorForm();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error saving price: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _savingVendor = false;
+        }
+    }
+
+    private void EditVendor(FinishedProductVendorDto vendor)
+    {
+        _vendorModel = new FinishedProductVendorDto
+        {
+            ItemVendorId = vendor.ItemVendorId,
+            ItemId = vendor.ItemId,
+            VendorAccountId = vendor.VendorAccountId,
+            StatusId = vendor.StatusId,
+            PurchasePrice = vendor.PurchasePrice,
+            PurchaseUnit = vendor.PurchaseUnit,
+            StartDate = vendor.StartDate,
+            EndDate = vendor.EndDate,
+            Remarks = vendor.Remarks,
+            BrandId = vendor.BrandId,
+            CurrencyId = vendor.CurrencyId,
+            PurchaseQuantity = vendor.PurchaseQuantity
+        };
+    }
+
+    private void ResetVendorForm()
+    {
+        _vendorModel = new FinishedProductVendorDto { StatusId = 1, CurrencyId = 1 };
+    }
+
+    private async Task SaveBatch()
+    {
+        if (_batchModel.WarehouseId == 0)
+        {
+            Snackbar.Add("Please select a warehouse.", Severity.Warning);
+            return;
+        }
+
+        if (_batchModel.Quantity < 0)
+        {
+            Snackbar.Add("Quantity cannot be negative.", Severity.Warning);
+            return;
+        }
+
+        _savingBatch = true;
+        try
+        {
+            _batchModel.ItemId = Id;
+            _batchModel.CreatedBy = SessionState.CurrentUser?.LoginName ?? "System";
+            _batchModel.UnitId = _model.PurchaseUnit > 0 ? (int)_model.PurchaseUnit : (int)(_units.FirstOrDefault()?.UnitId ?? 0);
+
+            await ApiClient.SaveFinishedProductBatchAsync(_batchModel);
+            Snackbar.Add("Batch saved successfully.", Severity.Success);
+            _batches = (await ApiClient.GetFinishedProductBatchesAsync(Id)).ToList();
+            ResetBatchForm();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error saving batch: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _savingBatch = false;
+        }
+    }
+
+    private void EditBatch(FinishedProductBatchDto batch)
+    {
+        _batchModel = new FinishedProductBatchDto
+        {
+            ItemStockByBatchId = batch.ItemStockByBatchId,
+            ItemId = batch.ItemId,
+            WarehouseId = batch.WarehouseId,
+            Quantity = batch.Quantity,
+            UnitId = batch.UnitId,
+            BatchNo = batch.BatchNo,
+            ExpiryDate = batch.ExpiryDate
+        };
+    }
+
+    private async Task DeleteBatch(FinishedProductBatchDto batch)
+    {
+        var confirmed = await JS.InvokeAsync<bool>("confirm", $"Are you sure you want to delete batch '{batch.BatchNo}' with quantity {batch.Quantity}?");
+        if (!confirmed) return;
+
+        _savingBatch = true;
+        try
+        {
+            batch.CreatedBy = SessionState.CurrentUser?.LoginName ?? "System";
+            var result = await ApiClient.SaveFinishedProductBatchAsync(batch, batch.ItemStockByBatchId.ToString());
+            if (result < 0)
+            {
+                throw new Exception("REFERENCE constraint conflict occurred during batch deletion.");
+            }
+            Snackbar.Add("Batch deleted successfully.", Severity.Success);
+            _batches = (await ApiClient.GetFinishedProductBatchesAsync(Id)).ToList();
+        }
+        catch (Exception ex)
+        {
+            var message = ex.Message;
+            if (message.Contains("REFERENCE constraint") || message.Contains("conflict") || message.Contains("FK_Inv_PurchaseChildBatches_Inv_ItemStockByBatch") || message.Contains("Inv_ItemStockUsed"))
+            {
+                Snackbar.Add("Cannot delete this batch because it has already been used/linked in consumption or purchase transactions.", Severity.Error);
+            }
+            else
+            {
+                Snackbar.Add($"Error deleting batch: {ex.Message}", Severity.Error);
+            }
+        }
+        finally
+        {
+            _savingBatch = false;
+        }
+    }
+
+    private void ResetBatchForm()
+    {
+        _batchModel = new FinishedProductBatchDto();
+    }
+
+    private void OnBack() => Navigation.NavigateTo("/store/finished-products");
+}

@@ -1,0 +1,144 @@
+@page "/acc/accountmaster"
+@using GFI_Upgrated.SharedDto.Account
+@using GFI_Upgrated.UI.Services
+@using MudBlazor
+@inject AccountApiClient ApiClient
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject IJSRuntime JS
+
+<PageTitle>Account Master</PageTitle>
+
+<MudPaper Class="pa-4">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+        <MudStack Spacing="0">
+            <MudText Typo="Typo.h5">Account Master</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">Manage general ledger accounts and stakeholder details</MudText>
+        </MudStack>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OnAddAccount">
+            Add New
+        </MudButton>
+    </MudStack>
+
+    <MudStack Row="true" AlignItems="AlignItems.End" Spacing="2" Class="mb-4">
+        <MudTextField T="string" ValueChanged="@OnSearch" Label="Search account" Variant="Variant.Outlined" Immediate="true" Class="flex-grow-1" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" />
+    </MudStack>
+
+    <MudTable RowsPerPage="25" T="AccountMasterDto" @ref="_table" ServerData="LoadServerDataAsync" Hover="true" Dense="true" Striped="true" Bordered="true" Breakpoint="Breakpoint.Sm">
+        <HeaderContent>
+            <MudTh><MudTableSortLabel T="AccountMasterDto" SortLabel="AccountName">Account Name</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel T="AccountMasterDto" SortLabel="AccountGroupName">Group</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel T="AccountMasterDto" SortLabel="MobileNo">Mobile</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel T="AccountMasterDto" SortLabel="EmailID">Email</MudTableSortLabel></MudTh>
+            <MudTh Style="text-align: right;"><MudTableSortLabel T="AccountMasterDto" SortLabel="OpeningBalance">Opening Balance</MudTableSortLabel></MudTh>
+            <MudTh Style="width: 120px; text-align: center;">Action</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Name">
+                <MudText Typo="Typo.body2" Class="fw-bold">@context.AccountName</MudText>
+            </MudTd>
+            <MudTd DataLabel="Group">@context.AccountGroupName</MudTd>
+            <MudTd DataLabel="Mobile">@context.MobileNo</MudTd>
+            <MudTd DataLabel="Email">@context.EmailID</MudTd>
+            <MudTd DataLabel="Balance" Style="text-align: right;">
+                <MudText Typo="Typo.body2" Color="@(context.OpeningBalance >= 0 ? Color.Default : Color.Error)">
+                    @context.CurrencySymbol @(context.OpeningBalance?.ToString("N2") ?? "0.00")
+                </MudText>
+            </MudTd>
+            <MudTd DataLabel="Action" Style="text-align: center;">
+                <MudStack Row="true" Spacing="1" Justify="Justify.Center" AlignItems="AlignItems.Center">
+                    <MudTooltip Text="Edit">
+                        <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Size="Size.Small" OnClick="@(() => OnEditAccount(context))" />
+                    </MudTooltip>
+                    <MudTooltip Text="Delete">
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => OnDeleteAccount(context))" />
+                    </MudTooltip>
+                </MudStack>
+            </MudTd>
+            </RowTemplate>
+        <PagerContent>
+            <MudTablePager PageSizeOptions="new int[] { 10, 25, 50 }" />
+        </PagerContent>
+    </MudTable>
+</MudPaper>
+
+@code {
+    private MudTable<AccountMasterDto>? _table;
+    private string? _searchString;
+
+    private async Task<TableData<AccountMasterDto>> LoadServerDataAsync(TableState state, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await ApiClient.GetAccountsAsync(
+                accountName: _searchString,
+                page: state.Page + 1,
+                pageSize: state.PageSize,
+                sortCol: state.SortLabel ?? "AccountID",
+                sortOrd: state.SortDirection == SortDirection.Ascending ? "ASC" : "DESC",
+                cancellationToken: cancellationToken
+            );
+
+            return new TableData<AccountMasterDto>
+            {
+                TotalItems = result.TotalRecord,
+                Items = result.Items
+            };
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error loading accounts: {ex.Message}", Severity.Error);
+            return new TableData<AccountMasterDto> { TotalItems = 0, Items = Array.Empty<AccountMasterDto>() };
+        }
+    }
+
+    private async Task OnSearch(string text)
+    {
+        _searchString = text;
+        if (_table is not null) await _table.ReloadServerData();
+    }
+
+    private async Task OnAddAccount()
+    {
+        await ShowEditDialog(new AccountMasterDto());
+    }
+
+    private async Task OnEditAccount(AccountMasterDto account)
+    {
+        await ShowEditDialog(account);
+    }
+
+    private async Task ShowEditDialog(AccountMasterDto account)
+    {
+        var parameters = new DialogParameters { ["Model"] = account };
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Medium, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<AccountEditDialog>(account.AccountID == 0 ? "Add Account" : "Edit Account", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            if (_table is not null) await _table.ReloadServerData();
+        }
+    }
+
+    private async Task OnDeleteAccount(AccountMasterDto account)
+    {
+        bool confirm = await JS.InvokeAsync<bool>("confirm", $"Are you sure you want to delete account: {account.AccountName}?");
+        if (confirm)
+        {
+            try
+            {
+                var success = await ApiClient.DeleteAccountsAsync(account.AccountID.ToString());
+                if (success)
+                {
+                    Snackbar.Add("Account deleted successfully.", Severity.Success);
+                    if (_table is not null) await _table.ReloadServerData();
+                }
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Error deleting account: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+}

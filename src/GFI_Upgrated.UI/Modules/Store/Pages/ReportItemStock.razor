@@ -1,0 +1,270 @@
+
+@page "/store/reportitemstock"
+
+@using GFI_Upgrated.SharedDto.Store
+@using GFI_Upgrated.SharedDto.Common
+@using GFI_Upgrated.UI.Services
+@using GFI_Upgrated.UI.State
+@using System.Text
+@inject StoreApiClient ApiClient
+@inject ISnackbar Snackbar
+@inject NavigationManager Navigation
+@inject AppSessionState SessionState
+@inject IJSRuntime JS
+
+<PageTitle>Item Stock Report</PageTitle>
+
+<MudPaper Class="pa-4">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4 no-print">
+        <MudText Typo="Typo.h5">Item Stock Report</MudText>
+        <MudMenu Label="Export" StartIcon="@Icons.Material.Filled.SaveAlt" EndIcon="@Icons.Material.Filled.KeyboardArrowDown" Color="Color.Primary" Variant="Variant.Filled">
+            <MudMenuItem OnClick="ExportToCopyAsync" Icon="@Icons.Material.Filled.ContentCopy">Copy to Clipboard</MudMenuItem>
+            <MudMenuItem OnClick="ExportToCsvAsync" Icon="@Icons.Material.Filled.InsertDriveFile">Export to CSV</MudMenuItem>
+            <MudMenuItem OnClick="ExportToPrintAsync" Icon="@Icons.Material.Filled.Print">Print Report</MudMenuItem>
+            <MudMenuItem OnClick="ExportToPdfAsync" Icon="@Icons.Material.Filled.PictureAsPdf">Save as PDF</MudMenuItem>
+        </MudMenu>
+    </MudStack>
+
+    <MudGrid Class="mb-4 no-print" Spacing="2">
+        <MudItem xs="12" md="3">
+            <MudAutocomplete T="RawMaterialDto" Label="Select Item" @bind-Value="_selectedItem" SearchFunc="@SearchItems"
+                             ToStringFunc="@(i => i?.ItemName ?? "")" Variant="Variant.Outlined" Clearable="true" 
+                             Placeholder="Search items..." AdornmentIcon="@Icons.Material.Filled.Search" />
+        </MudItem>
+        <MudItem xs="12" md="3">
+            <MudSelect T="long?" @bind-Value="_selectedWarehouseId" Label="Warehouse" Variant="Variant.Outlined" Clearable="true" AnchorOrigin="Origin.BottomCenter">
+                <MudSelectItem Value="@((long?)null)">All Warehouses</MudSelectItem>
+                @foreach (var wh in _warehouses)
+                {
+                    <MudSelectItem Value="@((long?)wh.WarehouseId)">@wh.WarehouseName</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" md="3">
+            <MudSelect T="long?" @bind-Value="_selectedUnitId" Label="Unit" Variant="Variant.Outlined" Clearable="true" AnchorOrigin="Origin.BottomCenter">
+                <MudSelectItem Value="@((long?)null)">All Units</MudSelectItem>
+                @foreach (var unit in _units)
+                {
+                    <MudSelectItem Value="@((long?)unit.UnitId)">@unit.UnitName</MudSelectItem>
+                }
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" md="3" Class="d-flex align-end">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="OnSearch" FullWidth="true" Class="py-3">
+                Search
+            </MudButton>
+        </MudItem>
+    </MudGrid>
+
+    <div class="print-only mb-6">
+        <div style="text-align: center; border-bottom: 2px solid #333; padding-bottom: 12px; margin-bottom: 16px;">
+            <h2 style="margin: 0; font-size: 24px; font-weight: bold; color: #111;">GFI</h2>
+            <h3 style="margin: 4px 0 0; font-size: 18px; color: #555;">Item Stock Report</h3>
+            <p style="margin: 4px 0 0; font-size: 12px; color: #777;">Generated on: @DateTime.Now.ToString("g")</p>
+        </div>
+        <div style="font-size: 14px; margin-bottom: 16px;">
+            <strong>Filters Applied:</strong><br />
+            Item: @(_selectedItem?.ItemName ?? "All Items") | 
+            Warehouse: @(_warehouses.FirstOrDefault(w => w.WarehouseId == _selectedWarehouseId)?.WarehouseName ?? "All Warehouses") | 
+            Unit: @(_units.FirstOrDefault(u => u.UnitId == _selectedUnitId)?.UnitName ?? "All Units")
+        </div>
+    </div>
+
+    <MudTable RowsPerPage="25" T="ItemStockReportDto" @ref="_table" ServerData="LoadServerDataAsync" Hover="true" Dense="true" Striped="true" Bordered="true" Loading="_loading">
+        <HeaderContent>
+            <MudTh><MudTableSortLabel SortLabel="StockID" T="ItemStockReportDto">Stock ID</MudTableSortLabel></MudTh>
+            <MudTh>Item Name</MudTh>
+            <MudTh>Warehouse Name</MudTh>
+            <MudTh Style="text-align: right;">Opening Qty</MudTh>
+            <MudTh Style="text-align: right;">Purchased Qty</MudTh>
+            <MudTh Style="text-align: right;">Issued Qty</MudTh>
+            <MudTh Style="text-align: right;">Removed Qty</MudTh>
+            <MudTh Style="text-align: right;">Final Stock</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Stock ID">@context.StockID</MudTd>
+            <MudTd DataLabel="Item Name">@context.ItemName</MudTd>
+            <MudTd DataLabel="Warehouse Name">@context.WarehouseName</MudTd>
+            <MudTd DataLabel="Opening Qty" Style="text-align: right;">@context.OpeningQuantity.ToString("N2")</MudTd>
+            <MudTd DataLabel="Purchased Qty" Style="text-align: right;">@context.PurchasedQuantity.ToString("N2")</MudTd>
+            <MudTd DataLabel="Issued Qty" Style="text-align: right;">@context.IssuedQuantity.ToString("N2")</MudTd>
+            <MudTd DataLabel="Removed Qty" Style="text-align: right;">@context.RemovedQuantity.ToString("N2")</MudTd>
+            <MudTd DataLabel="Final Stock" Style="text-align: right; font-weight: bold;">@context.FinalStock.ToString("N2")</MudTd>
+        </RowTemplate>
+        <PagerContent>
+            <MudTablePager Class="no-print" />
+        </PagerContent>
+        <NoRecordsContent>
+            <MudText Class="pa-4">No stock records found.</MudText>
+        </NoRecordsContent>
+    </MudTable>
+</MudPaper>
+
+@code {
+    private MudTable<ItemStockReportDto>? _table;
+    private RawMaterialDto? _selectedItem;
+    private long? _selectedWarehouseId;
+    private long? _selectedUnitId;
+    private bool _loading;
+    
+    private string _currentSortLabel = "StockID";
+    private string _currentSortDirection = "ASC";
+
+    private List<RawMaterialDto> _items = new();
+    private List<WarehouseDto> _warehouses = new();
+    private List<UnitDto> _units = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!SessionState.IsLoggedIn)
+        {
+            Navigation.NavigateTo("/login");
+            return;
+        }
+
+        await LoadLookups();
+    }
+
+    private async Task LoadLookups()
+    {
+        try
+        {
+            var itemResult = await ApiClient.GetItemsForBomLookupAsync(null);
+            _items = itemResult.OrderBy(x => x.ItemName).ToList();
+
+            var whResult = await ApiClient.GetWarehousesAsync(new PagedRequest { CurrentPage = 1, RecordPerPage = 1000 });
+            _warehouses = whResult.Items.ToList();
+
+            var unitResult = await ApiClient.GetUnitsAsync(new PagedRequest { CurrentPage = 1, RecordPerPage = 1000 });
+            _units = unitResult.Items.ToList();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error loading filters: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task<IEnumerable<RawMaterialDto>> SearchItems(string value, CancellationToken token)
+    {
+        if (string.IsNullOrEmpty(value)) return _items;
+        return _items.Where(x => x.ItemName?.Contains(value, StringComparison.OrdinalIgnoreCase) == true);
+    }
+
+    private async Task<TableData<ItemStockReportDto>> LoadServerDataAsync(TableState state, CancellationToken cancellationToken)
+    {
+        _loading = true;
+        try
+        {
+            _currentSortLabel = state.SortLabel ?? "StockID";
+            _currentSortDirection = state.SortDirection == SortDirection.Ascending ? "ASC" : "DESC";
+
+            var request = new ItemStockReportRequest
+            {
+                ItemID = _selectedItem?.ItemId,
+                WarehouseID = _selectedWarehouseId,
+                UnitId = _selectedUnitId,
+                CurrentPage = state.Page + 1,
+                RecordPerPage = state.PageSize,
+                SortColumn = _currentSortLabel,
+                SortType = _currentSortDirection
+            };
+
+            var result = await ApiClient.GetItemStockReportAsync(request, cancellationToken);
+            
+            if (result.CurrentPage != state.Page + 1 && _table != null)
+            {
+                _table.NavigateTo(result.CurrentPage - 1);
+            }
+
+            return new TableData<ItemStockReportDto>
+            {
+                TotalItems = result.TotalRecord,
+                Items = result.Items
+            };
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error loading stock report: {ex.Message}", Severity.Error);
+            return new TableData<ItemStockReportDto> { Items = Array.Empty<ItemStockReportDto>(), TotalItems = 0 };
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task OnSearch()
+    {
+        if (_table != null) await _table.ReloadServerData();
+    }
+
+    private async Task<List<ItemStockReportDto>> GetAllDataAsync()
+    {
+        try
+        {
+            var request = new ItemStockReportRequest
+            {
+                ItemID = _selectedItem?.ItemId,
+                WarehouseID = _selectedWarehouseId,
+                UnitId = _selectedUnitId,
+                CurrentPage = 1,
+                RecordPerPage = 1000000,
+                SortColumn = _currentSortLabel,
+                SortType = _currentSortDirection
+            };
+            var result = await ApiClient.GetItemStockReportAsync(request);
+            return result.Items.ToList();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error loading export data: {ex.Message}", Severity.Error);
+            return new();
+        }
+    }
+
+    private async Task ExportToCopyAsync()
+    {
+        var data = await GetAllDataAsync();
+        var sb = new StringBuilder();
+        sb.AppendLine("StockID\tItem Name\tWarehouse\tOpening Qty\tPurchased Qty\tIssued Qty\tRemoved Qty\tFinal Stock");
+        foreach (var item in data)
+        {
+            sb.AppendLine($"{item.StockID}\t{item.ItemName}\t{item.WarehouseName}\t{item.OpeningQuantity}\t{item.PurchasedQuantity}\t{item.IssuedQuantity}\t{item.RemovedQuantity}\t{item.FinalStock}");
+        }
+        var success = await JS.InvokeAsync<bool>("gfiCopyToClipboard", sb.ToString());
+        if (success)
+        {
+            Snackbar.Add("Report data copied to clipboard.", Severity.Success);
+        }
+        else
+        {
+            Snackbar.Add("Failed to copy data to clipboard.", Severity.Error);
+        }
+    }
+
+    private async Task ExportToCsvAsync()
+    {
+        var data = await GetAllDataAsync();
+        var sb = new StringBuilder();
+        sb.AppendLine("StockID,Item Name,Warehouse,Opening Qty,Purchased Qty,Issued Qty,Removed Qty,Final Stock");
+        foreach (var item in data)
+        {
+            var name = (item.ItemName ?? "").Replace("\"", "\"\"");
+            var whName = (item.WarehouseName ?? "").Replace("\"", "\"\"");
+            sb.AppendLine($"{item.StockID},\"{name}\",\"{whName}\",{item.OpeningQuantity},{item.PurchasedQuantity},{item.IssuedQuantity},{item.RemovedQuantity},{item.FinalStock}");
+        }
+        await JS.InvokeVoidAsync("gfiDownloadTextFile", $"item-stock-report-{DateTime.Now:yyyyMMddHHmmss}.csv", sb.ToString(), "text/csv;charset=utf-8");
+        Snackbar.Add("Report data exported as CSV.", Severity.Success);
+    }
+
+    private async Task ExportToPrintAsync()
+    {
+        await JS.InvokeVoidAsync("window.print");
+    }
+
+    private async Task ExportToPdfAsync()
+    {
+        Snackbar.Add("Tip: Choose 'Save as PDF' as the destination in the print window.", Severity.Info);
+        await JS.InvokeVoidAsync("window.print");
+    }
+}

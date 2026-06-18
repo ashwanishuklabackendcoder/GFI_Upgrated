@@ -1,0 +1,140 @@
+@page "/admin/almirah/new"
+@page "/admin/almirah/edit/{Id:long}"
+@using GFI_Upgrated.SharedDto.Store
+@using GFI_Upgrated.UI.Services
+@using GFI_Upgrated.UI.State
+@inject StoreApiClient ApiClient
+@inject ISnackbar Snackbar
+@inject NavigationManager NavigationManager
+@inject AppSessionState SessionState
+
+<PageTitle>@(_isEdit ? "Edit Almirah" : "Add New Almirah")</PageTitle>
+
+<MudPaper Class="pa-4">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+        <MudStack Spacing="0">
+            <MudText Typo="Typo.h5">@(_isEdit ? "Edit Almirah" : "Add New Almirah")</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">Enter almirah and shelf details below.</MudText>
+        </MudStack>
+        <MudIconButton Icon="@Icons.Material.Filled.Close" OnClick="OnCancel" />
+    </MudStack>
+
+    <EditForm Model="_editor" OnValidSubmit="SaveAsync">
+        <DataAnnotationsValidator />
+        <MudGrid>
+            <MudItem xs="12" md="6">
+                <MudTextField @bind-Value="_editor.AlmirahShelfName" Label="Almirah Name" Variant="Variant.Outlined" For="@(() => _editor.AlmirahShelfName)" />
+            </MudItem>
+            
+            <MudItem xs="12" md="6">
+                <MudSelect T="long" Label="Warehouse" @bind-Value="_editor.WarehouseID" Variant="Variant.Outlined" For="@(() => _editor.WarehouseID)">
+                    @foreach (var w in _warehouses)
+                    {
+                        <MudSelectItem T="long" Value="@w.WarehouseId">@w.WarehouseName</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+
+            <MudItem xs="12" md="3">
+                <MudNumericField @bind-Value="_editor.NoShelf" Label="Number of Shelves" Variant="Variant.Outlined" Min="1" Max="100" HelperText="Generating this many shelves automatically." />
+            </MudItem>
+
+            <MudItem xs="12" md="9">
+                <MudTextField @bind-Value="_editor.AlmirahLocation" Label="Location / Address" Variant="Variant.Outlined" For="@(() => _editor.AlmirahLocation)" />
+            </MudItem>
+
+            <MudItem xs="12">
+                <MudTextField @bind-Value="_editor.Description" Label="Description" Variant="Variant.Outlined" Lines="3" For="@(() => _editor.Description)" />
+            </MudItem>
+
+            @if (_isEdit && _shelves.Any())
+            {
+                <MudItem xs="12">
+                    <MudText Typo="Typo.subtitle2" Class="mb-2">Generated Shelves</MudText>
+                    <MudPaper Outlined="true" Class="pa-2">
+                        <MudStack Row="true" Wrap="Wrap.Wrap" Spacing="1">
+                            @foreach (var s in _shelves)
+                            {
+                                <MudChip T="string" Size="Size.Small" Color="Color.Info" Variant="Variant.Outlined">@s.AlmirahShelfName</MudChip>
+                            }
+                        </MudStack>
+                    </MudPaper>
+                </MudItem>
+            }
+
+            <MudItem xs="12" Class="pt-4">
+                <MudStack Row="true" Spacing="2">
+                    <MudButton ButtonType="ButtonType.Submit" Color="Color.Primary" Variant="Variant.Filled" Disabled="_processing">@(_processing ? "Saving..." : "Save Almirah")</MudButton>
+                    <MudButton Variant="Variant.Outlined" OnClick="OnCancel" Disabled="_processing">Cancel</MudButton>
+                </MudStack>
+            </MudItem>
+        </MudGrid>
+    </EditForm>
+</MudPaper>
+
+@code {
+    [Parameter] public long? Id { get; set; }
+    private bool _isEdit => Id.HasValue && Id.Value > 0;
+    private SaveAlmirahRequest _editor = new();
+    private bool _processing;
+    private IReadOnlyList<WarehouseDto> _warehouses = Array.Empty<WarehouseDto>();
+    private IReadOnlyList<AlmirahDto> _shelves = Array.Empty<AlmirahDto>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!SessionState.IsLoggedIn)
+        {
+            NavigationManager.NavigateTo("/login");
+            return;
+        }
+
+        var wResult = await ApiClient.GetWarehousesAsync(new PagedRequest { CurrentPage = 1, RecordPerPage = 100 });
+        _warehouses = wResult.Items;
+        
+        if (_isEdit)
+        {
+            var selected = await ApiClient.GetAlmirahByIdAsync(Id!.Value);
+            if (selected is not null)
+            {
+                _editor.AlmirahShelfID = selected.AlmirahShelfID;
+                _editor.AlmirahShelfName = selected.AlmirahShelfName;
+                _editor.NoShelf = selected.NoShelf ?? 0;
+                _editor.WarehouseID = selected.WarehouseID;
+                _editor.AlmirahLocation = selected.AlmirahLocation;
+                _editor.Description = selected.Description;
+                _editor.ParentId = selected.ParentId;
+
+                _shelves = await ApiClient.GetShelvesByAlmirahIdAsync(Id.Value);
+            }
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        _processing = true;
+        try
+        {
+            _editor.UpdatedBy = SessionState.CurrentUser?.LoginName ?? "System";
+            var result = await ApiClient.SaveAlmirahAsync(_editor);
+            if (result > 0)
+            {
+                Snackbar.Add("Almirah saved successfully.", Severity.Success);
+                NavigationManager.NavigateTo("/admin/almirah");
+            }
+            else
+            {
+                Snackbar.Add("Failed to save almirah.", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _processing = false;
+        }
+    }
+
+    private void OnCancel() => NavigationManager.NavigateTo("/admin/almirah");
+}

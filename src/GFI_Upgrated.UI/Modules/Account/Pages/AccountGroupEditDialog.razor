@@ -1,0 +1,84 @@
+@using GFI_Upgrated.SharedDto.Account
+@using GFI_Upgrated.UI.Services
+@using GFI_Upgrated.UI.State
+@using MudBlazor
+@inject AccountApiClient ApiClient
+@inject ISnackbar Snackbar
+@inject AppSessionState SessionState
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="_form" Model="@Model">
+            <MudStack Spacing="4">
+                <MudTextField @bind-Value="Model.AccountGroupName" Label="Group Name" Required="true" RequiredError="Group name is required" Variant="Variant.Outlined" />
+                
+                <MudSwitch @bind-Value="Model.IsMainAccountGroup" Label="Is this a Main Group?" Color="Color.Primary" />
+
+                @if (!Model.IsMainAccountGroup)
+                {
+                    <MudSelect T="long?" Label="Main Account Group" @bind-Value="Model.MainAccountGroupID" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter" Required="true" RequiredError="Parent group is required for sub-groups">
+                        <MudSelectItem T="long?" Value="null">-- Select Main Group --</MudSelectItem>
+                        @foreach (var group in _mainGroups)
+                        {
+                            <MudSelectItem T="long?" Value="@group.AccountGroupID">@group.AccountGroupName</MudSelectItem>
+                        }
+                    </MudSelect>
+                }
+
+                <MudSwitch @bind-Value="Model.IsActive" Label="Active" Color="Color.Success" />
+            </MudStack>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit" Disabled="@(!Model.IsEditable && Model.AccountGroupID > 0)">Save</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public AccountGroupDto Model { get; set; } = new();
+
+    private MudForm _form = default!;
+    private IReadOnlyList<AccountGroupLookupDto> _mainGroups = Array.Empty<AccountGroupLookupDto>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _mainGroups = await ApiClient.GetMainAccountGroupsLookupAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error loading main groups: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task Submit()
+    {
+        await _form.Validate();
+        if (_form.IsValid)
+        {
+            try
+            {
+                Model.CreatedBy = SessionState.CurrentUser?.LoginName ?? "System";
+                var id = await ApiClient.SaveAccountGroupAsync(Model);
+                if (id > 0)
+                {
+                    Snackbar.Add("Account Group saved successfully.", Severity.Success);
+                    MudDialog.Close(DialogResult.Ok(id));
+                }
+                else
+                {
+                    Snackbar.Add("Failed to save account group.", Severity.Error);
+                }
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Error saving group: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+}

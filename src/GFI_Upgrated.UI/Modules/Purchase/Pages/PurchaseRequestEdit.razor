@@ -1,0 +1,227 @@
+@page "/store/purchase-request/new"
+@page "/store/purchase-request/edit/{Id:long}"
+@using GFI_Upgrated.SharedDto.Purchase
+@using GFI_Upgrated.SharedDto.Store
+@using GFI_Upgrated.SharedDto.AdminSecurity
+@using GFI_Upgrated.UI.Services
+@using GFI_Upgrated.UI.State
+@inject StoreApiClient ApiClient
+@inject AdminSecurityApiClient AdminApiClient
+@inject ISnackbar Snackbar
+@inject NavigationManager Navigation
+@inject AppSessionState SessionState
+
+<PageTitle>@(Id == 0 ? "New Purchase Request" : "Edit Purchase Request")</PageTitle>
+
+<MudPaper Class="pa-4">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+        <MudStack Spacing="0">
+            <MudText Typo="Typo.h5">@(Id == 0 ? "New Purchase Request" : "Edit Purchase Request")</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">Create a request for materials or finished goods.</MudText>
+        </MudStack>
+        <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.ArrowBack" OnClick="OnBack">Back to List</MudButton>
+    </MudStack>
+
+    <EditForm Model="_model" OnValidSubmit="OnSave">
+        <DataAnnotationsValidator />
+        <MudGrid>
+            <MudItem xs="12" md="4">
+                <MudTextField @bind-Value="_model.RequestNumber" Label="Request Number" Variant="Variant.Outlined" Required="true" For="@(() => _model.RequestNumber)" />
+            </MudItem>
+            <MudItem xs="12" md="4">
+                <MudSelect T="long?" @bind-Value="_model.RequestedBy" Label="Requested By" Variant="Variant.Outlined" Required="true">
+                    <MudSelectItem T="long?" Value="null">Select Staff</MudSelectItem>
+                    @foreach (var staff in _staffList)
+                    {
+                        <MudSelectItem T="long?" Value="staff.StaffId">@staff.StaffName</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" md="4">
+                <MudDatePicker Label="Request Date" @bind-Date="_model.CreatedDate" Variant="Variant.Outlined" Editable="true" />
+            </MudItem>
+            
+            <MudItem xs="12">
+                <MudTextField @bind-Value="_model.Description" Label="General Description" Variant="Variant.Outlined" Lines="2" />
+            </MudItem>
+
+            <MudItem xs="12" Class="mt-6">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-2">
+                    <MudText Typo="Typo.subtitle1" Color="Color.Primary">Requested Items</MudText>
+                    <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" Size="Size.Small" OnClick="AddRow">Add Item</MudButton>
+                </MudStack>
+                <MudDivider Class="mb-4" />
+
+                <MudTable Items="_model.Items" Hover="true" Dense="true" Striped="true" Bordered="true" Elevation="0" Context="itemContext">
+                    <HeaderContent>
+                        <MudTh>Item</MudTh>
+                        <MudTh Style="width: 150px;">Quantity</MudTh>
+                        <MudTh Style="width: 200px;">Unit</MudTh>
+                        <MudTh>Preferred Brand / Remarks</MudTh>
+                        <MudTh Style="text-align: center; width: 80px;">Action</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd DataLabel="Item">
+                            <MudAutocomplete T="RawMaterialDto" Value="@(GetItemById(itemContext.ItemID))" ValueChanged="@((v) => OnItemChanged(itemContext, v))"
+                                             SearchFunc="@SearchItems" ToStringFunc="@(i => i?.ItemName ?? "")" 
+                                             Variant="Variant.Text" Dense="true" Required="true" />
+                        </MudTd>
+                        <MudTd DataLabel="Qty">
+                            <MudNumericField @bind-Value="itemContext.Quantity" Variant="Variant.Text" Dense="true" Min="1" />
+                        </MudTd>
+                        <MudTd DataLabel="Unit">
+                            <MudSelect T="long?" @bind-Value="itemContext.UnitId" Variant="Variant.Text" Dense="true">
+                                <MudSelectItem T="long?" Value="null">Select Unit</MudSelectItem>
+                                @foreach (var unit in _units)
+                                {
+                                    <MudSelectItem T="long?" Value="unit.UnitId">@unit.UnitName</MudSelectItem>
+                                }
+                            </MudSelect>
+                        </MudTd>
+                        <MudTd DataLabel="Preferred Brand / Remarks">
+                            <MudTextField @bind-Value="itemContext.PrefferedBrand" Placeholder="Brand or specific remarks..." Variant="Variant.Text" Dense="true" />
+                        </MudTd>
+                        <MudTd Style="text-align: center;">
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => RemoveRow(itemContext))" />
+                        </MudTd>
+                    </RowTemplate>
+                </MudTable>
+                @if (!_model.Items.Any())
+                {
+                    <MudAlert Severity="Severity.Info" Class="mt-2">No items added. Click 'Add Item' to start the request.</MudAlert>
+                }
+            </MudItem>
+
+            <MudItem xs="12" Class="d-flex justify-end mt-6 gap-2">
+                <MudButton Variant="Variant.Outlined" OnClick="OnBack">Cancel</MudButton>
+                <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Loading="_saving">Save Request</MudButton>
+            </MudItem>
+        </MudGrid>
+    </EditForm>
+</MudPaper>
+
+@code {
+    [Parameter] public long Id { get; set; }
+
+    private PurchaseRequestDto _model = new() { CreatedDate = DateTime.Now };
+    private List<StaffLookupDto> _staffList = new();
+    private List<UnitDto> _units = new();
+    private List<RawMaterialDto> _allItems = new();
+    private bool _saving;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!SessionState.IsLoggedIn)
+        {
+            Navigation.NavigateTo("/login");
+            return;
+        }
+
+        await LoadLookups();
+
+        if (Id > 0)
+        {
+            await LoadData();
+        }
+        else
+        {
+            _model.CreatedBy = SessionState.CurrentUser?.LoginName ?? "System";
+            _model.RequestedBy = SessionState.CurrentUser?.LoginId; // Default to current staff if possible
+            _model.RequestNumber = $"PR-{DateTime.Now:yyyyMMdd-HHmm}";
+        }
+    }
+
+    private async Task LoadLookups()
+    {
+        try
+        {
+            _staffList = (await AdminApiClient.GetActiveStaffAsync()).ToList();
+            var units = await ApiClient.GetUnitsAsync(new PagedRequest { CurrentPage = 1, RecordPerPage = 1000 });
+            _units = units.Items.ToList();
+            _allItems = (await ApiClient.GetItemsForBomLookupAsync(null)).ToList();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error loading lookups: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task LoadData()
+    {
+        try
+        {
+            var result = await ApiClient.GetPurchaseRequestsAsync(Id, null, null);
+            if (result.Items.Any())
+            {
+                _model = result.Items.First();
+                _model.Items = await ApiClient.GetPurchaseRequestItemsAsync(Id);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error loading request: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task<IEnumerable<RawMaterialDto>> SearchItems(string value, CancellationToken token)
+    {
+        if (string.IsNullOrEmpty(value)) return _allItems;
+        return _allItems.Where(x => x.ItemName?.Contains(value, StringComparison.OrdinalIgnoreCase) == true);
+    }
+
+    private RawMaterialDto? GetItemById(long id) => _allItems.FirstOrDefault(x => x.ItemId == id);
+
+    private void OnItemChanged(PurchaseRequestItemDto row, RawMaterialDto? item)
+    {
+        if (item != null)
+        {
+            row.ItemID = item.ItemId;
+            row.ItemName = item.ItemName;
+        }
+    }
+
+    private void AddRow()
+    {
+        _model.Items.Add(new PurchaseRequestItemDto { Quantity = 1, UnitId = _units.FirstOrDefault()?.UnitId });
+    }
+
+    private void RemoveRow(PurchaseRequestItemDto row)
+    {
+        _model.Items.Remove(row);
+    }
+
+    private async Task OnSave()
+    {
+        if (!_model.Items.Any())
+        {
+            Snackbar.Add("Please add at least one item.", Severity.Warning);
+            return;
+        }
+
+        _saving = true;
+        try
+        {
+            _model.CreatedBy = SessionState.CurrentUser?.LoginName ?? "System";
+            var resultId = await ApiClient.SavePurchaseRequestAsync(_model);
+            if (resultId > 0)
+            {
+                Snackbar.Add("Purchase Request saved successfully.", Severity.Success);
+                Navigation.NavigateTo("/store/purchase-request");
+            }
+            else
+            {
+                Snackbar.Add("Failed to save Purchase Request.", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error saving: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    private void OnBack() => Navigation.NavigateTo("/store/purchase-request");
+}

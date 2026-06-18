@@ -1,0 +1,154 @@
+@page "/store/w_masterskuaddlist"
+@using GFI_Upgrated.SharedDto.Store
+@using GFI_Upgrated.UI.Services
+@using GFI_Upgrated.UI.State
+@inject StoreApiClient ApiClient
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject NavigationManager NavigationManager
+@inject AppSessionState SessionState
+@inject IJSRuntime JS
+
+<MudPaper Class="pa-4">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+        <MudStack Spacing="0">
+            <MudText Typo="Typo.h5">SKUs</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">Manage product SKUs and their configurations.</MudText>
+        </MudStack>
+        @if (_canInsert)
+        {
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OnAdd">
+                Add New
+            </MudButton>
+        }
+    </MudStack>
+
+    <MudStack Row="true" AlignItems="AlignItems.End" Spacing="2" Class="mb-4">
+        <MudTextField @bind-Value="_searchText" Label="Search SKUs" Variant="Variant.Outlined" Immediate="true" Class="flex-grow-1" />
+        <MudButton Variant="Variant.Outlined" OnClick="OnSearch">Search</MudButton>
+    </MudStack>
+
+    <MudTable RowsPerPage="25" T="SkuDto" @ref="_table" ServerData="LoadServerDataAsync" Hover="true" Dense="true" Striped="true" Bordered="true" Breakpoint="Breakpoint.Sm">
+        <HeaderContent>
+            <MudTh><MudTableSortLabel T="SkuDto" SortLabel="SkuName">SKU Name</MudTableSortLabel></MudTh>
+            <MudTh>Unit</MudTh>
+            <MudTh><MudTableSortLabel T="SkuDto" SortLabel="Quantity">Quantity</MudTableSortLabel></MudTh>
+            <MudTh Style="text-align: center;"><MudTableSortLabel T="SkuDto" SortLabel="IsActive">Status</MudTableSortLabel></MudTh>
+            <MudTh>Remarks</MudTh>
+            <MudTh Style="width: 120px; text-align: center;">Action</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="SKU Name">@context.SkuName</MudTd>
+            <MudTd DataLabel="Unit">@context.UnitName</MudTd>
+            <MudTd DataLabel="Quantity">@context.Quantity</MudTd>
+            <MudTd DataLabel="Status" Style="text-align: center;">
+                <MudChip T="string" Color="@(context.IsActive ? Color.Success : Color.Error)" Size="Size.Small" Variant="Variant.Text">
+                    @(context.IsActive ? "Active" : "Inactive")
+                </MudChip>
+            </MudTd>
+            <MudTd DataLabel="Remarks">@context.Remarks</MudTd>
+            <MudTd DataLabel="Action" Style="text-align: center;">
+                <MudStack Row="true" Spacing="1" Justify="Justify.Center" AlignItems="AlignItems.Center">
+                    @if (_canUpdate)
+                    {
+                        <MudTooltip Text="Edit">
+                            <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Size="Size.Small" OnClick="@(() => OnEdit(context))" />
+                        </MudTooltip>
+                    }
+                    @if (_canDelete)
+                    {
+                        <MudTooltip Text="Delete">
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => OnDelete(context))" />
+                        </MudTooltip>
+                    }
+                </MudStack>
+            </MudTd>
+        </RowTemplate>
+        <PagerContent>
+            <MudTablePager PageSizeOptions="new[] { 10, 25, 50 }" />
+        </PagerContent>
+        <NoRecordsContent>
+            <MudText Typo="Typo.body1" Align="Align.Center" Class="pa-4">No SKUs found.</MudText>
+        </NoRecordsContent>
+    </MudTable>
+</MudPaper>
+
+@code {
+    private MudTable<SkuDto> _table = null!;
+    private string? _searchText;
+    private bool _canInsert;
+    private bool _canUpdate;
+    private bool _canDelete;
+
+    protected override void OnInitialized()
+    {
+        if (!SessionState.IsLoggedIn)
+        {
+            NavigationManager.NavigateTo("/login");
+            return;
+        }
+
+        var permissions = SessionState.GetPermissions("/store/w_masterskuaddlist");
+        _canInsert = permissions.IsInsert;
+        _canUpdate = permissions.IsUpdate;
+        _canDelete = permissions.IsDelete;
+    }
+
+    private async Task<TableData<SkuDto>> LoadServerDataAsync(TableState state, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var request = new PagedRequest
+            {
+                CurrentPage = state.Page + 1,
+                RecordPerPage = state.PageSize,
+                SortColumn = state.SortLabel ?? "SkuID",
+                SortType = state.SortDirection == SortDirection.Ascending ? "ASC" : "DESC"
+            };
+
+            var result = await ApiClient.GetSkusAsync(request, _searchText, cancellationToken);
+            return new TableData<SkuDto>
+            {
+                TotalItems = result.TotalRecord,
+                Items = result.Items
+            };
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+            return new TableData<SkuDto> { TotalItems = 0, Items = Array.Empty<SkuDto>() };
+        }
+    }
+
+    private void OnSearch() => _table.ReloadServerData();
+
+    private void OnAdd() => NavigationManager.NavigateTo("/store/w_masterskuaddlist/new");
+
+    private void OnEdit(SkuDto sku) => NavigationManager.NavigateTo($"/store/w_masterskuaddlist/edit/{sku.SkuId}");
+
+    private async Task OnDelete(SkuDto sku)
+    {
+        bool confirmed = await JS.InvokeAsync<bool>("confirm", $"Are you sure you want to delete SKU: {sku.SkuName}?");
+
+        if (confirmed)
+        {
+            try
+            {
+                var success = await ApiClient.DeleteSkuAsync(sku.SkuId, SessionState.CurrentUser?.LoginName);
+                if (success > 0)
+                {
+                    Snackbar.Add("SKU deleted successfully.", Severity.Success);
+                    await _table.ReloadServerData();
+                }
+                else
+                {
+                    Snackbar.Add("Failed to delete SKU.", Severity.Error);
+                }
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add(ex.Message, Severity.Error);
+            }
+        }
+    }
+}

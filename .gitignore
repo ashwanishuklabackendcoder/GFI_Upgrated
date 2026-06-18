@@ -1,0 +1,17 @@
+## Visual Studio / VS Code
+.vs/
+.vscode/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+## Build outputs
+bin/
+obj/
+appsettings.Development.json
+
+## OS files
+[Db]b
+.DS_Store
+Thumbs.db

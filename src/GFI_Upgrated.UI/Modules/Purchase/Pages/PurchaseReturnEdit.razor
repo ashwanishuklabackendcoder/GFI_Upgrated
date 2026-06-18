@@ -1,0 +1,236 @@
+@page "/store/purchase-return/new"
+@using GFI_Upgrated.SharedDto.Purchase
+@using GFI_Upgrated.SharedDto.Store
+@using GFI_Upgrated.SharedDto.AdminSecurity
+@using GFI_Upgrated.UI.Services
+@using GFI_Upgrated.UI.State
+@inject StoreApiClient ApiClient
+@inject AdminSecurityApiClient AdminApiClient
+@inject ISnackbar Snackbar
+@inject NavigationManager Navigation
+@inject AppSessionState SessionState
+
+<PageTitle>New Purchase Return</PageTitle>
+
+<MudPaper Class="pa-4">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+        <MudStack Spacing="0">
+            <MudText Typo="Typo.h5">New Purchase Return</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">Record purchase returns and update inventory batch stock.</MudText>
+        </MudStack>
+        <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.ArrowBack" OnClick="OnBack">Back to List</MudButton>
+    </MudStack>
+
+    <EditForm Model="_meta" OnValidSubmit="OnSave">
+        <DataAnnotationsValidator />
+        <MudGrid>
+            <MudItem xs="12" md="4">
+                <MudAutocomplete T="AccountLookupDto" Label="Supplier" Value="_selectedVendor" ValueChanged="OnVendorChanged" SearchFunc="SearchVendors"
+                                 ToStringFunc="@(a => a?.AccountName ?? "")" Variant="Variant.Outlined" Required="true" />
+            </MudItem>
+            <MudItem xs="12" md="4">
+                <MudDatePicker Label="Return Date" @bind-Date="_meta.ReturnDate" Variant="Variant.Outlined" Editable="true" Required="true" />
+            </MudItem>
+            <MudItem xs="12" md="4">
+                <MudTextField @bind-Value="_meta.Description" Label="Narration / Remarks" Variant="Variant.Outlined" />
+            </MudItem>
+
+            <!-- Return Items Section -->
+            <MudItem xs="12" Class="mt-6">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-2">
+                    <MudText Typo="Typo.subtitle1" Color="Color.Primary">Returned Items</MudText>
+                    <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" Size="Size.Small" OnClick="AddRow" Disabled="@(_selectedVendor == null)">Add Item</MudButton>
+                </MudStack>
+                <MudDivider Class="mb-4" />
+
+                <MudTable Items="_rows" Hover="true" Dense="true" Striped="true" Bordered="true" Elevation="0" Context="rowContext">
+                    <HeaderContent>
+                        <MudTh>Item</MudTh>
+                        <MudTh>Batch (Qty Available)</MudTh>
+                        <MudTh Style="width: 120px;">Qty to Return</MudTh>
+                        <MudTh>Reason</MudTh>
+                        <MudTh Style="text-align: center; width: 60px;">Action</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd DataLabel="Item">
+                            <MudSelect T="PurchaseReturnItemLookupDto" Label="Select Item" Value="rowContext.SelectedItem" ValueChanged="@((v) => OnItemChanged(rowContext, v))" Variant="Variant.Text" Required="true">
+                                @foreach (var item in _availableItems)
+                                {
+                                    <MudSelectItem Value="@item">@item.ItemName (@item.BrandName)</MudSelectItem>
+                                }
+                            </MudSelect>
+                        </MudTd>
+                        <MudTd DataLabel="Batch">
+                            <MudSelect T="PurchaseReturnBatchLookupDto" Label="Select Batch" @bind-Value="rowContext.SelectedBatch" Variant="Variant.Text" Required="true" Disabled="@(rowContext.SelectedItem == null)">
+                                @foreach (var batch in rowContext.AvailableBatches)
+                                {
+                                    <MudSelectItem Value="@batch">@batch.BatchNo (Max: @batch.Quantity)</MudSelectItem>
+                                }
+                            </MudSelect>
+                        </MudTd>
+                        <MudTd DataLabel="Qty to Return">
+                            <MudNumericField T="double" Value="rowContext.Quantity" ValueChanged="@((qty) => OnQtyChanged(rowContext, qty))" Variant="Variant.Text" Dense="true" Min="0.001" Required="true" />
+                        </MudTd>
+                        <MudTd DataLabel="Reason">
+                            <MudSelect T="long?" Label="Select Reason" @bind-Value="rowContext.ReasonId" Variant="Variant.Text" Required="true">
+                                <MudSelectItem T="long?" Value="null">Select</MudSelectItem>
+                                @foreach (var reason in _reasons)
+                                {
+                                    <MudSelectItem T="long?" Value="reason.Value">@reason.Text</MudSelectItem>
+                                }
+                            </MudSelect>
+                        </MudTd>
+                        <MudTd Style="text-align: center;">
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => RemoveRow(rowContext))" />
+                        </MudTd>
+                    </RowTemplate>
+                </MudTable>
+            </MudItem>
+
+            <MudItem xs="12" Class="d-flex justify-end mt-6">
+                <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Class="me-2" Disabled="@(_rows.Count == 0)">Submit Return</MudButton>
+                <MudButton Variant="Variant.Outlined" Color="Color.Secondary" OnClick="OnBack">Cancel</MudButton>
+            </MudItem>
+        </MudGrid>
+    </EditForm>
+</MudPaper>
+
+@code {
+    private class ReturnMeta
+    {
+        public DateTime? ReturnDate { get; set; } = DateTime.Today;
+        public string? Description { get; set; }
+    }
+
+    private class ReturnRow
+    {
+        public PurchaseReturnItemLookupDto? SelectedItem { get; set; }
+        public PurchaseReturnBatchLookupDto? SelectedBatch { get; set; }
+        public List<PurchaseReturnBatchLookupDto> AvailableBatches { get; set; } = new();
+        public double Quantity { get; set; }
+        public long? ReasonId { get; set; }
+    }
+
+    private ReturnMeta _meta = new();
+    private List<ReturnRow> _rows = new();
+    private AccountLookupDto? _selectedVendor;
+    private IReadOnlyList<AccountLookupDto> _vendors = Array.Empty<AccountLookupDto>();
+    private IReadOnlyList<PurchaseReturnItemLookupDto> _availableItems = Array.Empty<PurchaseReturnItemLookupDto>();
+    private IReadOnlyList<LookupItemDto> _reasons = Array.Empty<LookupItemDto>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!SessionState.IsLoggedIn)
+        {
+            Navigation.NavigateTo("/login");
+            return;
+        }
+
+        _vendors = await ApiClient.GetAccountsLookupAsync();
+        _reasons = await AdminApiClient.GetMasterDropdownAsync(4); // Reason for Return
+    }
+
+    private async Task OnVendorChanged(AccountLookupDto vendor)
+    {
+        _selectedVendor = vendor;
+        _rows.Clear();
+        if (vendor != null)
+        {
+            _availableItems = await ApiClient.GetPurchaseReturnItemsLookupAsync(vendor.AccountId);
+        }
+        else
+        {
+            _availableItems = Array.Empty<PurchaseReturnItemLookupDto>();
+        }
+    }
+
+    private async Task OnItemChanged(ReturnRow row, PurchaseReturnItemLookupDto item)
+    {
+        row.SelectedItem = item;
+        row.SelectedBatch = null;
+        row.AvailableBatches.Clear();
+        row.Quantity = 0;
+
+        if (item != null)
+        {
+            var batches = await ApiClient.GetPurchaseReturnBatchesLookupAsync(item.ItemID, item.BrandID);
+            row.AvailableBatches = batches.ToList();
+        }
+    }
+
+    private void OnQtyChanged(ReturnRow row, double qty)
+    {
+        if (row.SelectedBatch != null && qty > row.SelectedBatch.Quantity)
+        {
+            Snackbar.Add($"Quantity returned ({qty}) cannot be more than batch purchase quantity ({row.SelectedBatch.Quantity})", Severity.Warning);
+            row.Quantity = row.SelectedBatch.Quantity;
+        }
+        else
+        {
+            row.Quantity = qty;
+        }
+    }
+
+    private async Task<IEnumerable<AccountLookupDto>> SearchVendors(string value, CancellationToken token)
+    {
+        if (string.IsNullOrEmpty(value)) return _vendors;
+        return _vendors.Where(x => x.AccountName.Contains(value, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private void AddRow()
+    {
+        _rows.Add(new ReturnRow());
+    }
+
+    private void RemoveRow(ReturnRow row)
+    {
+        _rows.Remove(row);
+    }
+
+    private async Task OnSave()
+    {
+        if (_selectedVendor == null)
+        {
+            Snackbar.Add("Please select a vendor.", Severity.Error);
+            return;
+        }
+
+        foreach (var r in _rows)
+        {
+            if (r.SelectedItem == null || r.SelectedBatch == null || r.Quantity <= 0 || !r.ReasonId.HasValue)
+            {
+                Snackbar.Add("Please complete all row entries before submitting.", Severity.Warning);
+                return;
+            }
+        }
+
+        try
+        {
+            foreach (var r in _rows)
+            {
+                var dto = new PurchaseReturnDto
+                {
+                    PurchaseReturnID = 0,
+                    ItemStockByBatchId = r.SelectedBatch!.ItemStockByBatchId,
+                    ReturnDate = _meta.ReturnDate,
+                    ReturnReason = r.ReasonId,
+                    Quantity = r.Quantity,
+                    Description = _meta.Description,
+                    CreatedBy = SessionState.CurrentUser?.LoginName ?? "System",
+                    CreatedDate = DateTime.Now
+                };
+
+                await ApiClient.SavePurchaseReturnAsync(dto);
+            }
+
+            Snackbar.Add("Purchase return(s) saved successfully.", Severity.Success);
+            Navigation.NavigateTo("/store/purchase-return");
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error saving return: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private void OnBack() => Navigation.NavigateTo("/store/purchase-return");
+}

@@ -1,0 +1,307 @@
+@page "/acc/customerorderlist/new"
+@page "/acc/customerorderlist/edit/{Id:long}"
+@using GFI_Upgrated.SharedDto.Account
+@using GFI_Upgrated.SharedDto.Store
+@using GFI_Upgrated.UI.Services
+@using GFI_Upgrated.UI.State
+@inject AccountApiClient ApiClient
+@inject StoreApiClient StoreApiClient
+@inject ISnackbar Snackbar
+@inject AppSessionState SessionState
+@inject NavigationManager Navigation
+@inject IDialogService DialogService
+
+<PageTitle>@_title</PageTitle>
+
+<MudPaper Class="pa-4">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+        <MudStack Spacing="0">
+            <MudText Typo="Typo.h5">@_title</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">Enter customer order details and specify product items below.</MudText>
+        </MudStack>
+        <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.ArrowBack" OnClick="BackToList">Back to List</MudButton>
+    </MudStack>
+
+    <EditForm Model="_order" OnValidSubmit="SaveOrder">
+        <DataAnnotationsValidator />
+        <MudGrid>
+            <MudItem xs="12" md="4">
+                <MudTextField @bind-Value="_order.OrderNo" Label="Order Number" Required="true" Variant="Variant.Outlined" For="@(() => _order.OrderNo)" />
+            </MudItem>
+            <MudItem xs="12" md="4">
+                <MudSelect T="long" Label="Customer" @bind-Value="_order.CustomerID" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter" Required="true">
+                    <MudSelectItem T="long" Value="0">-- Select Customer --</MudSelectItem>
+                    @foreach (var cust in _customers)
+                    {
+                        <MudSelectItem T="long" Value="@((long)cust.AccountId)">@cust.AccountName</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" md="4">
+                <MudDatePicker @bind-Date="_order.OrderDate" Label="Order Date" Required="true" Variant="Variant.Outlined" />
+            </MudItem>
+            
+            <MudItem xs="12" md="4">
+                <MudDatePicker @bind-Date="_order.SentDate" Label="Sent Date (Nullable)" Variant="Variant.Outlined" />
+            </MudItem>
+            <MudItem xs="12" md="8">
+                <MudTextField @bind-Value="_order.Remarks" Label="Remarks / Delivery Instructions" Variant="Variant.Outlined" />
+            </MudItem>
+
+            <MudItem xs="12" Class="mt-4">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-2">
+                    <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">Order Items</MudText>
+                    <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="AddOrderItem" Size="Size.Small">
+                        Add Item
+                    </MudButton>
+                </MudStack>
+
+                <MudTable Items="@_order.Items" Hover="true" Dense="true" Striped="true" Bordered="true" Elevation="0" Class="mb-4">
+                    <HeaderContent>
+                        <MudTh>Item (SKU)</MudTh>
+                        <MudTh Style="width: 150px; text-align: center;">Quantity</MudTh>
+                        <MudTh>Remarks</MudTh>
+                        <MudTh Style="width: 120px; text-align: center;">Complete</MudTh>
+                        <MudTh Style="width: 80px; text-align: center;">Action</MudTh>
+                    </HeaderContent>
+                    <RowTemplate Context="row">
+                        <MudTd DataLabel="Item (SKU)">
+                            <MudSelect T="long" Value="@row.ItemId" ValueChanged="@((val) => OnItemChanged(row, val))" Variant="Variant.Outlined" Dense="true" Margin="Margin.Dense" AnchorOrigin="Origin.BottomCenter">
+                                <MudSelectItem T="long" Value="0">-- Select Item --</MudSelectItem>
+                                @foreach (var item in _items)
+                                {
+                                    <MudSelectItem T="long" Value="@item.ItemId">@item.ItemName</MudSelectItem>
+                                }
+                            </MudSelect>
+                        </MudTd>
+                        <MudTd DataLabel="Quantity" Style="text-align: center;">
+                            <MudNumericField @bind-Value="row.Qty" Variant="Variant.Outlined" Dense="true" Margin="Margin.Dense" Min="1" Style="text-align: center;" />
+                        </MudTd>
+                        <MudTd DataLabel="Remarks">
+                            <MudTextField @bind-Value="row.Remarks" Variant="Variant.Outlined" Dense="true" Margin="Margin.Dense" />
+                        </MudTd>
+                        <MudTd DataLabel="Complete" Style="text-align: center;">
+                            @if (row.IsComplete == true)
+                            {
+                                <MudChip T="string" Color="Color.Success" Size="Size.Small">Completed</MudChip>
+                            }
+                            else
+                            {
+                                <MudChip T="string" Color="Color.Warning" Size="Size.Small">Incomplete</MudChip>
+                            }
+                        </MudTd>
+                        <MudTd DataLabel="Action" Style="text-align: center;">
+                            <MudStack Row="true" Spacing="1" Justify="Justify.Center">
+                                @if (Id > 0 && row.OrderItemId > 0 && row.IsComplete != true)
+                                {
+                                    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small" StartIcon="@Icons.Material.Filled.Settings" OnClick="@(() => OpenFulfillDialog(row))">
+                                        Process
+                                    </MudButton>
+                                }
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => RemoveOrderItem(row))" />
+                            </MudStack>
+                        </MudTd>
+                    </RowTemplate>
+                </MudTable>
+            </MudItem>
+
+            <MudItem xs="12" Class="pt-4">
+                <MudStack Row="true" Spacing="2">
+                    <MudButton ButtonType="ButtonType.Submit" Color="Color.Primary" Variant="Variant.Filled" Disabled="_busy">Save Order</MudButton>
+                    <MudButton Variant="Variant.Outlined" OnClick="BackToList" Disabled="_busy">Cancel</MudButton>
+                </MudStack>
+            </MudItem>
+        </MudGrid>
+    </EditForm>
+
+    @if (!string.IsNullOrWhiteSpace(_message))
+    {
+        <MudAlert Severity="Severity.Info" Class="mt-4" ContentAlignment="HorizontalAlignment.Center">@_message</MudAlert>
+    }
+</MudPaper>
+
+@code {
+    [Parameter] public long Id { get; set; }
+
+    private CustomerOrderDto _order = new();
+    private List<AccountLookupDto> _customers = new();
+    private List<RawMaterialDto> _items = new();
+    private List<long> _deletedItemIds = new();
+    private bool _busy;
+    private string? _message;
+    private string _title = "Add Customer Order";
+
+    protected override void OnInitialized()
+    {
+        if (!SessionState.IsLoggedIn)
+        {
+            Navigation.NavigateTo("/login");
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // Load lookups
+            var custResult = await StoreApiClient.GetAccountsLookupAsync();
+            _customers = custResult.ToList();
+
+            var itemResult = await StoreApiClient.GetItemsForBomLookupAsync(null);
+            _items = itemResult.ToList();
+
+            if (Id > 0)
+            {
+                _title = "Edit Customer Order";
+                var fetched = await ApiClient.GetCustomerOrderByIdAsync(Id);
+                if (fetched != null)
+                {
+                    _order = fetched;
+                }
+                else
+                {
+                    Snackbar.Add("Order not found.", Severity.Error);
+                    BackToList();
+                }
+            }
+            else
+            {
+                _order = new CustomerOrderDto
+                {
+                    OrderDate = DateTime.Today,
+                    SentDate = null
+                };
+            }
+        }
+        catch (Exception ex)
+        {
+            _message = ex.Message;
+        }
+    }
+
+    private void AddOrderItem()
+    {
+        _order.Items.Add(new CustomerOrderItemDto
+        {
+            Qty = 1,
+            IsComplete = false
+        });
+    }
+
+    private void RemoveOrderItem(CustomerOrderItemDto item)
+    {
+        if (item.OrderItemId > 0)
+        {
+            _deletedItemIds.Add(item.OrderItemId);
+        }
+        _order.Items.Remove(item);
+    }
+
+    private void OnItemChanged(CustomerOrderItemDto row, long val)
+    {
+        row.ItemId = val;
+        var item = _items.FirstOrDefault(i => i.ItemId == val);
+        if (item != null)
+        {
+            row.ItemName = item.ItemName;
+        }
+    }
+
+    private async Task SaveOrder()
+    {
+        if (_order.CustomerID == 0)
+        {
+            Snackbar.Add("Please select a customer.", Severity.Warning);
+            return;
+        }
+
+        if (!_order.Items.Any())
+        {
+            Snackbar.Add("Order must contain at least one item.", Severity.Warning);
+            return;
+        }
+
+        if (_order.Items.Any(i => i.ItemId == 0))
+        {
+            Snackbar.Add("All selected items must be valid.", Severity.Warning);
+            return;
+        }
+
+        _busy = true;
+        _message = null;
+        try
+        {
+            _order.CreatedBy = SessionState.CurrentUser?.LoginName ?? "System";
+            _order.CreatedDate = DateTime.Now;
+
+            // 1. Save main order
+            var orderId = await ApiClient.SaveCustomerOrderAsync(_order);
+            if (orderId > 0)
+            {
+                // 2. Handle deleted items
+                if (_deletedItemIds.Any())
+                {
+                    var idString = string.Join(",", _deletedItemIds);
+                    await ApiClient.DeleteCustomerOrderItemAsync(idString);
+                }
+
+                // 3. Save each item
+                foreach (var item in _order.Items)
+                {
+                    item.OrderId = orderId;
+                    await ApiClient.SaveCustomerOrderItemAsync(item);
+                }
+
+                Snackbar.Add("Order saved successfully.", Severity.Success);
+                BackToList();
+            }
+            else
+            {
+                _message = "Failed to save order.";
+            }
+        }
+        catch (Exception ex)
+        {
+            _message = ex.Message;
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private void BackToList()
+    {
+        Navigation.NavigateTo("/acc/customerorderlist");
+    }
+
+    private async Task OpenFulfillDialog(CustomerOrderItemDto row)
+    {
+        // Must save order and item first to get OrderItemId
+        if (Id <= 0 || row.OrderItemId <= 0)
+        {
+            Snackbar.Add("Please save the order first before fulfilling items.", Severity.Warning);
+            return;
+        }
+
+        var availableBatches = await ApiClient.GetItemStockByItemIDBatchForBOMListAsync(row.ItemId);
+
+        var parameters = new DialogParameters
+        {
+            { "Item", row },
+            { "AvailableBatches", availableBatches },
+            { "OrderID", Id },
+            { "ApiClient", ApiClient }
+        };
+
+        var options = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true, CloseButton = true };
+        var dialog = await DialogService.ShowAsync<OrderFulfillDialog>("Process Item", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            row.IsComplete = true;
+            StateHasChanged();
+        }
+    }
+}

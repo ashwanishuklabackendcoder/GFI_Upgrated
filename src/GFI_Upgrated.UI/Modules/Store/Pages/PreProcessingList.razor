@@ -1,0 +1,191 @@
+@page "/store/w_masteritemprelist"
+@page "/store/preprocessing"
+@page "/admin/w_masteritemprelist"
+@page "/admin/preprocessing"
+@using GFI_Upgrated.SharedDto.Store
+@using GFI_Upgrated.UI.Services
+@using GFI_Upgrated.UI.State
+@inject StoreApiClient ApiClient
+@inject ISnackbar Snackbar
+@inject IJSRuntime JS
+@inject NavigationManager Navigation
+@inject AppSessionState SessionState
+
+<PageTitle>Pre-Processing List</PageTitle>
+
+<MudPaper Class="pa-4">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+        <MudStack Spacing="0">
+            <MudText Typo="Typo.h5">Pre-Processing</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">Manage production runs and ingredient consumption.</MudText>
+        </MudStack>
+        @if (_canInsert)
+        {
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OnAdd">
+                Add New Run
+            </MudButton>
+        }
+    </MudStack>
+
+    <MudStack Row="true" AlignItems="AlignItems.End" Spacing="2" Class="mb-4">
+        <MudTextField @bind-Value="_searchCreatedBy" Label="Search..." Variant="Variant.Outlined" Immediate="true" Clearable="true" OnClearButtonClick="SearchAsync" Class="flex-grow-1" />
+        <MudButton Variant="Variant.Outlined" OnClick="SearchAsync">Search</MudButton>
+    </MudStack>
+
+    <MudTable RowsPerPage="25" T="PreProcessingDto" @ref="_table" ServerData="LoadServerDataAsync" Hover="true" Dense="true" Striped="true" Bordered="true" Breakpoint="Breakpoint.Sm">
+        <HeaderContent>
+            <MudTh><MudTableSortLabel T="PreProcessingDto" SortLabel="PreProcessingId">ID</MudTableSortLabel></MudTh>
+            <MudTh>Item Made</MudTh>
+            <MudTh>BOM</MudTh>
+            <MudTh><MudTableSortLabel T="PreProcessingDto" SortLabel="ProcessingDate">Date</MudTableSortLabel></MudTh>
+            <MudTh>Qty Made</MudTh>
+            <MudTh>Batch Number</MudTh>
+            <MudTh>Status</MudTh>
+            <MudTh Style="width: 150px; text-align: center;">Action</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="ID">@context.PreProcessingId</MudTd>
+            <MudTd DataLabel="Item Made">@context.ItemName</MudTd>
+            <MudTd DataLabel="BOM">@context.BomName (@context.BomQty)</MudTd>
+            <MudTd DataLabel="Date">@context.ProcessingDate</MudTd>
+            <MudTd DataLabel="Qty Made">@context.QuantityMade @context.UnitName</MudTd>
+            <MudTd DataLabel="Batch Number">@context.BatchNumberMade</MudTd>
+            <MudTd DataLabel="Status">
+                @if (context.IsComplete == 1)
+                {
+                    <MudChip T="string" Color="Color.Success" Size="Size.Small">Complete</MudChip>
+                }
+                else
+                {
+                    <MudChip T="string" Color="Color.Error" Size="Size.Small">Incomplete</MudChip>
+                }
+            </MudTd>
+            <MudTd DataLabel="Action" Style="text-align: center;">
+                <MudStack Row="true" Spacing="1" Justify="Justify.Center" AlignItems="AlignItems.Center">
+                    @if (_canUpdate)
+                    {
+                        <MudTooltip Text="Edit Header">
+                            <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Size="Size.Small" OnClick="@(() => OnEdit(context))" />
+                        </MudTooltip>
+                        <MudTooltip Text="Manage Ingredients">
+                            <MudIconButton Icon="@Icons.Material.Filled.FactCheck" Color="Color.Warning" Size="Size.Small" OnClick="@(() => OnManageItems(context))" />
+                        </MudTooltip>
+                    }
+                    <MudTooltip Text="View Details">
+                        <MudIconButton Icon="@Icons.Material.Filled.Visibility" Color="Color.Info" Size="Size.Small" OnClick="@(() => OnView(context))" />
+                    </MudTooltip>
+                    @if (_canDelete)
+                    {
+                        <MudTooltip Text="Delete">
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => OnDelete(context))" />
+                        </MudTooltip>
+                    }
+                </MudStack>
+            </MudTd>
+        </RowTemplate>
+        <PagerContent>
+            <MudTablePager PageSizeOptions="new[] { 10, 25, 50 }" />
+        </PagerContent>
+        <NoRecordsContent>
+            <MudText Class="pa-4">No records found.</MudText>
+        </NoRecordsContent>
+    </MudTable>
+</MudPaper>
+
+<style>
+    .mud-chip.mud-chip-size-small {
+        font-weight: 600;
+    }
+</style>
+
+@code {
+    private MudTable<PreProcessingDto>? _table;
+    private string? _searchCreatedBy;
+    private bool _canInsert;
+    private bool _canUpdate;
+    private bool _canDelete;
+
+    protected override void OnInitialized()
+    {
+        if (!SessionState.IsLoggedIn)
+        {
+            Navigation.NavigateTo("/login");
+            return;
+        }
+
+        var path = Navigation.ToBaseRelativePath(Navigation.Uri).Split('?')[0];
+        _canInsert = SessionState.HasPermission(path, "insert");
+        _canUpdate = SessionState.HasPermission(path, "update");
+        _canDelete = SessionState.HasPermission(path, "delete");
+
+        // Temporary logging for debugging permissions
+        Console.WriteLine($"PreProcessing Permissions - Path: {path}, Insert: {_canInsert}, Update: {_canUpdate}, Delete: {_canDelete}");
+    }
+
+    private async Task<TableData<PreProcessingDto>> LoadServerDataAsync(TableState state, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await ApiClient.GetPreProcessingListAsync(new PreProcessingListRequest
+            {
+                CurrentPage = state.Page + 1,
+                RecordPerPage = state.PageSize,
+                SortColumn = state.SortLabel ?? "PreProcessingId",
+                SortType = state.SortDirection == SortDirection.Ascending ? "ASC" : "DESC",
+                CreatedBy = _searchCreatedBy
+            }, cancellationToken);
+
+            return new TableData<PreProcessingDto>
+            {
+                TotalItems = result.TotalRecord,
+                Items = result.Items
+            };
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+            return new TableData<PreProcessingDto> { TotalItems = 0, Items = Array.Empty<PreProcessingDto>() };
+        }
+    }
+
+    private async Task SearchAsync()
+    {
+        if (_table is not null) await _table.ReloadServerData();
+    }
+
+    private void OnAdd() => Navigation.NavigateTo("/store/preprocessing/new");
+
+    private void OnEdit(PreProcessingDto dto) => Navigation.NavigateTo($"/store/preprocessing/edit/{dto.PreProcessingId}");
+
+    private void OnManageItems(PreProcessingDto dto) => Navigation.NavigateTo($"/store/preprocessing/items/{dto.PreProcessingId}");
+
+    private void OnView(PreProcessingDto dto)
+    {
+        // For now, View might just navigate to Manage Items or a Read-Only view
+        Navigation.NavigateTo($"/store/preprocessing/items/{dto.PreProcessingId}");
+    }
+
+    private async Task OnDelete(PreProcessingDto dto)
+    {
+        var confirmed = await JS.InvokeAsync<bool>("confirm", $"Are you sure you want to delete Pre-Processing run {dto.PreProcessingId} ({dto.BatchNumberMade})?");
+        if (!confirmed) return;
+
+        try
+        {
+            var result = await ApiClient.DeletePreProcessingAsync(dto.PreProcessingId, SessionState.CurrentUser?.LoginName ?? "System");
+            if (result > 0)
+            {
+                Snackbar.Add("Pre-Processing record deleted successfully.", Severity.Success);
+                if (_table is not null) await _table.ReloadServerData();
+            }
+            else
+            {
+                Snackbar.Add("Failed to delete record.", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+        }
+    }
+}

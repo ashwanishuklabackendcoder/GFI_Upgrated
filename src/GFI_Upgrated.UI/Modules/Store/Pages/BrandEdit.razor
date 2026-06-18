@@ -1,0 +1,122 @@
+@page "/store/w_masterbrandsaddlist/new"
+@page "/store/w_masterbrandsaddlist/edit/{BrandId:long}"
+@page "/store/brands/new"
+@page "/store/brands/edit/{BrandId:long}"
+@page "/admin/w_masterbrandsaddlist/new"
+@page "/admin/w_masterbrandsaddlist/edit/{BrandId:long}"
+@page "/admin/brands/new"
+@page "/admin/brands/edit/{BrandId:long}"
+@using GFI_Upgrated.SharedDto.Store
+@inject AppSessionState SessionState
+@inject NavigationManager Navigation
+@inject StoreApiClient ApiClient
+
+<PageTitle>@_title</PageTitle>
+
+<MudPaper Class="pa-4">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+        <MudStack Spacing="0">
+            <MudText Typo="Typo.h5">@_title</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">Enter brand details below.</MudText>
+        </MudStack>
+        <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.ArrowBack" OnClick="Cancel">Back to List</MudButton>
+    </MudStack>
+
+    <EditForm Model="_editor" OnValidSubmit="SaveAsync">
+        <DataAnnotationsValidator />
+        <MudGrid>
+            <MudItem xs="12">
+                <MudTextField @bind-Value="_editor.BrandName" Label="Brand Name" Variant="Variant.Outlined" For="@(() => _editor.BrandName)" />
+            </MudItem>
+            <MudItem xs="12">
+                <MudTextField @bind-Value="_editor.Remarks" Label="Remarks" Variant="Variant.Outlined" Lines="3" For="@(() => _editor.Remarks)" />
+            </MudItem>
+            <MudItem xs="12">
+                <MudCheckBox T="bool" @bind-Value="_editor.IsActive" Label="Is Active" Color="Color.Primary" />
+            </MudItem>
+
+            <MudItem xs="12" Class="pt-4">
+                <MudStack Row="true" Spacing="2">
+                    <MudButton ButtonType="ButtonType.Submit" Color="Color.Primary" Variant="Variant.Filled" Disabled="_busy">Save Brand</MudButton>
+                    <MudButton Variant="Variant.Outlined" OnClick="Cancel" Disabled="_busy">Cancel</MudButton>
+                </MudStack>
+            </MudItem>
+        </MudGrid>
+    </EditForm>
+
+    @if (!string.IsNullOrWhiteSpace(_message))
+    {
+        <MudAlert Severity="Severity.Info" Class="mt-4" ContentAlignment="HorizontalAlignment.Center">@_message</MudAlert>
+    }
+</MudPaper>
+
+@code {
+    [Parameter]
+    public long BrandId { get; set; }
+
+    private readonly GFI_Upgrated.SharedDto.Store.SaveBrandRequest _editor = new();
+    private bool _busy;
+    private string? _message;
+    private string _title = "Add Brand";
+
+    protected override void OnInitialized()
+    {
+        if (!SessionState.IsLoggedIn)
+        {
+            Navigation.NavigateTo("/login");
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (BrandId > 0)
+        {
+            _title = "Edit Brand";
+            var selected = await ApiClient.GetBrandByIdAsync(BrandId);
+            if (selected is not null)
+            {
+                _editor.BrandId = selected.BrandId;
+                _editor.BrandName = selected.BrandName;
+                _editor.Remarks = selected.Remarks;
+                _editor.IsActive = selected.IsActive;
+            }
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        _busy = true;
+        _message = null;
+        try
+        {
+            _editor.UpdatedBy = SessionState.CurrentUser?.LoginName ?? "System";
+            var result = await ApiClient.SaveBrandAsync(_editor);
+            if (result > 0)
+            {
+                Navigation.NavigateTo("/store/w_masterbrandsaddlist");
+                return;
+            }
+            else if (result == -1)
+            {
+                _message = "Brand name already exists.";
+            }
+            else
+            {
+                _message = "Brand save failed.";
+            }
+        }
+        catch (Exception ex)
+        {
+            _message = ex.Message;
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private void Cancel()
+    {
+        Navigation.NavigateTo("/store/w_masterbrandsaddlist");
+    }
+}

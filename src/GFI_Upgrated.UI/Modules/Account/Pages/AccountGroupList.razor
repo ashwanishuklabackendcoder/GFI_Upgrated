@@ -1,0 +1,157 @@
+@page "/acc/accountgroupmasterlist"
+@using GFI_Upgrated.SharedDto.Account
+@using GFI_Upgrated.UI.Services
+@using MudBlazor
+@inject AccountApiClient ApiClient
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+@inject IJSRuntime JS
+
+<PageTitle>Account Groups</PageTitle>
+
+<MudPaper Class="pa-4">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+        <MudStack Spacing="0">
+            <MudText Typo="Typo.h5">Account Groups</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">Categorize your general ledger accounts</MudText>
+        </MudStack>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OnAddGroup">
+            Add New
+        </MudButton>
+    </MudStack>
+
+    <MudStack Row="true" AlignItems="AlignItems.End" Spacing="2" Class="mb-4">
+        <MudTextField T="string" ValueChanged="@OnSearch" Label="Search group" Variant="Variant.Outlined" Immediate="true" Class="flex-grow-1" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" />
+    </MudStack>
+
+    <MudTable RowsPerPage="25" T="AccountGroupDto" @ref="_table" ServerData="LoadServerDataAsync" Hover="true" Dense="true" Striped="true" Bordered="true" Breakpoint="Breakpoint.Sm">
+        <HeaderContent>
+            <MudTh><MudTableSortLabel T="AccountGroupDto" SortLabel="AccountGroupID">ID</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel T="AccountGroupDto" SortLabel="AccountGroupName">Group Name</MudTableSortLabel></MudTh>
+            <MudTh>Type</MudTh>
+            <MudTh><MudTableSortLabel T="AccountGroupDto" SortLabel="IsActive">Status</MudTableSortLabel></MudTh>
+            <MudTh>Created By</MudTh>
+            <MudTh Style="width: 120px; text-align: center;">Action</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="ID">@context.AccountGroupID</MudTd>
+            <MudTd DataLabel="Name">
+                <MudText Typo="Typo.body2" Class="fw-bold">@context.AccountGroupName</MudText>
+            </MudTd>
+            <MudTd DataLabel="Type">
+                @if (context.IsMainAccountGroup)
+                {
+                    <MudChip T="string" Variant="Variant.Text" Color="Color.Info" Size="Size.Small">Main Group</MudChip>
+                }
+                else
+                {
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">Sub-Group</MudText>
+                }
+            </MudTd>
+            <MudTd DataLabel="Status">
+                <MudChip T="string" Color="@(context.IsActive ? Color.Success : Color.Error)" Size="Size.Small" Variant="Variant.Text">
+                    @(context.IsActive ? "Active" : "Inactive")
+                </MudChip>
+            </MudTd>
+            <MudTd DataLabel="Created By">@context.CreatedBy</MudTd>
+            <MudTd DataLabel="Action" Style="text-align: center;">
+                <MudStack Row="true" Spacing="1" Justify="Justify.Center" AlignItems="AlignItems.Center">
+                    <MudTooltip Text="Edit">
+                        <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Size="Size.Small" OnClick="@(() => OnEditGroup(context))" />
+                    </MudTooltip>
+                    <MudTooltip Text="Delete">
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => OnDeleteGroup(context))" Disabled="!context.IsEditable" />
+                    </MudTooltip>
+                </MudStack>
+            </MudTd>
+            </RowTemplate>
+        <PagerContent>
+            <MudTablePager PageSizeOptions="new int[] { 10, 25, 50 }" />
+        </PagerContent>
+    </MudTable>
+</MudPaper>
+
+@code {
+    private MudTable<AccountGroupDto>? _table;
+    private string? _searchString;
+
+    private async Task<TableData<AccountGroupDto>> LoadServerDataAsync(TableState state, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await ApiClient.GetAccountGroupsAsync(
+                groupName: _searchString,
+                page: state.Page + 1,
+                pageSize: state.PageSize,
+                sortCol: state.SortLabel ?? "AccountGroupID",
+                sortOrd: state.SortDirection == SortDirection.Ascending ? "ASC" : "DESC",
+                cancellationToken: cancellationToken
+            );
+
+            return new TableData<AccountGroupDto>
+            {
+                TotalItems = result.TotalRecord,
+                Items = result.Items
+            };
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error loading groups: {ex.Message}", Severity.Error);
+            return new TableData<AccountGroupDto> { TotalItems = 0, Items = Array.Empty<AccountGroupDto>() };
+        }
+    }
+
+    private async Task OnSearch(string text)
+    {
+        _searchString = text;
+        if (_table is not null) await _table.ReloadServerData();
+    }
+
+    private async Task OnAddGroup()
+    {
+        await ShowEditDialog(new AccountGroupDto());
+    }
+
+    private async Task OnEditGroup(AccountGroupDto group)
+    {
+        await ShowEditDialog(group);
+    }
+
+    private async Task ShowEditDialog(AccountGroupDto group)
+    {
+        var parameters = new DialogParameters { ["Model"] = group };
+        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<AccountGroupEditDialog>(group.AccountGroupID == 0 ? "Add Account Group" : "Edit Account Group", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            if (_table is not null) await _table.ReloadServerData();
+        }
+    }
+
+    private async Task OnDeleteGroup(AccountGroupDto group)
+    {
+        bool confirm = await JS.InvokeAsync<bool>("confirm", $"Are you sure you want to delete group: {group.AccountGroupName}?");
+        if (confirm)
+        {
+            try
+            {
+                var success = await ApiClient.DeleteAccountGroupsAsync(group.AccountGroupID.ToString());
+                if (success)
+                {
+                    Snackbar.Add("Group deleted successfully.", Severity.Success);
+                    if (_table is not null) await _table.ReloadServerData();
+                }
+                else
+                {
+                    Snackbar.Add("Failed to delete group. It might be in use.", Severity.Error);
+                }
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Error deleting group: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+}

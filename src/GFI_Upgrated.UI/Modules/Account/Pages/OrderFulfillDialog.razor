@@ -1,0 +1,174 @@
+@using GFI_Upgrated.SharedDto.Account
+@using GFI_Upgrated.UI.Services
+@using MudBlazor
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        <MudText Typo="Typo.body1" Class="mb-4">
+            Allocate stock batches to fulfill the requirement for <b>@Item?.ItemName</b>.
+            <br />
+            Required Quantity: <b>@Item?.Qty.ToString("N2")</b>
+        </MudText>
+
+        <MudTable Items="_rows" Hover="true" Dense="true" Striped="true" Bordered="true" Breakpoint="Breakpoint.Sm" Elevation="0">
+            <HeaderContent>
+                <MudTh>Select Batch</MudTh>
+                <MudTh>Description</MudTh>
+                <MudTh Style="width: 150px;">Quantity</MudTh>
+                <MudTh Style="width: 60px;"></MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Batch Number">
+                    <MudSelect T="long" @bind-Value="context.BatchId" Margin="Margin.Dense" Variant="Variant.Outlined" Placeholder="Select Batch">
+                        @foreach (var batch in AvailableBatches)
+                        {
+                            <MudSelectItem Value="@batch.ItemStockByBatchID">@($"{batch.BatchNo} (Qty: {batch.FinalQuantityLeft})")</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudTd>
+                <MudTd DataLabel="Description">
+                    <MudTextField @bind-Value="context.Description" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                </MudTd>
+                <MudTd DataLabel="Quantity">
+                    <MudNumericField @bind-Value="context.Quantity" 
+                                     Min="0.0" 
+                                     Step="1.0" 
+                                     Variant="Variant.Outlined" 
+                                     Margin="Margin.Dense" />
+                </MudTd>
+                <MudTd DataLabel="Action" Style="text-align:center;">
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => RemoveRow(context))" />
+                </MudTd>
+            </RowTemplate>
+            <FooterContent>
+                <MudTd colspan="4">
+                    <MudButton StartIcon="@Icons.Material.Filled.Add" Color="Color.Primary" OnClick="AddRow" Size="Size.Small">Add Batch</MudButton>
+                </MudTd>
+            </FooterContent>
+        </MudTable>
+
+        <MudText Typo="Typo.body2" Class="mt-3" Color="@(GetTotalAllocated() == (Item?.Qty ?? 0) ? Color.Success : Color.Error)">
+            Total Allocated: <b>@GetTotalAllocated().ToString("N2")</b> / @Item?.Qty.ToString("N2")
+        </MudText>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Save" Disabled="_saving">
+            @if (_saving)
+            {
+                <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
+                <MudText Class="ms-2">Processing...</MudText>
+            }
+            else
+            {
+                <MudText>Dispatch Stock</MudText>
+            }
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter] public CustomerOrderItemDto Item { get; set; } = default!;
+    [Parameter] public IReadOnlyList<ItemStockByBatchForBOMDto> AvailableBatches { get; set; } = default!;
+    [Parameter] public long OrderID { get; set; }
+    [Parameter] public AccountApiClient ApiClient { get; set; } = default!;
+
+    private List<FulfillBatchRow> _rows = new();
+    private bool _saving;
+
+    protected override void OnInitialized()
+    {
+        AddRow();
+    }
+
+    private void AddRow()
+    {
+        _rows.Add(new FulfillBatchRow { BatchId = 0, Quantity = 0.0, Description = "Order Fulfillment" });
+    }
+
+    private void RemoveRow(FulfillBatchRow row)
+    {
+        _rows.Remove(row);
+        if (_rows.Count == 0) AddRow();
+    }
+
+    private double GetTotalAllocated() => _rows.Sum(r => r.Quantity);
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task Save()
+    {
+        var totalAllocated = GetTotalAllocated();
+        if (totalAllocated != Item.Qty)
+        {
+            Snackbar.Add($"Total allocated quantity ({totalAllocated}) must equal required quantity ({Item.Qty}).", Severity.Warning);
+            return;
+        }
+
+        foreach (var row in _rows)
+        {
+            if (row.BatchId <= 0)
+            {
+                Snackbar.Add("Please select a batch for all rows.", Severity.Error);
+                return;
+            }
+            if (row.Quantity <= 0)
+            {
+                Snackbar.Add("Please enter a valid quantity greater than 0 for all rows.", Severity.Error);
+                return;
+            }
+
+            var batch = AvailableBatches.FirstOrDefault(b => b.ItemStockByBatchID == row.BatchId);
+            if (batch == null) continue;
+
+            // Check if batch is over-allocated in our own rows
+            var totalForThisBatch = _rows.Where(r => r.BatchId == row.BatchId).Sum(r => r.Quantity);
+            if (totalForThisBatch > batch.FinalQuantityLeft)
+            {
+                Snackbar.Add($"Batch {batch.BatchNo} only has {batch.FinalQuantityLeft} available, but you allocated {totalForThisBatch}.", Severity.Error);
+                return;
+            }
+        }
+
+        _saving = true;
+        try
+        {
+            foreach (var r in _rows)
+            {
+                var dto = new ItemStockUsedForBOMDto
+                {
+                    ItemStockUsedID = 0,
+                    ItemStockByBatchID = r.BatchId,
+                    OrderCustomerID = OrderID,
+                    OrderCustomerDetailsID = Item.OrderItemId,
+                    Quantity = r.Quantity,
+                    UsedFor = 1, // Production / Fulfillment
+                    Description = r.Description,
+                    CreatedBy = "System" // Or get from auth state
+                };
+
+                await ApiClient.SaveItemStockUsedForBOMAsync(dto);
+            }
+
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error fulfilling order: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    private class FulfillBatchRow
+    {
+        public long BatchId { get; set; }
+        public double Quantity { get; set; }
+        public string Description { get; set; } = string.Empty;
+    }
+}

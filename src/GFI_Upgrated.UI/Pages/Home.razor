@@ -1,0 +1,12 @@
+@page "/"
+@inject AppSessionState SessionState
+@inject NavigationManager Navigation
+
+<PageTitle>Home</PageTitle>
+
+@code {
+    protected override void OnInitialized()
+    {
+        Navigation.NavigateTo(SessionState.IsLoggedIn ? "/admin" : "/login");
+    }
+}

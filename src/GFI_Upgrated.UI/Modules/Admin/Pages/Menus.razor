@@ -1,0 +1,270 @@
+@page "/admin/menus"
+@page "/admin/menu"
+@inject AppSessionState SessionState
+@inject NavigationManager Navigation
+@inject AdminSecurityApiClient ApiClient
+@inject ISnackbar Snackbar
+@inject IJSRuntime JS
+
+<PageTitle>Menus</PageTitle>
+
+<MudGrid>
+    <MudItem xs="12" md="8">
+        <MudPaper Class="pa-4">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+                <MudText Typo="Typo.h5">Menus</MudText>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="NewMenu">New Menu</MudButton>
+            </MudStack>
+            <MudTable Items="_menus.OrderBy(m => m.SequenceNo)" Dense="true" Hover="true" Class="mt-4" GroupBy="@_groupDefinition">
+                <HeaderContent>
+                    <MudTh>Heading</MudTh>
+                    <MudTh>Path</MudTh>
+                    <MudTh>Module</MudTh>
+                    <MudTh>Show In Menu</MudTh>
+                    <MudTh>Sequence</MudTh>
+                    <MudTh Style="width:150px;"></MudTh>
+                </HeaderContent>
+                <GroupHeaderTemplate>
+                    <MudTh Class="mud-theme-primary" colspan="6">
+                        @{
+                            var parentId = (long)(context.Key ?? 0L);
+                            var parentMenu = _menus.FirstOrDefault(m => m.LinkId == parentId);
+                            var parentName = parentMenu?.PageHeading ?? (parentId == 0 ? "Root Menus" : $"Parent ID: {parentId}");
+                        }
+                        <strong>@parentName</strong>
+                    </MudTh>
+                </GroupHeaderTemplate>
+                <RowTemplate>
+                    <MudTd DataLabel="Heading">@context.PageHeading</MudTd>
+                    <MudTd DataLabel="Path">@context.PagePath</MudTd>
+                    <MudTd DataLabel="Module">@context.ModuleId</MudTd>
+                    <MudTd DataLabel="Show In Menu">
+                        <MudCheckBox T="bool" Value="@context.ShowInMenu" ValueChanged="@((bool b) => ToggleShowInMenuAsync(context, b))" Color="Color.Primary" Dense="true" />
+                    </MudTd>
+                    <MudTd DataLabel="Sequence">
+                        <MudChip T="string" Size="Size.Small" Color="Color.Info">@context.SequenceNo</MudChip>
+                    </MudTd>
+                    <MudTd Style="text-align:right">
+                        <MudTooltip Text="Move Up">
+                            <MudIconButton Icon="@Icons.Material.Filled.ArrowUpward" Size="Size.Small" OnClick="@(() => MoveUpAsync(context))" />
+                        </MudTooltip>
+                        <MudTooltip Text="Move Down">
+                            <MudIconButton Icon="@Icons.Material.Filled.ArrowDownward" Size="Size.Small" OnClick="@(() => MoveDownAsync(context))" />
+                        </MudTooltip>
+                        <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="@(() => LoadMenuAsync(context.LinkId))">Edit</MudButton>
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+        </MudPaper>
+    </MudItem>
+
+    <MudItem xs="12" md="4">
+        <MudPaper Class="pa-4">
+            <MudText Typo="Typo.h5" Class="mb-4">Menu Details</MudText>
+            <MudNumericField @bind-Value="_editor.ModuleId" Label="Module ID" Variant="Variant.Outlined" Class="mb-3" />
+            <MudTextField @bind-Value="_editor.PageHeading" Label="Page heading" Variant="Variant.Outlined" Class="mb-3" />
+            <MudTextField @bind-Value="_editor.PagePath" Label="Page path" Variant="Variant.Outlined" Class="mb-3" />
+            <MudTextField @bind-Value="_editor.ActualName" Label="Actual name" Variant="Variant.Outlined" Class="mb-3" />
+            <MudNumericField @bind-Value="_editor.ParentId" Label="Parent ID" Variant="Variant.Outlined" Class="mb-3" />
+            <MudNumericField @bind-Value="_editor.LevelNo" Label="Level" Variant="Variant.Outlined" Class="mb-3" />
+            <MudNumericField @bind-Value="_editor.SequenceNo" Label="Sequence" Variant="Variant.Outlined" Class="mb-3" />
+            <MudCheckBox T="bool" @bind-Value="_editor.IsView" Label="Is View" />
+            <MudCheckBox T="bool" @bind-Value="_editor.ShowInMenu" Label="Show In Menu" />
+            <MudCheckBox T="bool" @bind-Value="_editor.IsDashboard" Label="Is Dashboard" />
+            <MudCheckBox T="bool" @bind-Value="_editor.IsApp" Label="Is App" />
+            <MudStack Row="true" Spacing="2" Class="mt-4">
+                <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SaveAsync" Disabled="_busy">Save</MudButton>
+                <MudButton Variant="Variant.Outlined" OnClick="NewMenu" Disabled="_busy">Reset</MudButton>
+            </MudStack>
+        </MudPaper>
+    </MudItem>
+</MudGrid>
+
+@code {
+    private List<MenuDto> _menus = new();
+    private SaveMenuRequest _editor = new();
+    private bool _busy;
+    
+    private TableGroupDefinition<MenuDto> _groupDefinition = new()
+    {
+        GroupName = "Parent",
+        Indentation = false,
+        Expandable = true,
+        IsInitiallyExpanded = true,
+        Selector = (m) => m.ParentId
+    };
+
+    protected override void OnInitialized()
+    {
+        if (!SessionState.IsLoggedIn)
+        {
+            Navigation.NavigateTo("/login");
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _menus = (await ApiClient.GetMenusAsync()).ToList();
+    }
+
+    private async Task SaveAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_editor.PageHeading))
+        {
+            Snackbar.Add("Page heading is required.", Severity.Warning);
+            return;
+        }
+
+        _busy = true;
+        try
+        {
+            _editor.CreatedBy = "System";
+            _editor.UpdatedBy = "System";
+            var result = await ApiClient.SaveMenuAsync(_editor);
+            if (result == -2)
+            {
+                Snackbar.Add($"Failed to save: Page heading '{_editor.PageHeading}' must match a registered database label starting with underscore (e.g. _PreProcessedItems or _PreProcessing).", Severity.Error);
+                return;
+            }
+            else if (result == -1)
+            {
+                Snackbar.Add("Failed to save: A menu item with this heading already exists in this location.", Severity.Error);
+                return;
+            }
+            else if (result < 0)
+            {
+                Snackbar.Add($"Failed to save: Stored procedure returned error code {result}.", Severity.Error);
+                return;
+            }
+
+            Snackbar.Add("Menu saved successfully.", Severity.Success);
+            await RefreshSessionAsync();
+            await LoadAsync();
+            NewMenu();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error saving menu: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private void NewMenu()
+    {
+        _editor = new SaveMenuRequest
+        {
+            IsView = true,
+            ShowInMenu = true
+        };
+    }
+
+    private async Task LoadMenuAsync(long linkId)
+    {
+        var selected = await ApiClient.GetMenuByIdAsync(linkId);
+        if (selected is null) return;
+        _editor = MapToRequest(selected);
+    }
+
+    private async Task MoveUpAsync(MenuDto current)
+    {
+        if (_busy) return;
+        var group = _menus.Where(m => m.ParentId == current.ParentId).OrderBy(m => m.SequenceNo).ToList();
+        var index = group.FindIndex(m => m.LinkId == current.LinkId);
+        if (index > 0)
+        {
+            var previous = group[index - 1];
+            await SwapSequenceAsync(current, previous);
+        }
+    }
+
+    private async Task MoveDownAsync(MenuDto current)
+    {
+        if (_busy) return;
+        var group = _menus.Where(m => m.ParentId == current.ParentId).OrderBy(m => m.SequenceNo).ToList();
+        var index = group.FindIndex(m => m.LinkId == current.LinkId);
+        if (index < group.Count - 1 && index >= 0)
+        {
+            var next = group[index + 1];
+            await SwapSequenceAsync(current, next);
+        }
+    }
+
+    private async Task ToggleShowInMenuAsync(MenuDto current, bool newValue)
+    {
+        if (_busy) return;
+        _busy = true;
+        try
+        {
+            current.ShowInMenu = newValue;
+            await ApiClient.SaveMenuAsync(MapToRequest(current));
+            await RefreshSessionAsync();
+            await LoadAsync();
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task SwapSequenceAsync(MenuDto menu1, MenuDto menu2)
+    {
+        _busy = true;
+        try
+        {
+            var tempSeq = menu1.SequenceNo;
+            menu1.SequenceNo = menu2.SequenceNo;
+            menu2.SequenceNo = tempSeq;
+
+            await ApiClient.SaveMenuAsync(MapToRequest(menu1));
+            await ApiClient.SaveMenuAsync(MapToRequest(menu2));
+            
+            await RefreshSessionAsync();
+            await LoadAsync();
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private SaveMenuRequest MapToRequest(MenuDto selected)
+    {
+        return new SaveMenuRequest
+        {
+            LinkId = selected.LinkId,
+            ModuleId = selected.ModuleId,
+            PageHeading = selected.PageHeading,
+            ParentId = selected.ParentId,
+            PagePath = selected.PagePath,
+            ActualName = selected.ActualName,
+            IsView = selected.IsView,
+            LevelNo = selected.LevelNo,
+            SequenceNo = selected.SequenceNo,
+            IsDashboard = selected.IsDashboard,
+            ShowInMenu = selected.ShowInMenu,
+            IsApp = selected.IsApp,
+            CreatedBy = "System",
+            UpdatedBy = "System"
+        };
+    }
+
+    private async Task RefreshSessionAsync()
+    {
+        if (SessionState.CurrentUser != null)
+        {
+            var refreshed = await ApiClient.RefreshSessionAsync(SessionState.CurrentUser.LoginId, SessionState.CurrentUser.RoleId);
+            if (refreshed != null)
+            {
+                await SessionState.UpdateUserAsync(JS, refreshed);
+            }
+        }
+    }
+}

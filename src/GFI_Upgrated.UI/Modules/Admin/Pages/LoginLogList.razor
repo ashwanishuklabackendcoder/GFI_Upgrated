@@ -1,0 +1,122 @@
+@page "/admin/loginslog"
+@using GFI_Upgrated.SharedDto.AdminSecurity
+@using GFI_Upgrated.SharedDto.Common
+@using GFI_Upgrated.UI.Services
+@using GFI_Upgrated.UI.State
+@inject AdminSecurityApiClient ApiClient
+@inject ISnackbar Snackbar
+@inject NavigationManager Navigation
+@inject AppSessionState SessionState
+
+<PageTitle>Login Logs</PageTitle>
+
+<MudPaper Class="pa-4 mb-4">
+    <MudText Typo="Typo.h5" Class="mb-2">Login Logs</MudText>
+    <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">Monitor and track user session login and logout history.</MudText>
+    
+    <MudGrid>
+        <MudItem xs="12" md="6">
+            <MudTextField @bind-Value="_searchText" Label="Search IP, OS, Browser, Login or Display Name" Variant="Variant.Outlined" Dense="true" Clearable="true" Placeholder="e.g. 192.168.1.1, Windows, Chrome, admin" />
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudDatePicker Label="From Date" @bind-Date="_fromDate" Variant="Variant.Outlined" Dense="true" Clearable="true" />
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <MudDatePicker Label="To Date" @bind-Date="_toDate" Variant="Variant.Outlined" Dense="true" Clearable="true" />
+        </MudItem>
+        <MudItem xs="12" Class="d-flex justify-end gap-2">
+            <MudButton Variant="Variant.Outlined" OnClick="OnClearFilters" StartIcon="@Icons.Material.Filled.Clear">Clear</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="OnSearch" StartIcon="@Icons.Material.Filled.Search">Search</MudButton>
+        </MudItem>
+    </MudGrid>
+</MudPaper>
+
+<MudPaper Class="pa-4">
+    <MudTable RowsPerPage="25" T="LoginLogDto" @ref="_table" ServerData="LoadServerDataAsync" Hover="true" Dense="true" Striped="true" Bordered="true" Loading="_loading">
+        <HeaderContent>
+            <MudTh><MudTableSortLabel SortLabel="Z_UsersLoginsLog.LoginLogID" T="LoginLogDto" InitialDirection="SortDirection.Descending">Log ID</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel SortLabel="MasterName" T="LoginLogDto">User Name</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel SortLabel="LoginName" T="LoginLogDto">Login Name</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel SortLabel="IpAddress" T="LoginLogDto">IP Address</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel SortLabel="BrowserName" T="LoginLogDto">Browser</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel SortLabel="OperatingSystem" T="LoginLogDto">OS</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel SortLabel="ComputerName" T="LoginLogDto">Computer Name</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel SortLabel="LoginDateTime" T="LoginLogDto">Login At</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel SortLabel="LogoutDateTime" T="LoginLogDto">Logout At</MudTableSortLabel></MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Log ID">@context.LoginLogID</MudTd>
+            <MudTd DataLabel="User Name">@context.MasterName</MudTd>
+            <MudTd DataLabel="Login Name">@context.LoginName</MudTd>
+            <MudTd DataLabel="IP Address">@context.IpAddress</MudTd>
+            <MudTd DataLabel="Browser">@context.BrowserName</MudTd>
+            <MudTd DataLabel="OS">@context.OperatingSystem</MudTd>
+            <MudTd DataLabel="Computer Name">@context.ComputerName</MudTd>
+            <MudTd DataLabel="Login At">@context.LoginDateTime?.ToString("dd/MM/yyyy HH:mm:ss")</MudTd>
+            <MudTd DataLabel="Logout At">@context.LogoutDateTime?.ToString("dd/MM/yyyy HH:mm:ss")</MudTd>
+        </RowTemplate>
+        <PagerContent>
+            <MudTablePager />
+        </PagerContent>
+    </MudTable>
+</MudPaper>
+
+@code {
+    private MudTable<LoginLogDto>? _table;
+    private bool _loading;
+    private string? _searchText;
+    private DateTime? _fromDate;
+    private DateTime? _toDate;
+
+    protected override void OnInitialized()
+    {
+        if (!SessionState.IsLoggedIn)
+        {
+            Navigation.NavigateTo("/login");
+        }
+    }
+
+    private async Task<TableData<LoginLogDto>> LoadServerDataAsync(TableState state, CancellationToken cancellationToken)
+    {
+        _loading = true;
+        try
+        {
+            var request = new PagedRequest
+            {
+                CurrentPage = state.Page + 1,
+                RecordPerPage = state.PageSize,
+                SortColumn = state.SortLabel ?? "Z_UsersLoginsLog.LoginLogID",
+                SortType = state.SortDirection == SortDirection.Ascending ? "ASC" : "DESC"
+            };
+
+            var result = await ApiClient.GetLoginLogsAsync(_searchText, null, _fromDate, _toDate, request, cancellationToken);
+            return new TableData<LoginLogDto>
+            {
+                TotalItems = result.TotalRecord,
+                Items = result.Items
+            };
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+            return new TableData<LoginLogDto> { Items = Array.Empty<LoginLogDto>(), TotalItems = 0 };
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private void OnSearch()
+    {
+        _table?.ReloadServerData();
+    }
+
+    private void OnClearFilters()
+    {
+        _searchText = null;
+        _fromDate = null;
+        _toDate = null;
+        _table?.ReloadServerData();
+    }
+}

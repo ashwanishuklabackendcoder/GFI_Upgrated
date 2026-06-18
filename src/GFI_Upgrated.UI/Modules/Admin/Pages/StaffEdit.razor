@@ -1,0 +1,195 @@
+@page "/admin/staff/new"
+@page "/admin/staff/edit/{StaffId:long}"
+@inject AppSessionState SessionState
+@inject NavigationManager Navigation
+@inject AdminSecurityApiClient ApiClient
+
+<PageTitle>@_title</PageTitle>
+
+<MudPaper Class="pa-4">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+        <MudStack Spacing="0">
+            <MudText Typo="Typo.h5">@_title</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">Add or edit staff details using the legacy field set.</MudText>
+        </MudStack>
+        <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.ArrowBack" OnClick="Cancel">Back to List</MudButton>
+    </MudStack>
+
+    <EditForm Model="_editor" OnValidSubmit="SaveAsync">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+
+        <MudGrid>
+            <MudItem xs="12" md="4">
+                <MudSelect T="string" Label="Salutation" Variant="Variant.Outlined" @bind-Value="_editor.StaffSalutation">
+                    <MudSelectItem T="string" Value="@string.Empty">Select Item</MudSelectItem>
+                    @foreach (var item in _salutations)
+                    {
+                        <MudSelectItem T="string" Value="@item.Value.ToString()">@item.Text</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" md="4">
+                <MudTextField @bind-Value="_editor.StaffFirstName" Label="First Name" Variant="Variant.Outlined" />
+            </MudItem>
+            <MudItem xs="12" md="4">
+                <MudTextField @bind-Value="_editor.StaffLastName" Label="Last Name" Variant="Variant.Outlined" />
+            </MudItem>
+
+            <MudItem xs="12" md="4">
+                <MudTextField @bind-Value="_editor.StaffNumber" Label="Staff Number" Variant="Variant.Outlined" />
+            </MudItem>
+            <MudItem xs="12" md="4">
+                <MudTextField @bind-Value="_editor.NIN" Label="NIN" Variant="Variant.Outlined" />
+            </MudItem>
+            <MudItem xs="12" md="4">
+                <MudDatePicker @bind-Date="_editor.DOB" Label="D.O.B" Variant="Variant.Outlined" DateFormat="dd/MM/yyyy" />
+            </MudItem>
+
+            <MudItem xs="12" md="4">
+                <MudTextField @bind-Value="_editor.MobileNo" Label="Mobile No." Variant="Variant.Outlined" />
+            </MudItem>
+            <MudItem xs="12" md="4">
+                <MudTextField @bind-Value="_editor.EmailIDPersonal" Label="Email Personal" Variant="Variant.Outlined" />
+            </MudItem>
+            <MudItem xs="12" md="4">
+                <MudTextField @bind-Value="_editor.EmailIDOfficial" Label="Email Official" Variant="Variant.Outlined" />
+            </MudItem>
+
+            <MudItem xs="12" md="4">
+                <MudSelect T="long" Label="Gender" Variant="Variant.Outlined" @bind-Value="_editor.Gender">
+                    <MudSelectItem T="long" Value="@((long)0)">Select</MudSelectItem>
+                    @foreach (var item in _genders)
+                    {
+                        <MudSelectItem T="long" Value="@item.Value">@item.Text</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" md="4">
+                <label class="form-label">Photo</label>
+                <InputFile OnChange="OnPhotoChanged" class="form-control" />
+                @if (!string.IsNullOrWhiteSpace(_selectedPhotoName))
+                {
+                    <MudText Typo="Typo.caption" Class="mt-1">@_selectedPhotoName</MudText>
+                }
+            </MudItem>
+            <MudItem xs="12" md="4">
+                <MudNumericField T="int" @bind-Value="_editor.Status" Label="Status" Variant="Variant.Outlined" />
+            </MudItem>
+
+            <MudItem xs="12" Class="pt-2">
+                <MudCheckBox T="bool" @bind-Value="_editor.HasLogin" Label="Has Login" />
+            </MudItem>
+
+            <MudItem xs="12" Class="pt-2">
+                <MudStack Row="true" Spacing="2">
+                    <MudButton ButtonType="ButtonType.Submit" Color="Color.Primary" Variant="Variant.Filled" Disabled="_busy">Submit</MudButton>
+                    <MudButton Variant="Variant.Outlined" OnClick="Cancel" Disabled="_busy">Cancel</MudButton>
+                </MudStack>
+            </MudItem>
+        </MudGrid>
+    </EditForm>
+
+    @if (!string.IsNullOrWhiteSpace(_message))
+    {
+        <MudAlert Severity="Severity.Info" Class="mt-4">@_message</MudAlert>
+    }
+</MudPaper>
+
+@code {
+    [Parameter]
+    public long StaffId { get; set; }
+
+    private readonly SaveStaffRequest _editor = new()
+    {
+        Status = 1
+    };
+    private IReadOnlyList<LookupItemDto> _salutations = Array.Empty<LookupItemDto>();
+    private IReadOnlyList<LookupItemDto> _genders = Array.Empty<LookupItemDto>();
+    private bool _busy;
+    private string? _message;
+    private string? _selectedPhotoName;
+    private string _title = "Add Staff";
+
+    protected override void OnInitialized()
+    {
+        if (!SessionState.IsLoggedIn)
+        {
+            Navigation.NavigateTo("/login");
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        _salutations = await ApiClient.GetMasterDropdownAsync(1);
+        _genders = await ApiClient.GetMasterDropdownAsync(2);
+
+        if (StaffId > 0)
+        {
+            _title = "Edit Staff";
+            var selected = await ApiClient.GetStaffByIdAsync(StaffId);
+            if (selected is not null)
+            {
+                _editor.StaffId = selected.StaffId;
+                _editor.Status = selected.Status;
+                _editor.StaffSalutation = selected.StaffSalutation;
+                _editor.StaffFirstName = selected.StaffFirstName;
+                _editor.StaffLastName = selected.StaffLastName;
+                _editor.StaffNumber = selected.StaffNumber;
+                _editor.NIN = selected.NIN;
+                _editor.DOB = selected.DOB;
+                _editor.Gender = selected.Gender;
+                _editor.MobileNo = selected.MobileNo;
+                _editor.EmailIDPersonal = selected.EmailIDPersonal;
+                _editor.EmailIDOfficial = selected.EmailIDOfficial;
+                _editor.Photo = selected.Photo;
+                _editor.HasLogin = selected.HasLogin;
+                _selectedPhotoName = selected.Photo;
+            }
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        _busy = true;
+        _message = null;
+        try
+        {
+            _editor.CreatedBy = SessionState.CurrentUser?.LoginName ?? "System";
+            _editor.UpdatedBy = SessionState.CurrentUser?.LoginName ?? "System";
+            if (!string.IsNullOrWhiteSpace(_selectedPhotoName))
+            {
+                _editor.Photo = _selectedPhotoName;
+            }
+
+            var id = await ApiClient.SaveStaffAsync(_editor);
+            if (id > 0)
+            {
+                Navigation.NavigateTo("/admin/staff");
+                return;
+            }
+
+            _message = "Staff save failed.";
+        }
+        catch (Exception ex)
+        {
+            _message = ex.Message;
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private void Cancel()
+    {
+        Navigation.NavigateTo("/admin/staff");
+    }
+
+    private void OnPhotoChanged(InputFileChangeEventArgs args)
+    {
+        var file = args.File;
+        _selectedPhotoName = file.Name;
+        _editor.Photo = file.Name;
+    }
+}

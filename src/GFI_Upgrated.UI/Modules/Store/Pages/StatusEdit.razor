@@ -1,0 +1,107 @@
+@page "/admin/status/new"
+@page "/admin/status/edit/{Id:long}"
+@using GFI_Upgrated.SharedDto.Store
+@using GFI_Upgrated.UI.Services
+@using GFI_Upgrated.UI.State
+@inject StoreApiClient ApiClient
+@inject ISnackbar Snackbar
+@inject NavigationManager NavigationManager
+@inject AppSessionState SessionState
+
+<PageTitle>@(_isEdit ? "Edit Status" : "Add New Status")</PageTitle>
+
+<MudPaper Class="pa-4">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+        <MudStack Spacing="0">
+            <MudText Typo="Typo.h5">@(_isEdit ? "Edit Status" : "Add New Status")</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">Enter status details below.</MudText>
+        </MudStack>
+        <MudIconButton Icon="@Icons.Material.Filled.Close" OnClick="OnCancel" />
+    </MudStack>
+
+    <EditForm Model="_editor" OnValidSubmit="SaveAsync">
+        <DataAnnotationsValidator />
+        <MudGrid>
+            <MudItem xs="12" md="6">
+                <MudTextField @bind-Value="_editor.StatusName" Label="Status Name" Variant="Variant.Outlined" For="@(() => _editor.StatusName)" />
+            </MudItem>
+            
+            <MudItem xs="12" md="6">
+                <MudSelect T="int" Label="Status Of" @bind-Value="_editor.StatusOf" Variant="Variant.Outlined">
+                    <MudSelectItem Value="1">Item</MudSelectItem>
+                    <MudSelectItem Value="2">Order</MudSelectItem>
+                    <MudSelectItem Value="3">Production</MudSelectItem>
+                    <MudSelectItem Value="0">General</MudSelectItem>
+                </MudSelect>
+            </MudItem>
+
+            <MudItem xs="12" md="4">
+                <MudCheckBox @bind-Value="_editor.IsActive" Label="Active" Color="Color.Success" />
+            </MudItem>
+
+            <MudItem xs="12" Class="pt-4">
+                <MudStack Row="true" Spacing="2">
+                    <MudButton ButtonType="ButtonType.Submit" Color="Color.Primary" Variant="Variant.Filled" Disabled="_processing">@(_processing ? "Saving..." : "Save Status")</MudButton>
+                    <MudButton Variant="Variant.Outlined" OnClick="OnCancel" Disabled="_processing">Cancel</MudButton>
+                </MudStack>
+            </MudItem>
+        </MudGrid>
+    </EditForm>
+</MudPaper>
+
+@code {
+    [Parameter] public long? Id { get; set; }
+    private bool _isEdit => Id.HasValue && Id.Value > 0;
+    private SaveStatusRequest _editor = new();
+    private bool _processing;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!SessionState.IsLoggedIn)
+        {
+            NavigationManager.NavigateTo("/login");
+            return;
+        }
+        
+        if (_isEdit)
+        {
+            var selected = await ApiClient.GetStatusByIdAsync(Id!.Value);
+            if (selected is not null)
+            {
+                _editor.StatusId = selected.StatusId;
+                _editor.StatusName = selected.StatusName;
+                _editor.StatusOf = selected.StatusOf;
+                _editor.IsActive = selected.IsActive;
+            }
+        }
+    }
+
+    private async Task SaveAsync()
+    {
+        _processing = true;
+        try
+        {
+            _editor.UpdatedBy = SessionState.CurrentUser?.LoginName ?? "System";
+            var result = await ApiClient.SaveStatusAsync(_editor);
+            if (result > 0)
+            {
+                Snackbar.Add("Status saved successfully.", Severity.Success);
+                NavigationManager.NavigateTo("/admin/status");
+            }
+            else
+            {
+                Snackbar.Add("Failed to save status.", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _processing = false;
+        }
+    }
+
+    private void OnCancel() => NavigationManager.NavigateTo("/admin/status");
+}

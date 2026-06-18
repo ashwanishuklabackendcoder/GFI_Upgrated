@@ -1,0 +1,165 @@
+@using GFI_Upgrated.SharedDto.Store
+@using GFI_Upgrated.UI.Services
+@using GFI_Upgrated.UI.State
+@inject StoreApiClient ApiClient
+@inject ISnackbar Snackbar
+@inject AppSessionState SessionState
+
+<MudDialog>
+    <DialogContent>
+        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-3">
+            <MudText Typo="Typo.h6">Record Ingredient Use</MudText>
+            <MudIconButton Icon="@Icons.Material.Filled.Close" OnClick="Close" />
+        </MudStack>
+
+        <MudForm @ref="_form">
+            <MudStack Spacing="4">
+                <MudSelect T="long" Label="Select Ingredient" Value="_newItem.ItemID" ValueChanged="OnIngredientChanged" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter" Required="true" RequiredError="Ingredient is required.">
+                    <MudSelectItem Value="0L">-- Select Ingredient --</MudSelectItem>
+                    @foreach (var req in BomItems)
+                    {
+                        <MudSelectItem Value="@req.ItemID">@req.ItemName</MudSelectItem>
+                    }
+                </MudSelect>
+
+                <MudSelect T="long" Label="Select Batch" @bind-Value="_newItem.ItemStockByBatchId" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter" Disabled="@(_newItem.ItemID == 0)" Required="true" RequiredError="Batch is required.">
+                    <MudSelectItem Value="0L">-- Select Batch --</MudSelectItem>
+                    @foreach (var batch in _availableBatches)
+                    {
+                        <MudSelectItem Value="@batch.ItemStockByBatchId">@batch.BatchNo (Avail: @batch.FinalQuantityLeft | Exp: @batch.ExpiryDate)</MudSelectItem>
+                    }
+                </MudSelect>
+
+                <MudNumericField @bind-Value="_newItem.Quantity" Label="Quantity Used" Variant="Variant.Outlined" Min="0.0001" Required="true" RequiredError="Quantity is required." />
+                
+                <MudTextField @bind-Value="_newItem.Description" Label="Description/Remarks" Variant="Variant.Outlined" Lines="2" />
+            </MudStack>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Variant="Variant.Outlined" OnClick="Close">Cancel</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SaveItemAsync" Disabled="_savingItem">@(_savingItem ? "Saving..." : (EditItem != null ? "Update" : "Add to Run"))</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter]
+    public long HeaderId { get; set; }
+
+    [Parameter]
+    public List<BomItemDetailDto> BomItems { get; set; } = new();
+
+    [Parameter]
+    public PreProcessingItemDto? EditItem { get; set; }
+
+    private MudForm? _form;
+    private SavePreProcessingItemRequest _newItem = new();
+    private List<AvailableBatchDto> _availableBatches = new();
+    private bool _savingItem;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _newItem.UsedForId = HeaderId;
+        _newItem.UsedFor = 2; // Pre-Processing
+
+        if (EditItem != null)
+        {
+            // Pre-fill for edit
+            _newItem.ItemStockUsedID = EditItem.ItemStockUsedID;
+            _newItem.ItemID = EditItem.ItemID;
+            _newItem.ItemStockByBatchId = EditItem.ItemStockByBatchId;
+            _newItem.Quantity = EditItem.Quantity;
+            _newItem.Description = EditItem.Description;
+
+            // Load available batches for the selected item
+            if (EditItem.ItemID > 0)
+            {
+                try
+                {
+                    var result = await ApiClient.GetAvailableBatchesAsync(EditItem.ItemID);
+                    _availableBatches = result.ToList();
+                    // Include the current batch if it's not in the available list (already fully consumed)
+                    if (!_availableBatches.Any(b => b.ItemStockByBatchId == EditItem.ItemStockByBatchId))
+                    {
+                        _availableBatches.Insert(0, new AvailableBatchDto
+                        {
+                            ItemStockByBatchId = EditItem.ItemStockByBatchId,
+                            BatchNo = EditItem.BatchNo,
+                            FinalQuantityLeft = EditItem.Quantity
+                        });
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Snackbar.Add($"Error loading batches: {ex.Message}", Severity.Error);
+                }
+            }
+        }
+    }
+
+    private async Task OnIngredientChanged(long itemId)
+    {
+        _newItem.ItemID = itemId;
+        _availableBatches.Clear();
+        _newItem.ItemStockByBatchId = 0;
+
+        if (itemId > 0)
+        {
+            try
+            {
+                var result = await ApiClient.GetAvailableBatchesAsync(itemId);
+                _availableBatches = result.ToList();
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Error loading batches: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+
+    private async Task SaveItemAsync()
+    {
+        if (_form is not null)
+        {
+            await _form.Validate();
+            if (!_form.IsValid) return;
+        }
+
+        if (_newItem.ItemStockByBatchId == 0) { Snackbar.Add("Please select a batch.", Severity.Warning); return; }
+        
+        var batch = _availableBatches.FirstOrDefault(b => b.ItemStockByBatchId == _newItem.ItemStockByBatchId);
+        if (batch != null && _newItem.Quantity > batch.FinalQuantityLeft)
+        {
+            Snackbar.Add($"Quantity exceeds available batch stock ({batch.FinalQuantityLeft}).", Severity.Warning);
+            return;
+        }
+
+        _savingItem = true;
+        try
+        {
+            _newItem.UpdatedBy = SessionState.CurrentUser?.LoginName ?? "System";
+            var result = await ApiClient.SavePreProcessingItemAsync(_newItem);
+            if (result > 0)
+            {
+                MudDialog.Close(DialogResult.Ok(true));
+            }
+            else
+            {
+                Snackbar.Add("Failed to save ingredient consumption.", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _savingItem = false;
+        }
+    }
+
+    private void Close() => MudDialog.Cancel();
+}

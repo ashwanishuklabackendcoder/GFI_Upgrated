@@ -1,0 +1,121 @@
+@inherits LayoutComponentBase
+@implements IDisposable
+@inject AppSessionState SessionState
+@inject IJSRuntime JSRuntime
+
+<div class="dashboard-shell">
+    <aside class="dashboard-sidebar">
+        <NavMenu />
+    </aside>
+
+    <div class="dashboard-content">
+        <header class="dashboard-topbar">
+            <div class="dashboard-topbar-actions">
+                <button type="button" class="icon-chip" aria-label="Theme" @onclick="ToggleTheme">
+                    <i class="@(SessionState.IsDarkMode ? "ti ti-moon" : "ti ti-sun-high")"></i>
+                </button>
+
+                <div class="user-chip">
+                    <div class="user-chip-avatar">
+                        @(GetInitials())
+                    </div>
+                    <div class="user-chip-text">
+                        <span class="user-chip-name">@(SessionState.CurrentUser?.FullName ?? "Guest")</span>
+                        <span class="user-chip-role">@(SessionState.CurrentUser?.RoleName ?? "User")</span>
+                    </div>
+                </div>
+
+                @if (SessionState.IsLoggedIn)
+                {
+                    <button type="button" class="icon-chip text-danger" aria-label="Logout" @onclick="Logout" style="margin-left: 8px;">
+                        <i class="ti ti-logout"></i>
+                    </button>
+                }
+            </div>
+        </header>
+
+        <main role="main" class="dashboard-main" id="divContentPlaceHolder">
+            @Body
+        </main>
+    </div>
+</div>
+
+@code {
+    [Inject] private NavigationManager Navigation { get; set; } = default!;
+
+    private string GetInitials()
+    {
+        var name = SessionState.CurrentUser?.FullName;
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            return "GI";
+        }
+
+        var parts = name.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (parts.Length == 1)
+        {
+            return parts[0].Length >= 2 ? parts[0][..2].ToUpperInvariant() : parts[0].ToUpperInvariant();
+        }
+
+        return string.Concat(parts[0][0], parts[1][0]).ToUpperInvariant();
+    }
+
+    private async Task ToggleTheme()
+    {
+        await SessionState.ToggleThemeAsync(JSRuntime);
+    }
+
+    private async Task Logout()
+    {
+        await SessionState.UpdateUserAsync(JSRuntime, null);
+        Navigation.NavigateTo("/login");
+    }
+
+    private void CheckAccess(string url)
+    {
+        if (SessionState.CurrentUser == null)
+        {
+            if (!url.Contains("/login", StringComparison.OrdinalIgnoreCase))
+            {
+                Navigation.NavigateTo("/login");
+            }
+            return;
+        }
+
+        var uri = new Uri(url);
+        var path = uri.AbsolutePath.ToLower();
+        
+        // Allow native unprotected routes to load
+        if (path == "/" || path.Equals("/admin", StringComparison.OrdinalIgnoreCase) || path.Contains("/login", StringComparison.OrdinalIgnoreCase)) 
+        {
+            return;
+        }
+
+        // Validate actual page permission against the hardmapped DB tree
+        if (!SessionState.HasPermission(path, "view"))
+        {
+            // Block access to unauthorized routes, fallback to access denied page
+            Navigation.NavigateTo("/access-denied");
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        SessionState.OnChange += StateHasChanged;
+        Navigation.LocationChanged += OnLocationChanged;
+        
+        // Check access immediately on first load
+        CheckAccess(Navigation.Uri);
+    }
+
+    private void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
+    {
+        CheckAccess(e.Location);
+    }
+
+    public void Dispose()
+    {
+        SessionState.OnChange -= StateHasChanged;
+        Navigation.LocationChanged -= OnLocationChanged;
+    }
+}

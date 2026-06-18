@@ -1,0 +1,175 @@
+@page "/store/bom"
+@page "/admin/bom"
+@page "/store/w_masterbomitemslist"
+@page "/admin/w_masterbomitemslist"
+@using GFI_Upgrated.SharedDto.Store
+@using GFI_Upgrated.UI.Services
+@using GFI_Upgrated.UI.State
+@inject StoreApiClient ApiClient
+@inject ISnackbar Snackbar
+@inject NavigationManager Navigation
+@inject AppSessionState SessionState
+@inject IJSRuntime JS
+
+<PageTitle>Bill of Materials (BOM)</PageTitle>
+
+<MudPaper Class="pa-4">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+        <MudText Typo="Typo.h5">Bill of Materials (BOM)</MudText>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OnAddNew" Disabled="!_canInsert">
+            Create New BOM
+        </MudButton>
+    </MudStack>
+
+    <MudGrid Class="mb-4">
+        <MudItem xs="12" md="6">
+            <MudTextField @bind-Value="_search" Placeholder="Search by BOM name or Product..." Variant="Variant.Outlined" Immediate="true" Clearable="true" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" OnClearButtonClick="OnSearch" />
+        </MudItem>
+        <MudItem xs="12" md="3">
+            <MudSelect T="int?" @bind-Value="_itemTypeId" Label="Product Type" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter" Clearable="true">
+                <MudSelectItem T="int?" Value="null">All Types</MudSelectItem>
+                <MudSelectItem T="int?" Value="1">Finished Products</MudSelectItem>
+                <MudSelectItem T="int?" Value="2">Semi-Finished</MudSelectItem>
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" md="3" Class="d-flex align-center">
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="OnSearch" FullWidth="true" Style="height: 56px;">Search</MudButton>
+        </MudItem>
+    </MudGrid>
+
+    <MudTable RowsPerPage="25" T="BomDto" @ref="_table" ServerData="LoadServerDataAsync" Hover="true" Dense="true" Striped="true" Bordered="true" Loading="_loading">
+        <HeaderContent>
+            <MudTh><MudTableSortLabel SortLabel="BomName" T="BomDto">BOM Name</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel SortLabel="ItemName" T="BomDto">Parent Product</MudTableSortLabel></MudTh>
+            <MudTh Style="text-align: right;">Yield Qty</MudTh>
+            <MudTh>Unit</MudTh>
+            <MudTh Style="text-align: right;">Extra Expenses</MudTh>
+            <MudTh Style="text-align: center;">Status</MudTh>
+            <MudTh Style="text-align: center; width: 120px;">Action</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="BOM Name">@context.BomName</MudTd>
+            <MudTd DataLabel="Parent">@context.ItemName</MudTd>
+            <MudTd DataLabel="Yield" Style="text-align: right;">@context.Quantity</MudTd>
+            <MudTd DataLabel="Unit">@context.UnitName</MudTd>
+            <MudTd DataLabel="Expenses" Style="text-align: right;">@context.ExtraExpensesPerPiece.ToString("N2")</MudTd>
+            <MudTd DataLabel="Status" Style="text-align: center;">
+                <MudChip T="string" Color="@(context.IsActive ? Color.Success : Color.Error)" Size="Size.Small">
+                    @(context.IsActive ? "Active" : "Inactive")
+                </MudChip>
+            </MudTd>
+            <MudTd DataLabel="Action" Style="text-align: center;">
+                <MudStack Row="true" Justify="Justify.Center" Spacing="1">
+                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Size="Size.Small" OnClick="@(() => OnEdit(context.BomId))" Disabled="!_canUpdate" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => OnDelete(context))" Disabled="!_canDelete" />
+                </MudStack>
+            </MudTd>
+        </RowTemplate>
+        <PagerContent>
+            <MudTablePager />
+        </PagerContent>
+        <NoRecordsContent>
+            <MudText Class="pa-4">No BOMs found matching your criteria.</MudText>
+        </NoRecordsContent>
+    </MudTable>
+</MudPaper>
+
+@code {
+    private MudTable<BomDto>? _table;
+    private string _search = "";
+    private int? _itemTypeId;
+    private bool _loading;
+    private bool _canInsert;
+    private bool _canUpdate;
+    private bool _canDelete;
+
+    protected override void OnInitialized()
+    {
+        if (!SessionState.IsLoggedIn)
+        {
+            Navigation.NavigateTo("/login");
+            return;
+        }
+
+        var path = "store/bom";
+        var perms = SessionState.GetPermissions(path);
+        
+        if (SessionState.IsAdmin)
+        {
+            _canInsert = _canUpdate = _canDelete = true;
+        }
+        else
+        {
+            _canInsert = perms.IsInsert;
+            _canUpdate = perms.IsUpdate;
+            _canDelete = perms.IsDelete;
+        }
+        
+        Console.WriteLine($"[RBAC] BOM Permissions: Path='{path}', IsAdmin={SessionState.IsAdmin}, Insert={_canInsert}, Update={_canUpdate}, Delete={_canDelete}");
+    }
+
+    private async Task<TableData<BomDto>> LoadServerDataAsync(TableState state, CancellationToken cancellationToken)
+    {
+        _loading = true;
+        try
+        {
+            var result = await ApiClient.GetBomsAsync(new BomListRequest
+            {
+                SearchTerm = _search,
+                ItemTypeId = _itemTypeId,
+                PageNumber = state.Page + 1,
+                PageSize = state.PageSize,
+                SortColumn = state.SortLabel,
+                SortType = state.SortDirection == SortDirection.Ascending ? "ASC" : "DESC"
+            }, cancellationToken);
+
+            return new TableData<BomDto>
+            {
+                TotalItems = result.TotalRecord,
+                Items = result.Items
+            };
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error loading BOMs: {ex.Message}", Severity.Error);
+            return new TableData<BomDto> { Items = Array.Empty<BomDto>(), TotalItems = 0 };
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task OnSearch()
+    {
+        if (_table != null) await _table.ReloadServerData();
+    }
+
+    private void OnAddNew() => Navigation.NavigateTo("/store/bom/new");
+
+    private void OnEdit(long id) => Navigation.NavigateTo($"/store/bom/edit/{id}");
+
+    private async Task OnDelete(BomDto item)
+    {
+        var confirmed = await JS.InvokeAsync<bool>("confirm", $"Are you sure you want to delete BOM '{item.BomName}'?");
+        if (!confirmed) return;
+
+        try
+        {
+            var success = await ApiClient.DeleteBomAsync(item.BomId, SessionState.CurrentUser?.LoginName ?? "System");
+            if (success)
+            {
+                Snackbar.Add("BOM deleted successfully.", Severity.Success);
+                await OnSearch();
+            }
+            else
+            {
+                Snackbar.Add("Cannot delete BOM because it is currently linked to production entries or other records.", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error deleting BOM: {ex.Message}", Severity.Error);
+        }
+    }
+}
