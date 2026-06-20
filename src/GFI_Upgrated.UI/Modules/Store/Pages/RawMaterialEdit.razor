@@ -22,6 +22,8 @@
         <MudTabPanel Text="General Info" Icon="@Icons.Material.Filled.Info">
             <EditForm Model="_model" OnValidSubmit="SaveGeneralInfo">
                 <DataAnnotationsValidator />
+                <MudStack Spacing="4">
+                <MudPaper Class="pa-4" Outlined="true" Elevation="0">
                 <MudGrid>
                     <MudItem xs="12" md="6">
                         <MudTextField @bind-Value="_model.ItemName" Label="Item Name" Required="true" Variant="Variant.Outlined" For="@(() => _model.ItemName)" />
@@ -93,10 +95,14 @@
                         <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Loading="_savingGeneral">Save General Info</MudButton>
                     </MudItem>
                 </MudGrid>
+                </MudPaper>
+                </MudStack>
             </EditForm>
         </MudTabPanel>
 
-        <MudTabPanel Text="Inventory Details" Icon="@Icons.Material.Filled.Inventory" Disabled="Id == 0">
+        <MudTabPanel Text="Item Details" Icon="@Icons.Material.Filled.Inventory" Disabled="Id == 0">
+            <MudStack Spacing="4">
+                <MudPaper Class="pa-4" Outlined="true" Elevation="0">
             <MudGrid>
                 <MudItem xs="12" md="4">
                     <MudNumericField @bind-Value="_details.CurrentQuantity" Label="Current Quantity" Variant="Variant.Outlined" Disabled="true" Min="0" />
@@ -123,16 +129,18 @@
                     <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveInventoryDetails" Loading="_savingDetails">Save Details</MudButton>
                 </MudItem>
             </MudGrid>
+            </MudPaper>
+            </MudStack>
         </MudTabPanel>
 
-        <MudTabPanel Text="Vendors" Icon="@Icons.Material.Filled.People" Disabled="Id == 0">
+        <MudTabPanel Text="Suppliers" Icon="@Icons.Material.Filled.People" Disabled="Id == 0">
             <MudStack Spacing="4">
                 <MudPaper Class="pa-4" Outlined="true" Elevation="0">
-                    <MudText Typo="Typo.subtitle1" Class="mb-2">Add/Edit Vendor Price</MudText>
+                    <MudText Typo="Typo.subtitle1" Class="mb-2">Add/Edit Suppliers Price</MudText>
                     <MudGrid>
                         <MudItem xs="12" md="4">
-                            <MudSelect T="int" @bind-Value="_vendorModel.VendorAccountId" Label="Vendor" Variant="Variant.Outlined" Required="true" AnchorOrigin="Origin.BottomCenter">
-                                <MudSelectItem Value="0">Select Vendor</MudSelectItem>
+                            <MudSelect T="int" @bind-Value="_vendorModel.VendorAccountId" Label="Supplier" Variant="Variant.Outlined" Required="true" AnchorOrigin="Origin.BottomCenter">
+                                <MudSelectItem Value="0">Select Supplier</MudSelectItem>
                                 @foreach (var acc in _accounts)
                                 {
                                     <MudSelectItem Value="acc.AccountId">@acc.AccountName</MudSelectItem>
@@ -175,7 +183,7 @@
 
                 <MudTable Items="_vendors" Hover="true" Dense="true" Striped="true" Bordered="true" Elevation="0">
                     <HeaderContent>
-                        <MudTh>Vendor Name</MudTh>
+                        <MudTh>Supplier Name</MudTh>
                         <MudTh>Price</MudTh>
                         <MudTh>Currency</MudTh>
                         <MudTh>Date Range</MudTh>
@@ -194,7 +202,7 @@
             </MudStack>
         </MudTabPanel>
 
-        <MudTabPanel Text="Stock Batches" Icon="@Icons.Material.Filled.Layers" Disabled="Id == 0">
+        <MudTabPanel Text="Opening Stock" Icon="@Icons.Material.Filled.Layers" Disabled="Id == 0">
             <MudStack Spacing="4">
                 <MudPaper Class="pa-4" Outlined="true" Elevation="0">
                     <MudGrid>
@@ -377,7 +385,7 @@
             if (Id == 0)
             {
                 Id = newItemId;
-                Snackbar.Add("Item created successfully. You can now add details, vendors and stock.", Severity.Success);
+                Snackbar.Add("Item created successfully. You can now add details, suppliers and stock.", Severity.Success);
                 Navigation.NavigateTo($"/store/rawmaterials/edit/{Id}");
             }
             else
@@ -425,7 +433,7 @@
     {
         if (_vendorModel.VendorAccountId == 0)
         {
-            Snackbar.Add("Please select a vendor.", Severity.Warning);
+            Snackbar.Add("Please select a supplier.", Severity.Warning);
             return;
         }
 
