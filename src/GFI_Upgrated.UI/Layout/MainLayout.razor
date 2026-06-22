@@ -3,13 +3,25 @@
 @inject AppSessionState SessionState
 @inject IJSRuntime JSRuntime
 
-<div class="dashboard-shell">
+<div class="dashboard-shell @(_sidebarCollapsed ? "sidebar-collapsed" : "") @(_sidebarMobileOpen ? "sidebar-mobile-open" : "")">
+    @if (_sidebarMobileOpen)
+    {
+        <div class="sidebar-overlay" @onclick="ToggleMobileSidebar"></div>
+    }
     <aside class="dashboard-sidebar">
         <NavMenu />
     </aside>
 
     <div class="dashboard-content">
         <header class="dashboard-topbar">
+            <!-- Mobile Toggle Button (Visible only on mobile screens) -->
+            <button type="button" class="icon-chip sidebar-toggle-btn d-lg-none" aria-label="Toggle Menu" @onclick="ToggleMobileSidebar">
+                <i class="ti ti-menu-2"></i>
+            </button>
+            <!-- Desktop Toggle Button (Visible only on desktop screens) -->
+            <button type="button" class="icon-chip sidebar-toggle-btn d-none d-lg-inline-flex" aria-label="Collapse Menu" @onclick="ToggleDesktopSidebar">
+                <i class="ti ti-menu-2"></i>
+            </button>
             <div class="dashboard-topbar-actions" style="margin-left: auto;">
                 <button type="button" class="icon-chip" aria-label="Theme" @onclick="ToggleTheme">
                     <i class="@(SessionState.IsDarkMode ? "ti ti-moon" : "ti ti-sun-high")"></i>
@@ -42,6 +54,26 @@
 
 @code {
     [Inject] private NavigationManager Navigation { get; set; } = default!;
+
+    private bool _sidebarCollapsed;
+    private bool _sidebarMobileOpen;
+
+    private void ToggleSidebar()
+    {
+        // On mobile viewports, toggle drawer visibility. On desktop viewports, toggle collapse state.
+        _sidebarCollapsed = !_sidebarCollapsed;
+        _sidebarMobileOpen = !_sidebarMobileOpen;
+    }
+
+    private void ToggleDesktopSidebar()
+    {
+        _sidebarCollapsed = !_sidebarCollapsed;
+    }
+
+    private void ToggleMobileSidebar()
+    {
+        _sidebarMobileOpen = !_sidebarMobileOpen;
+    }
 
     private string GetInitials()
     {
@@ -110,6 +142,7 @@
 
     private void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
     {
+        _sidebarMobileOpen = false;
         CheckAccess(e.Location);
     }
 
