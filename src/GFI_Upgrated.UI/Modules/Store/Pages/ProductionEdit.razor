@@ -62,7 +62,7 @@
 
             <!-- Kettle Details -->
             <MudItem xs="12" md="6">
-                <MudSelect T="string" Label="Kettles" MultiSelection="true" @bind-SelectedValues="_selectedKettles" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter">
+                <MudSelect T="string" Label="Kettles" MultiSelection="true" @bind-SelectedValues="_selectedKettles" MultiSelectionTextFunc="@(x => string.Join(", ", x.Select(idStr => _kettles.FirstOrDefault(k => k.KettleId.ToString() == idStr)?.KettleNumber ?? idStr)))" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter">
                     @foreach (var kettle in _kettles)
                     {
                         <MudSelectItem Value="@kettle.KettleId.ToString()">@kettle.KettleNumber</MudSelectItem>
@@ -114,7 +114,7 @@
 
             <!-- Employees Multi-Select -->
             <MudItem xs="12" md="6">
-                <MudSelect T="string" Label="Process Employees" MultiSelection="true" @bind-SelectedValues="_selectedEmployees" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter">
+                <MudSelect T="string" Label="Process Employees" MultiSelection="true" @bind-SelectedValues="_selectedEmployees" MultiSelectionTextFunc="@(x => string.Join(", ", x.Select(idStr => _staffList.FirstOrDefault(s => s.StaffId.ToString() == idStr)?.StaffName ?? idStr)))" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter">
                     @foreach (var staff in _staffList)
                     {
                         <MudSelectItem Value="@staff.StaffId.ToString()">@staff.StaffName</MudSelectItem>
