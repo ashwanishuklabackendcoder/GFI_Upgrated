@@ -36,3 +36,79 @@
 2026-06-22 10:42:03.901 +05:30 [INF] Request starting HTTP/2 GET https://localhost:7162/swagger/v1/swagger.json - null null
 2026-06-22 10:42:04.239 +05:30 [INF] HTTP GET /swagger/v1/swagger.json responded 200 in 326.4857 ms
 2026-06-22 10:42:04.245 +05:30 [INF] Request finished HTTP/2 GET https://localhost:7162/swagger/v1/swagger.json - 200 null application/json;charset=utf-8 344.091ms
+2026-06-22 10:51:03.610 +05:30 [INF] User profile is available. Using 'C:\Users\Hp\AppData\Local\ASP.NET\DataProtection-Keys' as key repository and Windows DPAPI to encrypt keys at rest.
+2026-06-22 10:51:04.454 +05:30 [INF] Now listening on: https://localhost:7162
+2026-06-22 10:51:04.478 +05:30 [INF] Now listening on: http://localhost:5122
+2026-06-22 10:51:04.745 +05:30 [INF] Application started. Press Ctrl+C to shut down.
+2026-06-22 10:51:04.790 +05:30 [INF] Hosting environment: Development
+2026-06-22 10:51:04.794 +05:30 [INF] Content root path: D:\GFI\GFI_Upgrated\src\GFI_Upgrated.ServiceApi
+2026-06-22 10:51:08.557 +05:30 [INF] Request starting HTTP/2 GET https://localhost:7162/swagger/index.html - null null
+2026-06-22 10:51:08.990 +05:30 [INF] HTTP GET /swagger/index.html responded 200 in 106.1941 ms
+2026-06-22 10:51:09.179 +05:30 [INF] Request finished HTTP/2 GET https://localhost:7162/swagger/index.html - 200 null text/html;charset=utf-8 636.5545ms
+2026-06-22 10:51:12.949 +05:30 [INF] Request starting HTTP/2 GET https://localhost:7162/_framework/aspnetcore-browser-refresh.js - null null
+2026-06-22 10:51:12.997 +05:30 [INF] Request starting HTTP/2 GET https://localhost:7162/swagger/index.js - null null
+2026-06-22 10:51:13.046 +05:30 [INF] Request starting HTTP/2 GET https://localhost:7162/_vs/browserLink - null null
+2026-06-22 10:51:13.175 +05:30 [INF] Request finished HTTP/2 GET https://localhost:7162/_framework/aspnetcore-browser-refresh.js - 200 16531 application/javascript; charset=utf-8 225.8237ms
+2026-06-22 10:51:13.180 +05:30 [INF] HTTP GET /swagger/index.js responded 200 in 3.3740 ms
+2026-06-22 10:51:13.681 +05:30 [INF] Request finished HTTP/2 GET https://localhost:7162/_vs/browserLink - 200 null text/javascript; charset=UTF-8 635.2395ms
+2026-06-22 10:51:13.717 +05:30 [INF] Request finished HTTP/2 GET https://localhost:7162/swagger/index.js - 200 null application/javascript;charset=utf-8 720.0846ms
+2026-06-22 10:51:13.786 +05:30 [INF] Request starting HTTP/2 GET https://localhost:7162/swagger/v1/swagger.json - null null
+2026-06-22 10:51:14.169 +05:30 [INF] HTTP GET /swagger/v1/swagger.json responded 200 in 340.8076 ms
+2026-06-22 10:51:14.214 +05:30 [INF] Request finished HTTP/2 GET https://localhost:7162/swagger/v1/swagger.json - 200 null application/json;charset=utf-8 429.8436ms
+2026-06-22 11:08:09.696 +05:30 [INF] User profile is available. Using 'C:\Users\Hp\AppData\Local\ASP.NET\DataProtection-Keys' as key repository and Windows DPAPI to encrypt keys at rest.
+2026-06-22 11:08:10.717 +05:30 [INF] Now listening on: https://localhost:7162
+2026-06-22 11:08:10.720 +05:30 [INF] Now listening on: http://localhost:5122
+2026-06-22 11:08:10.955 +05:30 [INF] Application started. Press Ctrl+C to shut down.
+2026-06-22 11:08:10.958 +05:30 [INF] Hosting environment: Development
+2026-06-22 11:08:10.959 +05:30 [INF] Content root path: D:\GFI\GFI_Upgrated\src\GFI_Upgrated.ServiceApi
+2026-06-22 11:08:15.850 +05:30 [INF] Request starting HTTP/2 GET https://localhost:7162/swagger/index.html - null null
+2026-06-22 11:08:16.660 +05:30 [INF] HTTP GET /swagger/index.html responded 200 in 201.1689 ms
+2026-06-22 11:08:16.959 +05:30 [INF] Request finished HTTP/2 GET https://localhost:7162/swagger/index.html - 200 null text/html;charset=utf-8 1122.412ms
+2026-06-22 11:08:20.074 +05:30 [INF] Request starting HTTP/2 GET https://localhost:7162/_framework/aspnetcore-browser-refresh.js - null null
+2026-06-22 11:08:20.076 +05:30 [INF] Request starting HTTP/2 GET https://localhost:7162/swagger/index.js - null null
+2026-06-22 11:08:20.113 +05:30 [INF] Request starting HTTP/2 GET https://localhost:7162/_vs/browserLink - null null
+2026-06-22 11:08:20.219 +05:30 [INF] HTTP GET /swagger/index.js responded 200 in 2.4652 ms
+2026-06-22 11:08:20.278 +05:30 [INF] Request finished HTTP/2 GET https://localhost:7162/swagger/index.js - 200 null application/javascript;charset=utf-8 202.126ms
+2026-06-22 11:08:20.269 +05:30 [INF] Request finished HTTP/2 GET https://localhost:7162/_framework/aspnetcore-browser-refresh.js - 200 16531 application/javascript; charset=utf-8 195.4321ms
+2026-06-22 11:08:20.362 +05:30 [INF] Request finished HTTP/2 GET https://localhost:7162/_vs/browserLink - 200 null text/javascript; charset=UTF-8 249.1411ms
+2026-06-22 11:08:20.491 +05:30 [INF] Request starting HTTP/2 GET https://localhost:7162/swagger/v1/swagger.json - null null
+2026-06-22 11:08:22.838 +05:30 [INF] HTTP GET /swagger/v1/swagger.json responded 200 in 358.0956 ms
+2026-06-22 11:08:22.874 +05:30 [INF] Request finished HTTP/2 GET https://localhost:7162/swagger/v1/swagger.json - 200 null application/json;charset=utf-8 2382.5388ms
+2026-06-22 11:11:46.885 +05:30 [INF] User profile is available. Using 'C:\Users\Hp\AppData\Local\ASP.NET\DataProtection-Keys' as key repository and Windows DPAPI to encrypt keys at rest.
+2026-06-22 11:11:47.542 +05:30 [INF] Now listening on: https://localhost:7162
+2026-06-22 11:11:47.568 +05:30 [INF] Now listening on: http://localhost:5122
+2026-06-22 11:11:48.388 +05:30 [INF] Application started. Press Ctrl+C to shut down.
+2026-06-22 11:11:48.621 +05:30 [INF] Hosting environment: Development
+2026-06-22 11:11:48.623 +05:30 [INF] Content root path: D:\GFI\GFI_Upgrated\src\GFI_Upgrated.ServiceApi
+2026-06-22 11:11:52.388 +05:30 [INF] Request starting HTTP/2 GET https://localhost:7162/swagger/index.html - null null
+2026-06-22 11:11:53.806 +05:30 [INF] HTTP GET /swagger/index.html responded 200 in 131.7890 ms
+2026-06-22 11:11:53.992 +05:30 [INF] Request starting HTTP/2 GET https://localhost:7162/swagger/index.js - null null
+2026-06-22 11:11:54.500 +05:30 [INF] Request starting HTTP/2 GET https://localhost:7162/_framework/aspnetcore-browser-refresh.js - null null
+2026-06-22 11:11:54.500 +05:30 [INF] Request starting HTTP/2 GET https://localhost:7162/_vs/browserLink - null null
+2026-06-22 11:11:54.528 +05:30 [INF] Request finished HTTP/2 GET https://localhost:7162/swagger/index.html - 200 null text/html;charset=utf-8 2155.4769ms
+2026-06-22 11:11:54.536 +05:30 [INF] HTTP GET /swagger/index.js responded 200 in 2.1353 ms
+2026-06-22 11:11:54.554 +05:30 [INF] Request finished HTTP/2 GET https://localhost:7162/_framework/aspnetcore-browser-refresh.js - 200 16531 application/javascript; charset=utf-8 89.5515ms
+2026-06-22 11:11:54.592 +05:30 [INF] Request finished HTTP/2 GET https://localhost:7162/swagger/index.js - 200 null application/javascript;charset=utf-8 600.2169ms
+2026-06-22 11:11:54.627 +05:30 [INF] Request finished HTTP/2 GET https://localhost:7162/_vs/browserLink - 200 null text/javascript; charset=UTF-8 127.7163ms
+2026-06-22 11:11:54.859 +05:30 [INF] Request starting HTTP/2 GET https://localhost:7162/swagger/v1/swagger.json - null null
+2026-06-22 11:11:55.302 +05:30 [INF] HTTP GET /swagger/v1/swagger.json responded 200 in 348.1529 ms
+2026-06-22 11:11:55.308 +05:30 [INF] Request finished HTTP/2 GET https://localhost:7162/swagger/v1/swagger.json - 200 null application/json;charset=utf-8 448.3064ms
+2026-06-22 11:16:28.109 +05:30 [INF] User profile is available. Using 'C:\Users\Hp\AppData\Local\ASP.NET\DataProtection-Keys' as key repository and Windows DPAPI to encrypt keys at rest.
+2026-06-22 11:16:28.766 +05:30 [INF] Now listening on: https://localhost:7162
+2026-06-22 11:16:28.773 +05:30 [INF] Now listening on: http://localhost:5122
+2026-06-22 11:16:29.036 +05:30 [INF] Application started. Press Ctrl+C to shut down.
+2026-06-22 11:16:29.042 +05:30 [INF] Hosting environment: Development
+2026-06-22 11:16:29.292 +05:30 [INF] Content root path: D:\GFI\GFI_Upgrated\src\GFI_Upgrated.ServiceApi
+2026-06-22 11:16:33.129 +05:30 [INF] Request starting HTTP/2 GET https://localhost:7162/swagger/index.html - null null
+2026-06-22 11:16:33.840 +05:30 [INF] HTTP GET /swagger/index.html responded 200 in 146.7979 ms
+2026-06-22 11:16:33.855 +05:30 [INF] Request finished HTTP/2 GET https://localhost:7162/swagger/index.html - 200 null text/html;charset=utf-8 737.7476ms
+2026-06-22 11:16:33.938 +05:30 [INF] Request starting HTTP/2 GET https://localhost:7162/_framework/aspnetcore-browser-refresh.js - null null
+2026-06-22 11:16:33.946 +05:30 [INF] Request starting HTTP/2 GET https://localhost:7162/swagger/index.js - null null
+2026-06-22 11:16:34.197 +05:30 [INF] Request finished HTTP/2 GET https://localhost:7162/_framework/aspnetcore-browser-refresh.js - 200 16531 application/javascript; charset=utf-8 258.8662ms
+2026-06-22 11:16:34.203 +05:30 [INF] HTTP GET /swagger/index.js responded 200 in 2.0661 ms
+2026-06-22 11:16:34.218 +05:30 [INF] Request finished HTTP/2 GET https://localhost:7162/swagger/index.js - 200 null application/javascript;charset=utf-8 271.5926ms
+2026-06-22 11:16:37.410 +05:30 [INF] Request starting HTTP/2 GET https://localhost:7162/_vs/browserLink - null null
+2026-06-22 11:16:37.707 +05:30 [INF] Request finished HTTP/2 GET https://localhost:7162/_vs/browserLink - 200 null text/javascript; charset=UTF-8 296.5921ms
+2026-06-22 11:16:37.819 +05:30 [INF] Request starting HTTP/2 GET https://localhost:7162/swagger/v1/swagger.json - null null
+2026-06-22 11:16:38.800 +05:30 [INF] HTTP GET /swagger/v1/swagger.json responded 200 in 208.9581 ms
+2026-06-22 11:16:38.808 +05:30 [INF] Request finished HTTP/2 GET https://localhost:7162/swagger/v1/swagger.json - 200 null application/json;charset=utf-8 988.8684ms
