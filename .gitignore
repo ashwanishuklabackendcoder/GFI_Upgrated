@@ -10,6 +10,7 @@
 bin/
 obj/
 appsettings.Development.json
+src/GFI_Upgrated.ServiceApi/logs/
 
 ## OS files
 [Db]b

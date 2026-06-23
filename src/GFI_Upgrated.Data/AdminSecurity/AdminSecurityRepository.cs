@@ -40,6 +40,15 @@ public interface IAdminSecurityRepository
     Task<DropDownValueDto?> GetDropDownValueByIdAsync(long id, CancellationToken cancellationToken = default);
     Task<int> SaveDropDownValueAsync(SaveDropDownValueRequest request, CancellationToken cancellationToken = default);
     Task<int> DeleteDropDownValueAsync(long id, string updatedBy, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<LanguageDto>> GetLanguagesAsync(CancellationToken cancellationToken = default);
+    Task<LanguageDto?> GetLanguageByIdAsync(long id, CancellationToken cancellationToken = default);
+    Task<int> SaveLanguageAsync(SaveLanguageRequest request, CancellationToken cancellationToken = default);
+    Task<PagedResult<LocalizedResourceDto>> GetLocalizedResourcesAsync(LocalizedResourceListRequest request, CancellationToken cancellationToken = default);
+    Task<int> SaveLocalizedResourceAsync(SaveLocalizedResourceRequest request, CancellationToken cancellationToken = default);
+    Task<int> SyncLocalizationDefaultsAsync(CancellationToken cancellationToken = default);
+    Task<UserLanguagePreferenceDto?> GetUserLanguagePreferenceAsync(long loginId, CancellationToken cancellationToken = default);
+    Task<int> SaveUserLanguagePreferenceAsync(SaveUserLanguagePreferenceRequest request, CancellationToken cancellationToken = default);
+    Task<LocalizedDictionaryDto> GetLocalizedDictionaryAsync(long languageId, CancellationToken cancellationToken = default);
     Task<LoginResultDto?> GetLoginResultAsync(long loginId, long roleId, CancellationToken cancellationToken = default);
     Task<int> UpsertPageAsync(MenuDto page, CancellationToken cancellationToken = default);
     Task<PagedResult<UserActivityLogDto>> GetUserActivityLogsAsync(string? userName, string? loginName, string? eventName, string? eventModule, PagedRequest request, CancellationToken cancellationToken = default);
@@ -158,6 +167,18 @@ public sealed class AdminSecurityRepository : IAdminSecurityRepository
             dashboardPath = firstDashboard?.PagePath ?? string.Empty;
         }
 
+        UserLanguagePreferenceDto? userLanguage = null;
+        try
+        {
+            userLanguage = loginId > 0
+                ? await GetUserLanguagePreferenceAsync(loginId, cancellationToken)
+                : await GetDefaultLanguagePreferenceAsync(cancellationToken);
+        }
+        catch
+        {
+            userLanguage = null;
+        }
+
         return new LoginResultDto
         {
             LoginId = loginId,
@@ -168,6 +189,8 @@ public sealed class AdminSecurityRepository : IAdminSecurityRepository
             RoleName = !string.IsNullOrWhiteSpace(roleNameFromDb) ? roleNameFromDb : row.SafeString("RoleName"),
             IsAdmin = isAdmin,
             DashboardPath = !string.IsNullOrWhiteSpace(dashboardPath) ? dashboardPath : "/admin",
+            LanguageId = userLanguage?.LanguageId ?? 0,
+            CultureName = userLanguage?.CultureName,
             Menus = menus
         };
     }
@@ -803,6 +826,500 @@ public sealed class AdminSecurityRepository : IAdminSecurityRepository
         return Convert.ToInt32(parameters[^1].Value ?? 0);
     }
 
+    public async Task<IReadOnlyList<LanguageDto>> GetLanguagesAsync(CancellationToken cancellationToken = default)
+    {
+        await EnsureLocalizationSchemaAsync(cancellationToken);
+
+        var sql = @"
+            SELECT Id, CultureName, DisplayName, Country, Region, IsDefaultLanguage
+            FROM Localization.[Language]
+            ORDER BY IsDefaultLanguage DESC, DisplayName ASC, Id DESC;";
+
+        var table = await ExecuteDataTableRawAsync(sql, Array.Empty<SqlParameter>(), cancellationToken);
+        return table.AsEnumerable().Select(MapLanguage).ToList();
+    }
+
+    public async Task<LanguageDto?> GetLanguageByIdAsync(long id, CancellationToken cancellationToken = default)
+    {
+        await EnsureLocalizationSchemaAsync(cancellationToken);
+
+        var sql = @"
+            SELECT Id, CultureName, DisplayName, Country, Region, IsDefaultLanguage
+            FROM Localization.[Language]
+            WHERE Id = @Id;";
+
+        var table = await ExecuteDataTableRawAsync(sql, new[]
+        {
+            new SqlParameter("@Id", SqlDbType.BigInt) { Value = id }
+        }, cancellationToken);
+
+        return table.Rows.Count == 0 ? null : MapLanguage(table.Rows[0]);
+    }
+
+    public async Task<int> SaveLanguageAsync(SaveLanguageRequest request, CancellationToken cancellationToken = default)
+    {
+        await EnsureLocalizationSchemaAsync(cancellationToken);
+
+        var sql = @"
+            DECLARE @SavedId BIGINT = @Id;
+
+            IF EXISTS (SELECT 1 FROM Localization.[Language] WHERE Id = @Id AND @Id > 0)
+            BEGIN
+                UPDATE Localization.[Language]
+                SET CultureName = @CultureName,
+                    DisplayName = @DisplayName,
+                    Country = @Country,
+                    Region = @Region,
+                    IsDefaultLanguage = @IsDefaultLanguage
+                WHERE Id = @Id;
+            END
+            ELSE
+            BEGIN
+                INSERT INTO Localization.[Language] (CultureName, DisplayName, Country, Region, IsDefaultLanguage)
+                VALUES (@CultureName, @DisplayName, @Country, @Region, @IsDefaultLanguage);
+
+                SET @SavedId = SCOPE_IDENTITY();
+            END
+
+            IF @IsDefaultLanguage = 1
+            BEGIN
+                UPDATE Localization.[Language]
+                SET IsDefaultLanguage = CASE WHEN Id = @SavedId THEN 1 ELSE 0 END;
+            END
+            ELSE IF NOT EXISTS (SELECT 1 FROM Localization.[Language] WHERE IsDefaultLanguage = 1 AND Id <> @SavedId)
+            BEGIN
+                UPDATE Localization.[Language]
+                SET IsDefaultLanguage = CASE WHEN Id = @SavedId THEN 1 ELSE 0 END;
+            END
+
+            SELECT CAST(@SavedId AS INT) AS SavedId;";
+
+        var table = await ExecuteDataTableRawAsync(sql, new[]
+        {
+            new SqlParameter("@Id", SqlDbType.BigInt) { Value = request.Id },
+            new SqlParameter("@CultureName", SqlDbType.NVarChar, 255) { Value = request.CultureName.Trim() },
+            new SqlParameter("@DisplayName", SqlDbType.NVarChar, 255) { Value = request.DisplayName.Trim() },
+            new SqlParameter("@Country", SqlDbType.NVarChar, 255) { Value = request.Country.Trim() },
+            new SqlParameter("@Region", SqlDbType.NVarChar, 255) { Value = request.Region.Trim() },
+            new SqlParameter("@IsDefaultLanguage", SqlDbType.Bit) { Value = request.IsDefaultLanguage }
+        }, cancellationToken);
+
+        return table.Rows.Count == 0 ? 0 : Convert.ToInt32(table.Rows[0]["SavedId"]);
+    }
+
+    public async Task<PagedResult<LocalizedResourceDto>> GetLocalizedResourcesAsync(LocalizedResourceListRequest request, CancellationToken cancellationToken = default)
+    {
+        await EnsureLocalizationSchemaAsync(cancellationToken);
+
+        var languageId = request.LanguageId > 0 ? request.LanguageId : await GetDefaultLanguageIdAsync(cancellationToken);
+        var defaultLanguageId = await GetDefaultLanguageIdAsync(cancellationToken);
+        var normalizedSearch = request.SearchText?.Trim() ?? string.Empty;
+
+        var sortColumn = request.SortColumn?.Trim().ToLowerInvariant() switch
+        {
+            "key" => "KeyName",
+            "defaultvalue" => "DefaultValue",
+            "value" => "ResourceValue",
+            "updatedon" => "UpdatedOn",
+            _ => "KeyName"
+        };
+
+        var sortDirection = string.Equals(request.SortType, "DESC", StringComparison.OrdinalIgnoreCase) ? "DESC" : "ASC";
+        var offset = Math.Max(0, (request.CurrentPage - 1) * request.RecordPerPage);
+
+        var cteSql = @"
+            ;WITH DefaultResources AS
+            (
+                SELECT
+                    r.[Key] AS KeyName,
+                    r.Value AS DefaultValue,
+                    r.Comment AS DefaultComment
+                FROM Localization.[Resource] r
+                WHERE r.LanguageId = @DefaultLanguageId
+            ),
+            SelectedResources AS
+            (
+                SELECT
+                    r.Id,
+                    r.LanguageId,
+                    r.[Key] AS KeyName,
+                    r.Value,
+                    r.Comment,
+                    r.UpdatedOn
+                FROM Localization.[Resource] r
+                WHERE r.LanguageId = @LanguageId
+            )";
+
+        var fromSql = @"
+            FROM DefaultResources dr
+            INNER JOIN Localization.[Language] lang ON lang.Id = @LanguageId
+            LEFT JOIN SelectedResources sr ON sr.KeyName = dr.KeyName";
+
+        var whereSql = @"
+            WHERE
+                (@SearchText = '' OR
+                 dr.KeyName LIKE '%' + @SearchText + '%' OR
+                 dr.DefaultValue LIKE '%' + @SearchText + '%' OR
+                 ISNULL(sr.Value, '') LIKE '%' + @SearchText + '%' OR
+                 ISNULL(sr.Comment, '') LIKE '%' + @SearchText + '%')
+                AND (@ShowMissingOnly = 0 OR (@LanguageId <> @DefaultLanguageId AND (sr.Id IS NULL OR ISNULL(sr.Value, '') = '')))";
+
+        var countSql = cteSql + @"
+            SELECT COUNT(1) AS TotalRecord
+            " + fromSql + whereSql + ";";
+
+        var dataSql = cteSql + @"
+            SELECT
+                ISNULL(sr.Id, 0) AS ResourceId,
+                @LanguageId AS LanguageId,
+                lang.CultureName,
+                dr.KeyName,
+                dr.DefaultValue,
+                CASE WHEN @LanguageId = @DefaultLanguageId THEN dr.DefaultValue ELSE ISNULL(sr.Value, '') END AS ResourceValue,
+                CASE WHEN @LanguageId = @DefaultLanguageId THEN dr.DefaultComment ELSE sr.Comment END AS ResourceComment,
+                sr.UpdatedOn,
+                CASE WHEN @LanguageId = @DefaultLanguageId THEN 0 WHEN sr.Id IS NULL OR ISNULL(sr.Value, '') = '' THEN 1 ELSE 0 END AS IsMissing
+            " + fromSql + whereSql + @"
+            ORDER BY " + sortColumn + " " + sortDirection + @"
+            OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY;";
+
+        var parameters = new[]
+        {
+            new SqlParameter("@LanguageId", SqlDbType.BigInt) { Value = languageId },
+            new SqlParameter("@DefaultLanguageId", SqlDbType.BigInt) { Value = defaultLanguageId },
+            new SqlParameter("@SearchText", SqlDbType.NVarChar, 1000) { Value = normalizedSearch },
+            new SqlParameter("@ShowMissingOnly", SqlDbType.Bit) { Value = request.ShowMissingOnly },
+            new SqlParameter("@Offset", SqlDbType.Int) { Value = offset },
+            new SqlParameter("@PageSize", SqlDbType.Int) { Value = request.RecordPerPage }
+        };
+
+        var totalTable = await ExecuteDataTableRawAsync(countSql, parameters, cancellationToken);
+        var dataTable = await ExecuteDataTableRawAsync(dataSql, parameters, cancellationToken);
+
+        return new PagedResult<LocalizedResourceDto>
+        {
+            CurrentPage = request.CurrentPage,
+            TotalRecord = totalTable.Rows.Count == 0 ? 0 : totalTable.Rows[0].SafeInt("TotalRecord"),
+            Items = dataTable.AsEnumerable().Select(MapLocalizedResource).ToList()
+        };
+    }
+
+    public async Task<int> SaveLocalizedResourceAsync(SaveLocalizedResourceRequest request, CancellationToken cancellationToken = default)
+    {
+        await EnsureLocalizationSchemaAsync(cancellationToken);
+
+        var languageId = request.LanguageId > 0 ? request.LanguageId : await GetDefaultLanguageIdAsync(cancellationToken);
+        var sql = @"
+            DECLARE @SavedId BIGINT;
+
+            IF EXISTS (SELECT 1 FROM Localization.[Resource] WHERE LanguageId = @LanguageId AND [Key] = @KeyName)
+            BEGIN
+                UPDATE Localization.[Resource]
+                SET Value = @Value,
+                    Comment = @Comment,
+                    UpdatedOn = GETUTCDATE()
+                WHERE LanguageId = @LanguageId AND [Key] = @KeyName;
+
+                SELECT @SavedId = Id
+                FROM Localization.[Resource]
+                WHERE LanguageId = @LanguageId AND [Key] = @KeyName;
+            END
+            ELSE
+            BEGIN
+                INSERT INTO Localization.[Resource] (LanguageId, [Key], Value, Comment, UpdatedOn)
+                VALUES (@LanguageId, @KeyName, @Value, @Comment, GETUTCDATE());
+
+                SET @SavedId = SCOPE_IDENTITY();
+            END
+
+            SELECT CAST(@SavedId AS INT) AS SavedId;";
+
+        var table = await ExecuteDataTableRawAsync(sql, new[]
+        {
+            new SqlParameter("@LanguageId", SqlDbType.BigInt) { Value = languageId },
+            new SqlParameter("@KeyName", SqlDbType.NVarChar, 450) { Value = request.Key.Trim() },
+            new SqlParameter("@Value", SqlDbType.NVarChar, -1) { Value = request.Value ?? string.Empty },
+            new SqlParameter("@Comment", SqlDbType.NVarChar, -1) { Value = (object?)request.Comment ?? DBNull.Value }
+        }, cancellationToken);
+
+        return table.Rows.Count == 0 ? 0 : Convert.ToInt32(table.Rows[0]["SavedId"]);
+    }
+
+    public async Task<int> SyncLocalizationDefaultsAsync(CancellationToken cancellationToken = default)
+    {
+        await EnsureLocalizationSchemaAsync(cancellationToken);
+
+        var defaultLanguageId = await GetDefaultLanguageIdAsync(cancellationToken);
+        var synced = 0;
+
+        foreach (var item in LocalizationDefaults.SeedItems)
+        {
+            var sql = @"
+                IF NOT EXISTS (SELECT 1 FROM Localization.[Resource] WHERE LanguageId = @LanguageId AND [Key] = @KeyName)
+                BEGIN
+                    INSERT INTO Localization.[Resource] (LanguageId, [Key], Value, Comment, UpdatedOn)
+                    VALUES (@LanguageId, @KeyName, @Value, @Comment, GETUTCDATE());
+                    SELECT 1 AS Synced;
+                END
+                ELSE
+                BEGIN
+                    SELECT 0 AS Synced;
+                END";
+
+            var table = await ExecuteDataTableRawAsync(sql, new[]
+            {
+                new SqlParameter("@LanguageId", SqlDbType.BigInt) { Value = defaultLanguageId },
+                new SqlParameter("@KeyName", SqlDbType.NVarChar, 450) { Value = item.Key },
+                new SqlParameter("@Value", SqlDbType.NVarChar, -1) { Value = item.Value },
+                new SqlParameter("@Comment", SqlDbType.NVarChar, -1) { Value = (object?)item.Comment ?? DBNull.Value }
+            }, cancellationToken);
+
+            if (table.Rows.Count > 0 && table.Rows[0].SafeInt("Synced") == 1)
+            {
+                synced++;
+            }
+        }
+
+        return synced;
+    }
+
+    public async Task<UserLanguagePreferenceDto?> GetUserLanguagePreferenceAsync(long loginId, CancellationToken cancellationToken = default)
+    {
+        await EnsureLocalizationSchemaAsync(cancellationToken);
+
+        var sql = @"
+            SELECT TOP 1
+                ul.LoginID,
+                l.Id AS LanguageId,
+                l.CultureName,
+                l.DisplayName
+            FROM Localization.UserLanguage ul
+            INNER JOIN Localization.[Language] l ON l.Id = ul.LanguageId
+            WHERE ul.LoginID = @LoginID;";
+
+        var table = await ExecuteDataTableRawAsync(sql, new[]
+        {
+            new SqlParameter("@LoginID", SqlDbType.BigInt) { Value = loginId }
+        }, cancellationToken);
+
+        if (table.Rows.Count > 0)
+        {
+            return MapUserLanguagePreference(table.Rows[0]);
+        }
+
+        return await GetDefaultLanguagePreferenceAsync(cancellationToken);
+    }
+
+    public async Task<int> SaveUserLanguagePreferenceAsync(SaveUserLanguagePreferenceRequest request, CancellationToken cancellationToken = default)
+    {
+        await EnsureLocalizationSchemaAsync(cancellationToken);
+
+        var sql = @"
+            IF EXISTS (SELECT 1 FROM Localization.UserLanguage WHERE LoginID = @LoginID)
+            BEGIN
+                UPDATE Localization.UserLanguage
+                SET LanguageId = @LanguageId,
+                    UpdatedOn = GETUTCDATE()
+                WHERE LoginID = @LoginID;
+            END
+            ELSE
+            BEGIN
+                INSERT INTO Localization.UserLanguage (LoginID, LanguageId, UpdatedOn)
+                VALUES (@LoginID, @LanguageId, GETUTCDATE());
+            END;
+
+            SELECT 1 AS Saved;";
+
+        var table = await ExecuteDataTableRawAsync(sql, new[]
+        {
+            new SqlParameter("@LoginID", SqlDbType.BigInt) { Value = request.LoginId },
+            new SqlParameter("@LanguageId", SqlDbType.BigInt) { Value = request.LanguageId }
+        }, cancellationToken);
+
+        return table.Rows.Count == 0 ? 0 : table.Rows[0].SafeInt("Saved");
+    }
+
+    public async Task<LocalizedDictionaryDto> GetLocalizedDictionaryAsync(long languageId, CancellationToken cancellationToken = default)
+    {
+        await EnsureLocalizationSchemaAsync(cancellationToken);
+
+        var selectedLanguageId = languageId > 0 ? languageId : await GetDefaultLanguageIdAsync(cancellationToken);
+        var defaultLanguageId = await GetDefaultLanguageIdAsync(cancellationToken);
+
+        var language = await GetLanguageByIdAsync(selectedLanguageId, cancellationToken)
+            ?? await GetLanguageByIdAsync(defaultLanguageId, cancellationToken)
+            ?? new LanguageDto { Id = defaultLanguageId, CultureName = "en-IN", DisplayName = "English" };
+
+        var sql = @"
+            SELECT
+                d.[Key] AS KeyName,
+                d.Value AS DefaultValue,
+                s.Value AS SelectedValue
+            FROM Localization.[Resource] d
+            LEFT JOIN Localization.[Resource] s
+                ON s.LanguageId = @LanguageId AND s.[Key] = d.[Key]
+            WHERE d.LanguageId = @DefaultLanguageId;";
+
+        var table = await ExecuteDataTableRawAsync(sql, new[]
+        {
+            new SqlParameter("@LanguageId", SqlDbType.BigInt) { Value = selectedLanguageId },
+            new SqlParameter("@DefaultLanguageId", SqlDbType.BigInt) { Value = defaultLanguageId }
+        }, cancellationToken);
+
+        var dictionary = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (DataRow row in table.Rows)
+        {
+            var key = row.SafeString("KeyName");
+            if (string.IsNullOrWhiteSpace(key))
+            {
+                continue;
+            }
+
+            var selectedValue = row.SafeString("SelectedValue");
+            var defaultValue = row.SafeString("DefaultValue");
+            dictionary[key] = string.IsNullOrWhiteSpace(selectedValue) ? defaultValue : selectedValue;
+        }
+
+        return new LocalizedDictionaryDto
+        {
+            LanguageId = language.Id,
+            CultureName = language.CultureName,
+            DefaultLanguageId = defaultLanguageId,
+            Entries = dictionary
+        };
+    }
+
+    private async Task EnsureLocalizationSchemaAsync(CancellationToken cancellationToken)
+    {
+        var sql = @"
+            IF NOT EXISTS (SELECT 1 FROM sys.schemas WHERE name = 'Localization')
+            BEGIN
+                EXEC('CREATE SCHEMA Localization');
+            END;
+
+            IF OBJECT_ID('Localization.[Language]', 'U') IS NULL
+            BEGIN
+                CREATE TABLE Localization.[Language]
+                (
+                    Id BIGINT IDENTITY(1,1) NOT NULL,
+                    CultureName NVARCHAR(255) NOT NULL,
+                    DisplayName NVARCHAR(255) NOT NULL,
+                    Country NVARCHAR(255) NOT NULL,
+                    Region NVARCHAR(255) NOT NULL,
+                    IsDefaultLanguage BIT NOT NULL CONSTRAINT DF_Localization_Language_IsDefault DEFAULT(0),
+                    CONSTRAINT PK_Localization_Language PRIMARY KEY CLUSTERED (Id DESC)
+                );
+            END;
+
+            IF OBJECT_ID('Localization.[Resource]', 'U') IS NULL
+            BEGIN
+                CREATE TABLE Localization.[Resource]
+                (
+                    Id BIGINT IDENTITY(1,1) NOT NULL,
+                    LanguageId BIGINT NOT NULL,
+                    [Key] NVARCHAR(450) NOT NULL,
+                    Value NVARCHAR(MAX) NOT NULL,
+                    Comment NVARCHAR(MAX) NULL,
+                    UpdatedOn DATETIME NULL,
+                    CONSTRAINT PK_Localization_Resource PRIMARY KEY CLUSTERED (Id DESC)
+                );
+            END;
+
+            IF EXISTS
+            (
+                SELECT 1
+                FROM sys.columns c
+                WHERE c.object_id = OBJECT_ID('Localization.[Resource]')
+                  AND c.name = 'Key'
+                  AND (c.max_length = -1 OR c.max_length > 900)
+            )
+            BEGIN
+                IF EXISTS (SELECT 1 FROM Localization.[Resource] WHERE LEN([Key]) > 450)
+                BEGIN
+                    THROW 51000, 'Localization.Resource.[Key] contains values longer than 450 characters and cannot be indexed. Shorten those keys before continuing.', 1;
+                END;
+
+                ALTER TABLE Localization.[Resource]
+                ALTER COLUMN [Key] NVARCHAR(450) NOT NULL;
+            END;
+
+            IF OBJECT_ID('Localization.UserLanguage', 'U') IS NULL
+            BEGIN
+                CREATE TABLE Localization.UserLanguage
+                (
+                    LoginID BIGINT NOT NULL,
+                    LanguageId BIGINT NOT NULL,
+                    UpdatedOn DATETIME NULL,
+                    CONSTRAINT PK_Localization_UserLanguage PRIMARY KEY CLUSTERED (LoginID)
+                );
+            END;
+
+            IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'UX_Localization_Language_CultureName' AND object_id = OBJECT_ID('Localization.[Language]'))
+            BEGIN
+                CREATE UNIQUE INDEX UX_Localization_Language_CultureName ON Localization.[Language](CultureName);
+            END;
+
+            IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'UX_Localization_Resource_Language_Key' AND object_id = OBJECT_ID('Localization.[Resource]'))
+            BEGIN
+                CREATE UNIQUE INDEX UX_Localization_Resource_Language_Key ON Localization.[Resource](LanguageId, [Key]);
+            END;
+
+            IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'UX_Localization_Language_Default' AND object_id = OBJECT_ID('Localization.[Language]'))
+            BEGIN
+                CREATE UNIQUE INDEX UX_Localization_Language_Default ON Localization.[Language](IsDefaultLanguage) WHERE IsDefaultLanguage = 1;
+            END;
+
+            IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = 'FK_Localization_Resource_Language')
+            BEGIN
+                ALTER TABLE Localization.[Resource]
+                ADD CONSTRAINT FK_Localization_Resource_Language
+                FOREIGN KEY (LanguageId) REFERENCES Localization.[Language](Id);
+            END;
+
+            IF NOT EXISTS (SELECT 1 FROM sys.foreign_keys WHERE name = 'FK_Localization_UserLanguage_Language')
+            BEGIN
+                ALTER TABLE Localization.UserLanguage
+                ADD CONSTRAINT FK_Localization_UserLanguage_Language
+                FOREIGN KEY (LanguageId) REFERENCES Localization.[Language](Id);
+            END;";
+
+        await ExecuteNonQueryRawAsync(sql, Array.Empty<SqlParameter>(), cancellationToken);
+
+        var checkTable = await ExecuteDataTableRawAsync("SELECT TOP 1 Id FROM Localization.[Language];", Array.Empty<SqlParameter>(), cancellationToken);
+        if (checkTable.Rows.Count == 0)
+        {
+            await ExecuteNonQueryRawAsync(@"
+                INSERT INTO Localization.[Language] (CultureName, DisplayName, Country, Region, IsDefaultLanguage)
+                VALUES (N'en-IN', N'English', N'India', N'Asia', 1);", Array.Empty<SqlParameter>(), cancellationToken);
+        }
+    }
+
+    private async Task<long> GetDefaultLanguageIdAsync(CancellationToken cancellationToken)
+    {
+        var sql = @"
+            SELECT TOP 1 Id
+            FROM Localization.[Language]
+            ORDER BY IsDefaultLanguage DESC, Id ASC;";
+
+        var table = await ExecuteDataTableRawAsync(sql, Array.Empty<SqlParameter>(), cancellationToken);
+        return table.Rows.Count == 0 ? 0 : table.Rows[0].SafeLong("Id");
+    }
+
+    private async Task<UserLanguagePreferenceDto?> GetDefaultLanguagePreferenceAsync(CancellationToken cancellationToken)
+    {
+        var sql = @"
+            SELECT TOP 1
+                CAST(0 AS BIGINT) AS LoginID,
+                Id AS LanguageId,
+                CultureName,
+                DisplayName
+            FROM Localization.[Language]
+            ORDER BY IsDefaultLanguage DESC, Id ASC;";
+
+        var table = await ExecuteDataTableRawAsync(sql, Array.Empty<SqlParameter>(), cancellationToken);
+        return table.Rows.Count == 0 ? null : MapUserLanguagePreference(table.Rows[0]);
+    }
+
     private Task<DataTable> ExecuteDataTableAsync(string storedProcedure, IEnumerable<SqlParameter> parameters, CancellationToken cancellationToken)
         => Common.ResilientSqlExecutor.ExecuteDataTableAsync(_connectionString, storedProcedure, parameters, cancellationToken);
 
@@ -865,6 +1382,37 @@ public sealed class AdminSecurityRepository : IAdminSecurityRepository
         HasLogin = row.SafeBool("HasLogin"),
         CreatedBy = row.SafeString("CreatedBy"),
         CreatedDate = row.Table.Columns.Contains("CreatedDate") && row["CreatedDate"] != DBNull.Value && DateTime.TryParse(row["CreatedDate"].ToString(), out var createdDate) ? createdDate : null
+    };
+
+    private static LanguageDto MapLanguage(DataRow row) => new()
+    {
+        Id = row.SafeLong("Id"),
+        CultureName = row.SafeString("CultureName"),
+        DisplayName = row.SafeString("DisplayName"),
+        Country = row.SafeString("Country"),
+        Region = row.SafeString("Region"),
+        IsDefaultLanguage = row.SafeBool("IsDefaultLanguage")
+    };
+
+    private static UserLanguagePreferenceDto MapUserLanguagePreference(DataRow row) => new()
+    {
+        LoginId = row.SafeLong("LoginID"),
+        LanguageId = row.SafeLong("LanguageId"),
+        CultureName = row.SafeString("CultureName"),
+        DisplayName = row.SafeString("DisplayName")
+    };
+
+    private static LocalizedResourceDto MapLocalizedResource(DataRow row) => new()
+    {
+        ResourceId = row.SafeLong("ResourceId"),
+        LanguageId = row.SafeLong("LanguageId"),
+        CultureName = row.SafeString("CultureName"),
+        Key = row.SafeString("KeyName"),
+        DefaultValue = row.SafeString("DefaultValue"),
+        Value = row.SafeString("ResourceValue"),
+        Comment = row.SafeString("ResourceComment"),
+        UpdatedOn = row.SafeDateTime("UpdatedOn"),
+        IsMissing = row.SafeBool("IsMissing")
     };
 
     private static MenuDto MapMenu(DataRow row) => new()

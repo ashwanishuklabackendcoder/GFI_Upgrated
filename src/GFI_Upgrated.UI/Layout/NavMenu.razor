@@ -1,4 +1,5 @@
 @inject AppSessionState SessionState
+@inject LocalizationState LocalizationState
 @inject NavigationManager Navigation
 @inject IJSRuntime JSRuntime
 @implements IDisposable
@@ -57,7 +58,7 @@
 
                 if (validChildren.Count == 0) continue;
 
-                var groupTitle = !string.IsNullOrWhiteSpace(group.DisplayName) ? group.DisplayName : CleanLabel(group.PageHeading);
+                var groupTitle = GetMenuText(group);
                 var groupId = $"nav-{group.LinkId}";
                 var groupIcon = !string.IsNullOrWhiteSpace(group.IconClass) ? group.IconClass : "ti ti-category";
 
@@ -70,7 +71,7 @@
                     <div class="sidebar-group-items @(IsExpanded(groupId) ? "is-open" : string.Empty)">
                         @foreach (var item in validChildren)
                         {
-                            var itemTitle = !string.IsNullOrWhiteSpace(item.DisplayName) ? item.DisplayName : CleanLabel(item.PageHeading);
+                            var itemTitle = GetMenuText(item);
                             var itemIcon = !string.IsNullOrWhiteSpace(item.IconClass) ? item.IconClass : "ti ti-point";
                             var itemHref = SessionState.GetHardmappedRoute(item.PagePath, item.PageHeading);
                             var match = itemHref == "/admin" ? NavLinkMatch.All : NavLinkMatch.Prefix;
@@ -93,6 +94,7 @@
     protected override void OnInitialized()
     {
         SessionState.OnChange += StateHasChanged;
+        LocalizationState.OnChange += StateHasChanged;
         
         if (SessionState.CurrentUser?.Menus != null)
         {
@@ -123,5 +125,17 @@
         return System.Text.RegularExpressions.Regex.Replace(clean, "([a-z])([A-Z])", "$1 $2");
     }
 
-    public void Dispose() => SessionState.OnChange -= StateHasChanged;
+    private string GetMenuText(GFI_Upgrated.SharedDto.AdminSecurity.MenuDto menu)
+    {
+        var fallback = !string.IsNullOrWhiteSpace(menu.DisplayName) ? menu.DisplayName! : CleanLabel(menu.PageHeading);
+        return string.IsNullOrWhiteSpace(menu.PageHeading)
+            ? fallback
+            : LocalizationState.Text(menu.PageHeading, fallback);
+    }
+
+    public void Dispose()
+    {
+        SessionState.OnChange -= StateHasChanged;
+        LocalizationState.OnChange -= StateHasChanged;
+    }
 }

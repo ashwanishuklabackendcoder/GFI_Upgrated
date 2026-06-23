@@ -1,0 +1,244 @@
+@page "/admin/resource-editor"
+@inject AppSessionState SessionState
+@inject LocalizationState LocalizationState
+@inject NavigationManager Navigation
+@inject AdminSecurityApiClient ApiClient
+@inject ISnackbar Snackbar
+@inject IJSRuntime JSRuntime
+
+<PageTitle>@LocalizationState.Text("Admin.ResourceEditor.PageTitle", "Resource Editor")</PageTitle>
+
+<MudPaper Class="pa-4">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+        <MudText Typo="Typo.h5">@LocalizationState.Text("Admin.ResourceEditor.Title", "Resource Editor")</MudText>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SyncDefaultsAsync">
+            @LocalizationState.Text("Admin.ResourceEditor.SyncDefaults", "Sync Defaults")
+        </MudButton>
+    </MudStack>
+
+    <MudTabs Rounded="true" PanelClass="pa-2">
+        <MudTabPanel Text="@LocalizationState.Text("Admin.ResourceEditor.ResourcesTab", "Resources")">
+            <MudStack Row="true" AlignItems="AlignItems.End" Spacing="2" Class="mb-4">
+                <MudSelect T="long" Label="@LocalizationState.Text("Layout.Language", "Language")" Value="_selectedLanguageId" ValueChanged="OnLanguageFilterChangedAsync" Variant="Variant.Outlined" Dense="true" Style="min-width:220px;">
+                    @foreach (var language in _languages)
+                    {
+                        <MudSelectItem T="long" Value="@language.Id">@language.DisplayName</MudSelectItem>
+                    }
+                </MudSelect>
+                <MudTextField @bind-Value="_resourceSearch" Label="@LocalizationState.Text("Admin.ResourceEditor.SearchPlaceholder", "Search keys or values")" Variant="Variant.Outlined" Immediate="true" Class="flex-grow-1" />
+                <MudCheckBox T="bool" @bind-Value="_showMissingOnly" Label="@LocalizationState.Text("Admin.ResourceEditor.ShowMissing", "Show missing only")" />
+                <MudButton Variant="Variant.Outlined" OnClick="ReloadResourcesAsync">@LocalizationState.Text("Common.Actions.Search", "Search")</MudButton>
+            </MudStack>
+
+            <MudTable T="LocalizedResourceDto" @ref="_resourceTable" ServerData="LoadResourcesAsync" Hover="true" Dense="true" Bordered="true" Striped="true">
+                <HeaderContent>
+                    <MudTh>@LocalizationState.Text("Admin.ResourceEditor.Key", "Key")</MudTh>
+                    <MudTh>@LocalizationState.Text("Admin.ResourceEditor.DefaultValue", "Default Value")</MudTh>
+                    <MudTh>@LocalizationState.Text("Admin.ResourceEditor.TranslatedValue", "Translated Value")</MudTh>
+                    <MudTh>@LocalizationState.Text("Admin.ResourceEditor.Comment", "Comment")</MudTh>
+                    <MudTh>@LocalizationState.Text("Admin.ResourceEditor.UpdatedOn", "Updated On")</MudTh>
+                    <MudTh Style="width: 110px;"></MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="Key">@context.Key</MudTd>
+                    <MudTd DataLabel="Default Value">@context.DefaultValue</MudTd>
+                    <MudTd DataLabel="Translated Value">
+                        <MudTextField @bind-Value="context.Value" Variant="Variant.Outlined" Dense="true" Margin="Margin.Dense" />
+                    </MudTd>
+                    <MudTd DataLabel="Comment">
+                        <MudTextField @bind-Value="context.Comment" Variant="Variant.Outlined" Dense="true" Margin="Margin.Dense" />
+                    </MudTd>
+                    <MudTd DataLabel="Updated On">@(context.UpdatedOn?.ToString("dd/MM/yyyy HH:mm") ?? "-")</MudTd>
+                    <MudTd DataLabel="">
+                        <MudButton Size="Size.Small" Variant="Variant.Filled" Color="Color.Primary" OnClick="() => SaveResourceAsync(context)">
+                            @LocalizationState.Text("Common.Actions.Save", "Save")
+                        </MudButton>
+                    </MudTd>
+                </RowTemplate>
+                <PagerContent>
+                    <MudTablePager PageSizeOptions="new[] { 10, 25, 50 }" />
+                </PagerContent>
+                <NoRecordsContent>
+                    <MudText Class="pa-4">@LocalizationState.Text("Admin.ResourceEditor.NoResources", "No resource records found.")</MudText>
+                </NoRecordsContent>
+            </MudTable>
+        </MudTabPanel>
+
+        <MudTabPanel Text="@LocalizationState.Text("Admin.ResourceEditor.LanguagesTab", "Languages")">
+            <MudGrid>
+                <MudItem xs="12" md="7">
+                    <MudTable Items="_languages" Hover="true" Dense="true" Bordered="true" Striped="true">
+                        <HeaderContent>
+                            <MudTh>@LocalizationState.Text("Admin.ResourceEditor.DisplayName", "Display Name")</MudTh>
+                            <MudTh>@LocalizationState.Text("Admin.ResourceEditor.CultureName", "Culture Name")</MudTh>
+                            <MudTh>@LocalizationState.Text("Admin.ResourceEditor.Country", "Country")</MudTh>
+                            <MudTh>@LocalizationState.Text("Admin.ResourceEditor.Region", "Region")</MudTh>
+                            <MudTh>@LocalizationState.Text("Admin.ResourceEditor.DefaultLanguage", "Default Language")</MudTh>
+                            <MudTh Style="width: 90px;"></MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd>@context.DisplayName</MudTd>
+                            <MudTd>@context.CultureName</MudTd>
+                            <MudTd>@context.Country</MudTd>
+                            <MudTd>@context.Region</MudTd>
+                            <MudTd>
+                                <MudChip T="string" Color="@(context.IsDefaultLanguage ? Color.Success : Color.Default)" Variant="Variant.Text">
+                                    @(context.IsDefaultLanguage ? LocalizationState.Text("Common.Status.Active", "Active") : "-")
+                                </MudChip>
+                            </MudTd>
+                            <MudTd>
+                                <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="() => EditLanguage(context)">Edit</MudButton>
+                            </MudTd>
+                        </RowTemplate>
+                        <NoRecordsContent>
+                            <MudText Class="pa-4">@LocalizationState.Text("Admin.ResourceEditor.NoLanguages", "No languages found.")</MudText>
+                        </NoRecordsContent>
+                    </MudTable>
+                </MudItem>
+
+                <MudItem xs="12" md="5">
+                    <MudPaper Class="pa-4">
+                        <MudText Typo="Typo.h6" Class="mb-3">@LocalizationState.Text("Admin.ResourceEditor.LanguagesTab", "Languages")</MudText>
+                        <MudTextField @bind-Value="_languageEditor.DisplayName" Label="@LocalizationState.Text("Admin.ResourceEditor.DisplayName", "Display Name")" Variant="Variant.Outlined" Class="mb-3" />
+                        <MudTextField @bind-Value="_languageEditor.CultureName" Label="@LocalizationState.Text("Admin.ResourceEditor.CultureName", "Culture Name")" Variant="Variant.Outlined" Class="mb-3" />
+                        <MudTextField @bind-Value="_languageEditor.Country" Label="@LocalizationState.Text("Admin.ResourceEditor.Country", "Country")" Variant="Variant.Outlined" Class="mb-3" />
+                        <MudTextField @bind-Value="_languageEditor.Region" Label="@LocalizationState.Text("Admin.ResourceEditor.Region", "Region")" Variant="Variant.Outlined" Class="mb-3" />
+                        <MudCheckBox T="bool" @bind-Value="_languageEditor.IsDefaultLanguage" Label="@LocalizationState.Text("Admin.ResourceEditor.DefaultLanguage", "Default Language")" />
+
+                        <MudStack Row="true" Spacing="2" Class="mt-4">
+                            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveLanguageAsync">@LocalizationState.Text("Common.Actions.Save", "Save")</MudButton>
+                            <MudButton Variant="Variant.Outlined" OnClick="ResetLanguageEditor">@LocalizationState.Text("Common.Actions.Reset", "Reset")</MudButton>
+                        </MudStack>
+                    </MudPaper>
+                </MudItem>
+            </MudGrid>
+        </MudTabPanel>
+    </MudTabs>
+</MudPaper>
+
+@code {
+    private MudTable<LocalizedResourceDto>? _resourceTable;
+    private IReadOnlyList<LanguageDto> _languages = Array.Empty<LanguageDto>();
+    private SaveLanguageRequest _languageEditor = new();
+    private long _selectedLanguageId;
+    private string? _resourceSearch;
+    private bool _showMissingOnly;
+
+    protected override void OnInitialized()
+    {
+        if (!SessionState.IsLoggedIn)
+        {
+            Navigation.NavigateTo("/login");
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadLanguagesAsync();
+    }
+
+    private async Task LoadLanguagesAsync()
+    {
+        _languages = await ApiClient.GetLanguagesAsync();
+        if (_selectedLanguageId <= 0)
+        {
+            _selectedLanguageId = SessionState.CurrentUser?.LanguageId > 0
+                ? SessionState.CurrentUser.LanguageId
+                : _languages.FirstOrDefault(x => x.IsDefaultLanguage)?.Id ?? _languages.FirstOrDefault()?.Id ?? 0;
+        }
+    }
+
+    private async Task<TableData<LocalizedResourceDto>> LoadResourcesAsync(TableState state, CancellationToken cancellationToken)
+    {
+        var result = await ApiClient.GetLocalizedResourcesAsync(new LocalizedResourceListRequest
+        {
+            LanguageId = _selectedLanguageId,
+            SearchText = _resourceSearch,
+            ShowMissingOnly = _showMissingOnly,
+            CurrentPage = state.Page + 1,
+            RecordPerPage = state.PageSize,
+            SortColumn = string.IsNullOrWhiteSpace(state.SortLabel) ? "Key" : state.SortLabel,
+            SortType = state.SortDirection == SortDirection.Descending ? "DESC" : "ASC"
+        }, cancellationToken);
+
+        return new TableData<LocalizedResourceDto>
+        {
+            TotalItems = result.TotalRecord,
+            Items = result.Items
+        };
+    }
+
+    private async Task OnLanguageFilterChangedAsync(long languageId)
+    {
+        _selectedLanguageId = languageId;
+        await ReloadResourcesAsync();
+    }
+
+    private async Task ReloadResourcesAsync()
+    {
+        if (_resourceTable is not null)
+        {
+            await _resourceTable.ReloadServerData();
+        }
+    }
+
+    private void EditLanguage(LanguageDto language)
+    {
+        _languageEditor = new SaveLanguageRequest
+        {
+            Id = language.Id,
+            CultureName = language.CultureName,
+            DisplayName = language.DisplayName,
+            Country = language.Country,
+            Region = language.Region,
+            IsDefaultLanguage = language.IsDefaultLanguage
+        };
+    }
+
+    private async Task SaveLanguageAsync()
+    {
+        var id = await ApiClient.SaveLanguageAsync(_languageEditor);
+        if (id > 0)
+        {
+            Snackbar.Add(LocalizationState.Text("Admin.ResourceEditor.LanguageSaved", "Language saved successfully."), Severity.Success);
+            await LoadLanguagesAsync();
+            await LocalizationState.LoadLanguagesAsync(ApiClient);
+            ResetLanguageEditor();
+            StateHasChanged();
+        }
+    }
+
+    private async Task SaveResourceAsync(LocalizedResourceDto item)
+    {
+        var id = await ApiClient.SaveLocalizedResourceAsync(new SaveLocalizedResourceRequest
+        {
+            ResourceId = item.ResourceId,
+            LanguageId = _selectedLanguageId,
+            Key = item.Key,
+            Value = item.Value,
+            Comment = item.Comment
+        });
+
+        if (id > 0)
+        {
+            Snackbar.Add(LocalizationState.Text("Admin.ResourceEditor.ResourceSaved", "Resource saved successfully."), Severity.Success);
+            if (SessionState.CurrentUser?.LanguageId == _selectedLanguageId)
+            {
+                await LocalizationState.SetLanguageAsync(SessionState, ApiClient, JSRuntime, _selectedLanguageId);
+            }
+            await ReloadResourcesAsync();
+        }
+    }
+
+    private async Task SyncDefaultsAsync()
+    {
+        await ApiClient.SyncLocalizationDefaultsAsync();
+        Snackbar.Add(LocalizationState.Text("Admin.ResourceEditor.DefaultsSynced", "Default resources synced successfully."), Severity.Success);
+        await ReloadResourcesAsync();
+    }
+
+    private void ResetLanguageEditor()
+    {
+        _languageEditor = new SaveLanguageRequest();
+    }
+}
