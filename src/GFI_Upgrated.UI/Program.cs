@@ -11,6 +11,7 @@ builder.RootComponents.Add<HeadOutlet>("head::after");
 
 builder.Services.AddMudServices();
 builder.Services.AddSingleton<AppSessionState>();
+builder.Services.AddSingleton<LocalizationState>();
 builder.Services.AddScoped(sp =>
 {
     var apiBase = builder.Configuration["ApiBaseUrl"] ?? builder.HostEnvironment.BaseAddress;

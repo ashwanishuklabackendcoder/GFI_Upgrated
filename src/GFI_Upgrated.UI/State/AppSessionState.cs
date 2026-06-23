@@ -324,6 +324,21 @@ public sealed class AppSessionState
         OnChange?.Invoke();
     }
 
+    public async Task UpdateLanguageAsync(IJSRuntime jsRuntime, long languageId, string? cultureName)
+    {
+        if (CurrentUser is null)
+        {
+            return;
+        }
+
+        CurrentUser.LanguageId = languageId;
+        CurrentUser.CultureName = cultureName;
+
+        var json = JsonSerializer.Serialize(CurrentUser);
+        await jsRuntime.InvokeVoidAsync("sessionStorage.setItem", "currentUser", json);
+        OnChange?.Invoke();
+    }
+
     public async Task ToggleThemeAsync(IJSRuntime jsRuntime)
     {
         IsDarkMode = !IsDarkMode;

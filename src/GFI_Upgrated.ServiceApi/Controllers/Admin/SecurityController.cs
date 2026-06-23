@@ -467,6 +467,152 @@ public sealed class SecurityController : ControllerBase
         });
     }
 
+    [HttpGet("languages")]
+    public async Task<ActionResult<ApiEnvelope<IReadOnlyList<LanguageDto>>>> GetLanguages(CancellationToken cancellationToken)
+    {
+        var result = await _service.GetLanguagesAsync(cancellationToken);
+        return Ok(new ApiEnvelope<IReadOnlyList<LanguageDto>>
+        {
+            Success = true,
+            Message = "Languages loaded.",
+            Data = result
+        });
+    }
+
+    [HttpGet("languages/{id:long}")]
+    public async Task<ActionResult<ApiEnvelope<LanguageDto?>>> GetLanguageById(long id, CancellationToken cancellationToken)
+    {
+        var result = await _service.GetLanguageByIdAsync(id, cancellationToken);
+        return Ok(new ApiEnvelope<LanguageDto?>
+        {
+            Success = result is not null,
+            Message = result is null ? "Language not found." : "Language loaded.",
+            Data = result
+        });
+    }
+
+    [HttpPost("languages")]
+    public async Task<ActionResult<ApiEnvelope<int>>> SaveLanguage([FromBody] SaveLanguageRequest request, CancellationToken cancellationToken)
+    {
+        if (!ModelState.IsValid)
+        {
+            var message = string.Join(" ", ModelState.Values.SelectMany(value => value.Errors).Select(error => error.ErrorMessage).Where(message => !string.IsNullOrWhiteSpace(message)));
+            return Ok(new ApiEnvelope<int>
+            {
+                Success = false,
+                Message = string.IsNullOrWhiteSpace(message) ? "Invalid language data." : message
+            });
+        }
+
+        var id = await _service.SaveLanguageAsync(request, cancellationToken);
+        return Ok(new ApiEnvelope<int>
+        {
+            Success = id > 0,
+            Message = id > 0 ? "Language saved successfully." : "Language save failed.",
+            Data = id
+        });
+    }
+
+    [HttpGet("resources")]
+    public async Task<ActionResult<ApiEnvelope<PagedResult<LocalizedResourceDto>>>> GetLocalizedResources(
+        [FromQuery] long languageId,
+        [FromQuery] string? searchText,
+        [FromQuery] bool showMissingOnly,
+        [FromQuery] int currentPage = 1,
+        [FromQuery] int recordPerPage = 25,
+        [FromQuery] string? sortColumn = "Key",
+        [FromQuery] string? sortType = "ASC",
+        CancellationToken cancellationToken = default)
+    {
+        var result = await _service.GetLocalizedResourcesAsync(new LocalizedResourceListRequest
+        {
+            LanguageId = languageId,
+            SearchText = searchText,
+            ShowMissingOnly = showMissingOnly,
+            CurrentPage = currentPage,
+            RecordPerPage = recordPerPage,
+            SortColumn = sortColumn,
+            SortType = sortType
+        }, cancellationToken);
+
+        return Ok(new ApiEnvelope<PagedResult<LocalizedResourceDto>>
+        {
+            Success = true,
+            Message = "Localized resources loaded.",
+            Data = result
+        });
+    }
+
+    [HttpPost("resources")]
+    public async Task<ActionResult<ApiEnvelope<int>>> SaveLocalizedResource([FromBody] SaveLocalizedResourceRequest request, CancellationToken cancellationToken)
+    {
+        if (!ModelState.IsValid)
+        {
+            var message = string.Join(" ", ModelState.Values.SelectMany(value => value.Errors).Select(error => error.ErrorMessage).Where(message => !string.IsNullOrWhiteSpace(message)));
+            return Ok(new ApiEnvelope<int>
+            {
+                Success = false,
+                Message = string.IsNullOrWhiteSpace(message) ? "Invalid localized resource data." : message
+            });
+        }
+
+        var id = await _service.SaveLocalizedResourceAsync(request, cancellationToken);
+        return Ok(new ApiEnvelope<int>
+        {
+            Success = id > 0,
+            Message = id > 0 ? "Localized resource saved successfully." : "Localized resource save failed.",
+            Data = id
+        });
+    }
+
+    [HttpPost("resources/sync-defaults")]
+    public async Task<ActionResult<ApiEnvelope<int>>> SyncLocalizationDefaults(CancellationToken cancellationToken)
+    {
+        var synced = await _service.SyncLocalizationDefaultsAsync(cancellationToken);
+        return Ok(new ApiEnvelope<int>
+        {
+            Success = true,
+            Message = "Default resources synced successfully.",
+            Data = synced
+        });
+    }
+
+    [HttpGet("user-language/{loginId:long}")]
+    public async Task<ActionResult<ApiEnvelope<UserLanguagePreferenceDto?>>> GetUserLanguagePreference(long loginId, CancellationToken cancellationToken)
+    {
+        var result = await _service.GetUserLanguagePreferenceAsync(loginId, cancellationToken);
+        return Ok(new ApiEnvelope<UserLanguagePreferenceDto?>
+        {
+            Success = result is not null,
+            Message = result is null ? "Language preference not found." : "Language preference loaded.",
+            Data = result
+        });
+    }
+
+    [HttpPost("user-language")]
+    public async Task<ActionResult<ApiEnvelope<int>>> SaveUserLanguagePreference([FromBody] SaveUserLanguagePreferenceRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _service.SaveUserLanguagePreferenceAsync(request, cancellationToken);
+        return Ok(new ApiEnvelope<int>
+        {
+            Success = result > 0,
+            Message = result > 0 ? "Language preference saved successfully." : "Language preference save failed.",
+            Data = result
+        });
+    }
+
+    [HttpGet("dictionary/{languageId:long}")]
+    public async Task<ActionResult<ApiEnvelope<LocalizedDictionaryDto>>> GetLocalizedDictionary(long languageId, CancellationToken cancellationToken)
+    {
+        var result = await _service.GetLocalizedDictionaryAsync(languageId, cancellationToken);
+        return Ok(new ApiEnvelope<LocalizedDictionaryDto>
+        {
+            Success = true,
+            Message = "Localization dictionary loaded.",
+            Data = result
+        });
+    }
+
     [HttpGet("refresh-session")]
     public async Task<ActionResult<ApiEnvelope<LoginResultDto>>> RefreshSession([FromQuery] long loginId, [FromQuery] long roleId, CancellationToken cancellationToken)
     {

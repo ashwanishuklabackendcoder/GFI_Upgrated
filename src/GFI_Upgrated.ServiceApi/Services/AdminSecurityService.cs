@@ -37,6 +37,15 @@ public interface IAdminSecurityService
     Task<DropDownValueDto?> GetDropDownValueByIdAsync(long id, CancellationToken cancellationToken = default);
     Task<int> SaveDropDownValueAsync(SaveDropDownValueRequest request, CancellationToken cancellationToken = default);
     Task<int> DeleteDropDownValueAsync(long id, string updatedBy, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<LanguageDto>> GetLanguagesAsync(CancellationToken cancellationToken = default);
+    Task<LanguageDto?> GetLanguageByIdAsync(long id, CancellationToken cancellationToken = default);
+    Task<int> SaveLanguageAsync(SaveLanguageRequest request, CancellationToken cancellationToken = default);
+    Task<PagedResult<LocalizedResourceDto>> GetLocalizedResourcesAsync(LocalizedResourceListRequest request, CancellationToken cancellationToken = default);
+    Task<int> SaveLocalizedResourceAsync(SaveLocalizedResourceRequest request, CancellationToken cancellationToken = default);
+    Task<int> SyncLocalizationDefaultsAsync(CancellationToken cancellationToken = default);
+    Task<UserLanguagePreferenceDto?> GetUserLanguagePreferenceAsync(long loginId, CancellationToken cancellationToken = default);
+    Task<int> SaveUserLanguagePreferenceAsync(SaveUserLanguagePreferenceRequest request, CancellationToken cancellationToken = default);
+    Task<LocalizedDictionaryDto> GetLocalizedDictionaryAsync(long languageId, CancellationToken cancellationToken = default);
     Task<LoginResultDto?> GetLoginResultAsync(long loginId, long roleId, CancellationToken cancellationToken = default);
     Task<int> UpsertPageAsync(MenuDto page, CancellationToken cancellationToken = default);
     Task<PagedResult<UserActivityLogDto>> GetUserActivityLogsAsync(string? userName, string? loginName, string? eventName, string? eventModule, PagedRequest request, CancellationToken cancellationToken = default);
@@ -145,6 +154,33 @@ public sealed class AdminSecurityService : IAdminSecurityService
 
     public Task<int> DeleteDropDownValueAsync(long id, string updatedBy, CancellationToken cancellationToken = default)
         => _repository.DeleteDropDownValueAsync(id, updatedBy, cancellationToken);
+
+    public Task<IReadOnlyList<LanguageDto>> GetLanguagesAsync(CancellationToken cancellationToken = default)
+        => _repository.GetLanguagesAsync(cancellationToken);
+
+    public Task<LanguageDto?> GetLanguageByIdAsync(long id, CancellationToken cancellationToken = default)
+        => _repository.GetLanguageByIdAsync(id, cancellationToken);
+
+    public Task<int> SaveLanguageAsync(SaveLanguageRequest request, CancellationToken cancellationToken = default)
+        => _repository.SaveLanguageAsync(request, cancellationToken);
+
+    public Task<PagedResult<LocalizedResourceDto>> GetLocalizedResourcesAsync(LocalizedResourceListRequest request, CancellationToken cancellationToken = default)
+        => _repository.GetLocalizedResourcesAsync(request, cancellationToken);
+
+    public Task<int> SaveLocalizedResourceAsync(SaveLocalizedResourceRequest request, CancellationToken cancellationToken = default)
+        => _repository.SaveLocalizedResourceAsync(request, cancellationToken);
+
+    public Task<int> SyncLocalizationDefaultsAsync(CancellationToken cancellationToken = default)
+        => _repository.SyncLocalizationDefaultsAsync(cancellationToken);
+
+    public Task<UserLanguagePreferenceDto?> GetUserLanguagePreferenceAsync(long loginId, CancellationToken cancellationToken = default)
+        => _repository.GetUserLanguagePreferenceAsync(loginId, cancellationToken);
+
+    public Task<int> SaveUserLanguagePreferenceAsync(SaveUserLanguagePreferenceRequest request, CancellationToken cancellationToken = default)
+        => _repository.SaveUserLanguagePreferenceAsync(request, cancellationToken);
+
+    public Task<LocalizedDictionaryDto> GetLocalizedDictionaryAsync(long languageId, CancellationToken cancellationToken = default)
+        => _repository.GetLocalizedDictionaryAsync(languageId, cancellationToken);
 
     public Task<LoginResultDto?> GetLoginResultAsync(long loginId, long roleId, CancellationToken cancellationToken = default)
         => _repository.GetLoginResultAsync(loginId, roleId, cancellationToken);
