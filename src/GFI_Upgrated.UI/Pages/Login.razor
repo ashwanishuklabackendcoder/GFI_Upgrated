@@ -2,10 +2,11 @@
 @layout AuthLayout
 @inject AdminSecurityApiClient ApiClient
 @inject AppSessionState SessionState
+@inject LocalizationState LocalizationState
 @inject NavigationManager Navigation
 @inject IJSRuntime JSRuntime
 
-<PageTitle>Login - GFI Upgraded</PageTitle>
+<PageTitle>@LocalizationState.Text("Login.PageTitle", "Login - GFI Upgraded")</PageTitle>
 
 <div class="row authentication-inner g-0 min-vh-100">
     <div class="d-none d-lg-flex col-lg-7 p-0 auth-cover-left">
@@ -27,9 +28,9 @@
     <div class="d-flex col-12 col-lg-5 align-items-center justify-content-center p-4 p-sm-5 auth-cover-right">
         <div class="w-100 auth-form-panel">
             <div class="mb-4 text-center text-lg-start">
-                <img src="assets/img/branding/logo.png" alt="GFI Traceability System" class="auth-brand-logo mb-4" />
-                <h3 class="mb-2 fw-bold login-title">GFI Traceability System</h3>
-                <p class="mb-0 login-subtitle">Please sign in to your account.</p>
+                <img src="assets/img/branding/logo.png" alt="@LocalizationState.Text("Login.SystemTitle", "GFI Traceability System")" class="auth-brand-logo mb-4" />
+                <h3 class="mb-2 fw-bold login-title">@LocalizationState.Text("Login.SystemTitle", "GFI Traceability System")</h3>
+                <p class="mb-0 login-subtitle">@LocalizationState.Text("Login.Subtitle", "Please sign in to your account.")</p>
             </div>
 
             <div class="card shadow-lg border-0 auth-card">
@@ -39,7 +40,7 @@
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label" for="txtusername">Username</label>
+                        <label class="form-label" for="txtusername">@LocalizationState.Text("Login.Username", "Username")</label>
                         <input id="txtusername"
                                class="form-control"
                                autocomplete="username"
@@ -49,7 +50,7 @@
 
                     <div class="mb-3 form-password-toggle">
                         <div class="d-flex justify-content-between">
-                            <label class="form-label" for="password">Password</label>
+                            <label class="form-label" for="password">@LocalizationState.Text("Login.Password", "Password")</label>
                         </div>
                         <div class="input-group input-group-merge">
                             <input id="password"
@@ -67,11 +68,11 @@
                     <button type="button" class="btn btn-primary d-grid w-100" disabled="@_busy" @onclick="SubmitAsync">
                         @if (_busy)
                         {
-                            <span>Signing in...</span>
+                            <span>@LocalizationState.Text("Login.SigningIn", "Signing in...")</span>
                         }
                         else
                         {
-                            <span>Sign in</span>
+                            <span>@LocalizationState.Text("Login.SignIn", "Sign in")</span>
                         }
                     </button>
                 </div>
@@ -107,11 +108,12 @@
             var result = await ApiClient.LoginAsync(_model);
             if (result is null)
             {
-                _message = "Invalid username or password.";
+                _message = LocalizationState.Text("Login.InvalidCredentials", "Invalid username or password.");
                 return;
             }
 
             await SessionState.UpdateUserAsync(JSRuntime, result);
+            await LocalizationState.InitializeAsync(SessionState, ApiClient, JSRuntime);
             
             // Dynamic redirection based on database-assigned dashboard
             var target = !string.IsNullOrWhiteSpace(result.DashboardPath) ? result.DashboardPath : "/admin";

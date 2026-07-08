@@ -1,14 +1,15 @@
 @page "/access-denied"
 @layout AuthLayout
+@inject LocalizationState LocalizationState
 
-<PageTitle>Access Denied - GFI Upgraded</PageTitle>
+<PageTitle>@LocalizationState.Text("AccessDenied.PageTitle", "Access Denied")</PageTitle>
 
 <div class="misc-wrapper d-flex flex-column align-items-center justify-content-center min-vh-100 p-4">
     <div class="misc-content text-center mb-4">
         <h2 class="mb-2 mx-2 fw-bold" style="font-size: 3rem;">403</h2>
         <h4 class="mb-2">Access Denied! 🔐</h4>
-        <p class="mb-4 mx-2">You do not have permission to view this page. Please contact your administrator.</p>
-        <a href="/admin" class="btn btn-primary">Back to Dashboard</a>
+        <p class="mb-4 mx-2">@LocalizationState.Text("AccessDenied.Message", "You do not have permission to view this page.")</p>
+        <a href="/admin" class="btn btn-primary">@LocalizationState.Text("Common.Actions.BackToList", "Back to List")</a>
     </div>  
 @*     <div class="mt-4">
         <img src="assets/img/illustrations/page-misc-error-light.png" 

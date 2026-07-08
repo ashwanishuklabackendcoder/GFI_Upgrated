@@ -121,6 +121,42 @@ public sealed class AdminSecurityApiClient
     public async Task<int> DeleteDropDownValueAsync(long id, string? updatedBy = null, CancellationToken cancellationToken = default)
         => await DeleteEnvelopeAsync<int>($"api/admin/security/dropdown-values/{id}?updatedBy={Uri.EscapeDataString(updatedBy ?? "System")}", cancellationToken);
 
+    public async Task<IReadOnlyList<LanguageDto>> GetLanguagesAsync(CancellationToken cancellationToken = default)
+        => await GetEnvelopeAsync<IReadOnlyList<LanguageDto>>("api/admin/security/languages", cancellationToken) ?? Array.Empty<LanguageDto>();
+
+    public async Task<LanguageDto?> GetLanguageByIdAsync(long id, CancellationToken cancellationToken = default)
+        => await GetEnvelopeAsync<LanguageDto>($"api/admin/security/languages/{id}", cancellationToken);
+
+    public async Task<int> SaveLanguageAsync(SaveLanguageRequest request, CancellationToken cancellationToken = default)
+        => await PostEnvelopeAsync<SaveLanguageRequest, int>("api/admin/security/languages", request, cancellationToken);
+
+    public async Task<PagedResult<LocalizedResourceDto>> GetLocalizedResourcesAsync(LocalizedResourceListRequest request, CancellationToken cancellationToken = default)
+        => await GetEnvelopeAsync<PagedResult<LocalizedResourceDto>>(BuildQuery("api/admin/security/resources", new PagedRequest
+        {
+            CurrentPage = request.CurrentPage,
+            RecordPerPage = request.RecordPerPage,
+            SortColumn = request.SortColumn,
+            SortType = request.SortType
+        },
+            ("languageId", request.LanguageId.ToString()),
+            ("searchText", request.SearchText),
+            ("showMissingOnly", request.ShowMissingOnly.ToString())), cancellationToken) ?? new PagedResult<LocalizedResourceDto>();
+
+    public async Task<int> SaveLocalizedResourceAsync(SaveLocalizedResourceRequest request, CancellationToken cancellationToken = default)
+        => await PostEnvelopeAsync<SaveLocalizedResourceRequest, int>("api/admin/security/resources", request, cancellationToken);
+
+    public async Task<int> SyncLocalizationDefaultsAsync(CancellationToken cancellationToken = default)
+        => await PostEnvelopeAsync<object, int>("api/admin/security/resources/sync-defaults", new { }, cancellationToken);
+
+    public async Task<UserLanguagePreferenceDto?> GetUserLanguagePreferenceAsync(long loginId, CancellationToken cancellationToken = default)
+        => await GetEnvelopeAsync<UserLanguagePreferenceDto>($"api/admin/security/user-language/{loginId}", cancellationToken);
+
+    public async Task<int> SaveUserLanguagePreferenceAsync(SaveUserLanguagePreferenceRequest request, CancellationToken cancellationToken = default)
+        => await PostEnvelopeAsync<SaveUserLanguagePreferenceRequest, int>("api/admin/security/user-language", request, cancellationToken);
+
+    public async Task<LocalizedDictionaryDto?> GetLocalizedDictionaryAsync(long languageId, CancellationToken cancellationToken = default)
+        => await GetEnvelopeAsync<LocalizedDictionaryDto>($"api/admin/security/dictionary/{languageId}", cancellationToken);
+
     private async Task<T?> GetEnvelopeAsync<T>(string url, CancellationToken cancellationToken)
     {
         AddAuthHeader();

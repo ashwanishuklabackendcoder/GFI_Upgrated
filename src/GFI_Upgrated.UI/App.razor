@@ -5,6 +5,8 @@
 <MudSnackbarProvider />
 
 @inject UI.State.AppSessionState SessionState
+@inject UI.State.LocalizationState LocalizationState
+@inject AdminSecurityApiClient ApiClient
 @inject IJSRuntime JSRuntime
 
 @if (_initialized)
@@ -15,9 +17,9 @@
         <FocusOnNavigate RouteData="@routeData" Selector="main" />
     </Found>
     <NotFound>
-        <PageTitle>Not found</PageTitle>
+        <PageTitle>@LocalizationState.Text("Common.NotFound", "Not found")</PageTitle>
         <LayoutView Layout="@typeof(MainLayout)">
-            <p role="alert">Sorry, there's nothing at this address.</p>
+            <p role="alert">@LocalizationState.Text("Common.NotFound", "Sorry, there's nothing at this address.")</p>
         </LayoutView>
     </NotFound>
 </Router>
@@ -26,7 +28,7 @@ else
 {
     <div class="d-flex justify-content-center align-items-center vh-100">
         <div class="spinner-border text-primary" role="status">
-            <span class="visually-hidden">Loading...</span>
+            <span class="visually-hidden">@LocalizationState.Text("Common.Loading", "Loading...")</span>
         </div>
     </div>
 }
@@ -38,6 +40,7 @@ else
     {
         SessionState.OnChange += StateHasChanged;
         await SessionState.InitializeAsync(JSRuntime);
+        await LocalizationState.InitializeAsync(SessionState, ApiClient, JSRuntime);
         _initialized = true;
     }
 

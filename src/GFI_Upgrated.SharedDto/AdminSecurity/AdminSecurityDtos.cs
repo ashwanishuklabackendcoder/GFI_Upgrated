@@ -25,6 +25,8 @@ public sealed class LoginResultDto
     public string RoleName { get; set; } = string.Empty;
     public bool IsAdmin { get; set; }
     public string? DashboardPath { get; set; }
+    public long LanguageId { get; set; }
+    public string? CultureName { get; set; }
     public string Token { get; set; } = string.Empty;
     public IReadOnlyList<MenuDto> Menus { get; set; } = Array.Empty<MenuDto>();
 }

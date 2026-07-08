@@ -1,4 +1,3 @@
-@page "/admin/resource-editor"
 @page "/admin/import"
 @page "/admin/pre-processing"
 @page "/admin/sku"
@@ -30,7 +29,6 @@
         var path = Navigation.ToBaseRelativePath(Navigation.Uri).Trim('/');
         return path switch
         {
-            "admin/resource-editor" => "Resource Editor",
             "admin/import" => "Import",
             "admin/pre-processing" => "Pre Processing",
             "admin/sku" => "SKU",

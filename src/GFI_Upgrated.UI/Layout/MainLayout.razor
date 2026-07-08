@@ -1,6 +1,8 @@
 @inherits LayoutComponentBase
 @implements IDisposable
 @inject AppSessionState SessionState
+@inject LocalizationState LocalizationState
+@inject AdminSecurityApiClient ApiClient
 @inject IJSRuntime JSRuntime
 
 <div class="dashboard-shell @(_sidebarCollapsed ? "sidebar-collapsed" : "") @(_sidebarMobileOpen ? "sidebar-mobile-open" : "")">
@@ -14,16 +16,31 @@
 
     <div class="dashboard-content">
         <header class="dashboard-topbar">
-            <!-- Mobile Toggle Button (Visible only on mobile screens) -->
             <button type="button" class="icon-chip sidebar-toggle-btn d-lg-none" aria-label="Toggle Menu" @onclick="ToggleMobileSidebar">
                 <i class="ti ti-menu-2"></i>
             </button>
-            <!-- Desktop Toggle Button (Visible only on desktop screens) -->
             <button type="button" class="icon-chip sidebar-toggle-btn d-none d-lg-inline-flex" aria-label="Collapse Menu" @onclick="ToggleDesktopSidebar">
                 <i class="ti ti-menu-2"></i>
             </button>
             <div class="dashboard-topbar-actions" style="margin-left: auto;">
-                <button type="button" class="icon-chip" aria-label="Theme" @onclick="ToggleTheme">
+                @if (SessionState.IsLoggedIn && LocalizationState.Languages.Count > 0)
+                {
+                    <MudSelect T="long"
+                               Value="SelectedLanguageId"
+                               ValueChanged="OnLanguageChangedAsync"
+                               Label="@LocalizationState.Text("Layout.Language", "Language")"
+                               Variant="Variant.Outlined"
+                               Dense="true"
+                               Margin="Margin.Dense"
+                               Style="min-width: 180px;">
+                        @foreach (var language in LocalizationState.Languages)
+                        {
+                            <MudSelectItem T="long" Value="@language.Id">@language.DisplayName</MudSelectItem>
+                        }
+                    </MudSelect>
+                }
+
+                <button type="button" class="icon-chip" aria-label="@LocalizationState.Text("Layout.Theme", "Theme")" @onclick="ToggleTheme">
                     <i class="@(SessionState.IsDarkMode ? "ti ti-moon" : "ti ti-sun-high")"></i>
                 </button>
 
@@ -32,14 +49,14 @@
                         @(GetInitials())
                     </div>
                     <div class="user-chip-text">
-                        <span class="user-chip-name">@(SessionState.CurrentUser?.FullName ?? "Guest")</span>
-                        <span class="user-chip-role">@(SessionState.CurrentUser?.RoleName ?? "User")</span>
+                        <span class="user-chip-name">@(SessionState.CurrentUser?.FullName ?? LocalizationState.Text("Common.Guest", "Guest"))</span>
+                        <span class="user-chip-role">@(SessionState.CurrentUser?.RoleName ?? LocalizationState.Text("Common.User", "User"))</span>
                     </div>
                 </div>
 
                 @if (SessionState.IsLoggedIn)
                 {
-                    <button type="button" class="icon-chip text-danger" aria-label="Logout" @onclick="Logout" style="margin-left: 8px;">
+                    <button type="button" class="icon-chip text-danger" aria-label="@LocalizationState.Text("Layout.Logout", "Logout")" @onclick="Logout" style="margin-left: 8px;">
                         <i class="ti ti-logout"></i>
                     </button>
                 }
@@ -58,13 +75,6 @@
     private bool _sidebarCollapsed;
     private bool _sidebarMobileOpen;
 
-    private void ToggleSidebar()
-    {
-        // On mobile viewports, toggle drawer visibility. On desktop viewports, toggle collapse state.
-        _sidebarCollapsed = !_sidebarCollapsed;
-        _sidebarMobileOpen = !_sidebarMobileOpen;
-    }
-
     private void ToggleDesktopSidebar()
     {
         _sidebarCollapsed = !_sidebarCollapsed;
@@ -74,6 +84,10 @@
     {
         _sidebarMobileOpen = !_sidebarMobileOpen;
     }
+
+    private long SelectedLanguageId => LocalizationState.CurrentLanguageId > 0
+        ? LocalizationState.CurrentLanguageId
+        : SessionState.CurrentUser?.LanguageId ?? 0;
 
     private string GetInitials()
     {
@@ -99,8 +113,14 @@
 
     private async Task Logout()
     {
+        await LocalizationState.ClearAsync(JSRuntime);
         await SessionState.UpdateUserAsync(JSRuntime, null);
         Navigation.NavigateTo("/login");
+    }
+
+    private async Task OnLanguageChangedAsync(long languageId)
+    {
+        await LocalizationState.SetLanguageAsync(SessionState, ApiClient, JSRuntime, languageId);
     }
 
     private void CheckAccess(string url)
@@ -116,17 +136,14 @@
 
         var uri = new Uri(url);
         var path = uri.AbsolutePath.ToLower();
-        
-        // Allow native unprotected routes to load
-        if (path == "/" || path.Equals("/admin", StringComparison.OrdinalIgnoreCase) || path.Contains("/login", StringComparison.OrdinalIgnoreCase)) 
+
+        if (path == "/" || path.Equals("/admin", StringComparison.OrdinalIgnoreCase) || path.Contains("/login", StringComparison.OrdinalIgnoreCase))
         {
             return;
         }
 
-        // Validate actual page permission against the hardmapped DB tree
         if (!SessionState.HasPermission(path, "view"))
         {
-            // Block access to unauthorized routes, fallback to access denied page
             Navigation.NavigateTo("/access-denied");
         }
     }
@@ -134,9 +151,8 @@
     protected override void OnInitialized()
     {
         SessionState.OnChange += StateHasChanged;
+        LocalizationState.OnChange += StateHasChanged;
         Navigation.LocationChanged += OnLocationChanged;
-        
-        // Check access immediately on first load
         CheckAccess(Navigation.Uri);
     }
 
@@ -149,6 +165,7 @@
     public void Dispose()
     {
         SessionState.OnChange -= StateHasChanged;
+        LocalizationState.OnChange -= StateHasChanged;
         Navigation.LocationChanged -= OnLocationChanged;
     }
 }
