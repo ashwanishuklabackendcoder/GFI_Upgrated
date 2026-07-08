@@ -22,6 +22,8 @@
         <MudTabPanel Text="General Info" Icon="@Icons.Material.Filled.Info">
             <EditForm Model="_model" OnValidSubmit="SaveGeneralInfo">
                 <DataAnnotationsValidator />
+                <MudStack Spacing="4">
+                <MudPaper Class="pa-4" Outlined="true" Elevation="0">
                 <MudGrid>
                     <MudItem xs="12" md="6">
                         <MudTextField @bind-Value="_model.ItemName" Label="Item Name" Required="true" Variant="Variant.Outlined" For="@(() => _model.ItemName)" />
@@ -84,6 +86,8 @@
                         <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Loading="_savingGeneral">Save General Info</MudButton>
                     </MudItem>
                 </MudGrid>
+                </MudPaper>
+                </MudStack>
             </EditForm>
         </MudTabPanel>
 
