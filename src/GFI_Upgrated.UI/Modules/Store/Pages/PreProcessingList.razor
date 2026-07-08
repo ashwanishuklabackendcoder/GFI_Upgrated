@@ -49,7 +49,15 @@
             <MudTd DataLabel="BOM">@context.BomName (@context.BomQty)</MudTd>
             <MudTd DataLabel="Date">@context.ProcessingDate</MudTd>
             <MudTd DataLabel="Qty Made">@context.QuantityMade @context.UnitName</MudTd>
-            <MudTd DataLabel="Batch Number">@context.BatchNumberMade</MudTd>
+            <MudTd DataLabel="Batch Number">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                    <MudText>@context.BatchNumberMade</MudText>
+                    @if (_canUpdate)
+                    {
+                        <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Primary" OnClick="@(() => OpenBatchEditDialog(context))" />
+                    }
+                </MudStack>
+            </MudTd>
             <MudTd DataLabel="Status">
                 @if (context.IsComplete == 1)
                 {
@@ -181,6 +189,47 @@
             else
             {
                 Snackbar.Add("Failed to delete record.", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task OpenBatchEditDialog(PreProcessingDto dto)
+    {
+        var newBatchNumber = await JS.InvokeAsync<string>("prompt", "Enter new Batch Number:", dto.BatchNumberMade);
+        if (newBatchNumber == null) return;
+
+        try
+        {
+            var request = new SavePreProcessingRequest
+            {
+                PreProcessingId = dto.PreProcessingId,
+                BomId = dto.BomId,
+                BomQty = dto.BomQty,
+                ProcessingDate = DateTime.TryParse(dto.ProcessingDate, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var pd) ? pd : DateTime.Today,
+                QuantityMade = dto.QuantityMade,
+                UnitMade = dto.UnitMade,
+                BatchNumberMade = newBatchNumber,
+                ExpiryDate = DateTime.TryParse(dto.ExpiryDate, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var ed) ? ed : DateTime.Today.AddYears(1),
+                ProcessEmployees = dto.ProcessEmployees,
+                Remarks = dto.Remarks,
+                DocumentUpload = dto.DocumentUpload,
+                WarehouseId = dto.WarehouseId,
+                UpdatedBy = SessionState.CurrentUser?.LoginName ?? "System"
+            };
+
+            var result = await ApiClient.SavePreProcessingAsync(request);
+            if (result > 0)
+            {
+                Snackbar.Add("Batch number updated successfully.", Severity.Success);
+                if (_table is not null) await _table.ReloadServerData();
+            }
+            else
+            {
+                Snackbar.Add("Failed to update batch number.", Severity.Error);
             }
         }
         catch (Exception ex)

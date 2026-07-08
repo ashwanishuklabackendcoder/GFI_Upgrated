@@ -86,7 +86,31 @@ public sealed class PreProcessingRepository : IPreProcessingRepository
         };
 
         await ExecuteNonQueryAsync("W_PreProcessingModify", parameters, cancellationToken);
-        return Convert.ToInt32(parameters[^1].Value ?? 0);
+        var returnVal = Convert.ToInt32(parameters[^1].Value ?? 0);
+
+        if (returnVal > 0 && request.PreProcessingId > 0 && !string.IsNullOrEmpty(request.BatchNumberMade))
+        {
+            await using var connection = new SqlConnection(_connectionString);
+            await connection.OpenAsync(cancellationToken);
+            
+            // Update W_PreProcessing
+            await using (var cmd = new SqlCommand("UPDATE dbo.W_PreProcessing SET BatchNumberMade = @BatchNo WHERE PreProcessingId = @Id", connection))
+            {
+                cmd.Parameters.Add(new SqlParameter("@BatchNo", SqlDbType.NVarChar, 200) { Value = request.BatchNumberMade });
+                cmd.Parameters.Add(new SqlParameter("@Id", SqlDbType.BigInt) { Value = request.PreProcessingId });
+                await cmd.ExecuteNonQueryAsync(cancellationToken);
+            }
+
+            // Update Inv_ItemStockByBatch
+            await using (var cmd = new SqlCommand("UPDATE dbo.Inv_ItemStockByBatch SET BatchNo = @BatchNo WHERE IdFrom = @Id AND StockById = 2", connection))
+            {
+                cmd.Parameters.Add(new SqlParameter("@BatchNo", SqlDbType.NVarChar, 200) { Value = request.BatchNumberMade });
+                cmd.Parameters.Add(new SqlParameter("@Id", SqlDbType.BigInt) { Value = request.PreProcessingId });
+                await cmd.ExecuteNonQueryAsync(cancellationToken);
+            }
+        }
+
+        return returnVal;
     }
 
     public async Task<int> DeletePreProcessingAsync(long id, string updatedBy, CancellationToken cancellationToken = default)
