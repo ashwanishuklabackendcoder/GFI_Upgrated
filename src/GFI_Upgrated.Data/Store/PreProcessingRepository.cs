@@ -170,15 +170,78 @@ public sealed class PreProcessingRepository : IPreProcessingRepository
         try
         {
             await using var connection = new SqlConnection(_connectionString);
-            await using var command = new SqlCommand(
-                "DELETE FROM dbo.Inv_ItemStockUsed WHERE ItemStockUsedID = @ItemStockUsedID",
-                connection)
-            {
-                CommandType = CommandType.Text
-            };
-            command.Parameters.Add(new SqlParameter("@ItemStockUsedID", SqlDbType.BigInt) { Value = itemStockUsedId });
             await connection.OpenAsync(cancellationToken);
-            return await command.ExecuteNonQueryAsync(cancellationToken);
+            await using var transaction = await connection.BeginTransactionAsync(cancellationToken);
+            
+            try
+            {
+                long batchId = 0;
+                double quantity = 0;
+                long itemId = 0;
+                
+                var querySelect = @"
+                    SELECT u.ItemStockByBatchId, u.Quantity, b.ItemId 
+                    FROM dbo.Inv_ItemStockUsed u
+                    INNER JOIN dbo.Inv_ItemStockByBatch b ON u.ItemStockByBatchId = b.ItemStockByBatchId
+                    WHERE u.ItemStockUsedID = @ItemStockUsedID";
+                
+                await using (var cmdSelect = new SqlCommand(querySelect, connection, (SqlTransaction)transaction))
+                {
+                    cmdSelect.Parameters.Add(new SqlParameter("@ItemStockUsedID", SqlDbType.BigInt) { Value = itemStockUsedId });
+                    await using (var reader = await cmdSelect.ExecuteReaderAsync(cancellationToken))
+                    {
+                        if (await reader.ReadAsync(cancellationToken))
+                        {
+                            batchId = Convert.ToInt64(reader["ItemStockByBatchId"]);
+                            quantity = Convert.ToDouble(reader["Quantity"]);
+                            itemId = Convert.ToInt64(reader["ItemId"]);
+                        }
+                    }
+                }
+                
+                if (batchId > 0 && quantity > 0 && itemId > 0)
+                {
+                    var updateBatch = @"
+                        UPDATE dbo.Inv_ItemStockByBatch 
+                        SET FinalQuantityLeft = FinalQuantityLeft + @Quantity 
+                        WHERE ItemStockByBatchId = @BatchId";
+                        
+                    await using (var cmdUpdateBatch = new SqlCommand(updateBatch, connection, (SqlTransaction)transaction))
+                    {
+                        cmdUpdateBatch.Parameters.Add(new SqlParameter("@Quantity", SqlDbType.Float) { Value = quantity });
+                        cmdUpdateBatch.Parameters.Add(new SqlParameter("@BatchId", SqlDbType.BigInt) { Value = batchId });
+                        await cmdUpdateBatch.ExecuteNonQueryAsync(cancellationToken);
+                    }
+                    
+                    var updateStock = @"
+                        UPDATE dbo.W_ItemStock 
+                        SET IssuedQuantity = ISNULL(IssuedQuantity,0) - @Quantity 
+                        WHERE ItemID = @ItemID";
+                        
+                    await using (var cmdUpdateStock = new SqlCommand(updateStock, connection, (SqlTransaction)transaction))
+                    {
+                        cmdUpdateStock.Parameters.Add(new SqlParameter("@Quantity", SqlDbType.Float) { Value = quantity });
+                        cmdUpdateStock.Parameters.Add(new SqlParameter("@ItemID", SqlDbType.BigInt) { Value = itemId });
+                        await cmdUpdateStock.ExecuteNonQueryAsync(cancellationToken);
+                    }
+                }
+                
+                var deleteQuery = "DELETE FROM dbo.Inv_ItemStockUsed WHERE ItemStockUsedID = @ItemStockUsedID";
+                int rowsDeleted = 0;
+                await using (var cmdDelete = new SqlCommand(deleteQuery, connection, (SqlTransaction)transaction))
+                {
+                    cmdDelete.Parameters.Add(new SqlParameter("@ItemStockUsedID", SqlDbType.BigInt) { Value = itemStockUsedId });
+                    rowsDeleted = await cmdDelete.ExecuteNonQueryAsync(cancellationToken);
+                }
+                
+                await transaction.CommitAsync(cancellationToken);
+                return rowsDeleted;
+            }
+            catch
+            {
+                await transaction.RollbackAsync(cancellationToken);
+                throw;
+            }
         }
         catch (Exception ex)
         {
