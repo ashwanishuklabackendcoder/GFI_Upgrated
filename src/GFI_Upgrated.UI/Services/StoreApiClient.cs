@@ -449,6 +449,14 @@ public sealed class StoreApiClient
         return envelope?.Success ?? false;
     }
 
+    public async Task<bool> ToggleBomStatusAsync(long id, bool isActive, string updatedBy, CancellationToken cancellationToken = default)
+    {
+        AddAuthHeader();
+        var response = await _httpClient.PutAsync($"api/store/bom/{id}/status?isActive={isActive}&updatedBy={updatedBy}", null, cancellationToken);
+        var envelope = await response.Content.ReadFromJsonAsync<ApiEnvelope<bool>>(cancellationToken: cancellationToken);
+        return envelope?.Success ?? false;
+    }
+
     public async Task<IReadOnlyList<RawMaterialDto>> GetItemsForBomLookupAsync(int? itemTypeId, CancellationToken cancellationToken = default)
         => await GetEnvelopeAsync<IReadOnlyList<RawMaterialDto>>($"api/store/bom/items-lookup?itemTypeId={itemTypeId}", cancellationToken)
            ?? Array.Empty<RawMaterialDto>();

@@ -61,6 +61,13 @@ public class BomController : ControllerBase
         }
     }
 
+    [HttpPut("{id:long}/status")]
+    public async Task<ActionResult<ApiEnvelope<bool>>> ToggleBomStatus(long id, [FromQuery] bool isActive, [FromQuery] string updatedBy, CancellationToken cancellationToken)
+    {
+        var result = await _service.ToggleBomStatusAsync(id, isActive, updatedBy, cancellationToken);
+        return Ok(new ApiEnvelope<bool> { Success = result, Data = result });
+    }
+
     [HttpGet("items-lookup")]
     public async Task<ActionResult<ApiEnvelope<IReadOnlyList<RawMaterialDto>>>> GetItemsLookup([FromQuery] int? itemTypeId, CancellationToken cancellationToken)
     {

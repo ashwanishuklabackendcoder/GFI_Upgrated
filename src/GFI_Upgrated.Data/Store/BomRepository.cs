@@ -180,6 +180,25 @@ public sealed class BomRepository : IBomRepository
         }
     }
 
+    public async Task<bool> ToggleBomStatusAsync(long id, bool isActive, string updatedBy, CancellationToken cancellationToken = default)
+    {
+        var parameters = new[]
+        {
+            new SqlParameter("@ID", SqlDbType.VarChar, 2000) { Value = id.ToString() },
+            new SqlParameter("@OprType", SqlDbType.SmallInt) { Value = isActive ? (short)2 : (short)3 },
+            new SqlParameter("@UpdatedBy", SqlDbType.NVarChar, 200) { Value = updatedBy },
+            new SqlParameter("@Iserror", SqlDbType.Int) { Direction = ParameterDirection.Output }
+        };
+
+        try {
+            await ExecuteNonQueryAsync("W_MasterBomOperation", parameters, cancellationToken);
+            var result = Convert.ToInt32(parameters[^1].Value ?? 0);
+            return result == (isActive ? 2 : 3);
+        } catch {
+            return false;
+        }
+    }
+
     public async Task<IReadOnlyList<RawMaterialDto>> GetItemsForBomLookupAsync(int? itemTypeId = null, CancellationToken cancellationToken = default)
     {
         var parameters = new List<SqlParameter>

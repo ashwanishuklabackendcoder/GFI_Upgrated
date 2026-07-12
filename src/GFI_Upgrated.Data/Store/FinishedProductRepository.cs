@@ -137,7 +137,21 @@ public sealed class FinishedProductRepository : IFinishedProductRepository
         };
 
         await ExecuteNonQueryAsync("W_MasterItemModify", parameters, cancellationToken);
-        return Convert.ToInt32(parameters[^1].Value ?? 0);
+        var resultId = Convert.ToInt32(parameters[^1].Value ?? 0);
+
+        if (resultId > 0)
+        {
+            var opParams = new[]
+            {
+                new SqlParameter("@ID", SqlDbType.VarChar, 2000) { Value = resultId.ToString() },
+                new SqlParameter("@OprType", SqlDbType.SmallInt) { Value = request.IsActive ? (short)2 : (short)3 },
+                new SqlParameter("@UpdatedBy", SqlDbType.NVarChar, 200) { Value = request.CreatedBy ?? "System" },
+                new SqlParameter("@Iserror", SqlDbType.Int) { Direction = ParameterDirection.InputOutput }
+            };
+            await ExecuteNonQueryAsync("W_MasterItemOperation", opParams, cancellationToken);
+        }
+
+        return resultId;
     }
 
     public async Task<bool> DeleteFinishedProductAsync(long id, string deletedBy, CancellationToken cancellationToken = default)

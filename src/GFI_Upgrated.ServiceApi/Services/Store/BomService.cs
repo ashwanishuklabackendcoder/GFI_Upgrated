@@ -43,6 +43,11 @@ public sealed class BomService : IBomService
         return _repository.DeleteBomAsync(id, deletedBy, cancellationToken);
     }
 
+    public Task<bool> ToggleBomStatusAsync(long id, bool isActive, string updatedBy, CancellationToken cancellationToken = default)
+    {
+        return _repository.ToggleBomStatusAsync(id, isActive, updatedBy, cancellationToken);
+    }
+
     public Task<IReadOnlyList<RawMaterialDto>> GetItemsForBomLookupAsync(int? itemTypeId = null, CancellationToken cancellationToken = default)
     {
         return _repository.GetItemsForBomLookupAsync(itemTypeId, cancellationToken);
