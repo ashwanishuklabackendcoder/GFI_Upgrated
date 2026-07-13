@@ -137,7 +137,7 @@
         {
             _staffList = (await AdminApiClient.GetActiveStaffAsync()).ToList();
             var units = await ApiClient.GetUnitsAsync(new PagedRequest { CurrentPage = 1, RecordPerPage = 1000 });
-            _units = units.Items.ToList();
+            _units = units.Items.Where(x => x.IsActive).ToList();
             _allItems = (await ApiClient.GetItemsForBomLookupAsync(null)).ToList();
         }
         catch (Exception ex)

@@ -168,7 +168,7 @@
         {
             _vendors = (await ApiClient.GetAccountsLookupAsync()).ToList();
             var units = await ApiClient.GetUnitsAsync(new PagedRequest { CurrentPage = 1, RecordPerPage = 1000 });
-            _units = units.Items.ToList();
+            _units = units.Items.Where(x => x.IsActive).ToList();
             _allItems = (await ApiClient.GetItemsForBomLookupAsync(null)).ToList();
             
             var prs = await ApiClient.GetPurchaseRequestsAsync(null, null, null, 1, 100);
