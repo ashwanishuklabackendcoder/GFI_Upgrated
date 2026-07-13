@@ -1,11 +1,13 @@
 @page "/acc/accountgroupmasterlist"
 @using GFI_Upgrated.SharedDto.Account
 @using GFI_Upgrated.UI.Services
+@using GFI_Upgrated.UI.State
 @using MudBlazor
 @inject AccountApiClient ApiClient
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
 @inject IJSRuntime JS
+@inject AppSessionState SessionState
 
 <PageTitle>Account Groups</PageTitle>
 
@@ -28,9 +30,9 @@
         <HeaderContent>
             <MudTh><MudTableSortLabel T="AccountGroupDto" SortLabel="AccountGroupID">ID</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel T="AccountGroupDto" SortLabel="AccountGroupName">Group Name</MudTableSortLabel></MudTh>
-            <MudTh>Type</MudTh>
+            <MudTh><MudTableSortLabel T="AccountGroupDto" SortLabel="IsMainAccountGroup">Type</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel T="AccountGroupDto" SortLabel="IsActive">Status</MudTableSortLabel></MudTh>
-            <MudTh>Created By</MudTh>
+            <MudTh><MudTableSortLabel T="AccountGroupDto" SortLabel="CreatedBy">Created By</MudTableSortLabel></MudTh>
             <MudTh Style="width: 120px; text-align: center;">Action</MudTh>
         </HeaderContent>
         <RowTemplate>
@@ -49,9 +51,7 @@
                 }
             </MudTd>
             <MudTd DataLabel="Status">
-                <MudChip T="string" Color="@(context.IsActive ? Color.Success : Color.Error)" Size="Size.Small" Variant="Variant.Text">
-                    @(context.IsActive ? "Active" : "Inactive")
-                </MudChip>
+                <MudSwitch T="bool" Value="@context.IsActive" ValueChanged="@((bool val) => ToggleStatusAsync(context, val))" Color="Color.Success" UnCheckedColor="Color.Error" Disabled="!context.IsEditable" />
             </MudTd>
             <MudTd DataLabel="Created By">@context.CreatedBy</MudTd>
             <MudTd DataLabel="Action" Style="text-align: center;">
@@ -152,6 +152,30 @@
             {
                 Snackbar.Add($"Error deleting group: {ex.Message}", Severity.Error);
             }
+        }
+    }
+
+    private async Task ToggleStatusAsync(AccountGroupDto group, bool val)
+    {
+        try
+        {
+            group.IsActive = val;
+            group.CreatedBy = SessionState.CurrentUser?.LoginName ?? "System";
+            var id = await ApiClient.SaveAccountGroupAsync(group);
+            if (id > 0)
+            {
+                Snackbar.Add("Account Group status updated successfully.", Severity.Success);
+            }
+            else
+            {
+                Snackbar.Add("Failed to update Account Group status.", Severity.Error);
+                group.IsActive = !val;
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error updating status: {ex.Message}", Severity.Error);
+            group.IsActive = !val;
         }
     }
 }

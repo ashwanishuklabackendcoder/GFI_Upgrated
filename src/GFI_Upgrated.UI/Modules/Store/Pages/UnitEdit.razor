@@ -26,7 +26,7 @@
                 <MudTextField @bind-Value="_editor.UnitName" Label="Unit Name" Variant="Variant.Outlined" For="@(() => _editor.UnitName)" />
             </MudItem>
             <MudItem xs="12" md="6">
-                <MudNumericField @bind-Value="_editor.ConversionValue" Label="Conversion Value"  Variant="Variant.Outlined" For="@(() => _editor.ConversionValue)" HideSpinButtons="true" Min="1" />
+                <MudNumericField @bind-Value="_editor.ConversionValue" Label="Conversion Value" Variant="Variant.Outlined" For="@(() => _editor.ConversionValue)" HideSpinButtons="true" Step="0.000001" />
             </MudItem>
             <MudItem xs="12" md="6">
                 <MudSelect T="long?" @bind-Value="_editor.BaseUnit" Label="Base Unit" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter" Clearable="true">

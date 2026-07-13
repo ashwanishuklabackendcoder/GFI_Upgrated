@@ -6,6 +6,7 @@
 @inject ISnackbar Snackbar
 @inject NavigationManager Navigation
 @inject AppSessionState SessionState
+@inject IJSRuntime JS
 
 <PageTitle>Goods Receipts (Purchase)</PageTitle>
 
@@ -123,6 +124,26 @@
 
     private async Task OnDelete(PurchaseDto item)
     {
-        Snackbar.Add("Deletion not implemented for GRN.", Severity.Info);
+        var confirmed = await JS.InvokeAsync<bool>("confirm", $"Are you sure you want to delete Goods Receipt (Voucher: {item.VoucherNumber})?");
+        if (!confirmed) return;
+
+        try
+        {
+            var user = SessionState.CurrentUser?.LoginName ?? "System";
+            var success = await ApiClient.DeletePurchasesAsync(item.PurchaseID.ToString(), user);
+            if (success)
+            {
+                Snackbar.Add("Goods Receipt deleted successfully.", Severity.Success);
+                if (_table is not null) await _table.ReloadServerData();
+            }
+            else
+            {
+                Snackbar.Add("Failed to delete Goods Receipt.", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error deleting Goods Receipt: {ex.Message}", Severity.Error);
+        }
     }
 }

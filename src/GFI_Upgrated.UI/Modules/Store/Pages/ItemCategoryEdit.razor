@@ -27,7 +27,7 @@
             </MudItem>
             
             <MudItem xs="12" md="6">
-                <MudSelect T="long?" Label="Parent Category" @bind-Value="_editor.MainCategoryId" Variant="Variant.Outlined" Clearable="true" Placeholder="Select Main Category (Optional)" Disabled="_editor.IsMainCategory">
+                <MudSelect T="long?" Label="Parent Category" @bind-Value="_editor.MainCategoryId" Variant="Variant.Outlined" Clearable="true" Placeholder="Select Main Category (Optional)" Disabled="_editor.IsMainCategory" For="@(() => _editor.MainCategoryId)">
                     @foreach (var cat in _parents)
                     {
                         <MudSelectItem T="long?" Value="@cat.ItemCatId">@cat.ItemCatName</MudSelectItem>

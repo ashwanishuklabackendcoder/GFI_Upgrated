@@ -41,10 +41,10 @@
         <HeaderContent>
             <MudTh><MudTableSortLabel SortLabel="BomName" T="BomDto">BOM Name</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel SortLabel="ItemName" T="BomDto">Parent Product</MudTableSortLabel></MudTh>
-            <MudTh Style="text-align: right;">Yield Qty</MudTh>
-            <MudTh>Unit</MudTh>
-            <MudTh Style="text-align: right;">Extra Expenses</MudTh>
-            <MudTh Style="text-align: center;">Status</MudTh>
+            <MudTh Style="text-align: right;"><MudTableSortLabel SortLabel="Quantity" T="BomDto">Yield Qty</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel SortLabel="UnitId" T="BomDto">Unit</MudTableSortLabel></MudTh>
+            <MudTh Style="text-align: right;"><MudTableSortLabel SortLabel="ExtraExpensesPerPiece" T="BomDto">Extra Expenses</MudTableSortLabel></MudTh>
+            <MudTh Style="text-align: center;"><MudTableSortLabel SortLabel="IsActive" T="BomDto">Status</MudTableSortLabel></MudTh>
             <MudTh Style="text-align: center; width: 120px;">Action</MudTh>
         </HeaderContent>
         <RowTemplate>
@@ -54,9 +54,7 @@
             <MudTd DataLabel="Unit">@context.UnitName</MudTd>
             <MudTd DataLabel="Expenses" Style="text-align: right;">@context.ExtraExpensesPerPiece.ToString("N2")</MudTd>
             <MudTd DataLabel="Status" Style="text-align: center;">
-                <MudChip T="string" Color="@(context.IsActive ? Color.Success : Color.Error)" Size="Size.Small">
-                    @(context.IsActive ? "Active" : "Inactive")
-                </MudChip>
+                <MudSwitch T="bool" Value="@context.IsActive" ValueChanged="@((bool val) => ToggleStatusAsync(context, val))" Color="Color.Success" UnCheckedColor="Color.Error" Disabled="!_canUpdate" />
             </MudTd>
             <MudTd DataLabel="Action" Style="text-align: center;">
                 <MudStack Row="true" Justify="Justify.Center" Spacing="1">
@@ -170,6 +168,27 @@
         catch (Exception ex)
         {
             Snackbar.Add($"Error deleting BOM: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task ToggleStatusAsync(BomDto item, bool val)
+    {
+        try
+        {
+            var success = await ApiClient.ToggleBomStatusAsync(item.BomId, val, SessionState.CurrentUser?.LoginName ?? "System");
+            if (success)
+            {
+                item.IsActive = val;
+                Snackbar.Add("BOM status updated successfully.", Severity.Success);
+            }
+            else
+            {
+                Snackbar.Add("Failed to update BOM status.", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error updating BOM status: {ex.Message}", Severity.Error);
         }
     }
 }

@@ -15,7 +15,7 @@ public sealed class ItemCategoryDto
     public DateTime CreatedDate { get; set; }
 }
 
-public sealed class SaveItemCategoryRequest
+public sealed class SaveItemCategoryRequest : IValidatableObject
 {
     public long ItemCatId { get; set; }
 
@@ -27,6 +27,14 @@ public sealed class SaveItemCategoryRequest
     public long? MainCategoryId { get; set; }
     public bool IsActive { get; set; } = true;
     public string UpdatedBy { get; set; } = "System";
+
+    public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+    {
+        if (!IsMainCategory && !MainCategoryId.HasValue)
+        {
+            yield return new ValidationResult("Parent category is required when 'Is Main Category' is unchecked.", new[] { nameof(MainCategoryId) });
+        }
+    }
 }
 
 public sealed class ParentCategoryLookupDto

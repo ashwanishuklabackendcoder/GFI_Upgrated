@@ -36,9 +36,9 @@
     <MudTable RowsPerPage="25" T="ItemCategoryDto" @ref="_table" ServerData="LoadServerDataAsync" Hover="true" Dense="true" Striped="true" Bordered="true" Breakpoint="Breakpoint.Sm">
         <HeaderContent>
             <MudTh><MudTableSortLabel T="ItemCategoryDto" SortLabel="ItemCatName">Category Name</MudTableSortLabel></MudTh>
-            <MudTh>Type</MudTh>
-            <MudTh>Parent Category</MudTh>
-            <MudTh Style="width: 100px; text-align: center;">Status</MudTh>
+            <MudTh><MudTableSortLabel T="ItemCategoryDto" SortLabel="IsMainCategory">Type</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel T="ItemCategoryDto" SortLabel="MainCategoryID">Parent Category</MudTableSortLabel></MudTh>
+            <MudTh Style="width: 100px; text-align: center;"><MudTableSortLabel T="ItemCategoryDto" SortLabel="IsActive">Status</MudTableSortLabel></MudTh>
             <MudTh Style="width: 120px; text-align: center;">Action</MudTh>
         </HeaderContent>
         <RowTemplate>
@@ -50,9 +50,7 @@
             </MudTd>
             <MudTd DataLabel="Parent Category">@(context.ParentItemCatName ?? "-")</MudTd>
             <MudTd DataLabel="Status" Style="text-align: center;">
-                <MudChip T="string" Color="@(context.IsActive ? Color.Success : Color.Error)" Size="Size.Small" Variant="Variant.Text">
-                    @(context.IsActive ? "Active" : "Inactive")
-                </MudChip>
+                <MudSwitch T="bool" Value="@context.IsActive" ValueChanged="@((bool val) => ToggleStatusAsync(context, val))" Color="Color.Success" UnCheckedColor="Color.Error" Disabled="!_canUpdate" />
             </MudTd>
             <MudTd DataLabel="Action" Style="text-align: center;">
                 <MudStack Row="true" Spacing="1" Justify="Justify.Center" AlignItems="AlignItems.Center">
@@ -165,6 +163,36 @@
             {
                 Snackbar.Add(message, Severity.Error);
             }
+        }
+    }
+
+    private async Task ToggleStatusAsync(ItemCategoryDto cat, bool val)
+    {
+        try
+        {
+            var request = new SaveItemCategoryRequest
+            {
+                ItemCatId = cat.ItemCatId,
+                ItemCatName = cat.ItemCatName,
+                IsMainCategory = cat.IsMainCategory,
+                MainCategoryId = cat.MainCategoryId,
+                IsActive = val,
+                UpdatedBy = SessionState.CurrentUser?.LoginName ?? "System"
+            };
+            var result = await ApiClient.SaveItemCategoryAsync(request);
+            if (result > 0)
+            {
+                cat.IsActive = val;
+                Snackbar.Add("Category status updated successfully.", Severity.Success);
+            }
+            else
+            {
+                Snackbar.Add("Failed to update Category status.", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error updating Category status: {ex.Message}", Severity.Error);
         }
     }
 }

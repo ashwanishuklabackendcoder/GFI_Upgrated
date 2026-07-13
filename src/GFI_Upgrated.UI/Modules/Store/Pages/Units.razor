@@ -33,7 +33,7 @@
         <HeaderContent>
             <MudTh><MudTableSortLabel T="UnitDto" SortLabel="UnitName">Unit Name</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel T="UnitDto" SortLabel="ConversionValue">Conversion</MudTableSortLabel></MudTh>
-            <MudTh>Base Unit</MudTh>
+            <MudTh><MudTableSortLabel T="UnitDto" SortLabel="BaseUnit">Base Unit</MudTableSortLabel></MudTh>
             <MudTh Style="text-align: center;"><MudTableSortLabel T="UnitDto" SortLabel="IsActive">Status</MudTableSortLabel></MudTh>
             <MudTh Style="width: 120px; text-align: center;">Action</MudTh>
         </HeaderContent>
@@ -42,9 +42,7 @@
             <MudTd DataLabel="Conversion">@(context.ConversionValue?.ToString() ?? "-")</MudTd>
             <MudTd DataLabel="Base Unit">@(context.BaseName ?? "-")</MudTd>
             <MudTd DataLabel="Status" Style="text-align: center;">
-                <MudChip T="string" Color="@(context.IsActive ? Color.Success : Color.Error)" Size="Size.Small" Variant="Variant.Text">
-                    @(context.IsActive ? "Active" : "Inactive")
-                </MudChip>
+                <MudSwitch T="bool" Value="@context.IsActive" ValueChanged="@((bool val) => ToggleStatusAsync(context, val))" Color="Color.Success" UnCheckedColor="Color.Error" Disabled="!_canUpdate" />
             </MudTd>
             <MudTd DataLabel="Action" Style="text-align: center;">
                 <MudStack Row="true" Spacing="1" Justify="Justify.Center" AlignItems="AlignItems.Center">
@@ -156,6 +154,36 @@
             {
                 Snackbar.Add($"Error: {ex.Message}", Severity.Error);
             }
+        }
+    }
+
+    private async Task ToggleStatusAsync(UnitDto unit, bool val)
+    {
+        try
+        {
+            var request = new SaveUnitRequest
+            {
+                UnitId = unit.UnitId,
+                UnitName = unit.UnitName,
+                ConversionValue = unit.ConversionValue,
+                BaseUnit = unit.BaseUnit,
+                IsActive = val,
+                UpdatedBy = SessionState.CurrentUser?.LoginName ?? "System"
+            };
+            var result = await ApiClient.SaveUnitAsync(request);
+            if (result > 0)
+            {
+                unit.IsActive = val;
+                Snackbar.Add("Unit status updated successfully.", Severity.Success);
+            }
+            else
+            {
+                Snackbar.Add("Failed to update Unit status.", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error updating Unit status: {ex.Message}", Severity.Error);
         }
     }
 }

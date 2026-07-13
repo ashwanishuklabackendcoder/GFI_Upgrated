@@ -86,8 +86,8 @@ public sealed class StatusRepository : IStatusRepository
         await ExecuteNonQueryAsync("W_MasterStatusModify", parameters, cancellationToken);
         var resultId = Convert.ToInt32(parameters[^1].Value ?? 0);
 
-        // If it's an update and result is successful, ensure IsActive is updated via the Operation SP
-        // because W_MasterStatusModify update statement ignores IsActive.
+        // If it's an update and result is successful, ensure IsActive and StatusOf are updated
+        // because W_MasterStatusModify update statement ignores IsActive and StatusOf.
         if (request.StatusId > 0 && resultId > 0)
         {
             var opParams = new[]
@@ -98,6 +98,13 @@ public sealed class StatusRepository : IStatusRepository
                 new SqlParameter("@Iserror", SqlDbType.Int) { Direction = ParameterDirection.InputOutput }
             };
             await ExecuteNonQueryAsync("W_MasterStatusOperation", opParams, cancellationToken);
+
+            var rawParams = new[]
+            {
+                new SqlParameter("@StatusOf", SqlDbType.Int) { Value = request.StatusOf },
+                new SqlParameter("@StatusID", SqlDbType.BigInt) { Value = request.StatusId }
+            };
+            await ExecuteNonQueryRawAsync("UPDATE W_MasterStatus SET StatusOf = @StatusOf WHERE StatusID = @StatusID", rawParams, cancellationToken);
         }
 
         return resultId;
@@ -157,6 +164,23 @@ public sealed class StatusRepository : IStatusRepository
         await using var command = new SqlCommand(storedProcedure, connection)
         {
             CommandType = CommandType.StoredProcedure
+        };
+
+        foreach (var parameter in parameters)
+        {
+            command.Parameters.Add(parameter);
+        }
+
+        await connection.OpenAsync(cancellationToken);
+        return await command.ExecuteNonQueryAsync(cancellationToken);
+    }
+
+    private async Task<int> ExecuteNonQueryRawAsync(string sql, IEnumerable<SqlParameter> parameters, CancellationToken cancellationToken)
+    {
+        await using var connection = new SqlConnection(_connectionString);
+        await using var command = new SqlCommand(sql, connection)
+        {
+            CommandType = CommandType.Text
         };
 
         foreach (var parameter in parameters)

@@ -31,20 +31,20 @@
     <MudTable RowsPerPage="25" T="SkuDto" @ref="_table" ServerData="LoadServerDataAsync" Hover="true" Dense="true" Striped="true" Bordered="true" Breakpoint="Breakpoint.Sm">
         <HeaderContent>
             <MudTh><MudTableSortLabel T="SkuDto" SortLabel="SkuName">SKU Name</MudTableSortLabel></MudTh>
-            <MudTh>Unit</MudTh>
+            <MudTh><MudTableSortLabel T="SkuDto" SortLabel="UnitId">Unit</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel T="SkuDto" SortLabel="Quantity">Quantity</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel T="SkuDto" SortLabel="QuantityPerColli">Qty Per Colli</MudTableSortLabel></MudTh>
             <MudTh Style="text-align: center;"><MudTableSortLabel T="SkuDto" SortLabel="IsActive">Status</MudTableSortLabel></MudTh>
-            <MudTh>Remarks</MudTh>
+            <MudTh><MudTableSortLabel T="SkuDto" SortLabel="Remarks">Remarks</MudTableSortLabel></MudTh>
             <MudTh Style="width: 120px; text-align: center;">Action</MudTh>
         </HeaderContent>
         <RowTemplate>
             <MudTd DataLabel="SKU Name">@context.SkuName</MudTd>
             <MudTd DataLabel="Unit">@context.UnitName</MudTd>
             <MudTd DataLabel="Quantity">@context.Quantity</MudTd>
+            <MudTd DataLabel="Qty Per Colli">@context.QuantityPerColli</MudTd>
             <MudTd DataLabel="Status" Style="text-align: center;">
-                <MudChip T="string" Color="@(context.IsActive ? Color.Success : Color.Error)" Size="Size.Small" Variant="Variant.Text">
-                    @(context.IsActive ? "Active" : "Inactive")
-                </MudChip>
+                <MudSwitch T="bool" Value="@context.IsActive" ValueChanged="@((bool val) => ToggleStatusAsync(context, val))" Color="Color.Success" UnCheckedColor="Color.Error" Disabled="!_canUpdate" />
             </MudTd>
             <MudTd DataLabel="Remarks">@context.Remarks</MudTd>
             <MudTd DataLabel="Action" Style="text-align: center;">
@@ -125,6 +125,38 @@
     private void OnAdd() => NavigationManager.NavigateTo("/store/w_masterskuaddlist/new");
 
     private void OnEdit(SkuDto sku) => NavigationManager.NavigateTo($"/store/w_masterskuaddlist/edit/{sku.SkuId}");
+
+    private async Task ToggleStatusAsync(SkuDto sku, bool val)
+    {
+        try
+        {
+            var request = new SaveSkuRequest
+            {
+                SkuId = sku.SkuId,
+                SkuName = sku.SkuName,
+                UnitId = sku.UnitId,
+                Quantity = sku.Quantity,
+                QuantityPerColli = sku.QuantityPerColli,
+                IsActive = val,
+                Remarks = sku.Remarks,
+                UpdatedBy = SessionState.CurrentUser?.LoginName ?? "System"
+            };
+            var result = await ApiClient.SaveSkuAsync(request);
+            if (result > 0)
+            {
+                sku.IsActive = val;
+                Snackbar.Add("SKU status updated successfully.", Severity.Success);
+            }
+            else
+            {
+                Snackbar.Add("Failed to update SKU status.", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error updating SKU status: {ex.Message}", Severity.Error);
+        }
+    }
 
     private async Task OnDelete(SkuDto sku)
     {
