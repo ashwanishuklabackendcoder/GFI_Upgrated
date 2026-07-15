@@ -28,8 +28,8 @@
         }
     </MudStack>
 
-    <MudStack Row="true" AlignItems="AlignItems.End" Spacing="2" Class="mb-4">
-        <MudTextField @bind-Value="_search" Label="Search statuses" Variant="Variant.Outlined" Immediate="true" Clearable="true" OnClearButtonClick="SearchAsync" Class="flex-grow-1" />
+    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-4">
+        <MudTextField @bind-Value="_search" Label="Search statuses" Variant="Variant.Outlined" Immediate="true" Clearable="true" OnClearButtonClick="SearchAsync" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" />
         <MudButton Variant="Variant.Outlined" OnClick="SearchAsync">Search</MudButton>
     </MudStack>
 

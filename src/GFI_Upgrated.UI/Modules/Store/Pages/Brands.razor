@@ -26,8 +26,9 @@
         }
     </MudStack>
 
-    <MudStack Row="true" AlignItems="AlignItems.End" Spacing="2" Class="mb-4">
-        <MudTextField @bind-Value="_search" Label="@LocalizationState.Text("Store.Brands.List.SearchLabel", "Search brands")" Variant="Variant.Outlined" Immediate="true" Clearable="true" OnClearButtonClick="SearchAsync" Class="flex-grow-1" />
+    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-4">
+        <MudTextField @bind-Value="_search" Label="@LocalizationState.Text("Store.Brands.List.SearchLabel", "Search brands")" Variant="Variant.Outlined" 
+        Immediate="true" Clearable="true" OnClearButtonClick="SearchAsync" Class="flex-grow-1" />
         <MudButton Variant="Variant.Outlined" OnClick="SearchAsync">@LocalizationState.Text("Common.Actions.Search", "Search")</MudButton>
     </MudStack>
 

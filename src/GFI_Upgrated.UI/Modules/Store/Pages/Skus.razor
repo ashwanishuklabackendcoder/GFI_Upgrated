@@ -23,9 +23,11 @@
         }
     </MudStack>
 
-    <MudStack Row="true" AlignItems="AlignItems.End" Spacing="2" Class="mb-4">
-        <MudTextField @bind-Value="_searchText" Label="Search SKUs" Variant="Variant.Outlined" Immediate="true" Class="flex-grow-1" />
-        <MudButton Variant="Variant.Outlined" OnClick="OnSearch" Style="margin-top:-5px;">Search</MudButton>
+    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-4">
+        
+        <MudTextField @bind-Value="_searchText" Label="Search SKUs" Variant="Variant.Outlined" Immediate="true" Clearable="true" 
+OnClearButtonClick="OnSearch" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" />
+        <MudButton Variant="Variant.Outlined" OnClick="OnSearch">Search</MudButton>
     </MudStack>
 
     <MudTable RowsPerPage="25" T="SkuDto" @ref="_table" ServerData="LoadServerDataAsync" Hover="true" Dense="true" Striped="true" Bordered="true" Breakpoint="Breakpoint.Sm">
