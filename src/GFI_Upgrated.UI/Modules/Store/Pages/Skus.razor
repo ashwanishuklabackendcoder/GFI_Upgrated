@@ -12,8 +12,8 @@
 <MudPaper Class="pa-4">
     <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
         <MudStack Spacing="0">
-            <MudText Typo="Typo.h5">SKUs</MudText>
-            <MudText Typo="Typo.body2" Color="Color.Secondary">Manage product SKUs and their configurations.</MudText>
+            <MudText Typo="Typo.h5">SKU</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">Manage product SKU and their configuration</MudText>
         </MudStack>
         @if (_canInsert)
         {
@@ -25,15 +25,15 @@
 
     <MudStack Row="true" AlignItems="AlignItems.End" Spacing="2" Class="mb-4">
         <MudTextField @bind-Value="_searchText" Label="Search SKUs" Variant="Variant.Outlined" Immediate="true" Class="flex-grow-1" />
-        <MudButton Variant="Variant.Outlined" OnClick="OnSearch">Search</MudButton>
+        <MudButton Variant="Variant.Outlined" OnClick="OnSearch" Style="margin-top:-5px;">Search</MudButton>
     </MudStack>
 
     <MudTable RowsPerPage="25" T="SkuDto" @ref="_table" ServerData="LoadServerDataAsync" Hover="true" Dense="true" Striped="true" Bordered="true" Breakpoint="Breakpoint.Sm">
         <HeaderContent>
             <MudTh><MudTableSortLabel T="SkuDto" SortLabel="SkuName">SKU Name</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel T="SkuDto" SortLabel="UnitId">Unit</MudTableSortLabel></MudTh>
-            <MudTh><MudTableSortLabel T="SkuDto" SortLabel="Quantity">Quantity</MudTableSortLabel></MudTh>
-            <MudTh><MudTableSortLabel T="SkuDto" SortLabel="QuantityPerColli">Qty Per Colli</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel T="SkuDto" SortLabel="Quantity">Content</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel T="SkuDto" SortLabel="QuantityPerColli">Qty. Per Colli</MudTableSortLabel></MudTh>
             <MudTh Style="text-align: center;"><MudTableSortLabel T="SkuDto" SortLabel="IsActive">Status</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel T="SkuDto" SortLabel="Remarks">Remarks</MudTableSortLabel></MudTh>
             <MudTh Style="width: 120px; text-align: center;">Action</MudTh>

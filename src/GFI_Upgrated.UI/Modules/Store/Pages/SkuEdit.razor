@@ -12,7 +12,7 @@
     <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
         <MudStack Spacing="0">
             <MudText Typo="Typo.h5">@(_isEdit ? "Edit SKU" : "Add New SKU")</MudText>
-            <MudText Typo="Typo.body2" Color="Color.Secondary">Enter SKU details below.</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">Enter SKU details below</MudText>
         </MudStack>
         <MudIconButton Icon="@Icons.Material.Filled.Close" OnClick="OnCancel" />
     </MudStack>
@@ -33,10 +33,10 @@
                     </MudSelect>
                 </MudItem>
                 <MudItem xs="12" md="3">
-                    <MudNumericField @bind-Value="_editor.Quantity" Label="Quantity" Variant="Variant.Outlined" For="@(() => _editor.Quantity)" />
+                    <MudNumericField @bind-Value="_editor.Quantity" Label="Content" Variant="Variant.Outlined" For="@(() => _editor.Quantity)" />
                 </MudItem>
                 <MudItem xs="12" md="3">
-                    <MudNumericField @bind-Value="_editor.QuantityPerColli" Label="Qty Per Colli" Variant="Variant.Outlined" For="@(() => _editor.QuantityPerColli)" />
+                    <MudNumericField @bind-Value="_editor.QuantityPerColli" Label="Qty. Per Colli" Variant="Variant.Outlined" For="@(() => _editor.QuantityPerColli)" />
                 </MudItem>
                 <MudItem xs="12">
                     <MudTextField @bind-Value="_editor.Remarks" Label="Remarks" Variant="Variant.Outlined" Lines="3" For="@(() => _editor.Remarks)" />
