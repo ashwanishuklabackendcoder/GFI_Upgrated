@@ -148,7 +148,7 @@
         try
         {
             var units = await ApiClient.GetUnitsAsync(new PagedRequest { CurrentPage = 1, RecordPerPage = 1000 });
-            _units = units.Items.ToList();
+            _units = units.Items.Where(x => x.IsActive).ToList();
 
             // Load parent products based on the selected BOM type
             if (_model.ItemTypeId > 0)

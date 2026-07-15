@@ -6,6 +6,7 @@
 @inject ISnackbar Snackbar
 @inject NavigationManager Navigation
 @inject AppSessionState SessionState
+@inject IJSRuntime JS
 
 <PageTitle>Purchase Orders</PageTitle>
 
@@ -138,6 +139,26 @@
 
     private async Task OnDelete(PurchaseOrderDto item)
     {
-        Snackbar.Add("Deletion not implemented for PO.", Severity.Info);
+        var confirmed = await JS.InvokeAsync<bool>("confirm", $"Are you sure you want to delete Purchase Order (Order #: {item.VoucherNumber})?");
+        if (!confirmed) return;
+
+        try
+        {
+            var user = SessionState.CurrentUser?.LoginName ?? "System";
+            var success = await ApiClient.DeletePurchaseOrdersAsync(item.PurchaseOrderID.ToString(), user);
+            if (success)
+            {
+                Snackbar.Add("Purchase Order deleted successfully.", Severity.Success);
+                if (_table is not null) await _table.ReloadServerData();
+            }
+            else
+            {
+                Snackbar.Add("Failed to delete Purchase Order.", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error deleting Purchase Order: {ex.Message}", Severity.Error);
+        }
     }
 }

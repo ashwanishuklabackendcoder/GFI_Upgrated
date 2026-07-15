@@ -6,6 +6,7 @@
 @inject ISnackbar Snackbar
 @inject NavigationManager Navigation
 @inject AppSessionState SessionState
+@inject IJSRuntime JS
 
 <PageTitle>Purchase Requests</PageTitle>
 
@@ -138,6 +139,26 @@
 
     private async Task OnDelete(PurchaseRequestDto item)
     {
-        Snackbar.Add("Deleting items is not yet implemented for PR.", Severity.Info);
+        var confirmed = await JS.InvokeAsync<bool>("confirm", $"Are you sure you want to delete Purchase Request (Request #: {item.RequestNumber})?");
+        if (!confirmed) return;
+
+        try
+        {
+            var user = SessionState.CurrentUser?.LoginName ?? "System";
+            var success = await ApiClient.DeletePurchaseRequestsAsync(item.PurchaseRequestMasterID.ToString(), user);
+            if (success)
+            {
+                Snackbar.Add("Purchase Request deleted successfully.", Severity.Success);
+                if (_table is not null) await _table.ReloadServerData();
+            }
+            else
+            {
+                Snackbar.Add("Failed to delete Purchase Request.", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error deleting Purchase Request: {ex.Message}", Severity.Error);
+        }
     }
 }

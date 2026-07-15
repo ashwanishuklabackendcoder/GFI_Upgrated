@@ -299,16 +299,16 @@
         try
         {
             var cats = await ApiClient.GetItemCategoriesAsync(new PagedRequest { CurrentPage = 1, RecordPerPage = 1000 });
-            _categories = cats.Items.ToList();
+            _categories = cats.Items.Where(x => x.IsActive).ToList();
 
             var units = await ApiClient.GetUnitsAsync(new PagedRequest { CurrentPage = 1, RecordPerPage = 1000 });
-            _units = units.Items.ToList();
+            _units = units.Items.Where(x => x.IsActive).ToList();
 
             var brands = await ApiClient.GetBrandsAsync(new PagedRequest { CurrentPage = 1, RecordPerPage = 1000 });
-            _brands = brands.Items.ToList();
+            _brands = brands.Items.Where(x => x.IsActive).ToList();
 
             var statuses = await ApiClient.GetStatusesAsync(new PagedRequest { CurrentPage = 1, RecordPerPage = 1000 });
-            _statuses = statuses.Items.ToList();
+            _statuses = statuses.Items.Where(x => x.IsActive).ToList();
 
             _accounts = (await ApiClient.GetAccountsLookupAsync()).ToList();
             _warehouses = (await ApiClient.GetWarehousesLookupAsync()).ToList();

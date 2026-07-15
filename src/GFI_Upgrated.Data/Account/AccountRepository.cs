@@ -76,13 +76,14 @@ namespace GFI_Upgrated.Data.Account
         {
             var parameters = new[]
             {
-                new SqlParameter("@IDs", ids),
-                new SqlParameter("@Operation", "DELETE"),
-                new SqlParameter("@ReturnVal", SqlDbType.Int) { Direction = ParameterDirection.Output }
+                new SqlParameter("@ID", SqlDbType.VarChar, 2000) { Value = ids },
+                new SqlParameter("@OprType", SqlDbType.SmallInt) { Value = 1 },
+                new SqlParameter("@UpdatedBy", SqlDbType.NVarChar) { Value = "System" },
+                new SqlParameter("@Iserror", SqlDbType.Int) { Direction = ParameterDirection.Output }
             };
 
             await ExecuteNonQueryAsync("A_MasterCurrencyOperation", parameters);
-            return Convert.ToInt32(parameters[^1].Value ?? 0) > 0;
+            return Convert.ToInt32(parameters[^1].Value ?? 0) == 1;
         }
 
         #endregion

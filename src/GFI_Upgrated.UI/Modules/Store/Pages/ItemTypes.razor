@@ -36,9 +36,9 @@
     <MudTable RowsPerPage="25" T="ItemTypeDto" @ref="_table" ServerData="LoadServerDataAsync" Hover="true" Dense="true" Striped="true" Bordered="true" Breakpoint="Breakpoint.Sm">
         <HeaderContent>
             <MudTh><MudTableSortLabel T="ItemTypeDto" SortLabel="ItemTypeName">Type Name</MudTableSortLabel></MudTh>
-            <MudTh>Type</MudTh>
-            <MudTh>Parent Type</MudTh>
-            <MudTh Style="width: 100px; text-align: center;">Status</MudTh>
+            <MudTh><MudTableSortLabel T="ItemTypeDto" SortLabel="IsMainType">Type</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel T="ItemTypeDto" SortLabel="MainTypeID">Parent Type</MudTableSortLabel></MudTh>
+            <MudTh Style="width: 100px; text-align: center;"><MudTableSortLabel T="ItemTypeDto" SortLabel="IsActive">Status</MudTableSortLabel></MudTh>
             <MudTh Style="width: 120px; text-align: center;">Action</MudTh>
         </HeaderContent>
         <RowTemplate>
@@ -50,9 +50,7 @@
             </MudTd>
             <MudTd DataLabel="Parent Type">@(context.ParentItemTypeName ?? "-")</MudTd>
             <MudTd DataLabel="Status" Style="text-align: center;">
-                <MudChip T="string" Color="@(context.IsActive ? Color.Success : Color.Error)" Size="Size.Small" Variant="Variant.Text">
-                    @(context.IsActive ? "Active" : "Inactive")
-                </MudChip>
+                <MudSwitch T="bool" Value="@context.IsActive" ValueChanged="@((bool val) => ToggleStatusAsync(context, val))" Color="Color.Success" UnCheckedColor="Color.Error" Disabled="!_canUpdate" />
             </MudTd>
             <MudTd DataLabel="Action" Style="text-align: center;">
                 <MudStack Row="true" Spacing="1" Justify="Justify.Center" AlignItems="AlignItems.Center">
@@ -156,6 +154,36 @@
         catch (Exception ex)
         {
             Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task ToggleStatusAsync(ItemTypeDto type, bool val)
+    {
+        try
+        {
+            var request = new SaveItemTypeRequest
+            {
+                ItemTypeId = type.ItemTypeId,
+                ItemTypeName = type.ItemTypeName,
+                IsMainType = type.IsMainType,
+                MainTypeId = type.MainTypeId,
+                IsActive = val,
+                UpdatedBy = SessionState.CurrentUser?.LoginName ?? "System"
+            };
+            var result = await ApiClient.SaveItemTypeAsync(request);
+            if (result > 0)
+            {
+                type.IsActive = val;
+                Snackbar.Add("Type status updated successfully.", Severity.Success);
+            }
+            else
+            {
+                Snackbar.Add("Failed to update Type status.", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error updating Type status: {ex.Message}", Severity.Error);
         }
     }
 }

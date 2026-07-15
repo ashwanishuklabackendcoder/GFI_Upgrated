@@ -143,7 +143,16 @@
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+            var userFriendlyMsg = "Error: Failed to delete warehouse.";
+            if (ex.Message.Contains("REFERENCE constraint", StringComparison.OrdinalIgnoreCase) || ex.Message.Contains("conflicted with the REFERENCE constraint", StringComparison.OrdinalIgnoreCase))
+            {
+                userFriendlyMsg = "Cannot delete this warehouse because it is currently linked to active item stocks or batches.";
+            }
+            else
+            {
+                userFriendlyMsg = $"Error: {ex.Message}";
+            }
+            Snackbar.Add(userFriendlyMsg, Severity.Error);
         }
     }
 }

@@ -21,6 +21,16 @@ public sealed class BomRepository : IBomRepository
 
     public async Task<PagedResult<BomDto>> GetBomsAsync(BomListRequest request, CancellationToken cancellationToken = default)
     {
+        var sortColumn = request.SortColumn ?? "BomId";
+        var ambiguousColumns = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "IsActive", "ItemId", "CreatedDate", "CreatedBy", "BomId", "UnitId"
+        };
+        if (ambiguousColumns.Contains(sortColumn))
+        {
+            sortColumn = "W_MasterBom." + sortColumn;
+        }
+
         var parameters = new List<SqlParameter>
         {
             new SqlParameter("@BomId", SqlDbType.BigInt) { Value = 0 },
@@ -29,7 +39,7 @@ public sealed class BomRepository : IBomRepository
             new SqlParameter("@CurrentPage", SqlDbType.Int) { Value = request.PageNumber },
             new SqlParameter("@RecordPerPage", SqlDbType.Int) { Value = request.PageSize },
             new SqlParameter("@TotalRecord", SqlDbType.Int) { Direction = ParameterDirection.Output },
-            new SqlParameter("@SortColumn", SqlDbType.VarChar, 50) { Value = request.SortColumn ?? "BomId" },
+            new SqlParameter("@SortColumn", SqlDbType.VarChar, 50) { Value = sortColumn },
             new SqlParameter("@SortOrd", SqlDbType.VarChar, 20) { Value = request.SortType ?? "DESC" },
             new SqlParameter("@ItemTypeId", SqlDbType.Int) { Value = request.ItemTypeId ?? 0 }
         };
@@ -177,6 +187,25 @@ public sealed class BomRepository : IBomRepository
             return Convert.ToInt32(parameters[^1].Value ?? 0) == 1;
         } catch {
              return false;
+        }
+    }
+
+    public async Task<bool> ToggleBomStatusAsync(long id, bool isActive, string updatedBy, CancellationToken cancellationToken = default)
+    {
+        var parameters = new[]
+        {
+            new SqlParameter("@ID", SqlDbType.VarChar, 2000) { Value = id.ToString() },
+            new SqlParameter("@OprType", SqlDbType.SmallInt) { Value = isActive ? (short)2 : (short)3 },
+            new SqlParameter("@UpdatedBy", SqlDbType.NVarChar, 200) { Value = updatedBy },
+            new SqlParameter("@Iserror", SqlDbType.Int) { Direction = ParameterDirection.Output }
+        };
+
+        try {
+            await ExecuteNonQueryAsync("W_MasterBomOperation", parameters, cancellationToken);
+            var result = Convert.ToInt32(parameters[^1].Value ?? 0);
+            return result == (isActive ? 2 : 3);
+        } catch {
+            return false;
         }
     }
 

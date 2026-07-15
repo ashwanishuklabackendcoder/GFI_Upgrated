@@ -13,5 +13,6 @@ public interface IBomService
     Task<IReadOnlyList<BomItemDto>> GetBomItemsAsync(long bomId, CancellationToken cancellationToken = default);
     Task<int> SaveBomAsync(SaveBomRequest request, CancellationToken cancellationToken = default);
     Task<bool> DeleteBomAsync(long id, string deletedBy, CancellationToken cancellationToken = default);
+    Task<bool> ToggleBomStatusAsync(long id, bool isActive, string updatedBy, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<RawMaterialDto>> GetItemsForBomLookupAsync(int? itemTypeId = null, CancellationToken cancellationToken = default);
 }

@@ -36,17 +36,15 @@
     <MudTable RowsPerPage="25" T="StatusDto" @ref="_table" ServerData="LoadServerDataAsync" Hover="true" Dense="true" Striped="true" Bordered="true" Breakpoint="Breakpoint.Sm">
         <HeaderContent>
             <MudTh><MudTableSortLabel T="StatusDto" SortLabel="StatusName">Status Name</MudTableSortLabel></MudTh>
-            <MudTh>Status Of</MudTh>
-            <MudTh Style="width: 100px; text-align: center;">Status</MudTh>
+            <MudTh><MudTableSortLabel T="StatusDto" SortLabel="StatusOf">Status Of</MudTableSortLabel></MudTh>
+            <MudTh Style="width: 100px; text-align: center;"><MudTableSortLabel T="StatusDto" SortLabel="IsActive">Status</MudTableSortLabel></MudTh>
             <MudTh Style="width: 120px; text-align: center;">Action</MudTh>
         </HeaderContent>
         <RowTemplate>
             <MudTd DataLabel="Status Name">@context.StatusName</MudTd>
             <MudTd DataLabel="Status Of">@GetStatusOfLabel(context.StatusOf)</MudTd>
             <MudTd DataLabel="Status" Style="text-align: center;">
-                <MudChip T="string" Color="@(context.IsActive ? Color.Success : Color.Error)" Size="Size.Small" Variant="Variant.Text">
-                    @(context.IsActive ? "Active" : "Inactive")
-                </MudChip>
+                <MudSwitch T="bool" Value="@context.IsActive" ValueChanged="@((bool val) => ToggleStatusAsync(context, val))" Color="Color.Success" UnCheckedColor="Color.Error" Disabled="!_canUpdate" />
             </MudTd>
             <MudTd DataLabel="Action" Style="text-align: center;">
                 <MudStack Row="true" Spacing="1" Justify="Justify.Center" AlignItems="AlignItems.Center">
@@ -151,6 +149,35 @@
         catch (Exception ex)
         {
             Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task ToggleStatusAsync(StatusDto status, bool val)
+    {
+        try
+        {
+            var request = new SaveStatusRequest
+            {
+                StatusId = status.StatusId,
+                StatusName = status.StatusName,
+                StatusOf = status.StatusOf,
+                IsActive = val,
+                UpdatedBy = SessionState.CurrentUser?.LoginName ?? "System"
+            };
+            var result = await ApiClient.SaveStatusAsync(request);
+            if (result > 0)
+            {
+                status.IsActive = val;
+                Snackbar.Add("Status updated successfully.", Severity.Success);
+            }
+            else
+            {
+                Snackbar.Add("Failed to update Status.", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error updating Status: {ex.Message}", Severity.Error);
         }
     }
 
