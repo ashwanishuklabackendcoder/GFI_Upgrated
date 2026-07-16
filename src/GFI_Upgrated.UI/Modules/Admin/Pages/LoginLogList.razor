@@ -14,19 +14,19 @@
     <MudText Typo="Typo.h5" Class="mb-2">Login Logs</MudText>
     <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">Monitor and track user session login and logout history.</MudText>
     
-    <MudGrid>
-        <MudItem xs="12" md="6">
-            <MudTextField @bind-Value="_searchText" Label="Search IP, OS, Browser, Login or Display Name" Variant="Variant.Outlined" Dense="true" Clearable="true" Placeholder="e.g. 192.168.1.1, Windows, Chrome, admin" />
+    <MudGrid Class="align-center">
+        <MudItem xs="12" md="4">
+            <MudTextField @bind-Value="_searchText" Label="Search IP, OS, Browser, Login..." Variant="Variant.Outlined" Dense="true" Clearable="true" Placeholder="e.g. 192.168.1.1, Windows, Chrome, admin" />
         </MudItem>
-        <MudItem xs="12" sm="6" md="3">
+        <MudItem xs="12" sm="4" md="3">
             <MudDatePicker Label="From Date" @bind-Date="_fromDate" Variant="Variant.Outlined" Dense="true" Clearable="true" />
         </MudItem>
-        <MudItem xs="12" sm="6" md="3">
+        <MudItem xs="12" sm="4" md="3">
             <MudDatePicker Label="To Date" @bind-Date="_toDate" Variant="Variant.Outlined" Dense="true" Clearable="true" />
         </MudItem>
-        <MudItem xs="12" Class="d-flex justify-end gap-2">
+        <MudItem xs="12" sm="4" md="2" Class="d-flex gap-2">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="OnSearch" StartIcon="@Icons.Material.Filled.Search" Class="flex-grow-1">Search</MudButton>
             <MudButton Variant="Variant.Outlined" OnClick="OnClearFilters" StartIcon="@Icons.Material.Filled.Clear">Clear</MudButton>
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="OnSearch" StartIcon="@Icons.Material.Filled.Search">Search</MudButton>
         </MudItem>
     </MudGrid>
 </MudPaper>

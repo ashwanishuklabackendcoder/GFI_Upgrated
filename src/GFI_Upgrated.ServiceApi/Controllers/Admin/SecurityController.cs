@@ -34,6 +34,29 @@ public sealed class SecurityController : ControllerBase
     {
         try
         {
+            var ip = "";
+            if (Request.Headers.TryGetValue("X-Forwarded-For", out var forwardedFor))
+            {
+                ip = forwardedFor.FirstOrDefault();
+            }
+            if (string.IsNullOrEmpty(ip))
+            {
+                ip = HttpContext.Connection.RemoteIpAddress?.ToString();
+            }
+            if (!string.IsNullOrEmpty(ip))
+            {
+                if (ip == "::1") ip = "127.0.0.1";
+                request.IpAddress = ip;
+            }
+
+            var userAgent = Request.Headers["User-Agent"].ToString();
+            if (!string.IsNullOrEmpty(userAgent))
+            {
+                var (browser, os) = ParseUserAgent(userAgent);
+                request.Browser = browser;
+                request.OperatingSystem = os;
+            }
+
             var result = await _service.LoginAsync(request, cancellationToken);
             if (result is null)
             {
@@ -775,4 +798,25 @@ public sealed class SecurityController : ControllerBase
         var token = tokenHandler.CreateToken(tokenDescriptor);
         return tokenHandler.WriteToken(token);
     }
+
+    private static (string Browser, string OS) ParseUserAgent(string userAgent)
+    {
+        if (string.IsNullOrWhiteSpace(userAgent)) return ("Unknown", "Unknown");
+        
+        string os = "Unknown OS";
+        if (userAgent.Contains("Windows")) os = "Windows";
+        else if (userAgent.Contains("Android")) os = "Android";
+        else if (userAgent.Contains("iPhone") || userAgent.Contains("iPad")) os = "iOS";
+        else if (userAgent.Contains("Macintosh")) os = "macOS";
+        else if (userAgent.Contains("Linux")) os = "Linux";
+
+        string browser = "Unknown Browser";
+        if (userAgent.Contains("Edg/")) browser = "Edge";
+        else if (userAgent.Contains("Chrome/")) browser = "Chrome";
+        else if (userAgent.Contains("Safari/")) browser = "Safari";
+        else if (userAgent.Contains("Firefox/")) browser = "Firefox";
+        
+        return (browser, os);
+    }
 }
+

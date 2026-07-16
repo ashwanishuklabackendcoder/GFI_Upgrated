@@ -301,7 +301,6 @@ public sealed class SaveStaffRequest : IValidatableObject
 
     public string? NIN { get; set; }
 
-    [Required]
     public DateTime? DOB { get; set; }
 
     [Range(1, long.MaxValue, ErrorMessage = "Gender is required.")]

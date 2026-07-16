@@ -23,7 +23,7 @@
                 <i class="ti ti-menu-2"></i>
             </button>
             <div class="dashboard-topbar-actions" style="margin-left: auto;">
-                @if (SessionState.IsLoggedIn && LocalizationState.Languages.Count > 0)
+@*                 @if (SessionState.IsLoggedIn && LocalizationState.Languages.Count > 0)
                 {
                     <MudSelect T="long"
                                Value="SelectedLanguageId"
@@ -38,7 +38,7 @@
                             <MudSelectItem T="long" Value="@language.Id">@language.DisplayName</MudSelectItem>
                         }
                     </MudSelect>
-                }
+                } *@
 
                 <button type="button" class="icon-chip" aria-label="@LocalizationState.Text("Layout.Theme", "Theme")" @onclick="ToggleTheme">
                     <i class="@(SessionState.IsDarkMode ? "ti ti-moon" : "ti ti-sun-high")"></i>

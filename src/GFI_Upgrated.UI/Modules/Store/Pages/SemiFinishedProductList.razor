@@ -32,7 +32,7 @@
             <MudTh><MudTableSortLabel SortLabel="ItemName" T="SemiFinishedProductDto">Item Name</MudTableSortLabel></MudTh>
             <MudTh>Short Name</MudTh>
             <MudTh><MudTableSortLabel SortLabel="ItemCatId" T="SemiFinishedProductDto">Category</MudTableSortLabel></MudTh>
-            <MudTh><MudTableSortLabel SortLabel="ItemTypeId" T="SemiFinishedProductDto">Type</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel SortLabel="TentativeExpiryDays" T="SemiFinishedProductDto">Expiry Days</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel SortLabel="PurchaseUnit" T="SemiFinishedProductDto">Unit</MudTableSortLabel></MudTh>
             <MudTh Style="text-align: center;">Status</MudTh>
             <MudTh Style="text-align: center; width: 120px;">Action</MudTh>
@@ -42,7 +42,7 @@
             <MudTd DataLabel="Item Name">@context.ItemName</MudTd>
             <MudTd DataLabel="Short Name">@context.ShortName</MudTd>
             <MudTd DataLabel="Category">@context.ItemCategoryName</MudTd>
-            <MudTd DataLabel="Type">@context.ItemTypeName</MudTd>
+            <MudTd DataLabel="Expiry Days">@context.TentativeExpiryDays</MudTd>
             <MudTd DataLabel="Unit">@context.UnitName</MudTd>
             <MudTd DataLabel="Status" Style="text-align: center;">
                 <MudSwitch T="bool" Value="@context.IsActive" ValueChanged="@((bool val) => ToggleStatusAsync(context, val))" Color="Color.Success" UnCheckedColor="Color.Error" Disabled="!_canUpdate" />

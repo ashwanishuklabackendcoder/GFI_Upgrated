@@ -18,9 +18,9 @@
         <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.ArrowBack" OnClick="OnBack">Back to List</MudButton>
     </MudStack>
 
-    <MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-6" Color="Color.Primary" Outlined="true">
+    <MudTabs @bind-ActivePanelIndex="_activeTabIndex" Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-6" Color="Color.Primary" Outlined="true">
         <MudTabPanel Text="General Info" Icon="@Icons.Material.Filled.Info">
-            <EditForm Model="_model" OnValidSubmit="SaveGeneralInfo">
+            <EditForm EditContext="_editContext">
                 <DataAnnotationsValidator />
                 <MudStack Spacing="4">
                 <MudPaper Class="pa-4" Outlined="true" Elevation="0">
@@ -90,10 +90,6 @@
                     <MudItem xs="12">
                         <MudTextField @bind-Value="_model.Tags" Label="Tags (Comma separated)" Variant="Variant.Outlined" />
                     </MudItem>
-
-                    <MudItem xs="12" Class="d-flex justify-end">
-                        <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Loading="_savingGeneral">Save General Info</MudButton>
-                    </MudItem>
                 </MudGrid>
                 </MudPaper>
                 </MudStack>
@@ -125,9 +121,6 @@
                     <MudCheckBox @bind-Value="_details.CriticalLevelAlert" Label="Enable Critical Level Alert" Color="Color.Primary" />
                 </MudItem>
 
-                <MudItem xs="12" Class="d-flex justify-end">
-                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveInventoryDetails" Loading="_savingDetails">Save Details</MudButton>
-                </MudItem>
             </MudGrid>
             </MudPaper>
             </MudStack>
@@ -264,11 +257,23 @@
             </MudStack>
         </MudTabPanel>
     </MudTabs>
+
+    <MudPaper Class="pa-4 mt-4" Outlined="true" Elevation="0">
+        <div class="d-flex justify-end gap-2 flex-wrap">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@(() => HandleSaveAction("stay"))" Loading="_savingGeneral || _savingDetails || _savingVendor || _savingBatch">Save</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="@(() => HandleSaveAction("list"))" Loading="_savingGeneral || _savingDetails || _savingVendor || _savingBatch">Save & Move to List</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Info" OnClick="@(() => HandleSaveAction("next"))" Loading="_savingGeneral || _savingDetails || _savingVendor || _savingBatch">Save & Move to Next</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Dark" OnClick="@(() => HandleSaveAction("new"))" Loading="_savingGeneral || _savingDetails || _savingVendor || _savingBatch">Save & Add New</MudButton>
+        </div>
+    </MudPaper>
 </MudPaper>
 
 @code {
     [Parameter] public long Id { get; set; }
+    [Parameter] [SupplyParameterFromQuery] public int? Tab { get; set; }
 
+    private int _activeTabIndex;
+    private EditContext? _editContext;
     private SaveRawMaterialRequest _model = new();
     private RawMaterialDetailDto _details = new();
     private RawMaterialVendorDto _vendorModel = new() { StatusId = 1, CurrencyId = 1 };
@@ -292,10 +297,17 @@
 
     protected override async Task OnInitializedAsync()
     {
+        _editContext = new EditContext(_model);
+
         if (!SessionState.IsLoggedIn)
         {
             Navigation.NavigateTo("/login");
             return;
+        }
+
+        if (Tab.HasValue)
+        {
+            _activeTabIndex = Tab.Value;
         }
 
         await LoadLookups();
@@ -366,6 +378,7 @@
                     BrandId = item.BrandId,
                     CreatedBy = item.CreatedBy
                 };
+                _editContext = new EditContext(_model);
             }
 
             var details = await ApiClient.GetRawMaterialDetailAsync(Id);
@@ -381,12 +394,12 @@
         }
     }
 
-    private async Task SaveGeneralInfo()
+    private async Task<bool> SaveGeneralInfo()
     {
         if (_model.TentativeExpiryDays < 0)
         {
             Snackbar.Add("Tentative expiry days cannot be negative.", Severity.Warning);
-            return;
+            return false;
         }
 
         _savingGeneral = true;
@@ -394,20 +407,18 @@
         {
             _model.CreatedBy = SessionState.CurrentUser?.LoginName ?? "System";
             var newItemId = await ApiClient.SaveRawMaterialAsync(_model);
-            if (Id == 0)
+            var wasNew = Id == 0;
+            if (wasNew)
             {
                 Id = newItemId;
-                Snackbar.Add("Item created successfully. You can now add details, suppliers and stock.", Severity.Success);
-                Navigation.NavigateTo($"/store/rawmaterials/edit/{Id}");
             }
-            else
-            {
-                Snackbar.Add("General info updated successfully.", Severity.Success);
-            }
+            Snackbar.Add(wasNew ? "Item created successfully." : "General info updated successfully.", Severity.Success);
+            return true;
         }
         catch (Exception ex)
         {
             Snackbar.Add($"Error saving item: {ex.Message}", Severity.Error);
+            return false;
         }
         finally
         {
@@ -415,13 +426,90 @@
         }
     }
 
-    private async Task SaveInventoryDetails()
+    private async Task HandleSaveAction(string action)
+    {
+        bool saveSuccess = false;
+        var wasNew = Id == 0;
+        
+        if (_activeTabIndex == 0)
+        {
+            if (_editContext != null && !_editContext.Validate())
+            {
+                Snackbar.Add("Please fix the validation errors on the form.", Severity.Warning);
+                return;
+            }
+            saveSuccess = await SaveGeneralInfo();
+        }
+        else if (_activeTabIndex == 1)
+        {
+            saveSuccess = await SaveInventoryDetails();
+        }
+        else if (_activeTabIndex == 2)
+        {
+            if (_vendorModel.VendorAccountId != 0)
+            {
+                saveSuccess = await SaveVendor();
+            }
+            else
+            {
+                saveSuccess = true;
+            }
+        }
+        else if (_activeTabIndex == 3)
+        {
+            if (_batchModel.WarehouseId != 0 && _batchModel.UnitId != 0)
+            {
+                saveSuccess = await SaveBatch();
+            }
+            else
+            {
+                saveSuccess = true;
+            }
+        }
+
+        if (saveSuccess)
+        {
+            if (action == "list")
+            {
+                Navigation.NavigateTo("/store/rawmaterials");
+            }
+            else if (action == "new")
+            {
+                Navigation.NavigateTo("/store/rawmaterials/new", forceLoad: true);
+            }
+            else if (action == "next")
+            {
+                if (_activeTabIndex < 3)
+                {
+                    if (wasNew)
+                    {
+                        Navigation.NavigateTo($"/store/rawmaterials/edit/{Id}?tab={_activeTabIndex + 1}", forceLoad: true);
+                    }
+                    else
+                    {
+                        _activeTabIndex++;
+                    }
+                }
+                else
+                {
+                    Snackbar.Add("All steps completed. Moving to list view.", Severity.Info);
+                    Navigation.NavigateTo("/store/rawmaterials");
+                }
+            }
+            else if (wasNew)
+            {
+                Navigation.NavigateTo($"/store/rawmaterials/edit/{Id}");
+            }
+        }
+    }
+
+    private async Task<bool> SaveInventoryDetails()
     {
         _details.OpeningQuantity = 0;
         if (_details.MaximumQuantity < 0 || _details.CriticalLevelQuantity < 0 || _details.ReorderLevelQuantity < 0 || _details.ReorderLevelDays < 0)
         {
             Snackbar.Add("Stock-related values cannot be negative.", Severity.Warning);
-            return;
+            return false;
         }
 
         _savingDetails = true;
@@ -430,10 +518,12 @@
             _details.ItemId = Id;
             await ApiClient.SaveRawMaterialDetailAsync(_details);
             Snackbar.Add("Inventory details saved successfully.", Severity.Success);
+            return true;
         }
         catch (Exception ex)
         {
             Snackbar.Add($"Error saving details: {ex.Message}", Severity.Error);
+            return false;
         }
         finally
         {
@@ -441,24 +531,24 @@
         }
     }
 
-    private async Task SaveVendor()
+    private async Task<bool> SaveVendor()
     {
         if (_vendorModel.VendorAccountId == 0)
         {
             Snackbar.Add("Please select a supplier.", Severity.Warning);
-            return;
+            return false;
         }
 
         if (_vendorModel.PurchasePrice < 0)
         {
             Snackbar.Add("Purchase price cannot be negative.", Severity.Warning);
-            return;
+            return false;
         }
 
         if (_vendorModel.EndDate.HasValue && _vendorModel.EndDate.Value.Date < DateTime.Today)
         {
             Snackbar.Add("End Date cannot be from the past.", Severity.Warning);
-            return;
+            return false;
         }
 
         if (_vendorModel.StartDate.HasValue && _vendorModel.EndDate.HasValue)
@@ -466,12 +556,12 @@
             if (_vendorModel.EndDate.Value.Date < _vendorModel.StartDate.Value.Date)
             {
                 Snackbar.Add("End Date cannot be earlier than the Start Date.", Severity.Warning);
-                return;
+                return false;
             }
             if (_vendorModel.EndDate.Value.Date == _vendorModel.StartDate.Value.Date)
             {
                 Snackbar.Add("End Date cannot be the same as the Start Date.", Severity.Warning);
-                return;
+                return false;
             }
         }
 
@@ -487,10 +577,12 @@
             Snackbar.Add("Vendor price saved successfully.", Severity.Success);
             _vendors = (await ApiClient.GetRawMaterialVendorsAsync(Id)).ToList();
             ResetVendorForm();
+            return true;
         }
         catch (Exception ex)
         {
             Snackbar.Add($"Error saving vendor price: {ex.Message}", Severity.Error);
+            return false;
         }
         finally
         {
@@ -522,30 +614,30 @@
         _vendorModel = new RawMaterialVendorDto { StatusId = 1, CurrencyId = 1 };
     }
 
-    private async Task SaveBatch()
+    private async Task<bool> SaveBatch()
     {
         if (_batchModel.WarehouseId == 0)
         {
             Snackbar.Add("Please select a warehouse.", Severity.Warning);
-            return;
+            return false;
         }
 
         if (_batchModel.UnitId == 0)
         {
             Snackbar.Add("Please select a unit.", Severity.Warning);
-            return;
+            return false;
         }
 
         if (_batchModel.Quantity < 0)
         {
             Snackbar.Add("Quantity cannot be negative.", Severity.Warning);
-            return;
+            return false;
         }
 
         if (_batchModel.ExpiryDate.HasValue && _batchModel.ExpiryDate.Value.Date < DateTime.Today)
         {
             Snackbar.Add("Expiry date cannot be from the past.", Severity.Warning);
-            return;
+            return false;
         }
 
         _savingBatch = true;
@@ -558,10 +650,12 @@
             Snackbar.Add("Batch saved successfully.", Severity.Success);
             _batches = (await ApiClient.GetRawMaterialBatchesAsync(Id)).ToList();
             ResetBatchForm();
+            return true;
         }
         catch (Exception ex)
         {
             Snackbar.Add($"Error saving batch: {ex.Message}", Severity.Error);
+            return false;
         }
         finally
         {
