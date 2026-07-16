@@ -30,7 +30,7 @@
                 <MudSelect T="long?" Label="Parent Category" @bind-Value="_editor.MainCategoryId" Variant="Variant.Outlined" Clearable="true" Placeholder="Select Main Category (Optional)" Disabled="_editor.IsMainCategory" For="@(() => _editor.MainCategoryId)">
                     @foreach (var cat in _parents)
                     {
-                        <MudSelectItem T="long?" Value="@cat.ItemCatId">@cat.ItemCatName</MudSelectItem>
+                        <MudSelectItem T="long?" Value="@((long?)cat.ItemCatId)">@cat.ItemCatName</MudSelectItem>
                     }
                 </MudSelect>
             </MudItem>
@@ -80,6 +80,17 @@
                 _editor.IsMainCategory = selected.IsMainCategory;
                 _editor.MainCategoryId = selected.MainCategoryId;
                 _editor.IsActive = selected.IsActive;
+
+                if (_editor.MainCategoryId.HasValue && !_parents.Any(p => p.ItemCatId == _editor.MainCategoryId.Value))
+                {
+                    var parentCat = await ApiClient.GetItemCategoryByIdAsync(_editor.MainCategoryId.Value);
+                    if (parentCat != null)
+                    {
+                        var list = _parents.ToList();
+                        list.Add(new ParentCategoryLookupDto { ItemCatId = parentCat.ItemCatId, ItemCatName = parentCat.ItemCatName });
+                        _parents = list;
+                    }
+                }
             }
         }
     }
@@ -91,7 +102,7 @@
         {
             if (_editor.IsMainCategory) _editor.MainCategoryId = null;
 
-            _editor.UpdatedBy = SessionState.CurrentUser?.LoginName ?? "System";
+            _editor.UpdatedBy = SessionState.CurrentUserAuditName ?? "System";
             var result = await ApiClient.SaveItemCategoryAsync(_editor);
             if (result > 0)
             {

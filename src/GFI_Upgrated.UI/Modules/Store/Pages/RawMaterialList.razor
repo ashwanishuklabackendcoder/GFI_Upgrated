@@ -23,7 +23,7 @@
         </MudButton>
     </MudStack>
 
-    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-4">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-4" Style="max-width: 500px;">
         <MudTextField @bind-Value="_search" Placeholder="Search by name, code or short name..." Variant="Variant.Outlined" Immediate="true" Clearable="true" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" OnClearButtonClick="OnSearch" />
         <MudButton Variant="Variant.Outlined" OnClick="OnSearch">Search</MudButton>
     </MudStack>
@@ -151,7 +151,7 @@
 
         try
         {
-            var success = await ApiClient.DeleteRawMaterialAsync(item.ItemId, SessionState.CurrentUser?.LoginName ?? "System");
+            var success = await ApiClient.DeleteRawMaterialAsync(item.ItemId, SessionState.CurrentUserAuditName ?? "System");
             if (success)
             {
                 Snackbar.Add("Raw material deleted successfully.", Severity.Success);
@@ -188,7 +188,7 @@
                 TentativeExpiryDays = item.TentativeExpiryDays,
                 PurchaseUnit = item.PurchaseUnit,
                 BrandId = item.BrandId,
-                CreatedBy = SessionState.CurrentUser?.LoginName ?? "System"
+                CreatedBy = SessionState.CurrentUserAuditName ?? "System"
             };
             var result = await ApiClient.SaveRawMaterialAsync(request);
             if (result > 0)

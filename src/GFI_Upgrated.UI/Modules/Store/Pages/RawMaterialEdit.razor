@@ -36,13 +36,7 @@
                     </MudItem>
 
                     <MudItem xs="12" md="4">
-                        <MudSelect T="long" @bind-Value="_model.ItemCatId" Label="Category" Variant="Variant.Outlined" Required="true" AnchorOrigin="Origin.BottomCenter">
-                            <MudSelectItem Value="0L">Select Category</MudSelectItem>
-                            @foreach (var cat in _categories)
-                            {
-                                <MudSelectItem Value="cat.ItemCatId">@cat.ItemCatName</MudSelectItem>
-                            }
-                        </MudSelect>
+                        <MudAutocomplete T="ItemCategoryDto" Label="Category" Value="@(_categories.FirstOrDefault(x => x.ItemCatId == _model.ItemCatId))" ValueChanged="@((ItemCategoryDto val) => _model.ItemCatId = val?.ItemCatId ?? 0)" SearchFunc="@SearchCategories" ToStringFunc="@(x => x?.ItemCatName ?? "")" Variant="Variant.Outlined" Required="true" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
                     </MudItem>
                     <MudItem xs="12" md="4">
                         <MudSelect T="long" @bind-Value="_model.ItemTypeId" Label="Item Type" Variant="Variant.Outlined" Required="true" AnchorOrigin="Origin.BottomCenter">
@@ -64,13 +58,7 @@
                     </MudItem>
 
                     <MudItem xs="12" md="4">
-                        <MudSelect T="long" @bind-Value="_model.BrandId" Label="Brand" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter">
-                            <MudSelectItem Value="0L">Select Brand</MudSelectItem>
-                            @foreach (var brand in _brands)
-                            {
-                                <MudSelectItem Value="brand.BrandId">@brand.BrandName</MudSelectItem>
-                            }
-                        </MudSelect>
+                        <MudAutocomplete T="BrandDto" Label="Brand" Value="@(_brands.FirstOrDefault(x => x.BrandId == _model.BrandId))" ValueChanged="@((BrandDto val) => _model.BrandId = val?.BrandId ?? 0)" SearchFunc="@SearchBrands" ToStringFunc="@(x => x?.BrandName ?? "")" Variant="Variant.Outlined" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
                     </MudItem>
                     <MudItem xs="12" md="4">
                         <MudSelect T="int" @bind-Value="_model.StatusId" Label="Status" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter">
@@ -132,13 +120,7 @@
                     <MudText Typo="Typo.subtitle1" Class="mb-2">Add/Edit Suppliers Price</MudText>
                     <MudGrid>
                         <MudItem xs="12" md="4">
-                            <MudSelect T="int" @bind-Value="_vendorModel.VendorAccountId" Label="Supplier" Variant="Variant.Outlined" Required="true" AnchorOrigin="Origin.BottomCenter">
-                                <MudSelectItem Value="0">Select Supplier</MudSelectItem>
-                                @foreach (var acc in _accounts)
-                                {
-                                    <MudSelectItem Value="acc.AccountId">@acc.AccountName</MudSelectItem>
-                                }
-                            </MudSelect>
+                            <MudAutocomplete T="AccountLookupDto" Label="Supplier" Value="@(_accounts.FirstOrDefault(x => x.AccountId == _vendorModel.VendorAccountId))" ValueChanged="@((AccountLookupDto val) => _vendorModel.VendorAccountId = (int)(val?.AccountId ?? 0))" SearchFunc="@SearchAccounts" ToStringFunc="@(x => x?.AccountName ?? "")" Variant="Variant.Outlined" Required="true" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
                         </MudItem>
                         <MudItem xs="12" md="4">
                             <MudNumericField @bind-Value="_vendorModel.PurchasePrice" Label="Purchase Price" Variant="Variant.Outlined" Format="N2" Min="0" />
@@ -320,7 +302,7 @@
         {
             _model.StatusId = 1;
             _model.ItemTypeId = 3; // Raw Material
-            _model.CreatedBy = SessionState.CurrentUser?.LoginName ?? "System";
+            _model.CreatedBy = SessionState.CurrentUserAuditName ?? "System";
         }
     }
 
@@ -329,23 +311,23 @@
         try
         {
             var cats = await ApiClient.GetItemCategoriesAsync(new PagedRequest { CurrentPage = 1, RecordPerPage = 1000 });
-            _categories = cats.Items.Where(x => x.IsActive).ToList();
+            _categories = cats.Items.Where(x => x.IsActive).OrderBy(x => x.ItemCatName).ToList();
 
             var types = await ApiClient.GetItemTypesAsync(new PagedRequest { CurrentPage = 1, RecordPerPage = 1000 });
-            _types = types.Items.Where(x => x.IsActive).ToList();
+            _types = types.Items.Where(x => x.IsActive).OrderBy(x => x.ItemTypeName).ToList();
 
             var units = await ApiClient.GetUnitsAsync(new PagedRequest { CurrentPage = 1, RecordPerPage = 1000 });
-            _units = units.Items.Where(x => x.IsActive).ToList();
+            _units = units.Items.Where(x => x.IsActive).OrderBy(x => x.UnitName).ToList();
 
             var brands = await ApiClient.GetBrandsAsync(new PagedRequest { CurrentPage = 1, RecordPerPage = 1000 });
-            _brands = brands.Items.Where(x => x.IsActive).ToList();
+            _brands = brands.Items.Where(x => x.IsActive).OrderBy(x => x.BrandName).ToList();
 
             var statuses = await ApiClient.GetStatusesAsync(new PagedRequest { CurrentPage = 1, RecordPerPage = 1000 });
-            _statuses = statuses.Items.Where(x => x.IsActive).ToList();
+            _statuses = statuses.Items.Where(x => x.IsActive).OrderBy(x => x.StatusName).ToList();
 
-            _accounts = (await ApiClient.GetAccountsLookupAsync()).ToList();
-            _warehouses = (await ApiClient.GetWarehousesLookupAsync()).ToList();
-            _currencies = (await ApiClient.GetCurrenciesLookupAsync()).ToList();
+            _accounts = (await ApiClient.GetAccountsLookupAsync()).OrderBy(x => x.AccountName).ToList();
+            _warehouses = (await ApiClient.GetWarehousesLookupAsync()).OrderBy(x => x.WarehouseName).ToList();
+            _currencies = (await ApiClient.GetCurrenciesLookupAsync()).OrderBy(x => x.CurrencyName).ToList();
         }
         catch (Exception ex)
         {
@@ -405,7 +387,7 @@
         _savingGeneral = true;
         try
         {
-            _model.CreatedBy = SessionState.CurrentUser?.LoginName ?? "System";
+            _model.CreatedBy = SessionState.CurrentUserAuditName ?? "System";
             var newItemId = await ApiClient.SaveRawMaterialAsync(_model);
             var wasNew = Id == 0;
             if (wasNew)
@@ -569,7 +551,7 @@
         try
         {
             _vendorModel.ItemId = Id;
-            _vendorModel.CreatedBy = SessionState.CurrentUser?.LoginName ?? "System";
+            _vendorModel.CreatedBy = SessionState.CurrentUserAuditName ?? "System";
             // Default PurchaseUnit to the item's purchase unit if not set
             if (_vendorModel.PurchaseUnit == 0) _vendorModel.PurchaseUnit = (decimal)_model.PurchaseUnit;
 
@@ -644,7 +626,7 @@
         try
         {
             _batchModel.ItemId = Id;
-            _batchModel.CreatedBy = SessionState.CurrentUser?.LoginName ?? "System";
+            _batchModel.CreatedBy = SessionState.CurrentUserAuditName ?? "System";
 
             await ApiClient.SaveRawMaterialBatchAsync(_batchModel);
             Snackbar.Add("Batch saved successfully.", Severity.Success);
@@ -693,7 +675,7 @@
         _savingBatch = true;
         try
         {
-            batch.CreatedBy = SessionState.CurrentUser?.LoginName ?? "System";
+            batch.CreatedBy = SessionState.CurrentUserAuditName ?? "System";
             var result = await ApiClient.SaveRawMaterialBatchAsync(batch, batch.ItemStockByBatchId.ToString());
             if (result < 0)
             {
@@ -721,4 +703,22 @@
     }
 
     private void OnBack() => Navigation.NavigateTo("/store/rawmaterials");
+
+    private async Task<IEnumerable<ItemCategoryDto>> SearchCategories(string value, CancellationToken token)
+    {
+        if (string.IsNullOrEmpty(value)) return _categories;
+        return _categories.Where(x => x.ItemCatName.Contains(value, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private async Task<IEnumerable<BrandDto>> SearchBrands(string value, CancellationToken token)
+    {
+        if (string.IsNullOrEmpty(value)) return _brands;
+        return _brands.Where(x => x.BrandName.Contains(value, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private async Task<IEnumerable<AccountLookupDto>> SearchAccounts(string value, CancellationToken token)
+    {
+        if (string.IsNullOrEmpty(value)) return _accounts;
+        return _accounts.Where(x => x.AccountName.Contains(value, StringComparison.OrdinalIgnoreCase));
+    }
 }

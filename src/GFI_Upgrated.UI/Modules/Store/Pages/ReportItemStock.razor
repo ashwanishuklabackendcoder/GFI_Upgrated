@@ -25,7 +25,7 @@
         </MudMenu>
     </MudStack>
 
-    <MudGrid Class="mb-4 no-print" Spacing="2">
+    <MudGrid Class="mb-4 no-print" Spacing="2" Style="max-width: 900px;">
         <MudItem xs="12" md="3">
             <MudAutocomplete T="RawMaterialDto" Label="Select Item" @bind-Value="_selectedItem" SearchFunc="@SearchItems"
                              ToStringFunc="@(i => i?.ItemName ?? "")" Variant="Variant.Outlined" Clearable="true" 

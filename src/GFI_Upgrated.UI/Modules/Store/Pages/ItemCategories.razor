@@ -28,7 +28,7 @@
         }
     </MudStack>
 
-    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-4">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-4" Style="max-width: 500px;">
         <MudTextField @bind-Value="_search" Label="Search categories" Variant="Variant.Outlined" Immediate="true" Clearable="true" 
                       OnClearButtonClick="OnSearch" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" />
         <MudButton Variant="Variant.Outlined" OnClick="OnSearch">Search</MudButton>
@@ -43,7 +43,16 @@
             <MudTh Style="width: 120px; text-align: center;">Action</MudTh>
         </HeaderContent>
         <RowTemplate>
-            <MudTd DataLabel="Category Name">@context.ItemCatName</MudTd>
+            <MudTd DataLabel="Category Name">
+                @if (context.IsMainCategory)
+                {
+                    <span style="font-weight: bold; color: var(--mud-palette-primary);">@context.ItemCatName</span>
+                }
+                else
+                {
+                    <span style="padding-left: 20px; color: var(--mud-palette-text-secondary);">@context.ItemCatName</span>
+                }
+            </MudTd>
             <MudTd DataLabel="Type">
                 <MudChip T="string" Color="@(context.IsMainCategory ? Color.Primary : Color.Info)" Size="Size.Small" Variant="Variant.Text">
                     @(context.IsMainCategory ? "Main" : "Sub")
@@ -141,7 +150,7 @@
 
         try
         {
-            var result = await ApiClient.DeleteItemCategoryAsync(category.ItemCatId, SessionState.CurrentUser?.LoginName ?? "System");
+            var result = await ApiClient.DeleteItemCategoryAsync(category.ItemCatId, SessionState.CurrentUserAuditName ?? "System");
             if (result > 0)
             {
                 Snackbar.Add("Item category deleted successfully.", Severity.Success);
@@ -178,7 +187,7 @@
                 IsMainCategory = cat.IsMainCategory,
                 MainCategoryId = cat.MainCategoryId,
                 IsActive = val,
-                UpdatedBy = SessionState.CurrentUser?.LoginName ?? "System"
+                UpdatedBy = SessionState.CurrentUserAuditName ?? "System"
             };
             var result = await ApiClient.SaveItemCategoryAsync(request);
             if (result > 0)

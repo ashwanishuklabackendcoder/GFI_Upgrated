@@ -20,7 +20,7 @@
         </MudStack>
     </MudStack>
 
-    <MudStack Row="true" AlignItems="AlignItems.End" Spacing="2" Class="mb-4">
+    <MudStack Row="true" AlignItems="AlignItems.End" Spacing="2" Class="mb-4" Style="max-width: 500px;">
         <MudTextField @bind-Value="_search" Placeholder="Search display text" Variant="Variant.Outlined" Immediate="true" Class="flex-grow-1" />
         <MudButton Variant="Variant.Outlined" OnClick="SearchAsync">Search</MudButton>
     </MudStack>
@@ -147,7 +147,7 @@
             return;
         }
 
-        await ApiClient.DeleteDropDownValueAsync(valueId, SessionState.CurrentUser?.LoginName ?? "System");
+        await ApiClient.DeleteDropDownValueAsync(valueId, SessionState.CurrentUserAuditName ?? "System");
         if (_table is not null)
         {
             await _table.ReloadServerData();

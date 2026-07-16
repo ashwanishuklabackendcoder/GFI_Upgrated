@@ -216,7 +216,7 @@
                     ReturnReason = r.ReasonId,
                     Quantity = r.Quantity,
                     Description = _meta.Description,
-                    CreatedBy = SessionState.CurrentUser?.LoginName ?? "System",
+                    CreatedBy = SessionState.CurrentUserAuditName ?? "System",
                     CreatedDate = DateTime.Now
                 };
 

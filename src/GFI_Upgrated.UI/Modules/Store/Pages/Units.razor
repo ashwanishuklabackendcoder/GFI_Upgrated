@@ -24,7 +24,7 @@
         }
     </MudStack>
 
-    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-4">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-4" Style="max-width: 500px;">
         <MudTextField @bind-Value="_search" Label="Search units" Variant="Variant.Outlined" Immediate="true" Clearable="true" OnClearButtonClick="SearchAsync" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" />
         <MudButton Variant="Variant.Outlined" OnClick="SearchAsync">Search</MudButton>
     </MudStack>
@@ -132,7 +132,7 @@
 
         try
         {
-            var result = await ApiClient.DeleteUnitAsync(unit.UnitId, SessionState.CurrentUser?.LoginName ?? "System");
+            var result = await ApiClient.DeleteUnitAsync(unit.UnitId, SessionState.CurrentUserAuditName ?? "System");
             if (result > 0)
             {
                 Snackbar.Add("Unit deleted successfully.", Severity.Success);
@@ -168,7 +168,7 @@
                 ConversionValue = unit.ConversionValue,
                 BaseUnit = unit.BaseUnit,
                 IsActive = val,
-                UpdatedBy = SessionState.CurrentUser?.LoginName ?? "System"
+                UpdatedBy = SessionState.CurrentUserAuditName ?? "System"
             };
             var result = await ApiClient.SaveUnitAsync(request);
             if (result > 0)

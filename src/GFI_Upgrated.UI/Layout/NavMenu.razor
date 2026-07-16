@@ -60,7 +60,7 @@
 
                 var groupTitle = GetMenuText(group);
                 var groupId = $"nav-{group.LinkId}";
-                var groupIcon = !string.IsNullOrWhiteSpace(group.IconClass) ? group.IconClass : "ti ti-category";
+                var groupIcon = "ti ti-folder";
 
                 <div class="sidebar-group">
                     <button class="sidebar-link sidebar-group-toggle" type="button" @onclick="() => ToggleGroup(groupId)">
@@ -72,7 +72,7 @@
                         @foreach (var item in validChildren)
                         {
                             var itemTitle = GetMenuText(item);
-                            var itemIcon = !string.IsNullOrWhiteSpace(item.IconClass) ? item.IconClass : "ti ti-point";
+                            var itemIcon = "ti ti-point";
                             var itemHref = SessionState.GetHardmappedRoute(item.PagePath, item.PageHeading);
                             var match = itemHref == "/admin" ? NavLinkMatch.All : NavLinkMatch.Prefix;
 

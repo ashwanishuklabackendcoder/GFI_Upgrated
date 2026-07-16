@@ -325,7 +325,7 @@
         _message = null;
         try
         {
-            _invoice.CreatedBy = SessionState.CurrentUser?.LoginName ?? "System";
+            _invoice.CreatedBy = SessionState.CurrentUserAuditName ?? "System";
             _invoice.CreatedDate = DateTime.Now;
             _invoice.TotalAmount = CalculateTotalAmount();
 

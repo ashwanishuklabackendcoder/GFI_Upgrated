@@ -18,7 +18,7 @@
         </MudButton>
     </MudStack>
 
-    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-4">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-4" Style="max-width: 500px;">
         <MudTextField @bind-Value="_search" Placeholder="Search by voucher or invoice..." Variant="Variant.Outlined" Immediate="true" Clearable="true" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" OnClearButtonClick="OnSearch" />
         <MudButton Variant="Variant.Outlined" OnClick="OnSearch">Search</MudButton>
     </MudStack>
@@ -129,7 +129,7 @@
 
         try
         {
-            var user = SessionState.CurrentUser?.LoginName ?? "System";
+            var user = SessionState.CurrentUserAuditName ?? "System";
             var success = await ApiClient.DeletePurchasesAsync(item.PurchaseID.ToString(), user);
             if (success)
             {

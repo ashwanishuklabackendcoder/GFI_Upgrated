@@ -23,7 +23,7 @@
         }
     </MudStack>
 
-    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-4">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-4" Style="max-width: 500px;">
         
         <MudTextField @bind-Value="_searchText" Label="Search SKUs" Variant="Variant.Outlined" Immediate="true" Clearable="true" 
 OnClearButtonClick="OnSearch" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" />
@@ -141,7 +141,7 @@ OnClearButtonClick="OnSearch" Adornment="Adornment.Start" AdornmentIcon="@Icons.
                 QuantityPerColli = sku.QuantityPerColli,
                 IsActive = val,
                 Remarks = sku.Remarks,
-                UpdatedBy = SessionState.CurrentUser?.LoginName ?? "System"
+                UpdatedBy = SessionState.CurrentUserAuditName ?? "System"
             };
             var result = await ApiClient.SaveSkuAsync(request);
             if (result > 0)
@@ -168,7 +168,7 @@ OnClearButtonClick="OnSearch" Adornment="Adornment.Start" AdornmentIcon="@Icons.
         {
             try
             {
-                var success = await ApiClient.DeleteSkuAsync(sku.SkuId, SessionState.CurrentUser?.LoginName);
+                var success = await ApiClient.DeleteSkuAsync(sku.SkuId, SessionState.CurrentUserAuditName);
                 if (success > 0)
                 {
                     Snackbar.Add("SKU deleted successfully.", Severity.Success);

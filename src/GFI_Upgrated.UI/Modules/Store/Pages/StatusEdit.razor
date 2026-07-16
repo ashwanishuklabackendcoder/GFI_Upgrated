@@ -81,7 +81,7 @@
         _processing = true;
         try
         {
-            _editor.UpdatedBy = SessionState.CurrentUser?.LoginName ?? "System";
+            _editor.UpdatedBy = SessionState.CurrentUserAuditName ?? "System";
             var result = await ApiClient.SaveStatusAsync(_editor);
             if (result > 0)
             {

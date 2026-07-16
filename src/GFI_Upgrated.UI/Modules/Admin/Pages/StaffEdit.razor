@@ -154,8 +154,8 @@
         _message = null;
         try
         {
-            _editor.CreatedBy = SessionState.CurrentUser?.LoginName ?? "System";
-            _editor.UpdatedBy = SessionState.CurrentUser?.LoginName ?? "System";
+            _editor.CreatedBy = SessionState.CurrentUserAuditName ?? "System";
+            _editor.UpdatedBy = SessionState.CurrentUserAuditName ?? "System";
             if (!string.IsNullOrWhiteSpace(_selectedPhotoName))
             {
                 _editor.Photo = _selectedPhotoName;

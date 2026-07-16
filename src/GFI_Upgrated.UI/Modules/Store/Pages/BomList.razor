@@ -154,7 +154,7 @@
 
         try
         {
-            var success = await ApiClient.DeleteBomAsync(item.BomId, SessionState.CurrentUser?.LoginName ?? "System");
+            var success = await ApiClient.DeleteBomAsync(item.BomId, SessionState.CurrentUserAuditName ?? "System");
             if (success)
             {
                 Snackbar.Add("BOM deleted successfully.", Severity.Success);
@@ -175,7 +175,7 @@
     {
         try
         {
-            var success = await ApiClient.ToggleBomStatusAsync(item.BomId, val, SessionState.CurrentUser?.LoginName ?? "System");
+            var success = await ApiClient.ToggleBomStatusAsync(item.BomId, val, SessionState.CurrentUserAuditName ?? "System");
             if (success)
             {
                 item.IsActive = val;

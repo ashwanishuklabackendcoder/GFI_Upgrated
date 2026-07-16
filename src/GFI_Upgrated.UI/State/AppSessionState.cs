@@ -8,6 +8,11 @@ public sealed class AppSessionState
 {
     public LoginResultDto? CurrentUser { get; private set; }
 
+    public string CurrentUserAuditName => 
+        CurrentUser != null && !string.IsNullOrWhiteSpace(CurrentUser.FullName) 
+            ? CurrentUser.FullName 
+            : (CurrentUser?.LoginName ?? "System");
+
     public bool IsDarkMode { get; private set; }
     public event Action? OnChange;
 

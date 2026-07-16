@@ -27,7 +27,7 @@
         }
     </MudStack>
 
-    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-4">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-4" Style="max-width: 500px;">
         <MudTextField @bind-Value="_search" Label="Search warehouses" Variant="Variant.Outlined" Immediate="true" Clearable="true" OnClearButtonClick="SearchAsync" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" />
         <MudButton Variant="Variant.Outlined" OnClick="SearchAsync">Search</MudButton>
     </MudStack>
@@ -129,7 +129,7 @@
 
         try
         {
-            var result = await ApiClient.DeleteWarehouseAsync(warehouse.WarehouseId, SessionState.CurrentUser?.LoginName ?? "System");
+            var result = await ApiClient.DeleteWarehouseAsync(warehouse.WarehouseId, SessionState.CurrentUserAuditName ?? "System");
             if (result > 0)
             {
                 Snackbar.Add("Warehouse deleted successfully.", Severity.Success);

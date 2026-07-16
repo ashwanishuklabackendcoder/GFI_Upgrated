@@ -231,7 +231,7 @@
         _message = null;
         try
         {
-            _order.CreatedBy = SessionState.CurrentUser?.LoginName ?? "System";
+            _order.CreatedBy = SessionState.CurrentUserAuditName ?? "System";
             _order.CreatedDate = DateTime.Now;
 
             // 1. Save main order

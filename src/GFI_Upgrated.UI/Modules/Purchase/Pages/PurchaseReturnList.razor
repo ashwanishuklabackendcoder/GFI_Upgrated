@@ -99,7 +99,7 @@
 
         try
         {
-            var user = SessionState.CurrentUser?.LoginName ?? "System";
+            var user = SessionState.CurrentUserAuditName ?? "System";
             var success = await ApiClient.DeletePurchaseReturnsAsync(item.PurchaseReturnID.ToString(), user);
             if (success)
             {

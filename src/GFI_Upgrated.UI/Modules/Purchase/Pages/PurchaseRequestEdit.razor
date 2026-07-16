@@ -125,7 +125,7 @@
         }
         else
         {
-            _model.CreatedBy = SessionState.CurrentUser?.LoginName ?? "System";
+            _model.CreatedBy = SessionState.CurrentUserAuditName ?? "System";
             _model.RequestedBy = SessionState.CurrentUser?.LoginId; // Default to current staff if possible
             _model.RequestNumber = $"PR-{DateTime.Now:yyyyMMdd-HHmm}";
         }
@@ -201,7 +201,7 @@
         _saving = true;
         try
         {
-            _model.CreatedBy = SessionState.CurrentUser?.LoginName ?? "System";
+            _model.CreatedBy = SessionState.CurrentUserAuditName ?? "System";
             var resultId = await ApiClient.SavePurchaseRequestAsync(_model);
             if (resultId > 0)
             {

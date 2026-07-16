@@ -12,7 +12,7 @@
         <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="ExportAsync">Export</MudButton>
     </MudStack>
 
-    <MudStack Row="true" AlignItems="AlignItems.End" Spacing="2" Class="mb-4">
+    <MudStack Row="true" AlignItems="AlignItems.End" Spacing="2" Class="mb-4" Style="max-width: 500px;">
         <MudTextField @bind-Value="_search" Placeholder="Search display text" Variant="Variant.Outlined" Immediate="true" Class="flex-grow-1" />
         <MudButton Variant="Variant.Outlined" OnClick="SearchAsync">Search</MudButton>
     </MudStack>

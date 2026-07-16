@@ -26,7 +26,7 @@
         }
     </MudStack>
 
-    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-4">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-4" Style="max-width: 500px;">
         <MudTextField @bind-Value="_search" Label="@LocalizationState.Text("Store.Brands.List.SearchLabel", "Search brands")" Variant="Variant.Outlined" 
         Immediate="true" Clearable="true" OnClearButtonClick="SearchAsync" Class="flex-grow-1" />
         <MudButton Variant="Variant.Outlined" OnClick="SearchAsync">@LocalizationState.Text("Common.Actions.Search", "Search")</MudButton>
@@ -150,7 +150,7 @@
 
         try
         {
-            var result = await ApiClient.DeleteBrandAsync(brand.BrandId, SessionState.CurrentUser?.LoginName ?? "System");
+            var result = await ApiClient.DeleteBrandAsync(brand.BrandId, SessionState.CurrentUserAuditName ?? "System");
             if (result > 0)
             {
                 Snackbar.Add(LocalizationState.Text("Store.Brands.List.DeleteSuccess", "Brand deleted successfully."), Severity.Success);
