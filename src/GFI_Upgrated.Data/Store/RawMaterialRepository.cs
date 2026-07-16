@@ -59,7 +59,9 @@ public sealed class RawMaterialRepository : IRawMaterialRepository
                 ItemCategoryName = categories.GetValueOrDefault(itemCatId, ""),
                 ItemTypeName = types.GetValueOrDefault(itemTypeId, ""),
                 UnitName = units.GetValueOrDefault(unitId, ""),
-                IsActive = row.SafeBool("IsActive")
+                IsActive = row.SafeBool("IsActive"),
+                TentativeExpiryDays = row.SafeInt("TentativeExpiryDays"),
+                BrandId = row.SafeLong("BrandId", "BrandID")
             });
         }
 

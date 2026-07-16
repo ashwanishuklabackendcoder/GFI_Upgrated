@@ -247,7 +247,7 @@
         {
             _editor.ProcessEmployees = string.Join(",", _selectedEmployees);
             _editor.KettleId = string.Join(",", _selectedKettles);
-            _editor.UpdatedBy = SessionState.CurrentUser?.LoginName ?? "System";
+            _editor.UpdatedBy = SessionState.CurrentUserAuditName ?? "System";
 
             var result = await ApiClient.SaveProductionAsync(_editor);
             if (result > 0)

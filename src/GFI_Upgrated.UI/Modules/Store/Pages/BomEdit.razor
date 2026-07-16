@@ -136,7 +136,7 @@
         }
         else
         {
-            _model.CreatedBy = SessionState.CurrentUser?.LoginName ?? "System";
+            _model.CreatedBy = SessionState.CurrentUserAuditName ?? "System";
             _model.ItemTypeId = (long)MasterItemType.FinishedProduct; // Default
         }
 
@@ -286,7 +286,7 @@
         try
         {
             _model.ItemId = _selectedParent.ItemId;
-            _model.CreatedBy = SessionState.CurrentUser?.LoginName ?? "System";
+            _model.CreatedBy = SessionState.CurrentUserAuditName ?? "System";
             
             var resultId = await ApiClient.SaveBomAsync(_model);
             if (resultId > 0)

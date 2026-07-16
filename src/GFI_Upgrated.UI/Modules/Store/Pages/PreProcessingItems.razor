@@ -212,7 +212,7 @@
         _finalizing = true;
         try
         {
-            var result = await ApiClient.FinalizePreProcessingStockAsync(HeaderId, SessionState.CurrentUser?.LoginName ?? "System");
+            var result = await ApiClient.FinalizePreProcessingStockAsync(HeaderId, SessionState.CurrentUserAuditName ?? "System");
             if (result > 0)
             {
                 Snackbar.Add("Stock updated successfully.", Severity.Success);

@@ -157,7 +157,7 @@
         }
         else
         {
-            _model.CreatedBy = SessionState.CurrentUser?.LoginName ?? "System";
+            _model.CreatedBy = SessionState.CurrentUserAuditName ?? "System";
             _model.VoucherNumber = $"PO-{DateTime.Now:yyyyMMdd-HHmm}";
         }
     }
@@ -265,7 +265,7 @@
         {
             _model.AccountID = _selectedVendor.AccountId;
             _model.PurchaseRequestID = _selectedPR?.PurchaseRequestMasterID;
-            _model.CreatedBy = SessionState.CurrentUser?.LoginName ?? "System";
+            _model.CreatedBy = SessionState.CurrentUserAuditName ?? "System";
             _model.TotalAmount = _total;
             
             var resultId = await ApiClient.SavePurchaseOrderAsync(_model);

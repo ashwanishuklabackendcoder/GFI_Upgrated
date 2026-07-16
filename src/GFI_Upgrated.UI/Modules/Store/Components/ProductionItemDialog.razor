@@ -102,7 +102,7 @@
         _savingItem = true;
         try
         {
-            _newItem.UpdatedBy = SessionState.CurrentUser?.LoginName ?? "System";
+            _newItem.UpdatedBy = SessionState.CurrentUserAuditName ?? "System";
             var result = await ApiClient.SaveProductionItemAsync(_newItem);
             if (result > 0)
             {

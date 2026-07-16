@@ -58,7 +58,16 @@ public sealed class FinishedProductRepository : IFinishedProductRepository
                 ItemCategoryName = categories.GetValueOrDefault(itemCatId, ""),
                 ItemTypeName = types.GetValueOrDefault(itemTypeId, ""),
                 UnitName = units.GetValueOrDefault(unitId, ""),
-                IsActive = row.SafeBool("IsActive")
+                ItemCatId = itemCatId,
+                ItemTypeId = itemTypeId,
+                PurchaseUnit = unitId,
+                StatusId = row.SafeInt("StatusId", "StatusID"),
+                IsActive = row.SafeBool("IsActive"),
+                Description = row.SafeString("Description"),
+                StorageDetails = row.SafeString("StorageDetails"),
+                Tags = row.SafeString("Tags"),
+                TentativeExpiryDays = row.SafeInt("TentativeExpiryDays"),
+                BrandId = row.SafeLong("BrandId", "BrandID")
             });
         }
 

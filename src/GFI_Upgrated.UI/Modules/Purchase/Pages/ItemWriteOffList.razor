@@ -106,7 +106,7 @@
 
         try
         {
-            var user = SessionState.CurrentUser?.LoginName ?? "System";
+            var user = SessionState.CurrentUserAuditName ?? "System";
             var success = await ApiClient.DeleteItemWriteOffsAsync(item.ItemWriteOffID.ToString(), user);
             if (success)
             {

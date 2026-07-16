@@ -63,7 +63,7 @@
         {
             try
             {
-                Model.CreatedBy = SessionState.CurrentUser?.LoginName ?? "System";
+                Model.CreatedBy = SessionState.CurrentUserAuditName ?? "System";
                 var id = await ApiClient.SaveAccountGroupAsync(Model);
                 if (id > 0)
                 {

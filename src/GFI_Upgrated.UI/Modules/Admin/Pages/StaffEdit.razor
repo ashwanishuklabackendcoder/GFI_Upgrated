@@ -51,10 +51,7 @@
                 <MudTextField @bind-Value="_editor.MobileNo" Label="@LocalizationState.Text("Admin.Staff.Edit.MobileNo", "Mobile No.")" Variant="Variant.Outlined" />
             </MudItem>
             <MudItem xs="12" md="4">
-                <MudTextField @bind-Value="_editor.EmailIDPersonal" Label="@LocalizationState.Text("Admin.Staff.Edit.EmailPersonal", "Email Personal")" Variant="Variant.Outlined" />
-            </MudItem>
-            <MudItem xs="12" md="4">
-                <MudTextField @bind-Value="_editor.EmailIDOfficial" Label="@LocalizationState.Text("Admin.Staff.Edit.EmailOfficial", "Email Official")" Variant="Variant.Outlined" />
+                <MudTextField @bind-Value="_editor.EmailIDOfficial" Label="@LocalizationState.Text("Admin.Staff.Edit.Email", "Email")" Variant="Variant.Outlined" />
             </MudItem>
 
             <MudItem xs="12" md="4">
@@ -157,8 +154,8 @@
         _message = null;
         try
         {
-            _editor.CreatedBy = SessionState.CurrentUser?.LoginName ?? "System";
-            _editor.UpdatedBy = SessionState.CurrentUser?.LoginName ?? "System";
+            _editor.CreatedBy = SessionState.CurrentUserAuditName ?? "System";
+            _editor.UpdatedBy = SessionState.CurrentUserAuditName ?? "System";
             if (!string.IsNullOrWhiteSpace(_selectedPhotoName))
             {
                 _editor.Photo = _selectedPhotoName;

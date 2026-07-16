@@ -91,7 +91,7 @@
         {
             if (_editor.IsMainType) _editor.MainTypeId = null;
 
-            _editor.UpdatedBy = SessionState.CurrentUser?.LoginName ?? "System";
+            _editor.UpdatedBy = SessionState.CurrentUserAuditName ?? "System";
             var result = await ApiClient.SaveItemTypeAsync(_editor);
             if (result > 0)
             {

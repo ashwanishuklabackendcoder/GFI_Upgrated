@@ -18,9 +18,9 @@
         <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.ArrowBack" OnClick="OnBack">Back to List</MudButton>
     </MudStack>
 
-    <MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-6" Color="Color.Primary" Outlined="true">
+    <MudTabs @bind-ActivePanelIndex="_activeTabIndex" Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-6" Color="Color.Primary" Outlined="true">
         <MudTabPanel Text="General Info" Icon="@Icons.Material.Filled.Info">
-            <EditForm Model="_model" OnValidSubmit="SaveGeneralInfo">
+            <EditForm EditContext="_editContext">
                 <DataAnnotationsValidator />
                 <MudStack Spacing="4">
                 <MudPaper Class="pa-4" Outlined="true" Elevation="0">
@@ -35,16 +35,15 @@
                         <MudTextField @bind-Value="_model.ShortName" Label="Short Name" Variant="Variant.Outlined" For="@(() => _model.ShortName)" />
                     </MudItem>
 
-                    <MudItem xs="12" md="6">
-                        <MudSelect T="long" @bind-Value="_model.ItemCatId" Label="Category" Variant="Variant.Outlined" Required="true" AnchorOrigin="Origin.BottomCenter">
-                            <MudSelectItem Value="0L">Select Category</MudSelectItem>
-                            @foreach (var cat in _categories)
-                            {
-                                <MudSelectItem Value="cat.ItemCatId">@cat.ItemCatName</MudSelectItem>
-                            }
+                    <MudItem xs="12" md="4">
+                        <MudAutocomplete T="ItemCategoryDto" Label="Category" Value="@(_categories.FirstOrDefault(x => x.ItemCatId == _model.ItemCatId))" ValueChanged="@((ItemCategoryDto val) => _model.ItemCatId = val?.ItemCatId ?? 0)" SearchFunc="@SearchCategories" ToStringFunc="@(x => x?.ItemCatName ?? "")" Variant="Variant.Outlined" Required="true" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
+                    </MudItem>
+                    <MudItem xs="12" md="4">
+                        <MudSelect T="long" @bind-Value="_model.ItemTypeId" Label="Item Type" Variant="Variant.Outlined" Required="true" AnchorOrigin="Origin.BottomCenter" Disabled="true">
+                            <MudSelectItem Value="2L">Semi-Finished Product</MudSelectItem>
                         </MudSelect>
                     </MudItem>
-                    <MudItem xs="12" md="6">
+                    <MudItem xs="12" md="4">
                         <MudSelect T="long" @bind-Value="_model.PurchaseUnit" Label="Base Unit" Variant="Variant.Outlined" Required="true" AnchorOrigin="Origin.BottomCenter">
                             <MudSelectItem Value="0L">Select Unit</MudSelectItem>
                             @foreach (var unit in _units)
@@ -55,13 +54,7 @@
                     </MudItem>
 
                     <MudItem xs="12" md="4">
-                        <MudSelect T="long" @bind-Value="_model.BrandId" Label="Brand" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter">
-                            <MudSelectItem Value="0L">Select Brand</MudSelectItem>
-                            @foreach (var brand in _brands)
-                            {
-                                <MudSelectItem Value="brand.BrandId">@brand.BrandName</MudSelectItem>
-                            }
-                        </MudSelect>
+                        <MudAutocomplete T="BrandDto" Label="Brand" Value="@(_brands.FirstOrDefault(x => x.BrandId == _model.BrandId))" ValueChanged="@((BrandDto val) => _model.BrandId = val?.BrandId ?? 0)" SearchFunc="@SearchBrands" ToStringFunc="@(x => x?.BrandName ?? "")" Variant="Variant.Outlined" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
                     </MudItem>
                     <MudItem xs="12" md="4">
                         <MudSelect T="int" @bind-Value="_model.StatusId" Label="Status" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter">
@@ -80,10 +73,6 @@
                     </MudItem>
                     <MudItem xs="12">
                         <MudTextField @bind-Value="_model.Tags" Label="Tags (Comma separated)" Variant="Variant.Outlined" />
-                    </MudItem>
-
-                    <MudItem xs="12" Class="d-flex justify-end">
-                        <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Loading="_savingGeneral">Save General Info</MudButton>
                     </MudItem>
                 </MudGrid>
                 </MudPaper>
@@ -114,9 +103,6 @@
                     <MudCheckBox @bind-Value="_details.CriticalLevelAlert" Label="Enable Critical Level Alert" Color="Color.Primary" />
                 </MudItem>
 
-                <MudItem xs="12" Class="d-flex justify-end">
-                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveInventoryDetails" Loading="_savingDetails">Save Details</MudButton>
-                </MudItem>
             </MudGrid>
         </MudTabPanel>
 
@@ -171,11 +157,23 @@
             </MudStack>
         </MudTabPanel>
     </MudTabs>
+
+    <MudPaper Class="pa-4 mt-4" Outlined="true" Elevation="0">
+        <div class="d-flex justify-end gap-2 flex-wrap">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@(() => HandleSaveAction("stay"))" Loading="_savingGeneral || _savingDetails || _savingBatch">Save</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="@(() => HandleSaveAction("list"))" Loading="_savingGeneral || _savingDetails || _savingBatch">Save & Move to List</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Info" OnClick="@(() => HandleSaveAction("next"))" Loading="_savingGeneral || _savingDetails || _savingBatch">Save & Move to Next</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Dark" OnClick="@(() => HandleSaveAction("new"))" Loading="_savingGeneral || _savingDetails || _savingBatch">Save & Add New</MudButton>
+        </div>
+    </MudPaper>
 </MudPaper>
 
 @code {
     [Parameter] public long Id { get; set; }
+    [Parameter] [SupplyParameterFromQuery] public int? Tab { get; set; }
 
+    private int _activeTabIndex;
+    private EditContext? _editContext;
     private SaveSemiFinishedProductRequest _model = new();
     private SemiFinishedProductDetailDto _details = new();
     private SemiFinishedProductBatchDto _batchModel = new();
@@ -193,10 +191,17 @@
 
     protected override async Task OnInitializedAsync()
     {
+        _editContext = new EditContext(_model);
+
         if (!SessionState.IsLoggedIn)
         {
             Navigation.NavigateTo("/login");
             return;
+        }
+
+        if (Tab.HasValue)
+        {
+            _activeTabIndex = Tab.Value;
         }
 
         await LoadLookups();
@@ -209,7 +214,7 @@
         {
             _model.StatusId = 1;
             _model.ItemTypeId = 2; // Pre-processed/Semi-finished
-            _model.CreatedBy = SessionState.CurrentUser?.LoginName ?? "System";
+            _model.CreatedBy = SessionState.CurrentUserAuditName ?? "System";
         }
     }
 
@@ -218,18 +223,18 @@
         try
         {
             var cats = await ApiClient.GetItemCategoriesAsync(new PagedRequest { CurrentPage = 1, RecordPerPage = 1000 });
-            _categories = cats.Items.Where(x => x.IsActive).ToList();
+            _categories = cats.Items.Where(x => x.IsActive).OrderBy(x => x.ItemCatName).ToList();
 
             var units = await ApiClient.GetUnitsAsync(new PagedRequest { CurrentPage = 1, RecordPerPage = 1000 });
-            _units = units.Items.Where(x => x.IsActive).ToList();
+            _units = units.Items.Where(x => x.IsActive).OrderBy(x => x.UnitName).ToList();
 
             var brands = await ApiClient.GetBrandsAsync(new PagedRequest { CurrentPage = 1, RecordPerPage = 1000 });
-            _brands = brands.Items.Where(x => x.IsActive).ToList();
+            _brands = brands.Items.Where(x => x.IsActive).OrderBy(x => x.BrandName).ToList();
 
             var statuses = await ApiClient.GetStatusesAsync(new PagedRequest { CurrentPage = 1, RecordPerPage = 1000 });
-            _statuses = statuses.Items.Where(x => x.IsActive).ToList();
+            _statuses = statuses.Items.Where(x => x.IsActive).OrderBy(x => x.StatusName).ToList();
 
-            _warehouses = (await ApiClient.GetWarehousesLookupAsync()).ToList();
+            _warehouses = (await ApiClient.GetWarehousesLookupAsync()).OrderBy(x => x.WarehouseName).ToList();
         }
         catch (Exception ex)
         {
@@ -262,6 +267,7 @@
                     BrandId = item.BrandId,
                     CreatedBy = item.CreatedBy
                 };
+                _editContext = new EditContext(_model);
             }
 
             var details = await ApiClient.GetSemiFinishedProductDetailAsync(Id);
@@ -275,34 +281,32 @@
         }
     }
 
-    private async Task SaveGeneralInfo()
+    private async Task<bool> SaveGeneralInfo()
     {
         if (_model.TentativeExpiryDays < 0)
         {
             Snackbar.Add("Tentative expiry days cannot be negative.", Severity.Warning);
-            return;
+            return false;
         }
 
         _savingGeneral = true;
         try
         {
             _model.ItemTypeId = 2; // Force Type ID 2
-            _model.CreatedBy = SessionState.CurrentUser?.LoginName ?? "System";
+            _model.CreatedBy = SessionState.CurrentUserAuditName ?? "System";
             var newItemId = await ApiClient.SaveSemiFinishedProductAsync(_model);
-            if (Id == 0)
+            var wasNew = Id == 0;
+            if (wasNew)
             {
                 Id = newItemId;
-                Snackbar.Add("Item created successfully. You can now add details and stock.", Severity.Success);
-                Navigation.NavigateTo($"/store/semi-finished-products/edit/{Id}");
             }
-            else
-            {
-                Snackbar.Add("General info updated successfully.", Severity.Success);
-            }
+            Snackbar.Add(wasNew ? "Item created successfully." : "General info updated successfully.", Severity.Success);
+            return true;
         }
         catch (Exception ex)
         {
             Snackbar.Add($"Error saving item: {ex.Message}", Severity.Error);
+            return false;
         }
         finally
         {
@@ -310,13 +314,79 @@
         }
     }
 
-    private async Task SaveInventoryDetails()
+    private async Task HandleSaveAction(string action)
+    {
+        bool saveSuccess = false;
+        var wasNew = Id == 0;
+        
+        if (_activeTabIndex == 0)
+        {
+            if (_editContext != null && !_editContext.Validate())
+            {
+                Snackbar.Add("Please fix the validation errors on the form.", Severity.Warning);
+                return;
+            }
+            saveSuccess = await SaveGeneralInfo();
+        }
+        else if (_activeTabIndex == 1)
+        {
+            saveSuccess = await SaveInventoryDetails();
+        }
+        else if (_activeTabIndex == 2)
+        {
+            if (_batchModel.WarehouseId != 0)
+            {
+                saveSuccess = await SaveBatch();
+            }
+            else
+            {
+                saveSuccess = true;
+            }
+        }
+
+        if (saveSuccess)
+        {
+            if (action == "list")
+            {
+                Navigation.NavigateTo("/store/semi-finished-products");
+            }
+            else if (action == "new")
+            {
+                Navigation.NavigateTo("/store/semi-finished-products/new", forceLoad: true);
+            }
+            else if (action == "next")
+            {
+                if (_activeTabIndex < 2)
+                {
+                    if (wasNew)
+                    {
+                        Navigation.NavigateTo($"/store/semi-finished-products/edit/{Id}?tab={_activeTabIndex + 1}", forceLoad: true);
+                    }
+                    else
+                    {
+                        _activeTabIndex++;
+                    }
+                }
+                else
+                {
+                    Snackbar.Add("All steps completed. Moving to list view.", Severity.Info);
+                    Navigation.NavigateTo("/store/semi-finished-products");
+                }
+            }
+            else if (wasNew)
+            {
+                Navigation.NavigateTo($"/store/semi-finished-products/edit/{Id}");
+            }
+        }
+    }
+
+    private async Task<bool> SaveInventoryDetails()
     {
         _details.OpeningQuantity = 0;
         if (_details.MaximumQuantity < 0 || _details.CriticalLevelQuantity < 0 || _details.ReorderLevelQuantity < 0 || _details.ReorderLevelDays < 0)
         {
             Snackbar.Add("Stock-related values cannot be negative.", Severity.Warning);
-            return;
+            return false;
         }
 
         _savingDetails = true;
@@ -325,10 +395,12 @@
             _details.ItemId = Id;
             await ApiClient.SaveSemiFinishedProductDetailAsync(_details);
             Snackbar.Add("Inventory details saved successfully.", Severity.Success);
+            return true;
         }
         catch (Exception ex)
         {
             Snackbar.Add($"Error saving details: {ex.Message}", Severity.Error);
+            return false;
         }
         finally
         {
@@ -336,41 +408,43 @@
         }
     }
 
-    private async Task SaveBatch()
+    private async Task<bool> SaveBatch()
     {
         if (_batchModel.WarehouseId == 0)
         {
             Snackbar.Add("Please select a warehouse.", Severity.Warning);
-            return;
+            return false;
         }
 
         if (_batchModel.Quantity < 0)
         {
             Snackbar.Add("Quantity cannot be negative.", Severity.Warning);
-            return;
+            return false;
         }
 
         if (_batchModel.ExpiryDate.HasValue && _batchModel.ExpiryDate.Value.Date < DateTime.Today)
         {
             Snackbar.Add("Expiry date cannot be from the past.", Severity.Warning);
-            return;
+            return false;
         }
 
         _savingBatch = true;
         try
         {
             _batchModel.ItemId = Id;
-            _batchModel.CreatedBy = SessionState.CurrentUser?.LoginName ?? "System";
+            _batchModel.CreatedBy = SessionState.CurrentUserAuditName ?? "System";
             _batchModel.UnitId = _model.PurchaseUnit > 0 ? (int)_model.PurchaseUnit : (int)(_units.FirstOrDefault()?.UnitId ?? 0);
 
             await ApiClient.SaveSemiFinishedProductBatchAsync(_batchModel);
             Snackbar.Add("Batch saved successfully.", Severity.Success);
             _batches = (await ApiClient.GetSemiFinishedProductBatchesAsync(Id)).ToList();
             ResetBatchForm();
+            return true;
         }
         catch (Exception ex)
         {
             Snackbar.Add($"Error saving batch: {ex.Message}", Severity.Error);
+            return false;
         }
         finally
         {
@@ -405,7 +479,7 @@
         _savingBatch = true;
         try
         {
-            batch.CreatedBy = SessionState.CurrentUser?.LoginName ?? "System";
+            batch.CreatedBy = SessionState.CurrentUserAuditName ?? "System";
             var result = await ApiClient.SaveSemiFinishedProductBatchAsync(batch, batch.ItemStockByBatchId.ToString());
             if (result < 0)
             {
@@ -433,4 +507,16 @@
     }
 
     private void OnBack() => Navigation.NavigateTo("/store/semi-finished-products");
+
+    private async Task<IEnumerable<ItemCategoryDto>> SearchCategories(string value, CancellationToken token)
+    {
+        if (string.IsNullOrEmpty(value)) return _categories;
+        return _categories.Where(x => x.ItemCatName.Contains(value, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private async Task<IEnumerable<BrandDto>> SearchBrands(string value, CancellationToken token)
+    {
+        if (string.IsNullOrEmpty(value)) return _brands;
+        return _brands.Where(x => x.BrandName.Contains(value, StringComparison.OrdinalIgnoreCase));
+    }
 }

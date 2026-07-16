@@ -160,7 +160,7 @@
         try
         {
             group.IsActive = val;
-            group.CreatedBy = SessionState.CurrentUser?.LoginName ?? "System";
+            group.CreatedBy = SessionState.CurrentUserAuditName ?? "System";
             var id = await ApiClient.SaveAccountGroupAsync(group);
             if (id > 0)
             {
