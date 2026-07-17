@@ -39,11 +39,11 @@
                         <MudAutocomplete T="ItemCategoryDto" Label="Category" Value="@(_categories.FirstOrDefault(x => x.ItemCatId == _model.ItemCatId))" ValueChanged="@((ItemCategoryDto val) => _model.ItemCatId = val?.ItemCatId ?? 0)" SearchFunc="@SearchCategories" ToStringFunc="@(x => x?.ItemCatName ?? "")" Variant="Variant.Outlined" Required="true" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
                     </MudItem>
                     <MudItem xs="12" md="4">
-                        <MudSelect T="long" @bind-Value="_model.ItemTypeId" Label="Item Type" Variant="Variant.Outlined" Required="true" AnchorOrigin="Origin.BottomCenter">
-                            <MudSelectItem Value="0L">Select Type</MudSelectItem>
+                        <MudSelect T="long?" @bind-Value="_model.MasterItemTypeId" Label="Item Type" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter">
+                            <MudSelectItem Value="@((long?)null)">Select Type</MudSelectItem>
                             @foreach (var type in _types)
                             {
-                                <MudSelectItem Value="type.ItemTypeId">@type.ItemTypeName</MudSelectItem>
+                                <MudSelectItem Value="@((long?)type.ItemTypeId)">@type.ItemTypeName</MudSelectItem>
                             }
                         </MudSelect>
                     </MudItem>

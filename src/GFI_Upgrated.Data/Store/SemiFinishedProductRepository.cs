@@ -68,7 +68,8 @@ public sealed class SemiFinishedProductRepository : ISemiFinishedProductReposito
                 StorageDetails = row.SafeString("StorageDetails"),
                 Tags = row.SafeString("Tags"),
                 TentativeExpiryDays = row.SafeInt("TentativeExpiryDays"),
-                BrandId = row.SafeLong("BrandId", "BrandID")
+                BrandId = row.SafeLong("BrandId", "BrandID"),
+                MasterItemTypeId = row.SafeLongNullable("MasterItemTypeId", "MasterItemTypeID")
             });
         }
 
@@ -113,7 +114,8 @@ public sealed class SemiFinishedProductRepository : ISemiFinishedProductReposito
             StorageDetails = row.SafeString("StorageDetails"),
             Tags = row.SafeString("Tags"),
             TentativeExpiryDays = row.SafeInt("TentativeExpiryDays"),
-            BrandId = row.SafeLong("BrandId", "BrandID")
+            BrandId = row.SafeLong("BrandId", "BrandID"),
+            MasterItemTypeId = row.SafeLongNullable("MasterItemTypeId", "MasterItemTypeID")
         };
     }
 
@@ -138,6 +140,7 @@ public sealed class SemiFinishedProductRepository : ISemiFinishedProductReposito
             new SqlParameter("@PurchaseUnit", SqlDbType.BigInt) { Value = request.PurchaseUnit > 0 ? request.PurchaseUnit : DBNull.Value },
             new SqlParameter("@BrandId", SqlDbType.BigInt) { Value = request.BrandId > 0 ? request.BrandId : DBNull.Value },
             new SqlParameter("@StorageDetails", SqlDbType.NVarChar, 2000) { Value = (object?)request.StorageDetails ?? DBNull.Value },
+            new SqlParameter("@MasterItemTypeId", SqlDbType.BigInt) { Value = (object?)request.MasterItemTypeId ?? DBNull.Value },
             new SqlParameter("@ReturnVal", SqlDbType.Int) { Direction = ParameterDirection.Output }
         };
 

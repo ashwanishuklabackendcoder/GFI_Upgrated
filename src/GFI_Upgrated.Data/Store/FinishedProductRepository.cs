@@ -67,7 +67,8 @@ public sealed class FinishedProductRepository : IFinishedProductRepository
                 StorageDetails = row.SafeString("StorageDetails"),
                 Tags = row.SafeString("Tags"),
                 TentativeExpiryDays = row.SafeInt("TentativeExpiryDays"),
-                BrandId = row.SafeLong("BrandId", "BrandID")
+                BrandId = row.SafeLong("BrandId", "BrandID"),
+                MasterItemTypeId = row.SafeLongNullable("MasterItemTypeId", "MasterItemTypeID")
             });
         }
 
@@ -117,7 +118,8 @@ public sealed class FinishedProductRepository : IFinishedProductRepository
             Tags = row.SafeString("Tags"),
             TentativeExpiryDays = row.SafeInt("TentativeExpiryDays"),
             BrandId = row.SafeLong("BrandId", "BrandID"),
-            CreatedBy = row.SafeString("CreatedBy")
+            CreatedBy = row.SafeString("CreatedBy"),
+            MasterItemTypeId = row.SafeLongNullable("MasterItemTypeId", "MasterItemTypeID")
         };
     }
 
@@ -131,7 +133,7 @@ public sealed class FinishedProductRepository : IFinishedProductRepository
             new SqlParameter("@ShortName", SqlDbType.NVarChar, 50) { Value = (object?)request.ShortName ?? DBNull.Value },
             new SqlParameter("@IsActive", SqlDbType.Bit) { Value = request.IsActive },
             new SqlParameter("@ItemCatID", SqlDbType.Int) { Value = request.ItemCatId },
-            new SqlParameter("@ItemTypeID", SqlDbType.Int) { Value = request.ItemTypeId },
+            new SqlParameter("@ItemTypeID", SqlDbType.Int) { Value = 1 }, // Force 1 for Finished Product type enum
             new SqlParameter("@StatusID", SqlDbType.Int) { Value = request.StatusId },
             new SqlParameter("@IsEditable", SqlDbType.Bit) { Value = true },
             new SqlParameter("@Description", SqlDbType.NVarChar, 1000) { Value = (object?)request.Description ?? DBNull.Value },
@@ -142,6 +144,7 @@ public sealed class FinishedProductRepository : IFinishedProductRepository
             new SqlParameter("@TentativeExpiryDays", SqlDbType.Int) { Value = request.TentativeExpiryDays },
             new SqlParameter("@PurchaseUnit", SqlDbType.BigInt) { Value = request.PurchaseUnit },
             new SqlParameter("@BrandId", SqlDbType.BigInt) { Value = request.BrandId > 0 ? request.BrandId : DBNull.Value },
+            new SqlParameter("@MasterItemTypeId", SqlDbType.BigInt) { Value = (object?)request.MasterItemTypeId ?? DBNull.Value },
             new SqlParameter("@ReturnVal", SqlDbType.Int) { Direction = ParameterDirection.Output }
         };
 

@@ -39,8 +39,12 @@
                         <MudAutocomplete T="ItemCategoryDto" Label="Category" Value="@(_categories.FirstOrDefault(x => x.ItemCatId == _model.ItemCatId))" ValueChanged="@((ItemCategoryDto val) => _model.ItemCatId = val?.ItemCatId ?? 0)" SearchFunc="@SearchCategories" ToStringFunc="@(x => x?.ItemCatName ?? "")" Variant="Variant.Outlined" Required="true" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
                     </MudItem>
                     <MudItem xs="12" md="4">
-                        <MudSelect T="long" @bind-Value="_model.ItemTypeId" Label="Item Type" Variant="Variant.Outlined" Required="true" AnchorOrigin="Origin.BottomCenter" Disabled="true">
-                            <MudSelectItem Value="2L">Semi-Finished Product</MudSelectItem>
+                        <MudSelect T="long?" @bind-Value="_model.MasterItemTypeId" Label="Item Type" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter">
+                            <MudSelectItem Value="@((long?)null)">Select Type</MudSelectItem>
+                            @foreach (var type in _types)
+                            {
+                                <MudSelectItem Value="@((long?)type.ItemTypeId)">@type.ItemTypeName</MudSelectItem>
+                            }
                         </MudSelect>
                     </MudItem>
                     <MudItem xs="12" md="4">
@@ -184,6 +188,7 @@
     private List<StatusDto> _statuses = new();
     private List<WarehouseLookupDto> _warehouses = new();
     private List<SemiFinishedProductBatchDto> _batches = new();
+    private List<ItemTypeDto> _types = new();
 
     private bool _savingGeneral;
     private bool _savingDetails;
@@ -225,6 +230,9 @@
             var cats = await ApiClient.GetItemCategoriesAsync(new PagedRequest { CurrentPage = 1, RecordPerPage = 1000 });
             _categories = cats.Items.Where(x => x.IsActive).OrderBy(x => x.ItemCatName).ToList();
 
+            var types = await ApiClient.GetItemTypesAsync(new PagedRequest { CurrentPage = 1, RecordPerPage = 1000 });
+            _types = types.Items.Where(x => x.IsActive).OrderBy(x => x.ItemTypeName).ToList();
+
             var units = await ApiClient.GetUnitsAsync(new PagedRequest { CurrentPage = 1, RecordPerPage = 1000 });
             _units = units.Items.Where(x => x.IsActive).OrderBy(x => x.UnitName).ToList();
 
@@ -265,7 +273,8 @@
                     TentativeExpiryDays = item.TentativeExpiryDays,
                     PurchaseUnit = item.PurchaseUnit,
                     BrandId = item.BrandId,
-                    CreatedBy = item.CreatedBy
+                    CreatedBy = item.CreatedBy,
+                    MasterItemTypeId = item.MasterItemTypeId
                 };
                 _editContext = new EditContext(_model);
             }

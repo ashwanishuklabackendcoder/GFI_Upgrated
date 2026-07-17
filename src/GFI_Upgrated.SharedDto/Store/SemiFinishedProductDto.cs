@@ -23,6 +23,7 @@ public class SemiFinishedProductDto
     public int TentativeExpiryDays { get; set; }
     public long BrandId { get; set; }
     public string? CreatedBy { get; set; }
+    public long? MasterItemTypeId { get; set; }
 }
 
 public class SemiFinishedProductListRequest
@@ -51,6 +52,7 @@ public class SaveSemiFinishedProductRequest
     public long PurchaseUnit { get; set; }
     public long BrandId { get; set; }
     public string? CreatedBy { get; set; }
+    public long? MasterItemTypeId { get; set; }
 }
 
 public class SemiFinishedProductDetailDto
