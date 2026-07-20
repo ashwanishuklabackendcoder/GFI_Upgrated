@@ -235,6 +235,10 @@ namespace GFI_Upgrated.Data.Account
                     StakeholderType = cols.Contains("StakeholderType") ? row["StakeholderType"]?.ToString() : null,
                     CurrencyID = cols.Contains("CurrencyID") && row["CurrencyID"] != DBNull.Value ? Convert.ToInt64(row["CurrencyID"]) : null,
                     CurrencySymbol = cols.Contains("CurrencySymbol") ? row["CurrencySymbol"]?.ToString() : null,
+                    ContactPerson = cols.Contains("ContactPerson") ? row["ContactPerson"]?.ToString() : null,
+                    Website = cols.Contains("Website") ? row["Website"]?.ToString() : null,
+                    Remark = cols.Contains("Remark") ? row["Remark"]?.ToString() : null,
+                    MasterCountry = cols.Contains("MasterCountry") ? row["MasterCountry"]?.ToString() : null,
                     CreatedDate = cols.Contains("CreatedDate") && row["CreatedDate"] != DBNull.Value ? Convert.ToDateTime(row["CreatedDate"]) : DateTime.MinValue,
                     CreatedBy = cols.Contains("CreatedBy") ? row["CreatedBy"]?.ToString() : null
                 });
@@ -265,8 +269,8 @@ namespace GFI_Upgrated.Data.Account
                 new SqlParameter("@ZipCode", DBNull.Value),
                 new SqlParameter("@Address", (object?)account.Address ?? DBNull.Value),
                 new SqlParameter("@AddressCity", DBNull.Value),
-                new SqlParameter("@MasterCountry", DBNull.Value),
-                new SqlParameter("@ContactPerson", DBNull.Value),
+                new SqlParameter("@MasterCountry", (object?)account.MasterCountry ?? DBNull.Value),
+                new SqlParameter("@ContactPerson", (object?)account.ContactPerson ?? DBNull.Value),
                 new SqlParameter("@PhoneNo", (object?)account.ContactNo ?? DBNull.Value),
                 new SqlParameter("@MobileNo", (object?)account.MobileNo ?? DBNull.Value),
                 new SqlParameter("@EmailID", (object?)account.EmailID ?? DBNull.Value),
@@ -274,6 +278,8 @@ namespace GFI_Upgrated.Data.Account
                 new SqlParameter("@StakeholderType", (object?)account.StakeholderType ?? DBNull.Value),
                 new SqlParameter("@CurrencyID", (object?)account.CurrencyID ?? DBNull.Value),
                 new SqlParameter("@OpeningBalanceDate", (object?)account.OpeningBalanceDate ?? DBNull.Value),
+                new SqlParameter("@Website", (object?)account.Website ?? DBNull.Value),
+                new SqlParameter("@Remark", (object?)account.Remark ?? DBNull.Value),
                 new SqlParameter("@ReturnVal", SqlDbType.Int) { Direction = ParameterDirection.Output }
             };
 

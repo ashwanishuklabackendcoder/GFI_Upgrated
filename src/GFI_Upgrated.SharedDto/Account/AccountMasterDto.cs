@@ -18,6 +18,10 @@ namespace GFI_Upgrated.SharedDto.Account
         public string? StakeholderType { get; set; }
         public long? CurrencyID { get; set; }
         public string? CurrencySymbol { get; set; }
+        public string? ContactPerson { get; set; }
+        public string? Website { get; set; }
+        public string? Remark { get; set; }
+        public string? MasterCountry { get; set; }
         public DateTime CreatedDate { get; set; } = DateTime.Now;
         public string? CreatedBy { get; set; }
     }

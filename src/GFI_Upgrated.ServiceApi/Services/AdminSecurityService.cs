@@ -30,6 +30,7 @@ public interface IAdminSecurityService
     Task<IReadOnlyList<StaffLookupDto>> GetActiveStaffAsync(CancellationToken cancellationToken = default);
     Task<IReadOnlyList<StaffLookupDto>> GetUnassignedStaffAsync(CancellationToken cancellationToken = default);
     Task<IReadOnlyList<LookupItemDto>> GetMasterDropdownAsync(long parentId, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<LookupItemDto>> GetCountriesAsync(CancellationToken cancellationToken = default);
     Task<PagedResult<DropDownMasterDto>> GetDropDownMastersAsync(PagedRequest request, string? searchText, CancellationToken cancellationToken = default);
     Task<DropDownMasterDto?> GetDropDownMasterByIdAsync(long id, CancellationToken cancellationToken = default);
     Task<int> SaveDropDownMasterAsync(SaveDropDownMasterRequest request, CancellationToken cancellationToken = default);
@@ -133,6 +134,9 @@ public sealed class AdminSecurityService : IAdminSecurityService
 
     public Task<IReadOnlyList<LookupItemDto>> GetMasterDropdownAsync(long parentId, CancellationToken cancellationToken = default)
         => _repository.GetMasterDropdownAsync(parentId, cancellationToken);
+
+    public Task<IReadOnlyList<LookupItemDto>> GetCountriesAsync(CancellationToken cancellationToken = default)
+        => _repository.GetCountriesAsync(cancellationToken);
 
     public Task<PagedResult<DropDownMasterDto>> GetDropDownMastersAsync(PagedRequest request, string? searchText, CancellationToken cancellationToken = default)
         => _repository.GetDropDownMastersAsync(request, searchText, cancellationToken);

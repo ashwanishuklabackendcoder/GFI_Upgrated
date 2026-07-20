@@ -100,6 +100,9 @@ public sealed class AdminSecurityApiClient
     public async Task<IReadOnlyList<LookupItemDto>> GetMasterDropdownAsync(long parentId, CancellationToken cancellationToken = default)
         => await GetEnvelopeAsync<IReadOnlyList<LookupItemDto>>($"api/admin/security/lookups/master-dropdown/{parentId}", cancellationToken) ?? Array.Empty<LookupItemDto>();
 
+    public async Task<IReadOnlyList<LookupItemDto>> GetCountriesAsync(CancellationToken cancellationToken = default)
+        => await GetEnvelopeAsync<IReadOnlyList<LookupItemDto>>($"api/admin/security/lookups/countries", cancellationToken) ?? Array.Empty<LookupItemDto>();
+
     public async Task<PagedResult<DropDownMasterDto>> GetDropDownMastersAsync(PagedRequest request, string? searchText = null, CancellationToken cancellationToken = default)
         => await GetEnvelopeAsync<PagedResult<DropDownMasterDto>>(BuildQuery("api/admin/security/dropdown-masters", request, ("searchText", searchText)), cancellationToken) ?? new PagedResult<DropDownMasterDto>();
 

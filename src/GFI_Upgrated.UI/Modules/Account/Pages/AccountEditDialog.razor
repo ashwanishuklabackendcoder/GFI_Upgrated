@@ -32,13 +32,6 @@
                             }
                         </MudSelect>
 
-                        <MudNumericField @bind-Value="Model.OpeningBalance" Label="Opening Balance" Variant="Variant.Outlined" HideSpinButtons="true" />
-                        <MudDatePicker @bind-Date="Model.OpeningBalanceDate" Label="Balance Date" Variant="Variant.Outlined" />
-                    </MudStack>
-                </MudItem>
-
-                <MudItem xs="12" md="6">
-                    <MudStack Spacing="4">
                         <MudSelect T="string?" Label="Stakeholder Type" @bind-Value="Model.StakeholderType" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter" Clearable="true">
                             <MudSelectItem T="string?" Value="null">-- Select Stakeholder Type --</MudSelectItem>
                             @foreach (var type in _stakeholderTypes)
@@ -55,10 +48,25 @@
                             }
                         </MudSelect>
 
+                        <MudTextField @bind-Value="Model.Remark" Label="Remark" Variant="Variant.Outlined" Lines="2" />
+                    </MudStack>
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudStack Spacing="4">
+                        <MudTextField @bind-Value="Model.ContactPerson" Label="Contact Person Name" Variant="Variant.Outlined" />
                         <MudTextField @bind-Value="Model.MobileNo" Label="Mobile Number" Variant="Variant.Outlined" />
-                        <MudTextField @bind-Value="Model.ContactNo" Label="Contact Number" Variant="Variant.Outlined" />
                         <MudTextField @bind-Value="Model.EmailID" Label="Email Address" Variant="Variant.Outlined" InputType="InputType.Email" />
+                        <MudTextField @bind-Value="Model.Website" Label="Website" Variant="Variant.Outlined" Placeholder="https://example.com" />
+                        <MudSelect T="string?" Label="Country" @bind-Value="Model.MasterCountry" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter" Clearable="true">
+                            <MudSelectItem T="string?" Value="null">-- Select Country --</MudSelectItem>
+                            @foreach (var country in _countries)
+                            {
+                                <MudSelectItem T="string?" Value="@country.Text">@country.Text</MudSelectItem>
+                            }
+                        </MudSelect>
                         <MudTextField @bind-Value="Model.Address" Label="Address" Variant="Variant.Outlined" Lines="2" />
+                        
                     </MudStack>
                 </MudItem>
             </MudGrid>
@@ -79,6 +87,7 @@
     private List<CurrencyDto> _currencies = new();
     private IReadOnlyList<LookupItemDto> _stakeholderTypes = Array.Empty<LookupItemDto>();
     private IReadOnlyList<LookupItemDto> _stakeholderGroups = Array.Empty<LookupItemDto>();
+    private IReadOnlyList<LookupItemDto> _countries = Array.Empty<LookupItemDto>();
 
     protected override async Task OnInitializedAsync()
     {
@@ -90,6 +99,7 @@
             
             _stakeholderTypes = await SecurityApiClient.GetMasterDropdownAsync(6);
             _stakeholderGroups = await SecurityApiClient.GetMasterDropdownAsync(5);
+            _countries = await SecurityApiClient.GetCountriesAsync();
             
             if (Model.AccountID == 0 && Model.OpeningBalanceDate == null)
             {

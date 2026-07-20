@@ -396,6 +396,18 @@ public sealed class SecurityController : ControllerBase
         });
     }
 
+    [HttpGet("lookups/countries")]
+    public async Task<ActionResult<ApiEnvelope<IReadOnlyList<LookupItemDto>>>> GetCountries(CancellationToken cancellationToken)
+    {
+        var result = await _service.GetCountriesAsync(cancellationToken);
+        return Ok(new ApiEnvelope<IReadOnlyList<LookupItemDto>>
+        {
+            Success = true,
+            Message = "Countries loaded.",
+            Data = result
+        });
+    }
+
     [HttpGet("dropdown-masters")]
     public async Task<ActionResult<ApiEnvelope<PagedResult<DropDownMasterDto>>>> GetDropDownMasters([FromQuery] PagedRequest request, [FromQuery] string? searchText, CancellationToken cancellationToken)
     {

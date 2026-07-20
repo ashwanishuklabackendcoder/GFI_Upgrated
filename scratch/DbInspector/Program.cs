@@ -6,6 +6,16 @@ class Program
 {
     static void Main(string[] args)
     {
+        if (args.Length > 0 && args[0] == "CREATE_SNK")
+        {
+            using (var rsa = new System.Security.Cryptography.RSACryptoServiceProvider(2048))
+            {
+                byte[] keyPair = rsa.ExportCspBlob(true);
+                System.IO.File.WriteAllBytes(@"d:\GFI_Upgrated\GFI_Upgrated.snk", keyPair);
+                Console.WriteLine("SNK Key created successfully at d:\\GFI_Upgrated\\GFI_Upgrated.snk");
+            }
+            return;
+        }
         string connectionString = "Server=db50414.public.databaseasp.net;Database=db50414;User Id=db50414;Password=m?2TQ9f#nZ+5;Encrypt=True;TrustServerCertificate=True;Connection Timeout=30;";
         string query = args.Length > 0 ? args[0] : "SELECT ItemTypeId, ItemTypeName FROM W_MasterItemType";
 
