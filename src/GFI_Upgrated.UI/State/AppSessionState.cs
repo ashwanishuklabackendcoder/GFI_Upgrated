@@ -149,7 +149,11 @@ public sealed class AppSessionState
         { "admin/reportbatchwiseitems", "batch-wise-items" },
         { "admin/item-write-off", "item-write-off" },
         { "admin/z_usersactivitylog", "user-logs" },
-        { "admin/loginslog", "login-logs" }
+        { "admin/loginslog", "login-logs" },
+        { "admin/drop-down-editor", "drop-down-editor" },
+        { "admin/drop-down-values", "drop-down-editor" },
+        { "admin/drop-down", "drop-down-editor" },
+        { "admin/resource-editor", "resource-editor" }
     };
 
     private string GetResourceKey(string route)
@@ -200,7 +204,7 @@ public sealed class AppSessionState
             "dashboard" => "/admin",
             "staff" => "/admin/staff",
             "logins" => "/admin/users",
-            "drop down editor" => "/admin/drop-down-editor",
+            "drop down editor" or "drop down" or "dropdown editor" or "dropdown" => "/admin/drop-down-editor",
             "resource editor" => "/admin/resource-editor",
             "user activity logs" => "/admin/user-activity-logs",
             "logins log" => "/admin/logins-log",

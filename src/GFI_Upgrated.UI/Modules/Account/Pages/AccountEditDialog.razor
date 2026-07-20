@@ -1,8 +1,10 @@
 @using GFI_Upgrated.SharedDto.Account
+@using GFI_Upgrated.SharedDto.AdminSecurity
 @using GFI_Upgrated.UI.Services
 @using GFI_Upgrated.UI.State
 @using MudBlazor
 @inject AccountApiClient ApiClient
+@inject AdminSecurityApiClient SecurityApiClient
 @inject ISnackbar Snackbar
 @inject AppSessionState SessionState
 
@@ -37,10 +39,26 @@
 
                 <MudItem xs="12" md="6">
                     <MudStack Spacing="4">
+                        <MudSelect T="string?" Label="Stakeholder Type" @bind-Value="Model.StakeholderType" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter" Clearable="true">
+                            <MudSelectItem T="string?" Value="null">-- Select Stakeholder Type --</MudSelectItem>
+                            @foreach (var type in _stakeholderTypes)
+                            {
+                                <MudSelectItem T="string?" Value="@type.Value.ToString()">@type.Text</MudSelectItem>
+                            }
+                        </MudSelect>
+
+                        <MudSelect T="string?" Label="Stakeholder Group" @bind-Value="Model.StakeholderGroup" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter" Clearable="true">
+                            <MudSelectItem T="string?" Value="null">-- Select Stakeholder Group --</MudSelectItem>
+                            @foreach (var sg in _stakeholderGroups)
+                            {
+                                <MudSelectItem T="string?" Value="@sg.Value.ToString()">@sg.Text</MudSelectItem>
+                            }
+                        </MudSelect>
+
                         <MudTextField @bind-Value="Model.MobileNo" Label="Mobile Number" Variant="Variant.Outlined" />
                         <MudTextField @bind-Value="Model.ContactNo" Label="Contact Number" Variant="Variant.Outlined" />
                         <MudTextField @bind-Value="Model.EmailID" Label="Email Address" Variant="Variant.Outlined" InputType="InputType.Email" />
-                        <MudTextField @bind-Value="Model.Address" Label="Address" Variant="Variant.Outlined" Lines="3" />
+                        <MudTextField @bind-Value="Model.Address" Label="Address" Variant="Variant.Outlined" Lines="2" />
                     </MudStack>
                 </MudItem>
             </MudGrid>
@@ -59,6 +77,8 @@
     private MudForm _form = default!;
     private IReadOnlyList<AccountGroupLookupDto> _groups = Array.Empty<AccountGroupLookupDto>();
     private List<CurrencyDto> _currencies = new();
+    private IReadOnlyList<LookupItemDto> _stakeholderTypes = Array.Empty<LookupItemDto>();
+    private IReadOnlyList<LookupItemDto> _stakeholderGroups = Array.Empty<LookupItemDto>();
 
     protected override async Task OnInitializedAsync()
     {
@@ -67,6 +87,9 @@
             _groups = await ApiClient.GetAccountGroupsLookupAsync();
             var currResult = await ApiClient.GetCurrenciesAsync();
             _currencies = currResult.Items.ToList();
+            
+            _stakeholderTypes = await SecurityApiClient.GetMasterDropdownAsync(6);
+            _stakeholderGroups = await SecurityApiClient.GetMasterDropdownAsync(5);
             
             if (Model.AccountID == 0 && Model.OpeningBalanceDate == null)
             {
@@ -94,6 +117,10 @@
                 {
                     Snackbar.Add("Account saved successfully.", Severity.Success);
                     MudDialog.Close(DialogResult.Ok(id));
+                }
+                else if (id == -1 || id == -2)
+                {
+                    Snackbar.Add("An account with this name already exists.", Severity.Warning);
                 }
                 else
                 {

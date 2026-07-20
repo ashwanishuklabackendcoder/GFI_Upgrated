@@ -273,6 +273,7 @@ namespace GFI_Upgrated.Data.Account
                 new SqlParameter("@StakeholderGroup", (object?)account.StakeholderGroup ?? DBNull.Value),
                 new SqlParameter("@StakeholderType", (object?)account.StakeholderType ?? DBNull.Value),
                 new SqlParameter("@CurrencyID", (object?)account.CurrencyID ?? DBNull.Value),
+                new SqlParameter("@OpeningBalanceDate", (object?)account.OpeningBalanceDate ?? DBNull.Value),
                 new SqlParameter("@ReturnVal", SqlDbType.Int) { Direction = ParameterDirection.Output }
             };
 
