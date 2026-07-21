@@ -27,12 +27,7 @@
             </MudItem>
             
             <MudItem xs="12" md="6">
-                <MudSelect T="int" Label="Status Of" @bind-Value="_editor.StatusOf" Variant="Variant.Outlined">
-                    <MudSelectItem Value="1">Item</MudSelectItem>
-                    <MudSelectItem Value="2">Order</MudSelectItem>
-                    <MudSelectItem Value="3">Production</MudSelectItem>
-                    <MudSelectItem Value="0">General</MudSelectItem>
-                </MudSelect>
+                <MudAutocomplete T="StatusOfOption" Label="Status Of" Value="@(_statusOfOptions.FirstOrDefault(x => x.Id == _editor.StatusOf))" ValueChanged="@((StatusOfOption val) => { _editor.StatusOf = val?.Id ?? 0; })" SearchFunc="@SearchStatusOf" ToStringFunc="@(x => x?.Name ?? "")" Variant="Variant.Outlined" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
             </MudItem>
 
             <MudItem xs="12" md="4">
@@ -54,6 +49,15 @@
     private bool _isEdit => Id.HasValue && Id.Value > 0;
     private SaveStatusRequest _editor = new();
     private bool _processing;
+
+    public class StatusOfOption { public int Id { get; set; } public string Name { get; set; } = ""; }
+    private List<StatusOfOption> _statusOfOptions = new()
+    {
+        new() { Id = 1, Name = "Item" },
+        new() { Id = 2, Name = "Order" },
+        new() { Id = 3, Name = "Production" },
+        new() { Id = 0, Name = "General" }
+    };
 
     protected override async Task OnInitializedAsync()
     {
@@ -104,4 +108,7 @@
     }
 
     private void OnCancel() => NavigationManager.NavigateTo("/admin/status");
+
+    private async Task<IEnumerable<StatusOfOption>> SearchStatusOf(string value, CancellationToken token) { if (string.IsNullOrEmpty(value)) return _statusOfOptions; return _statusOfOptions.Where(x => x.Name.Contains(value, StringComparison.OrdinalIgnoreCase)); }
 }
+

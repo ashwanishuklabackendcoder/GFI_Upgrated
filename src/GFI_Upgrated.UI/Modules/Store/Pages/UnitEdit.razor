@@ -29,13 +29,7 @@
                 <MudNumericField @bind-Value="_editor.ConversionValue" Label="Conversion Value" Variant="Variant.Outlined" For="@(() => _editor.ConversionValue)" HideSpinButtons="true" Step="0.000001" />
             </MudItem>
             <MudItem xs="12" md="6">
-                <MudSelect T="long?" @bind-Value="_editor.BaseUnit" Label="Base Unit" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter" Clearable="true">
-                    <MudSelectItem Value="(long?)null">None</MudSelectItem>
-                    @foreach (var unit in _baseUnits)
-                    {
-                        <MudSelectItem Value="(long?)unit.UnitId">@unit.UnitName</MudSelectItem>
-                    }
-                </MudSelect>
+                <MudAutocomplete T="BaseUnitLookupDto" Label="Base Unit" Value="@(_baseUnits.FirstOrDefault(x => x.UnitId == _editor.BaseUnit))" ValueChanged="@((BaseUnitLookupDto val) => { _editor.BaseUnit = val?.UnitId; })" SearchFunc="@SearchBaseUnits" ToStringFunc="@(x => x?.UnitName ?? "")" Variant="Variant.Outlined" Clearable="true" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
             </MudItem>
             <MudItem xs="12" md="6" Class="d-flex align-center">
                 <MudCheckBox T="bool" @bind-Value="_editor.IsActive" Label="Is Active" Color="Color.Primary" />
@@ -123,4 +117,7 @@
     }
 
     private void OnCancel() => NavigationManager.NavigateTo("/admin/units");
+
+    private async Task<IEnumerable<BaseUnitLookupDto>> SearchBaseUnits(string value, CancellationToken token) { if (string.IsNullOrEmpty(value)) return _baseUnits; return _baseUnits.Where(x => x.UnitName.Contains(value, StringComparison.OrdinalIgnoreCase)); }
 }
+

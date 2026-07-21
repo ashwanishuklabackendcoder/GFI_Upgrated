@@ -25,56 +25,53 @@
         <DataAnnotationsValidator />
         <MudGrid>
             <MudItem xs="12" md="6">
-                <MudSelect T="long" @bind-Value="_editor.BomId" Label="Select BOM" Variant="Variant.Outlined" For="@(() => _editor.BomId)" AnchorOrigin="Origin.BottomCenter" Required="true">
-                    <MudSelectItem Value="0L">-- Select BOM --</MudSelectItem>
-                    @foreach (var bom in _boms)
-                    {
-                        <MudSelectItem Value="@bom.BomId">@bom.BomName</MudSelectItem>
-                    }
-                </MudSelect>
+                <MudAutocomplete T="BomLookupDto" Label="Select BOM" 
+                                 Value="@(_boms.FirstOrDefault(x => x.BomId == _editor.BomId))" 
+                                 ValueChanged="@((BomLookupDto val) => { _editor.BomId = val?.BomId ?? 0; })" 
+                                 SearchFunc="@SearchBoms" ToStringFunc="@(x => x?.BomName ?? "")"
+                                 Variant="Variant.Outlined" Required="true" 
+                                 ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
             </MudItem>
             <MudItem xs="12" md="6">
-                <MudNumericField @bind-Value="_editor.BomQty" Label="BOM Quantity" Variant="Variant.Outlined" For="@(() => _editor.BomQty)" Min="1" />
+                <MudNumericField @bind-Value="_editor.BomQty" Label="BOM Quantity" Variant="Variant.Outlined" Min="1" />
             </MudItem>
 
             <MudItem xs="12" md="4">
-                <MudDatePicker @bind-Date="_editor.ProcessingDate" Label="Processing Date" Variant="Variant.Outlined" For="@(() => _editor.ProcessingDate)" Required="true" />
+                <MudDatePicker @bind-Date="_editor.ProcessingDate" Label="Processing Date" Variant="Variant.Outlined" Required="true" />
             </MudItem>
             <MudItem xs="12" md="4">
-                <MudNumericField @bind-Value="_editor.QuantityMade" Label="Actual Quantity Made" Min="1" Variant="Variant.Outlined" For="@(() => _editor.QuantityMade)" />
+                <MudNumericField @bind-Value="_editor.QuantityMade" Label="Actual Quantity Made" Min="1" Variant="Variant.Outlined" />
             </MudItem>
             <MudItem xs="12" md="4">
-                <MudSelect T="long" @bind-Value="_editor.UnitMade" Label="Unit" Variant="Variant.Outlined" For="@(() => _editor.UnitMade)" AnchorOrigin="Origin.BottomCenter">
-                    <MudSelectItem Value="0L">-- Select Unit --</MudSelectItem>
-                    @foreach (var unit in _units)
-                    {
-                        <MudSelectItem Value="@unit.UnitId">@unit.UnitName</MudSelectItem>
-                    }
-                </MudSelect>
+                <MudAutocomplete T="UnitLookupDto" Label="Unit" 
+                                 Value="@(_units.FirstOrDefault(x => x.UnitId == _editor.UnitMade))" 
+                                 ValueChanged="@((UnitLookupDto val) => { _editor.UnitMade = val?.UnitId ?? 0; })" 
+                                 SearchFunc="@SearchUnits" ToStringFunc="@(x => x?.UnitName ?? "")"
+                                 Variant="Variant.Outlined" 
+                                 ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
             </MudItem>
 
             <MudItem xs="12" md="6">
-                <MudTextField @bind-Value="_editor.BatchNumberMade" Label="Batch Number" Variant="Variant.Outlined" HelperText="Leave blank for auto-generation" For="@(() => _editor.BatchNumberMade)" />
+                <MudTextField @bind-Value="_editor.BatchNumberMade" Label="Batch Number" Variant="Variant.Outlined" HelperText="Leave blank for auto-generation" />
             </MudItem>
             <MudItem xs="12" md="6">
-                <MudDatePicker @bind-Date="_editor.ExpiryDate" Label="Expiry Date" Variant="Variant.Outlined" For="@(() => _editor.ExpiryDate)" />
+                <MudDatePicker @bind-Date="_editor.ExpiryDate" Label="Expiry Date" Variant="Variant.Outlined" />
             </MudItem>
 
             <MudItem xs="12" md="6">
-                <MudSelect T="long" @bind-Value="_editor.WarehouseId" Label="Storage Warehouse" Variant="Variant.Outlined" For="@(() => _editor.WarehouseId)" AnchorOrigin="Origin.BottomCenter" Required="true">
-                    <MudSelectItem Value="0L">-- Select Warehouse --</MudSelectItem>
-                    @foreach (var wh in _warehouses)
-                    {
-                        <MudSelectItem Value="@wh.WarehouseId">@wh.WarehouseName</MudSelectItem>
-                    }
-                </MudSelect>
+                <MudAutocomplete T="WarehouseLookupDto" Label="Storage Warehouse" 
+                                 Value="@(_warehouses.FirstOrDefault(x => x.WarehouseId == _editor.WarehouseId))" 
+                                 ValueChanged="@((WarehouseLookupDto val) => { _editor.WarehouseId = val?.WarehouseId ?? 0; })" 
+                                 SearchFunc="@SearchWarehouses" ToStringFunc="@(x => x?.WarehouseName ?? "")"
+                                 Variant="Variant.Outlined" Required="true" 
+                                 ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
             </MudItem>
             <MudItem xs="12" md="6">
-                <MudTextField @bind-Value="_editor.ProcessEmployees" Label="Process Employees (CSV)" Variant="Variant.Outlined" For="@(() => _editor.ProcessEmployees)" />
+                <MudTextField @bind-Value="_editor.ProcessEmployees" Label="Process Employees (CSV)" Variant="Variant.Outlined" />
             </MudItem>
 
             <MudItem xs="12">
-                <MudTextField @bind-Value="_editor.Remarks" Label="Remarks" Variant="Variant.Outlined" Lines="2" For="@(() => _editor.Remarks)" />
+                <MudTextField @bind-Value="_editor.Remarks" Label="Remarks" Variant="Variant.Outlined" Lines="2" />
             </MudItem>
 
             <MudItem xs="12" Class="pt-4">
@@ -194,4 +191,25 @@
     }
 
     private void OnCancel() => NavigationManager.NavigateTo("/store/preprocessing");
+
+    private async Task<IEnumerable<BomLookupDto>> SearchBoms(string value, CancellationToken token)
+    {
+        if (string.IsNullOrEmpty(value)) return _boms;
+        return _boms.Where(x => x.BomName?.Contains(value, StringComparison.OrdinalIgnoreCase) == true);
+    }
+
+    private async Task<IEnumerable<UnitLookupDto>> SearchUnits(string value, CancellationToken token)
+    {
+        if (string.IsNullOrEmpty(value)) return _units;
+        return _units.Where(x => x.UnitName?.Contains(value, StringComparison.OrdinalIgnoreCase) == true);
+    }
+
+    private async Task<IEnumerable<WarehouseLookupDto>> SearchWarehouses(string value, CancellationToken token)
+    {
+        if (string.IsNullOrEmpty(value)) return _warehouses;
+        return _warehouses.Where(x => x.WarehouseName?.Contains(value, StringComparison.OrdinalIgnoreCase) == true);
+    }
 }
+
+
+

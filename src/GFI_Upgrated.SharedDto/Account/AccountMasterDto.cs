@@ -16,12 +16,14 @@ namespace GFI_Upgrated.SharedDto.Account
         public DateTime? OpeningBalanceDate { get; set; }
         public string? StakeholderGroup { get; set; }
         public string? StakeholderType { get; set; }
+        public string? StakeholderTypeName { get; set; }
         public long? CurrencyID { get; set; }
         public string? CurrencySymbol { get; set; }
         public string? ContactPerson { get; set; }
         public string? Website { get; set; }
         public string? Remark { get; set; }
-        public string? MasterCountry { get; set; }
+        public long? CountryID { get; set; }
+        public string? CountryName { get; set; }
         public DateTime CreatedDate { get; set; } = DateTime.Now;
         public string? CreatedBy { get; set; }
     }

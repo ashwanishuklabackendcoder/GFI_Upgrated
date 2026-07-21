@@ -37,10 +37,10 @@ public sealed class RawMaterialRepository : IRawMaterialRepository
 
         var dt = await ExecuteDataTableAsync("W_MasterItemList", parameters, cancellationToken);
         
-        // Fetch lookups for mapping names (since basic list SP doesn't return joined names)
         var categories = await GetCategoriesLookupAsync(cancellationToken);
         var types = await GetItemTypesLookupAsync(cancellationToken);
         var units = await GetUnitsLookupAsync(cancellationToken);
+        var statuses = await GetStatusesLookupAsync(cancellationToken);
 
         var items = new List<RawMaterialDto>();
 
@@ -49,6 +49,7 @@ public sealed class RawMaterialRepository : IRawMaterialRepository
             var itemCatId = row.SafeLong("ItemCatId", "ItemCatID");
             var itemTypeId = row.SafeLong("ItemTypeId", "ItemTypeID");
             var unitId = row.SafeLong("PurchaseUnit", "UnitId", "UnitID");
+            var statusId = row.SafeLong("StatusID");
 
             items.Add(new RawMaterialDto
             {
@@ -60,6 +61,8 @@ public sealed class RawMaterialRepository : IRawMaterialRepository
                 ItemTypeName = types.GetValueOrDefault(itemTypeId, ""),
                 UnitName = units.GetValueOrDefault(unitId, ""),
                 IsActive = row.SafeBool("IsActive"),
+                StatusId = (int)statusId,
+                StatusName = statuses.GetValueOrDefault(statusId, ""),
                 TentativeExpiryDays = row.SafeInt("TentativeExpiryDays"),
                 BrandId = row.SafeLong("BrandId", "BrandID"),
                 MasterItemTypeId = row.SafeLongNullable("MasterItemTypeId", "MasterItemTypeID")
@@ -358,7 +361,9 @@ public sealed class RawMaterialRepository : IRawMaterialRepository
             list.Add(new AccountLookupDto
             {
                 AccountId = row.SafeInt("AccountId", "AccountID"),
-                AccountName = row.SafeString("AccountName")
+                AccountName = row.SafeString("AccountName"),
+                StakeholderType = row.SafeInt("StakeholderType"),
+                AccountGroupId = row.SafeInt("AccountGroupId")
             });
         }
 
@@ -398,6 +403,20 @@ public sealed class RawMaterialRepository : IRawMaterialRepository
     {
         var dt = await ExecuteDataTableAsync("W_MasterUnitSelectAll", new[] { new SqlParameter("@UnitId", 0) }, cancellationToken);
         return dt.AsEnumerable().ToDictionary(r => r.SafeLong("UnitId", "UnitID"), r => r.SafeString("UnitName"));
+    }
+
+    private async Task<Dictionary<long, string>> GetStatusesLookupAsync(CancellationToken cancellationToken)
+    {
+        await using var connection = new SqlConnection(_connectionString);
+        await using var command = new SqlCommand("SELECT StatusID, StatusName FROM W_MasterStatus", connection)
+        {
+            CommandType = CommandType.Text
+        };
+        await connection.OpenAsync(cancellationToken);
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+        var table = new DataTable();
+        table.Load(reader);
+        return table.AsEnumerable().ToDictionary(r => r.SafeLong("StatusID"), r => r.SafeString("StatusName"));
     }
 
     private async Task<string> GetCategoryNameAsync(long id, CancellationToken cancellationToken)

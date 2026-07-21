@@ -14,21 +14,19 @@
 
         <MudForm @ref="_form">
             <MudStack Spacing="4">
-                <MudSelect T="long" Label="Select Ingredient" Value="_newItem.ItemID" ValueChanged="OnIngredientChanged" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter" Required="true" RequiredError="Ingredient is required.">
-                    <MudSelectItem Value="0L">-- Select Ingredient --</MudSelectItem>
-                    @foreach (var req in BomItems)
-                    {
-                        <MudSelectItem Value="@req.ItemID">@req.ItemName</MudSelectItem>
-                    }
-                </MudSelect>
+                <MudAutocomplete T="BomItemDetailDto" Label="Select Ingredient" 
+                                 Value="@(BomItems.FirstOrDefault(x => x.ItemID == _newItem.ItemID))" 
+                                 ValueChanged="@(async (BomItemDetailDto val) => await OnIngredientChanged(val?.ItemID ?? 0))" 
+                                 SearchFunc="@SearchBomItems" ToStringFunc="@(x => x?.ItemName ?? "")"
+                                 Variant="Variant.Outlined" Required="true" RequiredError="Ingredient is required." 
+                                 ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
 
-                <MudSelect T="long" Label="Select Batch" @bind-Value="_newItem.ItemStockByBatchId" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter" Disabled="@(_newItem.ItemID == 0)" Required="true" RequiredError="Batch is required.">
-                    <MudSelectItem Value="0L">-- Select Batch --</MudSelectItem>
-                    @foreach (var batch in _availableBatches)
-                    {
-                        <MudSelectItem Value="@batch.ItemStockByBatchId">@batch.BatchNo (Avail: @batch.FinalQuantityLeft | Exp: @batch.ExpiryDate)</MudSelectItem>
-                    }
-                </MudSelect>
+                <MudAutocomplete T="AvailableBatchDto" Label="Select Batch" 
+                                 Value="@(_availableBatches.FirstOrDefault(x => x.ItemStockByBatchId == _newItem.ItemStockByBatchId))" 
+                                 ValueChanged="@((AvailableBatchDto val) => { _newItem.ItemStockByBatchId = val?.ItemStockByBatchId ?? 0; })" 
+                                 SearchFunc="@SearchAvailableBatches" ToStringFunc="@(x => x != null ? $"{x.BatchNo} (Avail: {x.FinalQuantityLeft} | Exp: {x.ExpiryDate})" : "")"
+                                 Variant="Variant.Outlined" Disabled="@(_newItem.ItemID == 0)" Required="true" RequiredError="Batch is required." 
+                                 ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
 
                 <MudNumericField @bind-Value="_newItem.Quantity" Label="Quantity Used" Variant="Variant.Outlined" Min="0.0001" Required="true" RequiredError="Quantity is required." />
                 
@@ -124,4 +122,17 @@
     }
 
     private void Close() => MudDialog.Cancel();
+
+    private async Task<IEnumerable<BomItemDetailDto>> SearchBomItems(string value, CancellationToken token)
+    {
+        if (string.IsNullOrEmpty(value)) return BomItems;
+        return BomItems.Where(x => x.ItemName?.Contains(value, StringComparison.OrdinalIgnoreCase) == true);
+    }
+
+    private async Task<IEnumerable<AvailableBatchDto>> SearchAvailableBatches(string value, CancellationToken token)
+    {
+        if (string.IsNullOrEmpty(value)) return _availableBatches;
+        return _availableBatches.Where(x => x.BatchNo?.Contains(value, StringComparison.OrdinalIgnoreCase) == true);
+    }
 }
+

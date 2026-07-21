@@ -29,13 +29,7 @@
                 <MudTextField @bind-Value="_order.OrderNo" Label="Order Number" Required="true" Variant="Variant.Outlined" For="@(() => _order.OrderNo)" />
             </MudItem>
             <MudItem xs="12" md="4">
-                <MudSelect T="long" Label="Customer" @bind-Value="_order.CustomerID" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter" Required="true">
-                    <MudSelectItem T="long" Value="0">-- Select Customer --</MudSelectItem>
-                    @foreach (var cust in _customers)
-                    {
-                        <MudSelectItem T="long" Value="@((long)cust.AccountId)">@cust.AccountName</MudSelectItem>
-                    }
-                </MudSelect>
+                <MudAutocomplete T="AccountLookupDto" Label="Customer" Value="@(_customers.FirstOrDefault(x => x.AccountId == _order.CustomerID))" ValueChanged="@((AccountLookupDto val) => { _order.CustomerID = val?.AccountId ?? 0; })" SearchFunc="@SearchCustomers" ToStringFunc="@(x => x?.AccountName ?? "")" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter" Required="true" />
             </MudItem>
             <MudItem xs="12" md="4">
                 <MudDatePicker @bind-Date="_order.OrderDate" Label="Order Date" Required="true" Variant="Variant.Outlined" />
@@ -66,13 +60,7 @@
                     </HeaderContent>
                     <RowTemplate Context="row">
                         <MudTd DataLabel="Item (SKU)">
-                            <MudSelect T="long" Value="@row.ItemId" ValueChanged="@((val) => OnItemChanged(row, val))" Variant="Variant.Outlined" Dense="true" Margin="Margin.Dense" AnchorOrigin="Origin.BottomCenter">
-                                <MudSelectItem T="long" Value="0">-- Select Item --</MudSelectItem>
-                                @foreach (var item in _items)
-                                {
-                                    <MudSelectItem T="long" Value="@item.ItemId">@item.ItemName</MudSelectItem>
-                                }
-                            </MudSelect>
+                            <MudAutocomplete T="RawMaterialDto" Value="@(_items.FirstOrDefault(x => x.ItemId == row.ItemId))" ValueChanged="@((RawMaterialDto val) => OnItemChanged(row, val?.ItemId ?? 0))" SearchFunc="@SearchItems" ToStringFunc="@(x => x?.ItemName ?? "")" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" Variant="Variant.Outlined" Dense="true" Margin="Margin.Dense" AnchorOrigin="Origin.BottomCenter" />
                         </MudTd>
                         <MudTd DataLabel="Quantity" Style="text-align: center;">
                             <MudNumericField @bind-Value="row.Qty" Variant="Variant.Outlined" Dense="true" Margin="Margin.Dense" Min="1" Style="text-align: center;" />
@@ -304,4 +292,17 @@
             StateHasChanged();
         }
     }
+
+    private async Task<IEnumerable<AccountLookupDto>> SearchCustomers(string value, CancellationToken token)
+    {
+        if (string.IsNullOrEmpty(value)) return _customers;
+        return _customers.Where(x => (x.AccountName ?? "").Contains(value, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private async Task<IEnumerable<RawMaterialDto>> SearchItems(string value, CancellationToken token)
+    {
+        if (string.IsNullOrEmpty(value)) return _items;
+        return _items.Where(x => (x.ItemName ?? "").Contains(value, StringComparison.OrdinalIgnoreCase));
+    }
 }
+

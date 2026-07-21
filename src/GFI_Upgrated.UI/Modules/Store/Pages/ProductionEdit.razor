@@ -28,41 +28,29 @@
         <MudGrid>
             <!-- BOM Details -->
             <MudItem xs="12" md="4">
-                <MudSelect T="long" @bind-Value="_editor.BomId" Label="Select BOM" Variant="Variant.Outlined" For="@(() => _editor.BomId)" AnchorOrigin="Origin.BottomCenter" Required="true">
-                    <MudSelectItem Value="0L">-- Select BOM --</MudSelectItem>
-                    @foreach (var bom in _boms)
-                    {
-                        <MudSelectItem Value="@bom.BomId">@bom.BomName</MudSelectItem>
-                    }
-                </MudSelect>
+                <MudAutocomplete T="BomLookupDto" Label="Select BOM" Value="@(_boms.FirstOrDefault(x => x.BomId == _editor.BomId))" ValueChanged="@((BomLookupDto val) => { _editor.BomId = val?.BomId ?? 0; })" SearchFunc="@SearchBoms" ToStringFunc="@(x => x?.BomName ?? "")" Variant="Variant.Outlined" Required="true" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
             </MudItem>
             <MudItem xs="12" md="4">
-                <MudNumericField @bind-Value="_editor.BomQty" Label="BOM Quantity" Variant="Variant.Outlined" For="@(() => _editor.BomQty)" Min="1" />
+                <MudNumericField @bind-Value="_editor.BomQty" Label="BOM Quantity" Variant="Variant.Outlined" Min="1" />
             </MudItem>
             <MudItem xs="12" md="4">
-                <MudSelect T="long" @bind-Value="_editor.SkuId" Label="SKU packaging" Variant="Variant.Outlined" For="@(() => _editor.SkuId)" AnchorOrigin="Origin.BottomCenter">
-                    <MudSelectItem Value="0L">-- Select SKU --</MudSelectItem>
-                    @foreach (var sku in _skus)
-                    {
-                        <MudSelectItem Value="@sku.SkuId">@sku.SkuName</MudSelectItem>
-                    }
-                </MudSelect>
+                <MudAutocomplete T="SkuLookupDto" Label="SKU packaging" Value="@(_skus.FirstOrDefault(x => x.SkuId == _editor.SkuId))" ValueChanged="@((SkuLookupDto val) => { _editor.SkuId = val?.SkuId ?? 0; })" SearchFunc="@SearchSkus" ToStringFunc="@(x => x?.SkuName ?? "")" Variant="Variant.Outlined" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
             </MudItem>
 
             <!-- Dates -->
             <MudItem xs="12" md="4">
-                <MudDatePicker @bind-Date="_editor.CookingDate" Label="Cooking Date" Variant="Variant.Outlined" For="@(() => _editor.CookingDate)" Required="true" />
+                <MudDatePicker @bind-Date="_editor.CookingDate" Label="Cooking Date" Variant="Variant.Outlined" Required="true" />
             </MudItem>
             <MudItem xs="12" md="4">
-                <MudDatePicker @bind-Date="_editor.ExpiryDate" Label="Expiry Date" Variant="Variant.Outlined" For="@(() => _editor.ExpiryDate)" />
+                <MudDatePicker @bind-Date="_editor.ExpiryDate" Label="Expiry Date" Variant="Variant.Outlined" />
             </MudItem>
             <MudItem xs="12" md="4">
-                <MudDatePicker @bind-Date="_editor.FilledDate" Label="Filled Date" Variant="Variant.Outlined" For="@(() => _editor.FilledDate)" />
+                <MudDatePicker @bind-Date="_editor.FilledDate" Label="Filled Date" Variant="Variant.Outlined" />
             </MudItem>
 
             <!-- Kettle Details -->
             <MudItem xs="12" md="6">
-                <MudSelect T="string" Label="Kettles" MultiSelection="true" @bind-SelectedValues="_selectedKettles" MultiSelectionTextFunc="@(x => string.Join(", ", x.Select(idStr => _kettles.FirstOrDefault(k => k.KettleId.ToString() == idStr)?.KettleNumber ?? idStr)))" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter">
+                <MudSelect SearchBox="true" T="string" Label="Kettles" MultiSelection="true" @bind-SelectedValues="_selectedKettles" MultiSelectionTextFunc="@(x => string.Join(", ", x.Select(idStr => _kettles.FirstOrDefault(k => k.KettleId.ToString() == idStr)?.KettleNumber ?? idStr)))" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter">
                     @foreach (var kettle in _kettles)
                     {
                         <MudSelectItem Value="@kettle.KettleId.ToString()">@kettle.KettleNumber</MudSelectItem>
@@ -70,51 +58,33 @@
                 </MudSelect>
             </MudItem>
             <MudItem xs="12" md="6">
-                <MudNumericField @bind-Value="_editor.KettleRun" Label="Kettle Run" Variant="Variant.Outlined" For="@(() => _editor.KettleRun)" Min="0" />
+                <MudNumericField @bind-Value="_editor.KettleRun" Label="Kettle Run" Variant="Variant.Outlined" Min="0" />
             </MudItem>
 
             <!-- Filling and Batch Info -->
             <MudItem xs="12" md="4">
-                <MudTextField @bind-Value="_editor.BatchNo" Label="Batch Number" Variant="Variant.Outlined" HelperText="Leave blank for auto-generation" For="@(() => _editor.BatchNo)" />
+                <MudTextField @bind-Value="_editor.BatchNo" Label="Batch Number" Variant="Variant.Outlined" HelperText="Leave blank for auto-generation" />
             </MudItem>
             <MudItem xs="12" md="4">
-                <MudNumericField @bind-Value="_editor.FillingBottles" Label="Filling Bottles" Variant="Variant.Outlined" For="@(() => _editor.FillingBottles)" Min="0" />
+                <MudNumericField @bind-Value="_editor.FillingBottles" Label="Filling Bottles" Variant="Variant.Outlined" Min="0" />
             </MudItem>
             <MudItem xs="12" md="4">
-                <MudSelect T="long" @bind-Value="_editor.FillingPerBottleUnit" Label="Filling Per Bottle Unit" Variant="Variant.Outlined" For="@(() => _editor.FillingPerBottleUnit)" AnchorOrigin="Origin.BottomCenter">
-                    <MudSelectItem Value="0L">-- Select Unit --</MudSelectItem>
-                    @foreach (var unit in _units)
-                    {
-                        <MudSelectItem Value="@unit.UnitId">@unit.UnitName</MudSelectItem>
-                    }
-                </MudSelect>
+                <MudAutocomplete T="UnitLookupDto" Label="Filling Per Bottle Unit" Value="@(_units.FirstOrDefault(x => x.UnitId == _editor.FillingPerBottleUnit))" ValueChanged="@((UnitLookupDto val) => { _editor.FillingPerBottleUnit = val?.UnitId ?? 0; })" SearchFunc="@SearchUnits" ToStringFunc="@(x => x?.UnitName ?? "")" Variant="Variant.Outlined" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
             </MudItem>
 
             <MudItem xs="12" md="4">
-                <MudNumericField @bind-Value="_editor.ExtraBottles" Label="Extra Bottles" Variant="Variant.Outlined" For="@(() => _editor.ExtraBottles)" Min="0.0" Step="0.1" />
+                <MudNumericField @bind-Value="_editor.ExtraBottles" Label="Extra Bottles" Variant="Variant.Outlined" Min="0.0" Step="0.1" />
             </MudItem>
             <MudItem xs="12" md="4">
-                <MudSelect T="string" @bind-Value="_editor.PackedCountry" Label="Packed Country" Variant="Variant.Outlined" For="@(() => _editor.PackedCountry)" AnchorOrigin="Origin.BottomCenter">
-                    <MudSelectItem Value="@((string?)null)">-- Select Country --</MudSelectItem>
-                    @foreach (var country in _countries)
-                    {
-                        <MudSelectItem Value="@country.CountryId.ToString()">@country.CountryName</MudSelectItem>
-                    }
-                </MudSelect>
+                <MudAutocomplete T="CountryLookupDto" Label="Packed Country" Value="@(_countries.FirstOrDefault(x => x.CountryId.ToString() == _editor.PackedCountry))" ValueChanged="@((CountryLookupDto val) => { _editor.PackedCountry = val?.CountryId.ToString(); })" SearchFunc="@SearchCountries" ToStringFunc="@(x => x?.CountryName ?? "")" Variant="Variant.Outlined" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
             </MudItem>
             <MudItem xs="12" md="4">
-                <MudSelect T="long" @bind-Value="_editor.WarehouseId" Label="Output Warehouse" Variant="Variant.Outlined" For="@(() => _editor.WarehouseId)" AnchorOrigin="Origin.BottomCenter" Required="true">
-                    <MudSelectItem Value="0L">-- Select Warehouse --</MudSelectItem>
-                    @foreach (var wh in _warehouses)
-                    {
-                        <MudSelectItem Value="@wh.WarehouseId">@wh.WarehouseName</MudSelectItem>
-                    }
-                </MudSelect>
+                <MudAutocomplete T="WarehouseLookupDto" Label="Output Warehouse" Value="@(_warehouses.FirstOrDefault(x => x.WarehouseId == _editor.WarehouseId))" ValueChanged="@((WarehouseLookupDto val) => { _editor.WarehouseId = val?.WarehouseId ?? 0; })" SearchFunc="@SearchWarehouses" ToStringFunc="@(x => x?.WarehouseName ?? "")" Variant="Variant.Outlined" Required="true" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
             </MudItem>
 
             <!-- Employees Multi-Select -->
             <MudItem xs="12" md="6">
-                <MudSelect T="string" Label="Process Employees" MultiSelection="true" @bind-SelectedValues="_selectedEmployees" MultiSelectionTextFunc="@(x => string.Join(", ", x.Select(idStr => _staffList.FirstOrDefault(s => s.StaffId.ToString() == idStr)?.StaffName ?? idStr)))" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter">
+                <MudSelect SearchBox="true" T="string" Label="Process Employees" MultiSelection="true" @bind-SelectedValues="_selectedEmployees" MultiSelectionTextFunc="@(x => string.Join(", ", x.Select(idStr => _staffList.FirstOrDefault(s => s.StaffId.ToString() == idStr)?.StaffName ?? idStr)))" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter">
                     @foreach (var staff in _staffList)
                     {
                         <MudSelectItem Value="@staff.StaffId.ToString()">@staff.StaffName</MudSelectItem>
@@ -122,14 +92,14 @@
                 </MudSelect>
             </MudItem>
             <MudItem xs="12" md="6">
-                <MudTextField @bind-Value="_editor.Colli" Label="Colli" Variant="Variant.Outlined" For="@(() => _editor.Colli)" />
+                <MudTextField @bind-Value="_editor.Colli" Label="Colli" Variant="Variant.Outlined" />
             </MudItem>
 
             <MudItem xs="12" md="6">
-                <MudTextField @bind-Value="_editor.PalletNumber" Label="Pallet Number" Variant="Variant.Outlined" For="@(() => _editor.PalletNumber)" />
+                <MudTextField @bind-Value="_editor.PalletNumber" Label="Pallet Number" Variant="Variant.Outlined" />
             </MudItem>
             <MudItem xs="12" md="6">
-                <MudTextField @bind-Value="_editor.Remarks" Label="Remarks / Notes" Variant="Variant.Outlined" Lines="2" For="@(() => _editor.Remarks)" />
+                <MudTextField @bind-Value="_editor.Remarks" Label="Remarks / Notes" Variant="Variant.Outlined" Lines="2" />
             </MudItem>
 
             <MudItem xs="12" Class="pt-4">
@@ -279,4 +249,13 @@
     }
 
     private void OnCancel() => NavigationManager.NavigateTo("/store/production");
+
+    private async Task<IEnumerable<BomLookupDto>> SearchBoms(string value, CancellationToken token) { if (string.IsNullOrEmpty(value)) return _boms; return _boms.Where(x => x.BomName.Contains(value, StringComparison.OrdinalIgnoreCase)); }
+    private async Task<IEnumerable<SkuLookupDto>> SearchSkus(string value, CancellationToken token) { if (string.IsNullOrEmpty(value)) return _skus; return _skus.Where(x => x.SkuName.Contains(value, StringComparison.OrdinalIgnoreCase)); }
+    private async Task<IEnumerable<UnitLookupDto>> SearchUnits(string value, CancellationToken token) { if (string.IsNullOrEmpty(value)) return _units; return _units.Where(x => x.UnitName.Contains(value, StringComparison.OrdinalIgnoreCase)); }
+    private async Task<IEnumerable<CountryLookupDto>> SearchCountries(string value, CancellationToken token) { if (string.IsNullOrEmpty(value)) return _countries; return _countries.Where(x => x.CountryName.Contains(value, StringComparison.OrdinalIgnoreCase)); }
+    private async Task<IEnumerable<WarehouseLookupDto>> SearchWarehouses(string value, CancellationToken token) { if (string.IsNullOrEmpty(value)) return _warehouses; return _warehouses.Where(x => x.WarehouseName.Contains(value, StringComparison.OrdinalIgnoreCase)); }
 }
+
+
+

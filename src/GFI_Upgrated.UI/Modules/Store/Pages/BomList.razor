@@ -26,7 +26,7 @@
             <MudTextField @bind-Value="_search" Placeholder="Search by BOM name or Product..." Variant="Variant.Outlined" Immediate="true" Clearable="true" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" OnClearButtonClick="OnSearch" />
         </MudItem>
         <MudItem xs="12" md="3">
-            <MudSelect T="int?" @bind-Value="_itemTypeId" Label="Product Type" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter" Clearable="true">
+            <MudSelect SearchBox="true" T="int?" @bind-Value="_itemTypeId" Label="Product Type" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter" Clearable="true">
                 <MudSelectItem T="int?" Value="null">All Types</MudSelectItem>
                 <MudSelectItem T="int?" Value="1">Finished Products</MudSelectItem>
                 <MudSelectItem T="int?" Value="2">Semi-Finished</MudSelectItem>
@@ -192,3 +192,4 @@
         }
     }
 }
+

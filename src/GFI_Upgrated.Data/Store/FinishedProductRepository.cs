@@ -40,6 +40,7 @@ public sealed class FinishedProductRepository : IFinishedProductRepository
         var categories = await GetCategoriesLookupAsync(cancellationToken);
         var types = await GetItemTypesLookupAsync(cancellationToken);
         var units = await GetUnitsLookupAsync(cancellationToken);
+        var statuses = await GetStatusesLookupAsync(cancellationToken);
 
         var items = new List<FinishedProductDto>();
 
@@ -48,6 +49,7 @@ public sealed class FinishedProductRepository : IFinishedProductRepository
             var itemCatId = row.SafeLong("ItemCatId", "ItemCatID");
             var itemTypeId = row.SafeLong("ItemTypeId", "ItemTypeID");
             var unitId = row.SafeLong("PurchaseUnit", "UnitId", "UnitID");
+            var statusId = row.SafeInt("StatusId", "StatusID");
 
             items.Add(new FinishedProductDto
             {
@@ -61,7 +63,8 @@ public sealed class FinishedProductRepository : IFinishedProductRepository
                 ItemCatId = itemCatId,
                 ItemTypeId = itemTypeId,
                 PurchaseUnit = unitId,
-                StatusId = row.SafeInt("StatusId", "StatusID"),
+                StatusId = statusId,
+                StatusName = statuses.GetValueOrDefault(statusId, ""),
                 IsActive = row.SafeBool("IsActive"),
                 Description = row.SafeString("Description"),
                 StorageDetails = row.SafeString("StorageDetails"),
@@ -363,7 +366,9 @@ public sealed class FinishedProductRepository : IFinishedProductRepository
             list.Add(new AccountLookupDto
             {
                 AccountId = row.SafeInt("AccountId", "AccountID"),
-                AccountName = row.SafeString("AccountName")
+                AccountName = row.SafeString("AccountName"),
+                StakeholderType = row.SafeInt("StakeholderType"),
+                AccountGroupId = row.SafeInt("AccountGroupId")
             });
         }
 
@@ -403,6 +408,20 @@ public sealed class FinishedProductRepository : IFinishedProductRepository
     {
         var dt = await ExecuteDataTableAsync("W_MasterUnitSelectAll", new[] { new SqlParameter("@UnitId", 0) }, cancellationToken);
         return dt.AsEnumerable().ToDictionary(r => r.SafeLong("UnitId", "UnitID"), r => r.SafeString("UnitName"));
+    }
+
+    private async Task<Dictionary<long, string>> GetStatusesLookupAsync(CancellationToken cancellationToken)
+    {
+        await using var connection = new SqlConnection(_connectionString);
+        await using var command = new SqlCommand("SELECT StatusID, StatusName FROM W_MasterStatus", connection)
+        {
+            CommandType = CommandType.Text
+        };
+        await connection.OpenAsync(cancellationToken);
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+        var table = new DataTable();
+        table.Load(reader);
+        return table.AsEnumerable().ToDictionary(r => r.SafeLong("StatusID"), r => r.SafeString("StatusName"));
     }
 
     private async Task<string> GetCategoryNameAsync(long id, CancellationToken cancellationToken)

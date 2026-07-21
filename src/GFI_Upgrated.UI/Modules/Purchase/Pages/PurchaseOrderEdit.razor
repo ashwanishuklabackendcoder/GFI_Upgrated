@@ -69,13 +69,13 @@
                             <MudNumericField @bind-Value="itemContext.Quantity" Variant="Variant.Text" Dense="true" Min="1" />
                         </MudTd>
                         <MudTd DataLabel="Unit">
-                            <MudSelect T="long?" @bind-Value="itemContext.UnitId" Variant="Variant.Text" Dense="true">
-                                <MudSelectItem T="long?" Value="null">Select Unit</MudSelectItem>
-                                @foreach (var unit in _units)
-                                {
-                                    <MudSelectItem T="long?" Value="unit.UnitId">@unit.UnitName</MudSelectItem>
-                                }
-                            </MudSelect>
+                            <MudAutocomplete T="UnitDto" 
+                                             Value="@(_units.FirstOrDefault(x => x.UnitId == itemContext.UnitId))"
+                                             ValueChanged="@((UnitDto val) => { itemContext.UnitId = val?.UnitId; })"
+                                             Variant="Variant.Text" Dense="true"
+                                             SearchFunc="@SearchUnits"
+                                             ToStringFunc="@(x => x?.UnitName ?? "")"
+                                             ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
                         </MudTd>
                         <MudTd DataLabel="Price">
                             <MudNumericField @bind-Value="itemContext.Price" Variant="Variant.Text" Dense="true" Format="N2" />
@@ -217,6 +217,12 @@
         return _allItems.Where(x => x.ItemName?.Contains(value, StringComparison.OrdinalIgnoreCase) == true);
     }
 
+    private async Task<IEnumerable<UnitDto>> SearchUnits(string value, CancellationToken token)
+    {
+        if (string.IsNullOrEmpty(value)) return _units;
+        return _units.Where(x => x.UnitName?.Contains(value, StringComparison.OrdinalIgnoreCase) == true);
+    }
+
     private RawMaterialDto? GetItemById(long id) => _allItems.FirstOrDefault(x => x.ItemId == id);
 
     private void OnItemChanged(PurchaseOrderItemDto row, RawMaterialDto? item)
@@ -287,3 +293,4 @@
 
     private void OnBack() => Navigation.NavigateTo("/admin/purchase-order");
 }
+

@@ -22,27 +22,27 @@
 
     <MudGrid Class="mb-4">
         <MudItem xs="12" md="4">
-            <MudSelect T="long" Label="Role" Variant="Variant.Outlined" Value="_selectedRoleId" ValueChanged="OnRoleChanged" Dense="true">
-                <MudSelectItem T="long" Value="0L">Select Role</MudSelectItem>
-                @foreach (var role in _roles)
-                {
-                    <MudSelectItem T="long" Value="@role.RoleId">@role.RoleName</MudSelectItem>
-                }
-            </MudSelect>
+            <MudAutocomplete T="RoleDto" Label="Role" Variant="Variant.Outlined" 
+                             Value="@(_roles.FirstOrDefault(x => x.RoleId == _selectedRoleId))" 
+                             ValueChanged="@(async (RoleDto val) => await OnRoleChanged(val?.RoleId ?? 0))" 
+                             Dense="true"
+                             SearchFunc="@SearchRoles" 
+                             ToStringFunc="@(x => x?.RoleName ?? "")"
+                             ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
         </MudItem>
         <MudItem xs="12" md="4">
-            <MudSelect T="long" Label="Module" Variant="Variant.Outlined" Value="_selectedModuleId" ValueChanged="OnModuleChanged" Dense="true">
-                <MudSelectItem T="long" Value="0L">Select Module</MudSelectItem>
-                @foreach (var mod in _modules)
-                {
-                    <MudSelectItem T="long" Value="@mod.ModuleId">@mod.ModuleName</MudSelectItem>
-                }
-            </MudSelect>
+            <MudAutocomplete T="ModuleDto" Label="Module" Variant="Variant.Outlined" 
+                             Value="@(_modules.FirstOrDefault(x => x.ModuleId == _selectedModuleId))" 
+                             ValueChanged="@(async (ModuleDto val) => await OnModuleChanged(val?.ModuleId ?? 0))" 
+                             Dense="true"
+                             SearchFunc="@SearchModules" 
+                             ToStringFunc="@(x => x?.ModuleName ?? "")"
+                             ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
         </MudItem>
         <MudItem xs="12" md="4">
             @* Dashboard selection hidden until DB schema is updated to support it *@
             @*
-            <MudSelect T="string" Label="Dashboard" Variant="Variant.Outlined" @bind-Value="_selectedDashboard" Dense="true">
+            <MudSelect SearchBox="true" T="string" Label="Dashboard" Variant="Variant.Outlined" @bind-Value="_selectedDashboard" Dense="true">
                 <MudSelectItem T="string" Value="@("")">Default Dashboard</MudSelectItem>
                 @foreach (var db in _dashboards)
                 {
@@ -125,6 +125,18 @@
     
     private bool _isLoading;
     private bool _isSaving;
+
+    private async Task<IEnumerable<RoleDto>> SearchRoles(string value, CancellationToken token)
+    {
+        if (string.IsNullOrEmpty(value)) return _roles;
+        return _roles.Where(x => x.RoleName.Contains(value, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private async Task<IEnumerable<ModuleDto>> SearchModules(string value, CancellationToken token)
+    {
+        if (string.IsNullOrEmpty(value)) return _modules;
+        return _modules.Where(x => x.ModuleName.Contains(value, StringComparison.OrdinalIgnoreCase));
+    }
 
     protected override void OnInitialized()
     {
@@ -284,3 +296,4 @@
         }
     }
 }
+

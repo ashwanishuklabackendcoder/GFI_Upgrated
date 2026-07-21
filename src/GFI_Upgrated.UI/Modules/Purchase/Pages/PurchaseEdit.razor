@@ -87,13 +87,13 @@
                             <MudDatePicker @bind-Date="itemContext.ExpiryDate" Variant="Variant.Text" Dense="true" />
                         </MudTd>
                         <MudTd DataLabel="Warehouse">
-                            <MudSelect T="long?" @bind-Value="itemContext.WarehouseId" Variant="Variant.Text" Dense="true">
-                                <MudSelectItem T="long?" Value="null">Select</MudSelectItem>
-                                @foreach (var wh in _warehouses)
-                                {
-                                    <MudSelectItem T="long?" Value="wh.WarehouseId">@wh.WarehouseName</MudSelectItem>
-                                }
-                            </MudSelect>
+                            <MudAutocomplete T="WarehouseLookupDto" 
+                                             Value="@(_warehouses.FirstOrDefault(x => x.WarehouseId == itemContext.WarehouseId))"
+                                             ValueChanged="@((WarehouseLookupDto val) => { itemContext.WarehouseId = val?.WarehouseId; })"
+                                             Variant="Variant.Text" Dense="true"
+                                             SearchFunc="@SearchWarehouses"
+                                             ToStringFunc="@(x => x?.WarehouseName ?? "")"
+                                             ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
                         </MudTd>
                         <MudTd Style="text-align: center;">
                             <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => RemoveRow(itemContext))" />
@@ -235,6 +235,12 @@
         return _allItems.Where(x => x.ItemName?.Contains(value, StringComparison.OrdinalIgnoreCase) == true);
     }
 
+    private async Task<IEnumerable<WarehouseLookupDto>> SearchWarehouses(string value, CancellationToken token)
+    {
+        if (string.IsNullOrEmpty(value)) return _warehouses;
+        return _warehouses.Where(x => x.WarehouseName?.Contains(value, StringComparison.OrdinalIgnoreCase) == true);
+    }
+
     private RawMaterialDto? GetItemById(long id) => _allItems.FirstOrDefault(x => x.ItemId == id);
 
     private void OnItemChanged(PurchaseItemDto row, RawMaterialDto? item)
@@ -307,3 +313,4 @@
 
     private void OnBack() => Navigation.NavigateTo("/admin/purchase");
 }
+

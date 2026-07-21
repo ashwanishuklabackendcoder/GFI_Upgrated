@@ -23,16 +23,17 @@
         <DataAnnotationsValidator />
         <MudGrid>
             <MudItem xs="12" md="6">
-                <MudTextField @bind-Value="_editor.ItemCatName" Label="Category Name" Variant="Variant.Outlined" For="@(() => _editor.ItemCatName)" />
+                <MudTextField @bind-Value="_editor.ItemCatName" Label="Category Name" Variant="Variant.Outlined" />
             </MudItem>
             
             <MudItem xs="12" md="6">
-                <MudSelect T="long?" Label="Parent Category" @bind-Value="_editor.MainCategoryId" Variant="Variant.Outlined" Clearable="true" Placeholder="Select Main Category (Optional)" Disabled="_editor.IsMainCategory" For="@(() => _editor.MainCategoryId)">
-                    @foreach (var cat in _parents)
-                    {
-                        <MudSelectItem T="long?" Value="@((long?)cat.ItemCatId)">@cat.ItemCatName</MudSelectItem>
-                    }
-                </MudSelect>
+                <MudAutocomplete T="ParentCategoryLookupDto" Label="Parent Category" 
+                                 Value="@(_parents.FirstOrDefault(x => x.ItemCatId == _editor.MainCategoryId))" 
+                                 ValueChanged="@((ParentCategoryLookupDto val) => { _editor.MainCategoryId = val?.ItemCatId; })" 
+                                 SearchFunc="@SearchParents" ToStringFunc="@(x => x?.ItemCatName ?? "")"
+                                 Variant="Variant.Outlined" Clearable="true" Placeholder="Select Main Category (Optional)" 
+                                 Disabled="_editor.IsMainCategory" 
+                                 ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
             </MudItem>
 
             <MudItem xs="12" md="4">
@@ -125,4 +126,13 @@
     }
 
     private void OnCancel() => NavigationManager.NavigateTo("/admin/item-category");
+
+    private async Task<IEnumerable<ParentCategoryLookupDto>> SearchParents(string value, CancellationToken token)
+    {
+        if (string.IsNullOrEmpty(value)) return _parents;
+        return _parents.Where(x => x.ItemCatName?.Contains(value, StringComparison.OrdinalIgnoreCase) == true);
+    }
 }
+
+
+

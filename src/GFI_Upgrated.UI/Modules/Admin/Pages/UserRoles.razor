@@ -30,17 +30,13 @@
 
     <MudGrid Class="mb-4">
         <MudItem xs="12" md="5">
-            <MudSelect T="long"
-                       Label="Login"
-                       Variant="Variant.Outlined"
-                       Value="_selectedLoginId"
-                       ValueChanged="OnLoginChangedAsync"
-                       Disabled="_busy">
-                @foreach (var user in _users)
-                {
-                    <MudSelectItem T="long" Value="@user.LoginId">@FormatUser(user)</MudSelectItem>
-                }
-            </MudSelect>
+            <MudAutocomplete T="UserDto" Label="Login" Variant="Variant.Outlined" 
+                             Value="@(_users.FirstOrDefault(x => x.LoginId == _selectedLoginId))" 
+                             ValueChanged="@(async (UserDto val) => await OnLoginChangedAsync(val?.LoginId ?? 0))" 
+                             Disabled="_busy"
+                             SearchFunc="@SearchUsers" 
+                             ToStringFunc="@(x => x == null ? "" : FormatUser(x))"
+                             ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
         </MudItem>
         <MudItem xs="12" md="7">
             <MudPaper Class="pa-4 user-role-summary" Elevation="0">
@@ -103,6 +99,12 @@
     [Parameter]
     [SupplyParameterFromQuery]
     public long? LoginId { get; set; }
+
+    private async Task<IEnumerable<UserDto>> SearchUsers(string value, CancellationToken token)
+    {
+        if (string.IsNullOrEmpty(value)) return _users;
+        return _users.Where(x => FormatUser(x).Contains(value, StringComparison.OrdinalIgnoreCase));
+    }
 
     protected override void OnInitialized()
     {
@@ -333,3 +335,4 @@
         public string StatusText { get; set; } = string.Empty;
     }
 }
+

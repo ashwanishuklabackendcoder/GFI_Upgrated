@@ -47,7 +47,10 @@
             <MudTd DataLabel="Expiry Days">@context.TentativeExpiryDays</MudTd>
             <MudTd DataLabel="Unit">@context.UnitName</MudTd>
             <MudTd DataLabel="Status" Style="text-align: center;">
-                <MudSwitch T="bool" Value="@context.IsActive" ValueChanged="@((bool val) => ToggleStatusAsync(context, val))" Color="Color.Success" UnCheckedColor="Color.Error" Disabled="!_canUpdate" />
+                @* <MudSwitch T="bool" Value="@context.IsActive" ValueChanged="@((bool val) => ToggleStatusAsync(context, val))" Color="Color.Success" UnCheckedColor="Color.Error" Disabled="!_canUpdate" /> *@
+                <MudChip T="string" Color="@(context.StatusId == 1 ? Color.Success : Color.Primary)" Size="Size.Small">
+                    @(string.IsNullOrWhiteSpace(context.StatusName) ? (context.IsActive ? "Active" : "Inactive") : context.StatusName)
+                </MudChip>
             </MudTd>
             <MudTd DataLabel="Action" Style="text-align: center;">
                 <MudStack Row="true" Justify="Justify.Center" Spacing="1">
@@ -207,3 +210,4 @@
         }
     }
 }
+

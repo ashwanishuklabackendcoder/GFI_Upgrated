@@ -21,25 +21,19 @@
             <DataAnnotationsValidator />
             <MudGrid>
                 <MudItem xs="12">
-                    <MudTextField @bind-Value="_editor.SkuName" Label="SKU Name" Variant="Variant.Outlined" For="@(() => _editor.SkuName)" />
+                    <MudTextField @bind-Value="_editor.SkuName" Label="SKU Name" Variant="Variant.Outlined" />
                 </MudItem>
                 <MudItem xs="12" md="6">
-                    <MudSelect T="long" @bind-Value="_editor.UnitId" Label="Unit" Variant="Variant.Outlined" For="@(() => _editor.UnitId)" AnchorOrigin="Origin.BottomCenter">
-                        <MudSelectItem Value="0L">Select Unit</MudSelectItem>
-                        @foreach (var unit in _units)
-                        {
-                            <MudSelectItem Value="@unit.UnitId">@unit.UnitName</MudSelectItem>
-                        }
-                    </MudSelect>
+                    <MudAutocomplete T="UnitLookupDto" Label="Unit" Value="@(_units.FirstOrDefault(x => x.UnitId == _editor.UnitId))" ValueChanged="@((UnitLookupDto val) => { _editor.UnitId = val?.UnitId ?? 0; })" SearchFunc="@SearchUnits" ToStringFunc="@(x => x?.UnitName ?? "")" Variant="Variant.Outlined" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
                 </MudItem>
                 <MudItem xs="12" md="3">
-                    <MudNumericField @bind-Value="_editor.Quantity" Label="Content" Variant="Variant.Outlined" For="@(() => _editor.Quantity)" />
+                    <MudNumericField @bind-Value="_editor.Quantity" Label="Content" Variant="Variant.Outlined" />
                 </MudItem>
                 <MudItem xs="12" md="3">
-                    <MudNumericField @bind-Value="_editor.QuantityPerColli" Label="Qty. Per Colli" Variant="Variant.Outlined" For="@(() => _editor.QuantityPerColli)" />
+                    <MudNumericField @bind-Value="_editor.QuantityPerColli" Label="Qty. Per Colli" Variant="Variant.Outlined" />
                 </MudItem>
                 <MudItem xs="12">
-                    <MudTextField @bind-Value="_editor.Remarks" Label="Remarks" Variant="Variant.Outlined" Lines="3" For="@(() => _editor.Remarks)" />
+                    <MudTextField @bind-Value="_editor.Remarks" Label="Remarks" Variant="Variant.Outlined" Lines="3" />
                 </MudItem>
                 <MudItem xs="12">
                     <MudCheckBox T="bool" @bind-Value="_editor.IsActive" Label="Is Active" Color="Color.Primary" />
@@ -129,4 +123,9 @@
     }
 
     private void OnCancel() => NavigationManager.NavigateTo("/store/w_masterskuaddlist");
+
+    private async Task<IEnumerable<UnitLookupDto>> SearchUnits(string value, CancellationToken token) { if (string.IsNullOrEmpty(value)) return _units; return _units.Where(x => x.UnitName.Contains(value, StringComparison.OrdinalIgnoreCase)); }
 }
+
+
+

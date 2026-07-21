@@ -22,13 +22,12 @@
 
         <MudGrid>
             <MudItem xs="12" md="4">
-                <MudSelect T="string" Label="@LocalizationState.Text("Admin.Staff.Edit.Salutation", "Salutation")" Variant="Variant.Outlined" @bind-Value="_editor.StaffSalutation">
-                    <MudSelectItem T="string" Value="@string.Empty">@LocalizationState.Text("Admin.Staff.Edit.SelectItem", "Select Item")</MudSelectItem>
-                    @foreach (var item in _salutations)
-                    {
-                        <MudSelectItem T="string" Value="@item.Value.ToString()">@item.Text</MudSelectItem>
-                    }
-                </MudSelect>
+                <MudAutocomplete T="LookupItemDto" Label="@LocalizationState.Text("Admin.Staff.Edit.Salutation", "Salutation")" Variant="Variant.Outlined"
+                                 Value="@(_salutations.FirstOrDefault(x => x.Value.ToString() == _editor.StaffSalutation))"
+                                 ValueChanged="@((LookupItemDto val) => { _editor.StaffSalutation = val?.Value.ToString() ?? string.Empty; })"
+                                 SearchFunc="@SearchSalutations"
+                                 ToStringFunc="@(x => x?.Text ?? "")"
+                                 ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
             </MudItem>
             <MudItem xs="12" md="4">
                 <MudTextField @bind-Value="_editor.StaffFirstName" Label="@LocalizationState.Text("Admin.Staff.Edit.FirstName", "First Name")" Variant="Variant.Outlined" />
@@ -55,13 +54,12 @@
             </MudItem>
 
             <MudItem xs="12" md="4">
-                <MudSelect T="long" Label="@LocalizationState.Text("Admin.Staff.Edit.Gender", "Gender")" Variant="Variant.Outlined" @bind-Value="_editor.Gender">
-                    <MudSelectItem T="long" Value="@((long)0)">@LocalizationState.Text("Admin.Staff.Edit.Select", "Select")</MudSelectItem>
-                    @foreach (var item in _genders)
-                    {
-                        <MudSelectItem T="long" Value="@item.Value">@item.Text</MudSelectItem>
-                    }
-                </MudSelect>
+                <MudAutocomplete T="LookupItemDto" Label="@LocalizationState.Text("Admin.Staff.Edit.Gender", "Gender")" Variant="Variant.Outlined"
+                                 Value="@(_genders.FirstOrDefault(x => x.Value.ToString() == _editor.Gender.ToString()))"
+                                 ValueChanged="@((LookupItemDto val) => { _editor.Gender = long.TryParse(val?.Value.ToString(), out var g) ? g : 0; })"
+                                 SearchFunc="@SearchGenders"
+                                 ToStringFunc="@(x => x?.Text ?? "")"
+                                 ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
             </MudItem>
             <MudItem xs="12" md="4">
                 <label class="form-label">@LocalizationState.Text("Admin.Staff.Edit.Photo", "Photo")</label>
@@ -108,6 +106,18 @@
     private string? _message;
     private string? _selectedPhotoName;
     private string _title = string.Empty;
+
+    private async Task<IEnumerable<LookupItemDto>> SearchSalutations(string value, CancellationToken token)
+    {
+        if (string.IsNullOrEmpty(value)) return _salutations;
+        return _salutations.Where(x => x.Text.Contains(value, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private async Task<IEnumerable<LookupItemDto>> SearchGenders(string value, CancellationToken token)
+    {
+        if (string.IsNullOrEmpty(value)) return _genders;
+        return _genders.Where(x => x.Text.Contains(value, StringComparison.OrdinalIgnoreCase));
+    }
 
     protected override void OnInitialized()
     {
@@ -192,3 +202,5 @@
         _editor.Photo = file.Name;
     }
 }
+
+
