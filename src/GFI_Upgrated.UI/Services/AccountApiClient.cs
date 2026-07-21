@@ -6,20 +6,10 @@ using GFI_Upgrated.UI.State;
 
 namespace GFI_Upgrated.UI.Services;
 
-public sealed class AccountApiClient
+public sealed class AccountApiClient : ApiClientBase
 {
-    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
+    public AccountApiClient(HttpClient httpClient, AppSessionState sessionState) : base(httpClient, sessionState)
     {
-        PropertyNameCaseInsensitive = true
-    };
-
-    private readonly HttpClient _httpClient;
-    private readonly AppSessionState _sessionState;
-
-    public AccountApiClient(HttpClient httpClient, AppSessionState sessionState)
-    {
-        _httpClient = httpClient;
-        _sessionState = sessionState;
     }
 
     #region Currency
@@ -174,81 +164,7 @@ public sealed class AccountApiClient
 
     #region Helpers
 
-    private void AddAuthHeader()
-    {
-        if (_sessionState.CurrentUser?.Token != null)
-        {
-            _httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", _sessionState.CurrentUser.Token);
-        }
-    }
 
-    private async Task<TResponse> GetEnvelopeAsync<TResponse>(string url, CancellationToken cancellationToken)
-    {
-        AddAuthHeader();
-        var response = await _httpClient.GetAsync(url, cancellationToken);
-        var payload = await response.Content.ReadAsStringAsync(cancellationToken);
-        if (!response.IsSuccessStatusCode)
-        {
-            throw new HttpRequestException($"API request failed with {(int)response.StatusCode} ({response.ReasonPhrase}): {payload}");
-        }
-
-        var envelope = string.IsNullOrWhiteSpace(payload)
-            ? null
-            : JsonSerializer.Deserialize<ApiEnvelope<TResponse>>(payload, JsonOptions);
-
-        if (envelope != null && !envelope.Success && !string.IsNullOrWhiteSpace(envelope.Message))
-        {
-            throw new InvalidOperationException(envelope.Message);
-        }
-
-        return envelope is { Success: true, Data: not null } ? envelope.Data : default!;
-    }
-
-    private async Task<TResponse> PostEnvelopeAsync<TRequest, TResponse>(string url, TRequest request, CancellationToken cancellationToken)
-    {
-        AddAuthHeader();
-        var response = await _httpClient.PostAsJsonAsync(url, request, cancellationToken);
-        var payload = await response.Content.ReadAsStringAsync(cancellationToken);
-
-        if (!response.IsSuccessStatusCode)
-        {
-            throw new HttpRequestException($"API request failed with {(int)response.StatusCode} ({response.ReasonPhrase}): {payload}");
-        }
-
-        var envelope = string.IsNullOrWhiteSpace(payload)
-            ? null
-            : JsonSerializer.Deserialize<ApiEnvelope<TResponse>>(payload, JsonOptions);
-
-        if (envelope != null && !envelope.Success && !string.IsNullOrWhiteSpace(envelope.Message))
-        {
-            throw new InvalidOperationException(envelope.Message);
-        }
-
-        return envelope is { Success: true, Data: not null } ? envelope.Data : default!;
-    }
-
-    private async Task<TResponse> DeleteEnvelopeAsync<TResponse>(string url, CancellationToken cancellationToken)
-    {
-        AddAuthHeader();
-        var response = await _httpClient.DeleteAsync(url, cancellationToken);
-        var payload = await response.Content.ReadAsStringAsync(cancellationToken);
-
-        if (!response.IsSuccessStatusCode)
-        {
-            throw new HttpRequestException($"API request failed with {(int)response.StatusCode} ({response.ReasonPhrase}): {payload}");
-        }
-
-        var envelope = string.IsNullOrWhiteSpace(payload)
-            ? null
-            : JsonSerializer.Deserialize<ApiEnvelope<TResponse>>(payload, JsonOptions);
-
-        if (envelope != null && !envelope.Success && !string.IsNullOrWhiteSpace(envelope.Message))
-        {
-            throw new InvalidOperationException(envelope.Message);
-        }
-
-        return envelope is { Success: true, Data: not null } ? envelope.Data : default!;
-    }
 
     #endregion
 }
