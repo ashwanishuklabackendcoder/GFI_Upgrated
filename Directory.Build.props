@@ -1,0 +1,10 @@
+<Project>
+  <PropertyGroup>
+    <UseAppHost>false</UseAppHost>
+    <ProduceReferenceAssembly>false</ProduceReferenceAssembly>
+    <ProduceReferenceAssemblyInOutDir>false</ProduceReferenceAssemblyInOutDir>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+    <BaseOutputPath>C:\Users\HP\source\repos\GFI_Upgrated_Bin\$(MSBuildProjectName)\bin\</BaseOutputPath>
+    <BaseIntermediateOutputPath>C:\Users\HP\source\repos\GFI_Upgrated_Bin\$(MSBuildProjectName)\obj\</BaseIntermediateOutputPath>
+  </PropertyGroup>
+</Project>

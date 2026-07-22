@@ -30,12 +30,12 @@
 
     <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-4" Style="max-width: 500px;">
         <MudTextField @bind-Value="_search" Label="Search almirahs" Variant="Variant.Outlined" Immediate="true" Clearable="true" OnClearButtonClick="SearchAsync" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" />
-        <MudSelect T="long?" Label="Warehouse" @bind-Value="_warehouseId" Variant="Variant.Outlined" Clearable="true" Class="flex-grow-1">
-            @foreach (var w in _warehouses)
-            {
-                <MudSelectItem T="long?" Value="@w.WarehouseId">@w.WarehouseName</MudSelectItem>
-            }
-        </MudSelect>
+        <MudAutocomplete MaxItems="1000" T="WarehouseDto" Label="Warehouse" 
+                         Value="@(_warehouses.FirstOrDefault(x => x.WarehouseId == _warehouseId))" 
+                         ValueChanged="@((WarehouseDto val) => { _warehouseId = val?.WarehouseId; })" 
+                         SearchFunc="@SearchWarehouses" ToStringFunc="@(x => x?.WarehouseName ?? "")"
+                         Variant="Variant.Outlined" Clearable="true" Class="flex-grow-1" 
+                         ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
         <MudButton Variant="Variant.Outlined" OnClick="SearchAsync">Search</MudButton>
     </MudStack>
 
@@ -165,4 +165,11 @@
             Snackbar.Add($"Error: {ex.Message}", Severity.Error);
         }
     }
+
+    private async Task<IEnumerable<WarehouseDto>> SearchWarehouses(string value, CancellationToken token)
+    {
+        if (string.IsNullOrEmpty(value)) return _warehouses;
+        return _warehouses.Where(x => x.WarehouseName?.Contains(value, StringComparison.OrdinalIgnoreCase) == true);
+    }
 }
+

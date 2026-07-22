@@ -27,12 +27,12 @@
             </MudItem>
             
             <MudItem xs="12" md="6">
-                <MudSelect T="long" Label="Warehouse" @bind-Value="_editor.WarehouseID" Variant="Variant.Outlined" For="@(() => _editor.WarehouseID)">
-                    @foreach (var w in _warehouses)
-                    {
-                        <MudSelectItem T="long" Value="@w.WarehouseId">@w.WarehouseName</MudSelectItem>
-                    }
-                </MudSelect>
+                <MudAutocomplete MaxItems="1000" T="WarehouseDto" Label="Warehouse" 
+                                 Value="@(_warehouses.FirstOrDefault(x => x.WarehouseId == _editor.WarehouseID))" 
+                                 ValueChanged="@((WarehouseDto val) => { _editor.WarehouseID = val?.WarehouseId ?? 0; })" 
+                                 SearchFunc="@SearchWarehouses" ToStringFunc="@(x => x?.WarehouseName ?? "")"
+                                 Variant="Variant.Outlined" 
+                                 ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
             </MudItem>
 
             <MudItem xs="12" md="3">
@@ -137,4 +137,11 @@
     }
 
     private void OnCancel() => NavigationManager.NavigateTo("/admin/almirah");
+
+    private async Task<IEnumerable<WarehouseDto>> SearchWarehouses(string value, CancellationToken token)
+    {
+        if (string.IsNullOrEmpty(value)) return _warehouses;
+        return _warehouses.Where(x => x.WarehouseName?.Contains(value, StringComparison.OrdinalIgnoreCase) == true);
+    }
 }
+

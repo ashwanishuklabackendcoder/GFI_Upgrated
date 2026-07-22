@@ -28,9 +28,11 @@
         <HeaderContent>
             <MudTh><MudTableSortLabel T="AccountMasterDto" SortLabel="AccountName">Account Name</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel T="AccountMasterDto" SortLabel="AccountGroupName">Group</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel T="AccountMasterDto" SortLabel="StakeholderType">Type</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel T="AccountMasterDto" SortLabel="MobileNo">Mobile</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel T="AccountMasterDto" SortLabel="EmailID">Email</MudTableSortLabel></MudTh>
-            <MudTh Style="text-align: right;"><MudTableSortLabel T="AccountMasterDto" SortLabel="OpeningBalance">Opening Balance</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel T="AccountMasterDto" SortLabel="CountryName">Country</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel T="AccountMasterDto" SortLabel="CurrencySymbol">Currency</MudTableSortLabel></MudTh>
             <MudTh Style="width: 120px; text-align: center;">Action</MudTh>
         </HeaderContent>
         <RowTemplate>
@@ -38,13 +40,11 @@
                 <MudText Typo="Typo.body2" Class="fw-bold">@context.AccountName</MudText>
             </MudTd>
             <MudTd DataLabel="Group">@context.AccountGroupName</MudTd>
+            <MudTd DataLabel="Type">@context.StakeholderTypeName</MudTd>
             <MudTd DataLabel="Mobile">@context.MobileNo</MudTd>
             <MudTd DataLabel="Email">@context.EmailID</MudTd>
-            <MudTd DataLabel="Balance" Style="text-align: right;">
-                <MudText Typo="Typo.body2" Color="@(context.OpeningBalance >= 0 ? Color.Default : Color.Error)">
-                    @context.CurrencySymbol @(context.OpeningBalance?.ToString("N2") ?? "0.00")
-                </MudText>
-            </MudTd>
+            <MudTd DataLabel="Country">@context.CountryName</MudTd>
+            <MudTd DataLabel="Currency">@context.CurrencySymbol</MudTd>
             <MudTd DataLabel="Action" Style="text-align: center;">
                 <MudStack Row="true" Spacing="1" Justify="Justify.Center" AlignItems="AlignItems.Center">
                     <MudTooltip Text="Edit">
@@ -142,3 +142,4 @@
         }
     }
 }
+

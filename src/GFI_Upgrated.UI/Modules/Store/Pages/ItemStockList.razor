@@ -35,7 +35,7 @@
             </MudSelect>
         </MudItem>
         <MudItem xs="12" md="4">
-            <MudAutocomplete T="RawMaterialDto" Label="Select Item" @bind-Value="_selectedItem" SearchFunc="@SearchItems"
+            <MudAutocomplete MaxItems="1000" T="RawMaterialDto" Label="Select Item" @bind-Value="_selectedItem" SearchFunc="@SearchItems"
                              ToStringFunc="@(i => i?.ItemName ?? "")" Variant="Variant.Outlined" Clearable="true" 
                              Placeholder="Search items..." AdornmentIcon="@Icons.Material.Filled.Search" />
         </MudItem>
@@ -244,3 +244,4 @@
         await JS.InvokeVoidAsync("window.print");
     }
 }
+

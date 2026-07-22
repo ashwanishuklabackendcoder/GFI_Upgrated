@@ -16,13 +16,7 @@
 
                 @if (!Model.IsMainAccountGroup)
                 {
-                    <MudSelect T="long?" Label="Main Account Group" @bind-Value="Model.MainAccountGroupID" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter" Required="true" RequiredError="Parent group is required for sub-groups">
-                        <MudSelectItem T="long?" Value="null">-- Select Main Group --</MudSelectItem>
-                        @foreach (var group in _mainGroups)
-                        {
-                            <MudSelectItem T="long?" Value="@group.AccountGroupID">@group.AccountGroupName</MudSelectItem>
-                        }
-                    </MudSelect>
+                    <MudAutocomplete MaxItems="1000" T="AccountGroupLookupDto" Label="Main Account Group" Value="@(_mainGroups.FirstOrDefault(x => x.AccountGroupID == Model.MainAccountGroupID))" ValueChanged="@((AccountGroupLookupDto val) => { Model.MainAccountGroupID = val?.AccountGroupID; })" SearchFunc="@SearchMainGroups" ToStringFunc="@(x => x?.AccountGroupName ?? "")" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter" Required="true" RequiredError="Parent group is required for sub-groups" />
                 }
 
                 <MudSwitch @bind-Value="Model.IsActive" Label="Active" Color="Color.Success" />
@@ -81,4 +75,11 @@
             }
         }
     }
+
+    private async Task<IEnumerable<AccountGroupLookupDto>> SearchMainGroups(string value, CancellationToken token)
+    {
+        if (string.IsNullOrEmpty(value)) return _mainGroups;
+        return _mainGroups.Where(x => (x.AccountGroupName ?? "").Contains(value, StringComparison.OrdinalIgnoreCase));
+    }
 }
+

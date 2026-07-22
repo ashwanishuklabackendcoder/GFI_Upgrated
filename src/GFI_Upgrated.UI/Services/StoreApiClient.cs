@@ -7,20 +7,10 @@ using GFI_Upgrated.UI.State;
 
 namespace GFI_Upgrated.UI.Services;
 
-public sealed class StoreApiClient
+public sealed class StoreApiClient : ApiClientBase
 {
-    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
+    public StoreApiClient(HttpClient httpClient, AppSessionState sessionState) : base(httpClient, sessionState)
     {
-        PropertyNameCaseInsensitive = true
-    };
-
-    private readonly HttpClient _httpClient;
-    private readonly AppSessionState _sessionState;
-
-    public StoreApiClient(HttpClient httpClient, AppSessionState sessionState)
-    {
-        _httpClient = httpClient;
-        _sessionState = sessionState;
     }
 
     public async Task<PagedResult<BrandDto>> GetBrandsAsync(PagedRequest request, string? searchText = null, CancellationToken cancellationToken = default)
@@ -561,93 +551,7 @@ public sealed class StoreApiClient
         => await GetEnvelopeAsync<List<WriteOffBatchLookupDto>>("api/purchase/write-offs/batches-lookup", cancellationToken)
            ?? new List<WriteOffBatchLookupDto>();
 
-    private async Task<T?> GetEnvelopeAsync<T>(string url, CancellationToken cancellationToken)
-    {
-        AddAuthHeader();
-        var response = await _httpClient.GetAsync(url, cancellationToken);
-        var content = await response.Content.ReadAsStringAsync(cancellationToken);
 
-        if (!response.IsSuccessStatusCode)
-        {
-            throw new HttpRequestException($"API request failed with {response.StatusCode}: {content}");
-        }
-
-        var envelope = JsonSerializer.Deserialize<ApiEnvelope<T>>(content, JsonOptions);
-        return envelope is { Success: true } ? envelope.Data : default;
-    }
-
-    private void AddAuthHeader()
-    {
-        if (_sessionState.CurrentUser?.Token != null)
-        {
-            _httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", _sessionState.CurrentUser.Token);
-        }
-    }
-
-    private async Task<TResponse> PostEnvelopeAsync<TRequest, TResponse>(string url, TRequest request, CancellationToken cancellationToken)
-    {
-        AddAuthHeader();
-        var response = await _httpClient.PostAsJsonAsync(url, request, cancellationToken);
-        var payload = await response.Content.ReadAsStringAsync(cancellationToken);
-
-        if (!response.IsSuccessStatusCode)
-        {
-            throw new HttpRequestException($"API request failed with {(int)response.StatusCode} ({response.ReasonPhrase}): {payload}");
-        }
-
-        var envelope = string.IsNullOrWhiteSpace(payload)
-            ? null
-            : JsonSerializer.Deserialize<ApiEnvelope<TResponse>>(payload, JsonOptions);
-
-        if (envelope is not null && !envelope.Success)
-        {
-            throw new Exception(envelope.Message ?? "API post request failed.");
-        }
-
-        return envelope is { Success: true, Data: not null } ? envelope.Data : default!;
-    }
-
-    private async Task<TResponse> DeleteEnvelopeAsync<TResponse>(string url, CancellationToken cancellationToken)
-    {
-        AddAuthHeader();
-        var response = await _httpClient.DeleteAsync(url, cancellationToken);
-        var payload = await response.Content.ReadAsStringAsync(cancellationToken);
-
-        if (!response.IsSuccessStatusCode)
-        {
-            throw new HttpRequestException($"API request failed with {(int)response.StatusCode} ({response.ReasonPhrase}): {payload}");
-        }
-
-        var envelope = string.IsNullOrWhiteSpace(payload)
-            ? null
-            : JsonSerializer.Deserialize<ApiEnvelope<TResponse>>(payload, JsonOptions);
-
-        if (envelope is not null && !envelope.Success)
-        {
-            throw new Exception(envelope.Message ?? "API delete request failed.");
-        }
-
-        return envelope is { Success: true, Data: not null } ? envelope.Data : default!;
-    }
-
-    private static string BuildQuery(string url, PagedRequest request, params (string Name, string? Value)[] extras)
-    {
-        var query = new List<string>
-        {
-            $"CurrentPage={Uri.EscapeDataString(request.CurrentPage.ToString())}",
-            $"RecordPerPage={Uri.EscapeDataString(request.RecordPerPage.ToString())}"
-        };
-
-        if (!string.IsNullOrWhiteSpace(request.SortColumn)) query.Add($"SortColumn={Uri.EscapeDataString(request.SortColumn)}");
-        if (!string.IsNullOrWhiteSpace(request.SortType)) query.Add($"SortType={Uri.EscapeDataString(request.SortType)}");
-
-        foreach (var (name, value) in extras)
-        {
-            if (!string.IsNullOrWhiteSpace(value)) query.Add($"{name}={Uri.EscapeDataString(value)}");
-        }
-
-        return $"{url}?{string.Join('&', query)}";
-    }
 
     // Report Methods
     public async Task<PagedResult<ItemStockReportDto>> GetItemStockReportAsync(ItemStockReportRequest request, CancellationToken cancellationToken = default)

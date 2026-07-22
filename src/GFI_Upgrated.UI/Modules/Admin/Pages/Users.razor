@@ -44,20 +44,20 @@
             <MudTextField @bind-Value="_editor.LoginName" Label="Login name" Variant="Variant.Outlined" Class="mb-3" />
             <MudTextField @bind-Value="_editor.Password" Label="Password" Variant="Variant.Outlined" InputType="InputType.Password" Class="mb-3" />
             <MudTextField @bind-Value="_editor.ForgotEmail" Label="Email" Variant="Variant.Outlined" Class="mb-3" />
-            <MudSelect T="long" Label="Staff" Variant="Variant.Outlined" @bind-Value="_editor.StaffId" Class="mb-3">
-                <MudSelectItem T="long" Value="0">Select active staff</MudSelectItem>
-                @foreach (var staff in _activeStaff)
-                {
-                    <MudSelectItem T="long" Value="@staff.StaffId">@FormatStaff(staff)</MudSelectItem>
-                }
-            </MudSelect>
-            <MudSelect T="long" Label="Primary Role" Variant="Variant.Outlined" @bind-Value="_editor.RoleId" Class="mb-3">
-                <MudSelectItem T="long" Value="0">Select role</MudSelectItem>
-                @foreach (var role in _roles)
-                {
-                    <MudSelectItem T="long" Value="@role.RoleId">@role.RoleName</MudSelectItem>
-                }
-            </MudSelect>
+            <MudAutocomplete MaxItems="1000" T="StaffLookupDto" Label="Staff" Variant="Variant.Outlined" 
+                             Value="@(_activeStaff.FirstOrDefault(x => x.StaffId == _editor.StaffId))" 
+                             ValueChanged="@((StaffLookupDto val) => { _editor.StaffId = val?.StaffId ?? 0; })" 
+                             Class="mb-3"
+                             SearchFunc="@SearchStaff" 
+                             ToStringFunc="@(x => x == null ? "" : FormatStaff(x))"
+                             ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
+            <MudAutocomplete MaxItems="1000" T="RoleDto" Label="Primary Role" Variant="Variant.Outlined" 
+                             Value="@(_roles.FirstOrDefault(x => x.RoleId == _editor.RoleId))" 
+                             ValueChanged="@((RoleDto val) => { _editor.RoleId = val?.RoleId ?? 0; })" 
+                             Class="mb-3"
+                             SearchFunc="@SearchRoles" 
+                             ToStringFunc="@(x => x?.RoleName ?? "")"
+                             ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
             <MudCheckBox T="bool" @bind-Value="_editor.IsActive" Label="Is Active" />
             <MudStack Row="true" Spacing="2" Class="mt-4">
                 <AuthorizeAction Action="@(_editor.LoginId > 0 ? "update" : "insert")">
@@ -75,6 +75,18 @@
     private List<RoleDto> _roles = new();
     private string? _search;
     private SaveUserRequest _editor = new();
+
+    private async Task<IEnumerable<StaffLookupDto>> SearchStaff(string value, CancellationToken token)
+    {
+        if (string.IsNullOrEmpty(value)) return _activeStaff;
+        return _activeStaff.Where(x => FormatStaff(x).Contains(value, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private async Task<IEnumerable<RoleDto>> SearchRoles(string value, CancellationToken token)
+    {
+        if (string.IsNullOrEmpty(value)) return _roles;
+        return _roles.Where(x => x.RoleName.Contains(value, StringComparison.OrdinalIgnoreCase));
+    }
 
     protected override void OnInitialized()
     {
@@ -180,3 +192,4 @@
         return staff.StaffName;
     }
 }
+

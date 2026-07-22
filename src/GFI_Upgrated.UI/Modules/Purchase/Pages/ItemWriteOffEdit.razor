@@ -25,7 +25,7 @@
         <DataAnnotationsValidator />
         <MudGrid>
             <MudItem xs="12" md="6">
-                <MudAutocomplete T="WriteOffBatchLookupDto" Label="Item (Batch)" @bind-Value="_selectedBatch" SearchFunc="@SearchBatches"
+                <MudAutocomplete MaxItems="1000" T="WriteOffBatchLookupDto" Label="Item (Batch)" @bind-Value="_selectedBatch" SearchFunc="@SearchBatches"
                                  ToStringFunc="@(b => b == null ? "" : $"{b.ItemName} - Batch: {b.BatchNo} (Available: {b.FinalQuantityLeft} {b.UnitName})")" 
                                  Variant="Variant.Outlined" Required="true" />
             </MudItem>
@@ -48,13 +48,12 @@
             </MudItem>
 
             <MudItem xs="12" md="3">
-                <MudSelect T="long?" Label="Reason" @bind-Value="_model.ReasonFor" Variant="Variant.Outlined" Required="true">
-                    <MudSelectItem T="long?" Value="null">Select Reason</MudSelectItem>
-                    @foreach (var reason in _reasons)
-                    {
-                        <MudSelectItem T="long?" Value="reason.Value">@reason.Text</MudSelectItem>
-                    }
-                </MudSelect>
+                <MudAutocomplete MaxItems="1000" T="LookupItemDto" Label="Reason" Variant="Variant.Outlined" Required="true"
+                                 Value="@(_reasons.FirstOrDefault(x => x.Value == _model.ReasonFor))"
+                                 ValueChanged="@((LookupItemDto val) => { _model.ReasonFor = val?.Value; })"
+                                 SearchFunc="@SearchReasons"
+                                 ToStringFunc="@(x => x?.Text ?? "")"
+                                 ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
             </MudItem>
 
             <MudItem xs="12">
@@ -154,6 +153,12 @@
         return _batches.Where(x => (x.ItemName?.Contains(value, StringComparison.OrdinalIgnoreCase) == true) || (x.BatchNo?.Contains(value, StringComparison.OrdinalIgnoreCase) == true));
     }
 
+    private async Task<IEnumerable<LookupItemDto>> SearchReasons(string value, CancellationToken token)
+    {
+        if (string.IsNullOrEmpty(value)) return _reasons;
+        return _reasons.Where(x => x.Text.Contains(value, StringComparison.OrdinalIgnoreCase));
+    }
+
     private string? ValidateQuantity(double qty)
     {
         if (qty <= 0) return "Quantity must be greater than zero.";
@@ -217,3 +222,4 @@
 
     private void OnBack() => Navigation.NavigateTo("/admin/item-write-off");
 }
+

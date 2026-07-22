@@ -1,8 +1,10 @@
 @using GFI_Upgrated.SharedDto.Account
+@using GFI_Upgrated.SharedDto.AdminSecurity
 @using GFI_Upgrated.UI.Services
 @using GFI_Upgrated.UI.State
 @using MudBlazor
 @inject AccountApiClient ApiClient
+@inject AdminSecurityApiClient SecurityApiClient
 @inject ISnackbar Snackbar
 @inject AppSessionState SessionState
 
@@ -14,33 +16,27 @@
                     <MudStack Spacing="4">
                         <MudTextField @bind-Value="Model.AccountName" Label="Account Name" Required="true" RequiredError="Account name is required" Variant="Variant.Outlined" />
                         
-                        <MudSelect T="long" Label="Account Group" @bind-Value="Model.AccountGroupID" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter" Required="true" RequiredError="Account group is required">
-                            <MudSelectItem T="long" Value="0">-- Select Group --</MudSelectItem>
-                            @foreach (var group in _groups)
-                            {
-                                <MudSelectItem T="long" Value="@group.AccountGroupID">@group.AccountGroupName</MudSelectItem>
-                            }
-                        </MudSelect>
+                        <MudAutocomplete MaxItems="1000" T="AccountGroupLookupDto" Label="Account Group" Value="@(_groups.FirstOrDefault(x => x.AccountGroupID == Model.AccountGroupID))" ValueChanged="@((AccountGroupLookupDto val) => { Model.AccountGroupID = val?.AccountGroupID ?? 0; })" SearchFunc="@SearchGroups" ToStringFunc="@(x => x?.AccountGroupName ?? "")" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter" Required="true" RequiredError="Account group is required" />
 
-                        <MudSelect T="long?" Label="Currency" @bind-Value="Model.CurrencyID" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter">
-                            <MudSelectItem T="long?" Value="null">-- Select Currency --</MudSelectItem>
-                            @foreach (var curr in _currencies)
-                            {
-                                <MudSelectItem T="long?" Value="@curr.CurrencyID">@curr.CurrencySymbol (@curr.CurrencyString)</MudSelectItem>
-                            }
-                        </MudSelect>
+                        <MudAutocomplete MaxItems="1000" T="CurrencyDto" Label="Currency" Value="@(_currencies.FirstOrDefault(x => x.CurrencyID == Model.CurrencyID))" ValueChanged="@((CurrencyDto val) => { Model.CurrencyID = val?.CurrencyID; })" SearchFunc="@SearchCurrencies" ToStringFunc="@(x => x == null ? "" : $"{x.CurrencySymbol} ({x.CurrencyString})")" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter" />
 
-                        <MudNumericField @bind-Value="Model.OpeningBalance" Label="Opening Balance" Variant="Variant.Outlined" HideSpinButtons="true" />
-                        <MudDatePicker @bind-Date="Model.OpeningBalanceDate" Label="Balance Date" Variant="Variant.Outlined" />
+                        <MudAutocomplete MaxItems="1000" T="LookupItemDto" Label="Stakeholder Type" Value="@(_stakeholderTypes.FirstOrDefault(x => x.Value.ToString() == Model.StakeholderType))" ValueChanged="@((LookupItemDto val) => { Model.StakeholderType = val?.Value.ToString(); })" SearchFunc="@SearchStakeholderTypes" ToStringFunc="@(x => x?.Text ?? "")" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter" Clearable="true" />
+
+                        <MudAutocomplete MaxItems="1000" T="LookupItemDto" Label="Stakeholder Group" Value="@(_stakeholderGroups.FirstOrDefault(x => x.Value.ToString() == Model.StakeholderGroup))" ValueChanged="@((LookupItemDto val) => { Model.StakeholderGroup = val?.Value.ToString(); })" SearchFunc="@SearchStakeholderGroups" ToStringFunc="@(x => x?.Text ?? "")" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter" Clearable="true" />
+
+                        <MudTextField @bind-Value="Model.Remark" Label="Remark" Variant="Variant.Outlined" Lines="2" />
                     </MudStack>
                 </MudItem>
 
                 <MudItem xs="12" md="6">
                     <MudStack Spacing="4">
+                        <MudTextField @bind-Value="Model.ContactPerson" Label="Contact Person Name" Variant="Variant.Outlined" />
                         <MudTextField @bind-Value="Model.MobileNo" Label="Mobile Number" Variant="Variant.Outlined" />
-                        <MudTextField @bind-Value="Model.ContactNo" Label="Contact Number" Variant="Variant.Outlined" />
                         <MudTextField @bind-Value="Model.EmailID" Label="Email Address" Variant="Variant.Outlined" InputType="InputType.Email" />
-                        <MudTextField @bind-Value="Model.Address" Label="Address" Variant="Variant.Outlined" Lines="3" />
+                        <MudTextField @bind-Value="Model.Website" Label="Website" Variant="Variant.Outlined" Placeholder="https://example.com" />
+                        <MudAutocomplete MaxItems="1000" T="LookupItemDto" Label="Country" Value="@(_countries.FirstOrDefault(x => x.Value != null && Convert.ToInt64(x.Value) == Model.CountryID))" ValueChanged="@((LookupItemDto val) => { Model.CountryID = val?.Value != null ? Convert.ToInt64(val.Value) : null; })" SearchFunc="@SearchCountries" ToStringFunc="@(x => x?.Text ?? "")" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter" Clearable="true" />
+                        <MudTextField @bind-Value="Model.Address" Label="Address" Variant="Variant.Outlined" Lines="2" />
+                        
                     </MudStack>
                 </MudItem>
             </MudGrid>
@@ -59,6 +55,9 @@
     private MudForm _form = default!;
     private IReadOnlyList<AccountGroupLookupDto> _groups = Array.Empty<AccountGroupLookupDto>();
     private List<CurrencyDto> _currencies = new();
+    private IReadOnlyList<LookupItemDto> _stakeholderTypes = Array.Empty<LookupItemDto>();
+    private IReadOnlyList<LookupItemDto> _stakeholderGroups = Array.Empty<LookupItemDto>();
+    private IReadOnlyList<LookupItemDto> _countries = Array.Empty<LookupItemDto>();
 
     protected override async Task OnInitializedAsync()
     {
@@ -67,6 +66,10 @@
             _groups = await ApiClient.GetAccountGroupsLookupAsync();
             var currResult = await ApiClient.GetCurrenciesAsync();
             _currencies = currResult.Items.ToList();
+            
+            _stakeholderTypes = await SecurityApiClient.GetMasterDropdownAsync(6);
+            _stakeholderGroups = await SecurityApiClient.GetMasterDropdownAsync(5);
+            _countries = await SecurityApiClient.GetCountriesAsync();
             
             if (Model.AccountID == 0 && Model.OpeningBalanceDate == null)
             {
@@ -95,6 +98,10 @@
                     Snackbar.Add("Account saved successfully.", Severity.Success);
                     MudDialog.Close(DialogResult.Ok(id));
                 }
+                else if (id == -1 || id == -2)
+                {
+                    Snackbar.Add("An account with this name already exists.", Severity.Warning);
+                }
                 else
                 {
                     Snackbar.Add("Failed to save account.", Severity.Error);
@@ -106,4 +113,35 @@
             }
         }
     }
+
+    private async Task<IEnumerable<AccountGroupLookupDto>> SearchGroups(string value, CancellationToken token)
+    {
+        if (string.IsNullOrEmpty(value)) return _groups;
+        return _groups.Where(x => (x.AccountGroupName ?? "").Contains(value, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private async Task<IEnumerable<CurrencyDto>> SearchCurrencies(string value, CancellationToken token)
+    {
+        if (string.IsNullOrEmpty(value)) return _currencies;
+        return _currencies.Where(x => ((x.CurrencySymbol ?? "") + (x.CurrencyString ?? "")).Contains(value, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private async Task<IEnumerable<LookupItemDto>> SearchStakeholderTypes(string value, CancellationToken token)
+    {
+        if (string.IsNullOrEmpty(value)) return _stakeholderTypes;
+        return _stakeholderTypes.Where(x => (x.Text ?? "").Contains(value, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private async Task<IEnumerable<LookupItemDto>> SearchStakeholderGroups(string value, CancellationToken token)
+    {
+        if (string.IsNullOrEmpty(value)) return _stakeholderGroups;
+        return _stakeholderGroups.Where(x => (x.Text ?? "").Contains(value, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private async Task<IEnumerable<LookupItemDto>> SearchCountries(string value, CancellationToken token)
+    {
+        if (string.IsNullOrEmpty(value)) return _countries;
+        return _countries.Where(x => (x.Text ?? "").Contains(value, StringComparison.OrdinalIgnoreCase));
+    }
 }
+

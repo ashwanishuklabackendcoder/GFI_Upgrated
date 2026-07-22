@@ -146,3 +146,4 @@
     private static string ToCsvLine(DropDownMasterDto item)
         => string.Join(",", EscapeCsv(item.DisplayText), item.ValuesCount.ToString(), item.IsActive ? "Yes" : "No");
 }
+

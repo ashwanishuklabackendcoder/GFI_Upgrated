@@ -6,20 +6,10 @@ using GFI_Upgrated.UI.State;
 
 namespace GFI_Upgrated.UI.Services;
 
-public sealed class AdminSecurityApiClient
+public sealed class AdminSecurityApiClient : ApiClientBase
 {
-    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
+    public AdminSecurityApiClient(HttpClient httpClient, AppSessionState sessionState) : base(httpClient, sessionState)
     {
-        PropertyNameCaseInsensitive = true
-    };
-
-    private readonly HttpClient _httpClient;
-    private readonly AppSessionState _sessionState;
-
-    public AdminSecurityApiClient(HttpClient httpClient, AppSessionState sessionState)
-    {
-        _httpClient = httpClient;
-        _sessionState = sessionState;
     }
 
     public async Task<LoginResultDto?> LoginAsync(LoginRequest request, CancellationToken cancellationToken = default)
@@ -100,6 +90,9 @@ public sealed class AdminSecurityApiClient
     public async Task<IReadOnlyList<LookupItemDto>> GetMasterDropdownAsync(long parentId, CancellationToken cancellationToken = default)
         => await GetEnvelopeAsync<IReadOnlyList<LookupItemDto>>($"api/admin/security/lookups/master-dropdown/{parentId}", cancellationToken) ?? Array.Empty<LookupItemDto>();
 
+    public async Task<IReadOnlyList<LookupItemDto>> GetCountriesAsync(CancellationToken cancellationToken = default)
+        => await GetEnvelopeAsync<IReadOnlyList<LookupItemDto>>($"api/admin/security/lookups/countries", cancellationToken) ?? Array.Empty<LookupItemDto>();
+
     public async Task<PagedResult<DropDownMasterDto>> GetDropDownMastersAsync(PagedRequest request, string? searchText = null, CancellationToken cancellationToken = default)
         => await GetEnvelopeAsync<PagedResult<DropDownMasterDto>>(BuildQuery("api/admin/security/dropdown-masters", request, ("searchText", searchText)), cancellationToken) ?? new PagedResult<DropDownMasterDto>();
 
@@ -157,56 +150,6 @@ public sealed class AdminSecurityApiClient
     public async Task<LocalizedDictionaryDto?> GetLocalizedDictionaryAsync(long languageId, CancellationToken cancellationToken = default)
         => await GetEnvelopeAsync<LocalizedDictionaryDto>($"api/admin/security/dictionary/{languageId}", cancellationToken);
 
-    private async Task<T?> GetEnvelopeAsync<T>(string url, CancellationToken cancellationToken)
-    {
-        AddAuthHeader();
-        var envelope = await _httpClient.GetFromJsonAsync<ApiEnvelope<T>>(url, cancellationToken);
-        return envelope is { Success: true } ? envelope.Data : default;
-    }
-
-    private void AddAuthHeader()
-    {
-        if (_sessionState.CurrentUser?.Token != null)
-        {
-            _httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", _sessionState.CurrentUser.Token);
-        }
-    }
-
-    private async Task<TResponse> PostEnvelopeAsync<TRequest, TResponse>(string url, TRequest request, CancellationToken cancellationToken)
-    {
-        AddAuthHeader();
-        var response = await _httpClient.PostAsJsonAsync(url, request, cancellationToken);
-        var payload = await response.Content.ReadAsStringAsync(cancellationToken);
-
-        if (!response.IsSuccessStatusCode)
-        {
-            throw new HttpRequestException($"API request failed with {(int)response.StatusCode} ({response.ReasonPhrase}): {payload}");
-        }
-
-        var envelope = string.IsNullOrWhiteSpace(payload)
-            ? null
-            : JsonSerializer.Deserialize<ApiEnvelope<TResponse>>(payload, JsonOptions);
-
-        return envelope is { Success: true, Data: not null } ? envelope.Data : default!;
-    }
-
-    private async Task<TResponse> DeleteEnvelopeAsync<TResponse>(string url, CancellationToken cancellationToken)
-    {
-        AddAuthHeader();
-        var response = await _httpClient.DeleteAsync(url, cancellationToken);
-        var payload = await response.Content.ReadAsStringAsync(cancellationToken);
-
-        if (!response.IsSuccessStatusCode)
-        {
-            throw new HttpRequestException($"API request failed with {(int)response.StatusCode} ({response.ReasonPhrase}): {payload}");
-        }
-
-        var envelope = string.IsNullOrWhiteSpace(payload)
-            ? null
-            : JsonSerializer.Deserialize<ApiEnvelope<TResponse>>(payload, JsonOptions);
-
-        return envelope is { Success: true, Data: not null } ? envelope.Data : default!;
-    }
 
     public async Task<PagedResult<UserActivityLogDto>> GetUserActivityLogsAsync(
         string? userName,
@@ -249,32 +192,5 @@ public sealed class AdminSecurityApiClient
     public async Task<long> InsertUserActivityLogAsync(UserActivityLogDto log, CancellationToken cancellationToken = default)
         => await PostEnvelopeAsync<UserActivityLogDto, long>("api/admin/security/user-activity-logs", log, cancellationToken);
 
-    private static string BuildQuery(string url, PagedRequest request, params (string Name, string? Value)[] extras)
-    {
-        var query = new List<string>
-        {
-            $"CurrentPage={Uri.EscapeDataString(request.CurrentPage.ToString())}",
-            $"RecordPerPage={Uri.EscapeDataString(request.RecordPerPage.ToString())}"
-        };
 
-        if (!string.IsNullOrWhiteSpace(request.SortColumn))
-        {
-            query.Add($"SortColumn={Uri.EscapeDataString(request.SortColumn)}");
-        }
-
-        if (!string.IsNullOrWhiteSpace(request.SortType))
-        {
-            query.Add($"SortType={Uri.EscapeDataString(request.SortType)}");
-        }
-
-        foreach (var (name, value) in extras)
-        {
-            if (!string.IsNullOrWhiteSpace(value))
-            {
-                query.Add($"{name}={Uri.EscapeDataString(value)}");
-            }
-        }
-
-        return $"{url}?{string.Join('&', query)}";
-    }
 }

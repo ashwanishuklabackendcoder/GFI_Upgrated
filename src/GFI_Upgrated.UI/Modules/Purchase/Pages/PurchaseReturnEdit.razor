@@ -25,7 +25,7 @@
         <DataAnnotationsValidator />
         <MudGrid>
             <MudItem xs="12" md="4">
-                <MudAutocomplete T="AccountLookupDto" Label="Supplier" Value="_selectedVendor" ValueChanged="OnVendorChanged" SearchFunc="SearchVendors"
+                <MudAutocomplete MaxItems="1000" T="AccountLookupDto" Label="Supplier" Value="_selectedVendor" ValueChanged="OnVendorChanged" SearchFunc="SearchVendors"
                                  ToStringFunc="@(a => a?.AccountName ?? "")" Variant="Variant.Outlined" Required="true" />
             </MudItem>
             <MudItem xs="12" md="4">
@@ -53,7 +53,7 @@
                     </HeaderContent>
                     <RowTemplate>
                         <MudTd DataLabel="Item">
-                            <MudSelect T="PurchaseReturnItemLookupDto" Label="Select Item" Value="rowContext.SelectedItem" ValueChanged="@((v) => OnItemChanged(rowContext, v))" Variant="Variant.Text" Required="true">
+                            <MudSelect SearchBox="true" T="PurchaseReturnItemLookupDto" Label="Select Item" Value="rowContext.SelectedItem" ValueChanged="@((v) => OnItemChanged(rowContext, v))" Variant="Variant.Text" Required="true">
                                 @foreach (var item in _availableItems)
                                 {
                                     <MudSelectItem Value="@item">@item.ItemName (@item.BrandName)</MudSelectItem>
@@ -61,7 +61,7 @@
                             </MudSelect>
                         </MudTd>
                         <MudTd DataLabel="Batch">
-                            <MudSelect T="PurchaseReturnBatchLookupDto" Label="Select Batch" @bind-Value="rowContext.SelectedBatch" Variant="Variant.Text" Required="true" Disabled="@(rowContext.SelectedItem == null)">
+                            <MudSelect SearchBox="true" T="PurchaseReturnBatchLookupDto" Label="Select Batch" @bind-Value="rowContext.SelectedBatch" Variant="Variant.Text" Required="true" Disabled="@(rowContext.SelectedItem == null)">
                                 @foreach (var batch in rowContext.AvailableBatches)
                                 {
                                     <MudSelectItem Value="@batch">@batch.BatchNo (Max: @batch.Quantity)</MudSelectItem>
@@ -72,13 +72,12 @@
                             <MudNumericField T="double" Value="rowContext.Quantity" ValueChanged="@((qty) => OnQtyChanged(rowContext, qty))" Variant="Variant.Text" Dense="true" Min="0.001" Required="true" />
                         </MudTd>
                         <MudTd DataLabel="Reason">
-                            <MudSelect T="long?" Label="Select Reason" @bind-Value="rowContext.ReasonId" Variant="Variant.Text" Required="true">
-                                <MudSelectItem T="long?" Value="null">Select</MudSelectItem>
-                                @foreach (var reason in _reasons)
-                                {
-                                    <MudSelectItem T="long?" Value="reason.Value">@reason.Text</MudSelectItem>
-                                }
-                            </MudSelect>
+                            <MudAutocomplete MaxItems="1000" T="LookupItemDto" Label="Select Reason" Variant="Variant.Text" Required="true"
+                                             Value="@(_reasons.FirstOrDefault(x => x.Value == rowContext.ReasonId))"
+                                             ValueChanged="@((LookupItemDto val) => { rowContext.ReasonId = val?.Value; })"
+                                             SearchFunc="@SearchReasons"
+                                             ToStringFunc="@(x => x?.Text ?? "")"
+                                             ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
                         </MudTd>
                         <MudTd Style="text-align: center;">
                             <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => RemoveRow(rowContext))" />
@@ -126,7 +125,9 @@
             return;
         }
 
-        _vendors = await ApiClient.GetAccountsLookupAsync();
+        _vendors = (await ApiClient.GetAccountsLookupAsync())
+            .Where(x => x.AccountGroupId == 6 || x.AccountGroupId == 3)
+            .ToList();
         _reasons = await AdminApiClient.GetMasterDropdownAsync(4); // Reason for Return
     }
 
@@ -175,6 +176,12 @@
     {
         if (string.IsNullOrEmpty(value)) return _vendors;
         return _vendors.Where(x => x.AccountName.Contains(value, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private async Task<IEnumerable<LookupItemDto>> SearchReasons(string value, CancellationToken token)
+    {
+        if (string.IsNullOrEmpty(value)) return _reasons;
+        return _reasons.Where(x => x.Text.Contains(value, StringComparison.OrdinalIgnoreCase));
     }
 
     private void AddRow()
@@ -234,3 +241,4 @@
 
     private void OnBack() => Navigation.NavigateTo("/store/purchase-return");
 }
+

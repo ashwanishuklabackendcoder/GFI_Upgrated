@@ -238,6 +238,8 @@ builder.Services.AddScoped<GFI_Upgrated.ServiceApi.Services.Account.IAccountServ
 
 var app = builder.Build();
 
+app.UseMiddleware<GFI_Upgrated.ServiceApi.Middleware.ExceptionHandlingMiddleware>();
+
 app.UseCors("AllowUi");
 
 app.UseSerilogRequestLogging();

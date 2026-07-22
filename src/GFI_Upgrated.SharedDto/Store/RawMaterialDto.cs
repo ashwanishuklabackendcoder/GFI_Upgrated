@@ -16,6 +16,7 @@ public class RawMaterialDto
     public long PurchaseUnit { get; set; }
     public string UnitName { get; set; } = string.Empty;
     public int StatusId { get; set; }
+    public string StatusName { get; set; } = string.Empty;
     public bool IsActive { get; set; }
     public string? Description { get; set; }
     public string? StorageDetails { get; set; }

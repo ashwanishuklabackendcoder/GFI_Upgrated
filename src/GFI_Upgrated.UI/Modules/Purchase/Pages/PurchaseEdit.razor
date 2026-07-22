@@ -29,11 +29,11 @@
                 <MudTextField @bind-Value="_model.VoucherNumber" Label="Voucher Number" Variant="Variant.Outlined" Required="true" For="@(() => _model.VoucherNumber)" />
             </MudItem>
             <MudItem xs="12" md="3">
-                <MudAutocomplete T="AccountLookupDto" Label="Vendor" @bind-Value="_selectedVendor" SearchFunc="@SearchVendors"
+                <MudAutocomplete MaxItems="1000" T="AccountLookupDto" Label="Supplier" @bind-Value="_selectedVendor" SearchFunc="@SearchVendors"
                                  ToStringFunc="@(a => a?.AccountName ?? "")" Variant="Variant.Outlined" Required="true" />
             </MudItem>
             <MudItem xs="12" md="3">
-                <MudAutocomplete T="PurchaseOrderDto" Label="Link PO" @bind-Value="_selectedPO" SearchFunc="@SearchPOs"
+                <MudAutocomplete MaxItems="1000" T="PurchaseOrderDto" Label="Link PO" @bind-Value="_selectedPO" SearchFunc="@SearchPOs"
                                  ToStringFunc="@(p => p?.VoucherNumber ?? "")" Variant="Variant.Outlined" />
             </MudItem>
             <MudItem xs="12" md="3">
@@ -62,6 +62,7 @@
                     <HeaderContent>
                         <MudTh>Item</MudTh>
                         <MudTh Style="width: 100px;">Qty</MudTh>
+                        <MudTh Style="width: 120px;">Unit</MudTh>
                         <MudTh Style="width: 120px;">Price</MudTh>
                         <MudTh>Batch #</MudTh>
                         <MudTh>Expiry</MudTh>
@@ -70,12 +71,21 @@
                     </HeaderContent>
                     <RowTemplate>
                         <MudTd DataLabel="Item">
-                            <MudAutocomplete T="RawMaterialDto" Value="@(GetItemById(itemContext.ItemID))" ValueChanged="@((v) => OnItemChanged(itemContext, v))"
+                            <MudAutocomplete MaxItems="1000" T="RawMaterialDto" Value="@(GetItemById(itemContext.ItemID))" ValueChanged="@((v) => OnItemChanged(itemContext, v))"
                                              SearchFunc="@SearchItems" ToStringFunc="@(i => i?.ItemName ?? "")" 
-                                             Variant="Variant.Text" Dense="true" Required="true" />
+                                             Variant="Variant.Text" Dense="true" Required="true"
+                                             ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" AdornmentIcon="@Icons.Material.Filled.ArrowDropDown" />
                         </MudTd>
                         <MudTd DataLabel="Qty">
                             <MudNumericField @bind-Value="itemContext.Quantity" Variant="Variant.Text" Dense="true" Min="1" />
+                        </MudTd>
+                        <MudTd DataLabel="Unit">
+                            <MudAutocomplete MaxItems="1000" T="UnitLookupDto" 
+                                             Value="@(_units.FirstOrDefault(x => x.UnitId == itemContext.UnitId))"
+                                             ValueChanged="@((UnitLookupDto val) => { itemContext.UnitId = val?.UnitId ?? 0L; })"
+                                             SearchFunc="@SearchUnits" ToStringFunc="@(u => u?.UnitName ?? "")"
+                                             Variant="Variant.Text" Dense="true" Required="true"
+                                             ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" AdornmentIcon="@Icons.Material.Filled.ArrowDropDown" />
                         </MudTd>
                         <MudTd DataLabel="Price">
                             <MudNumericField @bind-Value="itemContext.UnitPrice" Variant="Variant.Text" Dense="true" Format="N2" />
@@ -87,13 +97,13 @@
                             <MudDatePicker @bind-Date="itemContext.ExpiryDate" Variant="Variant.Text" Dense="true" />
                         </MudTd>
                         <MudTd DataLabel="Warehouse">
-                            <MudSelect T="long?" @bind-Value="itemContext.WarehouseId" Variant="Variant.Text" Dense="true">
-                                <MudSelectItem T="long?" Value="null">Select</MudSelectItem>
-                                @foreach (var wh in _warehouses)
-                                {
-                                    <MudSelectItem T="long?" Value="wh.WarehouseId">@wh.WarehouseName</MudSelectItem>
-                                }
-                            </MudSelect>
+                            <MudAutocomplete MaxItems="1000" T="WarehouseLookupDto" 
+                                             Value="@(_warehouses.FirstOrDefault(x => x.WarehouseId == itemContext.WarehouseId))"
+                                             ValueChanged="@((WarehouseLookupDto val) => { itemContext.WarehouseId = val?.WarehouseId; })"
+                                             Variant="Variant.Text" Dense="true"
+                                             SearchFunc="@SearchWarehouses"
+                                             ToStringFunc="@(x => x?.WarehouseName ?? "")"
+                                             ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
                         </MudTd>
                         <MudTd Style="text-align: center;">
                             <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => RemoveRow(itemContext))" />
@@ -155,6 +165,7 @@
     private List<PurchaseOrderDto> _pendingPOs = new();
     private List<WarehouseLookupDto> _warehouses = new();
     private List<RawMaterialDto> _allItems = new();
+    private List<UnitLookupDto> _units = new();
     private bool _saving;
 
     private double _subtotal => _model.Items.Sum(i => i.Quantity * i.UnitPrice);
@@ -185,9 +196,12 @@
     {
         try
         {
-            _vendors = (await ApiClient.GetAccountsLookupAsync()).ToList();
+            _vendors = (await ApiClient.GetAccountsLookupAsync())
+                .Where(x => x.AccountGroupId == 6 || x.AccountGroupId == 3)
+                .ToList();
             _warehouses = (await ApiClient.GetWarehousesLookupAsync()).ToList();
             _allItems = (await ApiClient.GetItemsForBomLookupAsync(null)).ToList();
+            _units = (await ApiClient.GetUnitsLookupAsync()).ToList();
             
             var pos = await ApiClient.GetPurchaseOrdersAsync(null, null, null, 1, 100);
             _pendingPOs = pos.Items.ToList();
@@ -235,6 +249,18 @@
         return _allItems.Where(x => x.ItemName?.Contains(value, StringComparison.OrdinalIgnoreCase) == true);
     }
 
+    private async Task<IEnumerable<UnitLookupDto>> SearchUnits(string value, CancellationToken token)
+    {
+        if (string.IsNullOrEmpty(value)) return _units;
+        return _units.Where(x => x.UnitName?.Contains(value, StringComparison.OrdinalIgnoreCase) == true);
+    }
+
+    private async Task<IEnumerable<WarehouseLookupDto>> SearchWarehouses(string value, CancellationToken token)
+    {
+        if (string.IsNullOrEmpty(value)) return _warehouses;
+        return _warehouses.Where(x => x.WarehouseName?.Contains(value, StringComparison.OrdinalIgnoreCase) == true);
+    }
+
     private RawMaterialDto? GetItemById(long id) => _allItems.FirstOrDefault(x => x.ItemId == id);
 
     private void OnItemChanged(PurchaseItemDto row, RawMaterialDto? item)
@@ -244,6 +270,10 @@
             row.ItemID = item.ItemId;
             row.ItemName = item.ItemName;
             row.UnitId = item.PurchaseUnit;
+            if (item.TentativeExpiryDays > 0)
+            {
+                row.ExpiryDate = DateTime.Today.AddDays(item.TentativeExpiryDays);
+            }
         }
     }
 
@@ -307,3 +337,4 @@
 
     private void OnBack() => Navigation.NavigateTo("/admin/purchase");
 }
+

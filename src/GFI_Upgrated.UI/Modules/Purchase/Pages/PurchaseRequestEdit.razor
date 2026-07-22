@@ -29,13 +29,12 @@
                 <MudTextField @bind-Value="_model.RequestNumber" Label="Request Number" Variant="Variant.Outlined" Required="true" For="@(() => _model.RequestNumber)" />
             </MudItem>
             <MudItem xs="12" md="4">
-                <MudSelect T="long?" @bind-Value="_model.RequestedBy" Label="Requested By" Variant="Variant.Outlined" Required="true">
-                    <MudSelectItem T="long?" Value="null">Select Staff</MudSelectItem>
-                    @foreach (var staff in _staffList)
-                    {
-                        <MudSelectItem T="long?" Value="staff.StaffId">@staff.StaffName</MudSelectItem>
-                    }
-                </MudSelect>
+                <MudAutocomplete MaxItems="1000" T="StaffLookupDto" Label="Requested By" Variant="Variant.Outlined" Required="true"
+                                 Value="@(_staffList.FirstOrDefault(x => x.StaffId == _model.RequestedBy))"
+                                 ValueChanged="@((StaffLookupDto val) => { _model.RequestedBy = val?.StaffId; })"
+                                 SearchFunc="@SearchStaffList"
+                                 ToStringFunc="@(x => x?.StaffName ?? "")"
+                                 ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
             </MudItem>
             <MudItem xs="12" md="4">
                 <MudDatePicker Label="Request Date" @bind-Date="_model.CreatedDate" Variant="Variant.Outlined" Editable="true" />
@@ -62,7 +61,7 @@
                     </HeaderContent>
                     <RowTemplate>
                         <MudTd DataLabel="Item">
-                            <MudAutocomplete T="RawMaterialDto" Value="@(GetItemById(itemContext.ItemID))" ValueChanged="@((v) => OnItemChanged(itemContext, v))"
+                            <MudAutocomplete MaxItems="1000" T="RawMaterialDto" Value="@(GetItemById(itemContext.ItemID))" ValueChanged="@((v) => OnItemChanged(itemContext, v))"
                                              SearchFunc="@SearchItems" ToStringFunc="@(i => i?.ItemName ?? "")" 
                                              Variant="Variant.Text" Dense="true" Required="true" />
                         </MudTd>
@@ -70,13 +69,13 @@
                             <MudNumericField @bind-Value="itemContext.Quantity" Variant="Variant.Text" Dense="true" Min="1" />
                         </MudTd>
                         <MudTd DataLabel="Unit">
-                            <MudSelect T="long?" @bind-Value="itemContext.UnitId" Variant="Variant.Text" Dense="true">
-                                <MudSelectItem T="long?" Value="null">Select Unit</MudSelectItem>
-                                @foreach (var unit in _units)
-                                {
-                                    <MudSelectItem T="long?" Value="unit.UnitId">@unit.UnitName</MudSelectItem>
-                                }
-                            </MudSelect>
+                            <MudAutocomplete MaxItems="1000" T="UnitDto" 
+                                             Value="@(_units.FirstOrDefault(x => x.UnitId == itemContext.UnitId))"
+                                             ValueChanged="@((UnitDto val) => { itemContext.UnitId = val?.UnitId; })"
+                                             Variant="Variant.Text" Dense="true"
+                                             SearchFunc="@SearchUnits"
+                                             ToStringFunc="@(x => x?.UnitName ?? "")"
+                                             ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
                         </MudTd>
                         <MudTd DataLabel="Preferred Brand / Remarks">
                             <MudTextField @bind-Value="itemContext.PrefferedBrand" Placeholder="Brand or specific remarks..." Variant="Variant.Text" Dense="true" />
@@ -169,6 +168,18 @@
         return _allItems.Where(x => x.ItemName?.Contains(value, StringComparison.OrdinalIgnoreCase) == true);
     }
 
+    private async Task<IEnumerable<StaffLookupDto>> SearchStaffList(string value, CancellationToken token)
+    {
+        if (string.IsNullOrEmpty(value)) return _staffList;
+        return _staffList.Where(x => x.StaffName?.Contains(value, StringComparison.OrdinalIgnoreCase) == true);
+    }
+
+    private async Task<IEnumerable<UnitDto>> SearchUnits(string value, CancellationToken token)
+    {
+        if (string.IsNullOrEmpty(value)) return _units;
+        return _units.Where(x => x.UnitName?.Contains(value, StringComparison.OrdinalIgnoreCase) == true);
+    }
+
     private RawMaterialDto? GetItemById(long id) => _allItems.FirstOrDefault(x => x.ItemId == id);
 
     private void OnItemChanged(PurchaseRequestItemDto row, RawMaterialDto? item)
@@ -225,3 +236,4 @@
 
     private void OnBack() => Navigation.NavigateTo("/store/purchase-request");
 }
+

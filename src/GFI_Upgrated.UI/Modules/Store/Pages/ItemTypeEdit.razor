@@ -27,12 +27,13 @@
             </MudItem>
             
             <MudItem xs="12" md="6">
-                <MudSelect T="long?" Label="Parent Type" @bind-Value="_editor.MainTypeId" Variant="Variant.Outlined" Clearable="true" Placeholder="Select Main Type (Optional)" Disabled="_editor.IsMainType">
-                    @foreach (var t in _parents)
-                    {
-                        <MudSelectItem T="long?" Value="@t.ItemTypeId">@t.ItemTypeName</MudSelectItem>
-                    }
-                </MudSelect>
+                <MudAutocomplete MaxItems="1000" T="ParentTypeLookupDto" Label="Parent Type" 
+                                 Value="@(_parents.FirstOrDefault(x => x.ItemTypeId == _editor.MainTypeId))" 
+                                 ValueChanged="@((ParentTypeLookupDto val) => { _editor.MainTypeId = val?.ItemTypeId; })" 
+                                 SearchFunc="@SearchParents" ToStringFunc="@(x => x?.ItemTypeName ?? "")"
+                                 Variant="Variant.Outlined" Clearable="true" Placeholder="Select Main Type (Optional)" 
+                                 Disabled="_editor.IsMainType" 
+                                 ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
             </MudItem>
 
             <MudItem xs="12" md="4">
@@ -114,4 +115,11 @@
     }
 
     private void OnCancel() => NavigationManager.NavigateTo("/admin/item-type");
+
+    private async Task<IEnumerable<ParentTypeLookupDto>> SearchParents(string value, CancellationToken token)
+    {
+        if (string.IsNullOrEmpty(value)) return _parents;
+        return _parents.Where(x => x.ItemTypeName?.Contains(value, StringComparison.OrdinalIgnoreCase) == true);
+    }
 }
+

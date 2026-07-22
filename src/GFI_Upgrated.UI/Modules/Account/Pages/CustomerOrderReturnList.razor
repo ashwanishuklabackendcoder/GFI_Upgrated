@@ -83,17 +83,12 @@ else
 
         <MudGrid Class="mb-4">
             <MudItem xs="12" md="6">
-                <MudAutocomplete T="AccountLookupDto" Label="Select Customer" SearchFunc="SearchCustomers"
+                <MudAutocomplete MaxItems="1000" T="AccountLookupDto" Label="Select Customer" SearchFunc="SearchCustomers"
                                  Value="_selectedCustomer" ValueChanged="OnCustomerChanged"
                                  ToStringFunc="@(c => c?.AccountName ?? "")" Required="true" Variant="Variant.Outlined" />
             </MudItem>
             <MudItem xs="12" md="6">
-                <MudSelect T="CustomerOrderDto" Label="Select Customer Order" Value="_selectedOrder" ValueChanged="OnOrderChanged" Required="true" Variant="Variant.Outlined" Disabled="@(_selectedCustomer == null)">
-                    @foreach (var order in _customerOrders)
-                    {
-                        <MudSelectItem Value="order">@order.OrderNo</MudSelectItem>
-                    }
-                </MudSelect>
+                <MudAutocomplete MaxItems="1000" T="CustomerOrderDto" Label="Select Customer Order" Value="_selectedOrder" ValueChanged="OnOrderChanged" SearchFunc="SearchOrders" ToStringFunc="@(x => x?.OrderNo ?? "")" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" Required="true" Variant="Variant.Outlined" Disabled="@(_selectedCustomer == null)" />
             </MudItem>
             <MudItem xs="12" md="6">
                 <MudTextField Label="Order Date" Value="@(_selectedOrder?.OrderDate?.ToString("dd MMM yyyy") ?? "")" ReadOnly="true" Variant="Variant.Outlined" />
@@ -386,4 +381,12 @@ else
             Snackbar.Add($"Error: {ex.Message}", Severity.Error);
         }
     }
+
+    private async Task<IEnumerable<CustomerOrderDto>> SearchOrders(string text, CancellationToken token)
+    {
+        if (string.IsNullOrEmpty(text))
+            return _customerOrders;
+        return _customerOrders.Where(x => (x.OrderNo ?? "").Contains(text, StringComparison.OrdinalIgnoreCase));
+    }
 }
+

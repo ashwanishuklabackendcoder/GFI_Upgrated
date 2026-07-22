@@ -33,6 +33,7 @@ public interface IAdminSecurityRepository
     Task<IReadOnlyList<StaffLookupDto>> GetActiveStaffAsync(CancellationToken cancellationToken = default);
     Task<IReadOnlyList<StaffLookupDto>> GetUnassignedStaffAsync(CancellationToken cancellationToken = default);
     Task<IReadOnlyList<LookupItemDto>> GetMasterDropdownAsync(long parentId, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<LookupItemDto>> GetCountriesAsync(CancellationToken cancellationToken = default);
     Task<PagedResult<DropDownMasterDto>> GetDropDownMastersAsync(PagedRequest request, string? searchText, CancellationToken cancellationToken = default);
     Task<DropDownMasterDto?> GetDropDownMasterByIdAsync(long id, CancellationToken cancellationToken = default);
     Task<int> SaveDropDownMasterAsync(SaveDropDownMasterRequest request, CancellationToken cancellationToken = default);
@@ -663,6 +664,26 @@ public sealed class AdminSecurityRepository : IAdminSecurityRepository
         {
             Value = row.SafeLong("UniqueID", "Value", "ID"),
             Text = row.SafeString("DisplayText", "Text", "Name")
+        }).ToList();
+    }
+
+    public async Task<IReadOnlyList<LookupItemDto>> GetCountriesAsync(CancellationToken cancellationToken = default)
+    {
+        await using var connection = new SqlConnection(_connectionString);
+        await using var command = new SqlCommand("SELECT CountryID as UniqueID, CountryName as DisplayText FROM Z_CountriesMaster ORDER BY CountryName", connection)
+        {
+            CommandType = CommandType.Text
+        };
+
+        await connection.OpenAsync(cancellationToken);
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+        var table = new DataTable();
+        table.Load(reader);
+
+        return table.AsEnumerable().Select(row => new LookupItemDto
+        {
+            Value = row.SafeLong("UniqueID"),
+            Text = row.SafeString("DisplayText")
         }).ToList();
     }
 

@@ -19,12 +19,13 @@
     <MudTabs Rounded="true" PanelClass="pa-2">
         <MudTabPanel Text="@LocalizationState.Text("Admin.ResourceEditor.ResourcesTab", "Resources")">
             <MudStack Row="true" AlignItems="AlignItems.End" Spacing="2" Class="mb-4">
-                <MudSelect T="long" Label="@LocalizationState.Text("Layout.Language", "Language")" Value="_selectedLanguageId" ValueChanged="OnLanguageFilterChangedAsync" Variant="Variant.Outlined" Dense="true" Style="min-width:220px;">
-                    @foreach (var language in _languages)
-                    {
-                        <MudSelectItem T="long" Value="@language.Id">@language.DisplayName</MudSelectItem>
-                    }
-                </MudSelect>
+                <MudAutocomplete MaxItems="1000" T="LanguageDto" Label="@LocalizationState.Text("Layout.Language", "Language")" 
+                                 Value="@(_languages.FirstOrDefault(x => x.Id == _selectedLanguageId))" 
+                                 ValueChanged="@(async (LanguageDto val) => await OnLanguageFilterChangedAsync(val?.Id ?? 0))" 
+                                 Variant="Variant.Outlined" Dense="true" Style="min-width:220px;"
+                                 SearchFunc="@SearchLanguages" 
+                                 ToStringFunc="@(x => x?.DisplayName ?? "")"
+                                 ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
                 <MudTextField @bind-Value="_resourceSearch" Label="@LocalizationState.Text("Admin.ResourceEditor.SearchPlaceholder", "Search keys or values")" Variant="Variant.Outlined" Immediate="true" Class="flex-grow-1" />
                 <MudCheckBox T="bool" @bind-Value="_showMissingOnly" Label="@LocalizationState.Text("Admin.ResourceEditor.ShowMissing", "Show missing only")" />
                 <MudButton Variant="Variant.Outlined" OnClick="ReloadResourcesAsync">@LocalizationState.Text("Common.Actions.Search", "Search")</MudButton>
@@ -123,6 +124,12 @@
     private long _selectedLanguageId;
     private string? _resourceSearch;
     private bool _showMissingOnly;
+
+    private async Task<IEnumerable<LanguageDto>> SearchLanguages(string value, CancellationToken token)
+    {
+        if (string.IsNullOrEmpty(value)) return _languages;
+        return _languages.Where(x => x.DisplayName.Contains(value, StringComparison.OrdinalIgnoreCase));
+    }
 
     protected override void OnInitialized()
     {
@@ -242,3 +249,4 @@
         _languageEditor = new SaveLanguageRequest();
     }
 }
+
