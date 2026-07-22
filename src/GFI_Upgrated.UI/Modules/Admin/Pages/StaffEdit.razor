@@ -22,7 +22,7 @@
 
         <MudGrid>
             <MudItem xs="12" md="4">
-                <MudAutocomplete T="LookupItemDto" Label="@LocalizationState.Text("Admin.Staff.Edit.Salutation", "Salutation")" Variant="Variant.Outlined"
+                <MudAutocomplete MaxItems="1000" T="LookupItemDto" Label="@LocalizationState.Text("Admin.Staff.Edit.Salutation", "Salutation")" Variant="Variant.Outlined"
                                  Value="@(_salutations.FirstOrDefault(x => x.Value.ToString() == _editor.StaffSalutation))"
                                  ValueChanged="@((LookupItemDto val) => { _editor.StaffSalutation = val?.Value.ToString() ?? string.Empty; })"
                                  SearchFunc="@SearchSalutations"
@@ -54,7 +54,7 @@
             </MudItem>
 
             <MudItem xs="12" md="4">
-                <MudAutocomplete T="LookupItemDto" Label="@LocalizationState.Text("Admin.Staff.Edit.Gender", "Gender")" Variant="Variant.Outlined"
+                <MudAutocomplete MaxItems="1000" T="LookupItemDto" Label="@LocalizationState.Text("Admin.Staff.Edit.Gender", "Gender")" Variant="Variant.Outlined"
                                  Value="@(_genders.FirstOrDefault(x => x.Value.ToString() == _editor.Gender.ToString()))"
                                  ValueChanged="@((LookupItemDto val) => { _editor.Gender = long.TryParse(val?.Value.ToString(), out var g) ? g : 0; })"
                                  SearchFunc="@SearchGenders"

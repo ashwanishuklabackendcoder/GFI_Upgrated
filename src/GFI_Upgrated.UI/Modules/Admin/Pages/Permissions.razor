@@ -22,7 +22,7 @@
 
     <MudGrid Class="mb-4">
         <MudItem xs="12" md="4">
-            <MudAutocomplete T="RoleDto" Label="Role" Variant="Variant.Outlined" 
+            <MudAutocomplete MaxItems="1000" T="RoleDto" Label="Role" Variant="Variant.Outlined" 
                              Value="@(_roles.FirstOrDefault(x => x.RoleId == _selectedRoleId))" 
                              ValueChanged="@(async (RoleDto val) => await OnRoleChanged(val?.RoleId ?? 0))" 
                              Dense="true"
@@ -31,7 +31,7 @@
                              ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
         </MudItem>
         <MudItem xs="12" md="4">
-            <MudAutocomplete T="ModuleDto" Label="Module" Variant="Variant.Outlined" 
+            <MudAutocomplete MaxItems="1000" T="ModuleDto" Label="Module" Variant="Variant.Outlined" 
                              Value="@(_modules.FirstOrDefault(x => x.ModuleId == _selectedModuleId))" 
                              ValueChanged="@(async (ModuleDto val) => await OnModuleChanged(val?.ModuleId ?? 0))" 
                              Dense="true"

@@ -25,7 +25,7 @@
         <DataAnnotationsValidator />
         <MudGrid>
             <MudItem xs="12" md="6">
-                <MudAutocomplete T="WriteOffBatchLookupDto" Label="Item (Batch)" @bind-Value="_selectedBatch" SearchFunc="@SearchBatches"
+                <MudAutocomplete MaxItems="1000" T="WriteOffBatchLookupDto" Label="Item (Batch)" @bind-Value="_selectedBatch" SearchFunc="@SearchBatches"
                                  ToStringFunc="@(b => b == null ? "" : $"{b.ItemName} - Batch: {b.BatchNo} (Available: {b.FinalQuantityLeft} {b.UnitName})")" 
                                  Variant="Variant.Outlined" Required="true" />
             </MudItem>
@@ -48,7 +48,7 @@
             </MudItem>
 
             <MudItem xs="12" md="3">
-                <MudAutocomplete T="LookupItemDto" Label="Reason" Variant="Variant.Outlined" Required="true"
+                <MudAutocomplete MaxItems="1000" T="LookupItemDto" Label="Reason" Variant="Variant.Outlined" Required="true"
                                  Value="@(_reasons.FirstOrDefault(x => x.Value == _model.ReasonFor))"
                                  ValueChanged="@((LookupItemDto val) => { _model.ReasonFor = val?.Value; })"
                                  SearchFunc="@SearchReasons"

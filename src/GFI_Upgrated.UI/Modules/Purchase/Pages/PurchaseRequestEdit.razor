@@ -29,7 +29,7 @@
                 <MudTextField @bind-Value="_model.RequestNumber" Label="Request Number" Variant="Variant.Outlined" Required="true" For="@(() => _model.RequestNumber)" />
             </MudItem>
             <MudItem xs="12" md="4">
-                <MudAutocomplete T="StaffLookupDto" Label="Requested By" Variant="Variant.Outlined" Required="true"
+                <MudAutocomplete MaxItems="1000" T="StaffLookupDto" Label="Requested By" Variant="Variant.Outlined" Required="true"
                                  Value="@(_staffList.FirstOrDefault(x => x.StaffId == _model.RequestedBy))"
                                  ValueChanged="@((StaffLookupDto val) => { _model.RequestedBy = val?.StaffId; })"
                                  SearchFunc="@SearchStaffList"
@@ -61,7 +61,7 @@
                     </HeaderContent>
                     <RowTemplate>
                         <MudTd DataLabel="Item">
-                            <MudAutocomplete T="RawMaterialDto" Value="@(GetItemById(itemContext.ItemID))" ValueChanged="@((v) => OnItemChanged(itemContext, v))"
+                            <MudAutocomplete MaxItems="1000" T="RawMaterialDto" Value="@(GetItemById(itemContext.ItemID))" ValueChanged="@((v) => OnItemChanged(itemContext, v))"
                                              SearchFunc="@SearchItems" ToStringFunc="@(i => i?.ItemName ?? "")" 
                                              Variant="Variant.Text" Dense="true" Required="true" />
                         </MudTd>
@@ -69,7 +69,7 @@
                             <MudNumericField @bind-Value="itemContext.Quantity" Variant="Variant.Text" Dense="true" Min="1" />
                         </MudTd>
                         <MudTd DataLabel="Unit">
-                            <MudAutocomplete T="UnitDto" 
+                            <MudAutocomplete MaxItems="1000" T="UnitDto" 
                                              Value="@(_units.FirstOrDefault(x => x.UnitId == itemContext.UnitId))"
                                              ValueChanged="@((UnitDto val) => { itemContext.UnitId = val?.UnitId; })"
                                              Variant="Variant.Text" Dense="true"

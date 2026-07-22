@@ -27,7 +27,7 @@
             </MudItem>
             
             <MudItem xs="12" md="6">
-                <MudAutocomplete T="StatusOfOption" Label="Status Of" Value="@(_statusOfOptions.FirstOrDefault(x => x.Id == _editor.StatusOf))" ValueChanged="@((StatusOfOption val) => { _editor.StatusOf = val?.Id ?? 0; })" SearchFunc="@SearchStatusOf" ToStringFunc="@(x => x?.Name ?? "")" Variant="Variant.Outlined" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
+                <MudAutocomplete MaxItems="1000" T="StatusOfOption" Label="Status Of" Value="@(_statusOfOptions.FirstOrDefault(x => x.Id == _editor.StatusOf))" ValueChanged="@((StatusOfOption val) => { _editor.StatusOf = val?.Id ?? 0; })" SearchFunc="@SearchStatusOf" ToStringFunc="@(x => x?.Name ?? "")" Variant="Variant.Outlined" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
             </MudItem>
 
             <MudItem xs="12" md="4">

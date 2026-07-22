@@ -30,7 +30,7 @@
 
     <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-4" Style="max-width: 500px;">
         <MudTextField @bind-Value="_search" Label="Search almirahs" Variant="Variant.Outlined" Immediate="true" Clearable="true" OnClearButtonClick="SearchAsync" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" />
-        <MudAutocomplete T="WarehouseDto" Label="Warehouse" 
+        <MudAutocomplete MaxItems="1000" T="WarehouseDto" Label="Warehouse" 
                          Value="@(_warehouses.FirstOrDefault(x => x.WarehouseId == _warehouseId))" 
                          ValueChanged="@((WarehouseDto val) => { _warehouseId = val?.WarehouseId; })" 
                          SearchFunc="@SearchWarehouses" ToStringFunc="@(x => x?.WarehouseName ?? "")"

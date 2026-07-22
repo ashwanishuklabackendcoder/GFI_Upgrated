@@ -25,7 +25,7 @@
         <DataAnnotationsValidator />
         <MudGrid>
             <MudItem xs="12" md="4">
-                <MudAutocomplete T="AccountLookupDto" Label="Supplier" Value="_selectedVendor" ValueChanged="OnVendorChanged" SearchFunc="SearchVendors"
+                <MudAutocomplete MaxItems="1000" T="AccountLookupDto" Label="Supplier" Value="_selectedVendor" ValueChanged="OnVendorChanged" SearchFunc="SearchVendors"
                                  ToStringFunc="@(a => a?.AccountName ?? "")" Variant="Variant.Outlined" Required="true" />
             </MudItem>
             <MudItem xs="12" md="4">
@@ -72,7 +72,7 @@
                             <MudNumericField T="double" Value="rowContext.Quantity" ValueChanged="@((qty) => OnQtyChanged(rowContext, qty))" Variant="Variant.Text" Dense="true" Min="0.001" Required="true" />
                         </MudTd>
                         <MudTd DataLabel="Reason">
-                            <MudAutocomplete T="LookupItemDto" Label="Select Reason" Variant="Variant.Text" Required="true"
+                            <MudAutocomplete MaxItems="1000" T="LookupItemDto" Label="Select Reason" Variant="Variant.Text" Required="true"
                                              Value="@(_reasons.FirstOrDefault(x => x.Value == rowContext.ReasonId))"
                                              ValueChanged="@((LookupItemDto val) => { rowContext.ReasonId = val?.Value; })"
                                              SearchFunc="@SearchReasons"
@@ -125,7 +125,9 @@
             return;
         }
 
-        _vendors = await ApiClient.GetAccountsLookupAsync();
+        _vendors = (await ApiClient.GetAccountsLookupAsync())
+            .Where(x => x.AccountGroupId == 6 || x.AccountGroupId == 3)
+            .ToList();
         _reasons = await AdminApiClient.GetMasterDropdownAsync(4); // Reason for Return
     }
 

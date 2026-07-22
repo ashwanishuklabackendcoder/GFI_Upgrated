@@ -28,7 +28,7 @@
                 <MudTextField @bind-Value="_invoice.InvoiceNumber" Label="Invoice Number" Required="true" Variant="Variant.Outlined" For="@(() => _invoice.InvoiceNumber)" />
             </MudItem>
             <MudItem xs="12" md="4">
-                <MudAutocomplete T="AccountLookupDto" Label="Customer" Value="@(_customers.FirstOrDefault(x => x.AccountId == _invoice.AccountID))" ValueChanged="@((AccountLookupDto val) => OnCustomerChanged(val?.AccountId ?? 0))" SearchFunc="@SearchCustomers" ToStringFunc="@(x => x?.AccountName ?? "")" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter" Required="true" />
+                <MudAutocomplete MaxItems="1000" T="AccountLookupDto" Label="Customer" Value="@(_customers.FirstOrDefault(x => x.AccountId == _invoice.AccountID))" ValueChanged="@((AccountLookupDto val) => OnCustomerChanged(val?.AccountId ?? 0))" SearchFunc="@SearchCustomers" ToStringFunc="@(x => x?.AccountName ?? "")" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter" Required="true" />
             </MudItem>
             <MudItem xs="12" md="4">
                 <MudCheckBox T="bool?" @bind-Value="_invoice.IsPaid" Label="Mark as Paid" Color="Color.Success" />
@@ -50,7 +50,7 @@
             </MudItem>
 
             <MudItem xs="12" md="4">
-                <MudAutocomplete T="CurrencyDto" Label="Currency" Value="@(_currencies.FirstOrDefault(x => x.CurrencyID == _invoice.CurrencyID))" ValueChanged="@((CurrencyDto val) => OnCurrencyChanged(val?.CurrencyID))" SearchFunc="@SearchCurrencies" ToStringFunc="@(x => x == null ? "" : $"{x.CurrencySymbol} ({x.CurrencyString})")" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter" />
+                <MudAutocomplete MaxItems="1000" T="CurrencyDto" Label="Currency" Value="@(_currencies.FirstOrDefault(x => x.CurrencyID == _invoice.CurrencyID))" ValueChanged="@((CurrencyDto val) => OnCurrencyChanged(val?.CurrencyID))" SearchFunc="@SearchCurrencies" ToStringFunc="@(x => x == null ? "" : $"{x.CurrencySymbol} ({x.CurrencyString})")" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter" />
             </MudItem>
             <MudItem xs="12" md="4">
                 <MudNumericField @bind-Value="_invoice.CurrencyConversion" Label="Exchange Rate (to Base)" HideSpinButtons="true" Variant="Variant.Outlined" />
@@ -86,10 +86,10 @@
                     </HeaderContent>
                     <RowTemplate Context="row">
                         <MudTd DataLabel="Item (SKU)">
-                            <MudAutocomplete T="RawMaterialDto" Value="@(_items.FirstOrDefault(x => x.ItemId == row.ItemId))" ValueChanged="@((RawMaterialDto val) => OnItemChanged(row, val?.ItemId ?? 0))" SearchFunc="@SearchItems" ToStringFunc="@(x => x?.ItemName ?? "")" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" Variant="Variant.Outlined" Dense="true" Margin="Margin.Dense" AnchorOrigin="Origin.BottomCenter" />
+                            <MudAutocomplete MaxItems="1000" T="RawMaterialDto" Value="@(_items.FirstOrDefault(x => x.ItemId == row.ItemId))" ValueChanged="@((RawMaterialDto val) => OnItemChanged(row, val?.ItemId ?? 0))" SearchFunc="@SearchItems" ToStringFunc="@(x => x?.ItemName ?? "")" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" Variant="Variant.Outlined" Dense="true" Margin="Margin.Dense" AnchorOrigin="Origin.BottomCenter" />
                         </MudTd>
                         <MudTd DataLabel="Related Order">
-                            <MudAutocomplete T="CustomerOrderDto" Value="@(_orders.FirstOrDefault(x => x.OrderID == row.OrderID))" ValueChanged="@((CustomerOrderDto val) => OnOrderChanged(row, val?.OrderID ?? 0))" SearchFunc="@SearchOrders" ToStringFunc="@(x => x?.OrderNo ?? "")" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" Variant="Variant.Outlined" Dense="true" Margin="Margin.Dense" AnchorOrigin="Origin.BottomCenter" />
+                            <MudAutocomplete MaxItems="1000" T="CustomerOrderDto" Value="@(_orders.FirstOrDefault(x => x.OrderID == row.OrderID))" ValueChanged="@((CustomerOrderDto val) => OnOrderChanged(row, val?.OrderID ?? 0))" SearchFunc="@SearchOrders" ToStringFunc="@(x => x?.OrderNo ?? "")" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" Variant="Variant.Outlined" Dense="true" Margin="Margin.Dense" AnchorOrigin="Origin.BottomCenter" />
                         </MudTd>
                         <MudTd DataLabel="Qty" Style="text-align: center;">
                             <MudNumericField @bind-Value="row.Quantity" Variant="Variant.Outlined" Dense="true" Margin="Margin.Dense" Min="1" Style="text-align: center;" />

@@ -36,20 +36,20 @@
                     </MudItem>
 
                     <MudItem xs="12" md="4">
-                        <MudAutocomplete T="ItemCategoryDto" Label="Category" Value="@(_categories.FirstOrDefault(x => x.ItemCatId == _model.ItemCatId))" ValueChanged="@((ItemCategoryDto val) => { _model.ItemCatId = val?.ItemCatId ?? 0; })" SearchFunc="@SearchCategories" ToStringFunc="@(x => x?.ItemCatName ?? "")" Variant="Variant.Outlined" Required="true" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
+                        <MudAutocomplete MaxItems="1000" T="ItemCategoryDto" Label="Category" Value="@(_categories.FirstOrDefault(x => x.ItemCatId == _model.ItemCatId))" ValueChanged="@((ItemCategoryDto val) => { _model.ItemCatId = val?.ItemCatId ?? 0; })" SearchFunc="@SearchCategories" ToStringFunc="@(x => x?.ItemCatName ?? "")" Variant="Variant.Outlined" Required="true" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
                     </MudItem>
                     <MudItem xs="12" md="4">
-                        <MudAutocomplete T="ItemTypeDto" Label="Item Type" Value="@(_types.FirstOrDefault(x => x.ItemTypeId == _model.MasterItemTypeId))" ValueChanged="@((ItemTypeDto val) => { _model.MasterItemTypeId = val?.ItemTypeId; })" SearchFunc="@SearchTypes" ToStringFunc="@(x => x?.ItemTypeName ?? "")" Variant="Variant.Outlined" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
+                        <MudAutocomplete MaxItems="1000" T="ItemTypeDto" Label="Item Type" Value="@(_types.FirstOrDefault(x => x.ItemTypeId == _model.MasterItemTypeId))" ValueChanged="@((ItemTypeDto val) => { _model.MasterItemTypeId = val?.ItemTypeId; })" SearchFunc="@SearchTypes" ToStringFunc="@(x => x?.ItemTypeName ?? "")" Variant="Variant.Outlined" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
                     </MudItem>
                     <MudItem xs="12" md="4">
-                        <MudAutocomplete T="UnitDto" Label="Base Unit" Value="@(_units.FirstOrDefault(x => x.UnitId == _model.PurchaseUnit))" ValueChanged="@((UnitDto val) => { _model.PurchaseUnit = val?.UnitId ?? 0; })" SearchFunc="@SearchUnits" ToStringFunc="@(x => x?.UnitName ?? "")" Variant="Variant.Outlined" Required="true" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
+                        <MudAutocomplete MaxItems="1000" T="UnitDto" Label="Base Unit" Value="@(_units.FirstOrDefault(x => x.UnitId == _model.PurchaseUnit))" ValueChanged="@((UnitDto val) => { _model.PurchaseUnit = val?.UnitId ?? 0; })" SearchFunc="@SearchUnits" ToStringFunc="@(x => x?.UnitName ?? "")" Variant="Variant.Outlined" Required="true" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
                     </MudItem>
 
                     <MudItem xs="12" md="4">
-                        <MudAutocomplete T="BrandDto" Label="Brand" Value="@(_brands.FirstOrDefault(x => x.BrandId == _model.BrandId))" ValueChanged="@((BrandDto val) => { _model.BrandId = val?.BrandId ?? 0; })" SearchFunc="@SearchBrands" ToStringFunc="@(x => x?.BrandName ?? "")" Variant="Variant.Outlined" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
+                        <MudAutocomplete MaxItems="1000" T="BrandDto" Label="Brand" Value="@(_brands.FirstOrDefault(x => x.BrandId == _model.BrandId))" ValueChanged="@((BrandDto val) => { _model.BrandId = val?.BrandId ?? 0; })" SearchFunc="@SearchBrands" ToStringFunc="@(x => x?.BrandName ?? "")" Variant="Variant.Outlined" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
                     </MudItem>
                     <MudItem xs="12" md="4">
-                        <MudAutocomplete T="StatusDto" Label="Status" Value="@(_statuses.FirstOrDefault(x => x.StatusId == _model.StatusId))" ValueChanged="@((StatusDto val) => { _model.StatusId = (int)(val?.StatusId ?? 0); })" SearchFunc="@SearchStatuses" ToStringFunc="@(x => x?.StatusName ?? "")" Variant="Variant.Outlined" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
+                        <MudAutocomplete MaxItems="1000" T="StatusDto" Label="Status" Value="@(_statuses.FirstOrDefault(x => x.StatusId == _model.StatusId))" ValueChanged="@((StatusDto val) => { _model.StatusId = (int)(val?.StatusId ?? 0); })" SearchFunc="@SearchStatuses" ToStringFunc="@(x => x?.StatusName ?? "")" Variant="Variant.Outlined" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
                     </MudItem>
                     <MudItem xs="12" md="4">
                         <MudNumericField @bind-Value="_model.TentativeExpiryDays" Label="Tentative Expiry (Days)" Variant="Variant.Outlined" Min="0" />
@@ -103,13 +103,13 @@
                     <MudText Typo="Typo.subtitle1" Class="mb-2">Add/Edit Suppliers Price</MudText>
                     <MudGrid>
                         <MudItem xs="12" md="4">
-                            <MudAutocomplete T="AccountLookupDto" Label="Supplier" Value="@(_accounts.FirstOrDefault(x => x.AccountId == _vendorModel.VendorAccountId))" ValueChanged="@((AccountLookupDto val) => { _vendorModel.VendorAccountId = (int)(val?.AccountId ?? 0); })" SearchFunc="@SearchAccounts" ToStringFunc="@(x => x?.AccountName ?? "")" Variant="Variant.Outlined" Required="true" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
+                            <MudAutocomplete MaxItems="1000" T="AccountLookupDto" Label="Supplier" Value="@(_accounts.FirstOrDefault(x => x.AccountId == _vendorModel.VendorAccountId))" ValueChanged="@((AccountLookupDto val) => { _vendorModel.VendorAccountId = (int)(val?.AccountId ?? 0); })" SearchFunc="@SearchAccounts" ToStringFunc="@(x => x?.AccountName ?? "")" Variant="Variant.Outlined" Required="true" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
                         </MudItem>
                         <MudItem xs="12" md="4">
                             <MudNumericField @bind-Value="_vendorModel.PurchasePrice" Label="Purchase Price" Variant="Variant.Outlined" Format="N2" Min="0" />
                         </MudItem>
                         <MudItem xs="12" md="4">
-                            <MudAutocomplete T="CurrencyLookupDto" Label="Currency" Value="@(_currencies.FirstOrDefault(x => x.CurrencyId == _vendorModel.CurrencyId))" ValueChanged="@((CurrencyLookupDto val) => { _vendorModel.CurrencyId = val?.CurrencyId ?? 0; })" SearchFunc="@SearchCurrencies" ToStringFunc="@(x => x?.CurrencyName ?? "")" Variant="Variant.Outlined" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
+                            <MudAutocomplete MaxItems="1000" T="CurrencyLookupDto" Label="Currency" Value="@(_currencies.FirstOrDefault(x => x.CurrencyId == _vendorModel.CurrencyId))" ValueChanged="@((CurrencyLookupDto val) => { _vendorModel.CurrencyId = val?.CurrencyId ?? 0; })" SearchFunc="@SearchCurrencies" ToStringFunc="@(x => x?.CurrencyName ?? "")" Variant="Variant.Outlined" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
                         </MudItem>
 
                         <MudItem xs="12" md="4">
@@ -119,7 +119,7 @@
                             <MudDatePicker @bind-Date="_vendorModel.EndDate" Label="End Date" Variant="Variant.Outlined" />
                         </MudItem>
                         <MudItem xs="12" md="4">
-                            <MudAutocomplete T="StatusDto" Label="Price Status" Value="@(_statuses.FirstOrDefault(x => x.StatusId == _vendorModel.StatusId))" ValueChanged="@((StatusDto val) => { _vendorModel.StatusId = (int)(val?.StatusId ?? 0); })" SearchFunc="@SearchStatuses" ToStringFunc="@(x => x?.StatusName ?? "")" Variant="Variant.Outlined" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
+                            <MudAutocomplete MaxItems="1000" T="StatusDto" Label="Price Status" Value="@(_statuses.FirstOrDefault(x => x.StatusId == _vendorModel.StatusId))" ValueChanged="@((StatusDto val) => { _vendorModel.StatusId = (int)(val?.StatusId ?? 0); })" SearchFunc="@SearchStatuses" ToStringFunc="@(x => x?.StatusName ?? "")" Variant="Variant.Outlined" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
                         </MudItem>
 
                         <MudItem xs="12" Class="d-flex justify-end gap-2">
@@ -161,13 +161,13 @@
                             <MudNumericField @bind-Value="_batchModel.Quantity" Label="Quantity" Variant="Variant.Outlined" Min="0" />
                         </MudItem>
                         <MudItem xs="12" md="4">
-                            <MudAutocomplete T="WarehouseLookupDto" Label="Warehouse" Value="@(_warehouses.FirstOrDefault(x => x.WarehouseId == _batchModel.WarehouseId))" ValueChanged="@((WarehouseLookupDto val) => { _batchModel.WarehouseId = (int)(val?.WarehouseId ?? 0); })" SearchFunc="@SearchWarehouses" ToStringFunc="@(x => x?.WarehouseName ?? "")" Variant="Variant.Outlined" Required="true" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
+                            <MudAutocomplete MaxItems="1000" T="WarehouseLookupDto" Label="Warehouse" Value="@(_warehouses.FirstOrDefault(x => x.WarehouseId == _batchModel.WarehouseId))" ValueChanged="@((WarehouseLookupDto val) => { _batchModel.WarehouseId = (int)(val?.WarehouseId ?? 0); })" SearchFunc="@SearchWarehouses" ToStringFunc="@(x => x?.WarehouseName ?? "")" Variant="Variant.Outlined" Required="true" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
                         </MudItem>
                         <MudItem xs="12" md="4">
                             <MudDatePicker @bind-Date="_batchModel.ExpiryDate" Label="Expiry Date" Variant="Variant.Outlined" />
                         </MudItem>
                         <MudItem xs="12" md="4">
-                            <MudAutocomplete T="UnitDto" Label="Unit" Value="@(_units.FirstOrDefault(x => x.UnitId == _batchModel.UnitId))" ValueChanged="@((UnitDto val) => { _batchModel.UnitId = (int)(val?.UnitId ?? 0); })" SearchFunc="@SearchUnits" ToStringFunc="@(x => x?.UnitName ?? "")" Variant="Variant.Outlined" Required="true" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
+                            <MudAutocomplete MaxItems="1000" T="UnitDto" Label="Unit" Value="@(_units.FirstOrDefault(x => x.UnitId == _batchModel.UnitId))" ValueChanged="@((UnitDto val) => { _batchModel.UnitId = (int)(val?.UnitId ?? 0); })" SearchFunc="@SearchUnits" ToStringFunc="@(x => x?.UnitName ?? "")" Variant="Variant.Outlined" Required="true" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
                         </MudItem>
                         <MudItem xs="12" md="4" Class="d-flex align-center justify-end gap-2">
                              <MudButton Variant="Variant.Outlined" OnClick="ResetBatchForm">Reset</MudButton>
@@ -287,7 +287,7 @@
             _statuses = statuses.Items.Where(x => x.IsActive).OrderBy(x => x.StatusName).ToList();
 
             _accounts = (await ApiClient.GetAccountsLookupAsync())
-                .Where(x => x.AccountGroupId == 3 || x.AccountGroupId == 1) // Include Supplier and Vendor group
+                .Where(x => x.AccountGroupId == 6 || x.AccountGroupId == 3) // Include Suppliers (6) and Sundry Creditors (3)
                 .OrderBy(x => x.AccountName)
                 .ToList();
             _warehouses = (await ApiClient.GetWarehousesLookupAsync()).OrderBy(x => x.WarehouseName).ToList();

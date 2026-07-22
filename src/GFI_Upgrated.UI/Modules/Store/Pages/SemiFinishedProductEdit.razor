@@ -36,20 +36,20 @@
                     </MudItem>
 
                     <MudItem xs="12" md="4">
-                        <MudAutocomplete T="ItemCategoryDto" Label="Category" Value="@(_categories.FirstOrDefault(x => x.ItemCatId == _model.ItemCatId))" ValueChanged="@((ItemCategoryDto val) => { _model.ItemCatId = val?.ItemCatId ?? 0; })" SearchFunc="@SearchCategories" ToStringFunc="@(x => x?.ItemCatName ?? "")" Variant="Variant.Outlined" Required="true" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
+                        <MudAutocomplete MaxItems="1000" T="ItemCategoryDto" Label="Category" Value="@(_categories.FirstOrDefault(x => x.ItemCatId == _model.ItemCatId))" ValueChanged="@((ItemCategoryDto val) => { _model.ItemCatId = val?.ItemCatId ?? 0; })" SearchFunc="@SearchCategories" ToStringFunc="@(x => x?.ItemCatName ?? "")" Variant="Variant.Outlined" Required="true" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
                     </MudItem>
                     <MudItem xs="12" md="4">
-                        <MudAutocomplete T="ItemTypeDto" Label="Item Type" Value="@(_types.FirstOrDefault(x => x.ItemTypeId == _model.MasterItemTypeId))" ValueChanged="@((ItemTypeDto val) => { _model.MasterItemTypeId = val?.ItemTypeId; })" SearchFunc="@SearchTypes" ToStringFunc="@(x => x?.ItemTypeName ?? "")" Variant="Variant.Outlined" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
+                        <MudAutocomplete MaxItems="1000" T="ItemTypeDto" Label="Item Type" Value="@(_types.FirstOrDefault(x => x.ItemTypeId == _model.MasterItemTypeId))" ValueChanged="@((ItemTypeDto val) => { _model.MasterItemTypeId = val?.ItemTypeId; })" SearchFunc="@SearchTypes" ToStringFunc="@(x => x?.ItemTypeName ?? "")" Variant="Variant.Outlined" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
                     </MudItem>
                     <MudItem xs="12" md="4">
-                        <MudAutocomplete T="UnitDto" Label="Base Unit" Value="@(_units.FirstOrDefault(x => x.UnitId == _model.PurchaseUnit))" ValueChanged="@((UnitDto val) => { _model.PurchaseUnit = val?.UnitId ?? 0; })" SearchFunc="@SearchUnits" ToStringFunc="@(x => x?.UnitName ?? "")" Variant="Variant.Outlined" Required="true" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
+                        <MudAutocomplete MaxItems="1000" T="UnitDto" Label="Base Unit" Value="@(_units.FirstOrDefault(x => x.UnitId == _model.PurchaseUnit))" ValueChanged="@((UnitDto val) => { _model.PurchaseUnit = val?.UnitId ?? 0; })" SearchFunc="@SearchUnits" ToStringFunc="@(x => x?.UnitName ?? "")" Variant="Variant.Outlined" Required="true" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
                     </MudItem>
 
                     <MudItem xs="12" md="4">
-                        <MudAutocomplete T="BrandDto" Label="Brand" Value="@(_brands.FirstOrDefault(x => x.BrandId == _model.BrandId))" ValueChanged="@((BrandDto val) => { _model.BrandId = val?.BrandId ?? 0; })" SearchFunc="@SearchBrands" ToStringFunc="@(x => x?.BrandName ?? "")" Variant="Variant.Outlined" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
+                        <MudAutocomplete MaxItems="1000" T="BrandDto" Label="Brand" Value="@(_brands.FirstOrDefault(x => x.BrandId == _model.BrandId))" ValueChanged="@((BrandDto val) => { _model.BrandId = val?.BrandId ?? 0; })" SearchFunc="@SearchBrands" ToStringFunc="@(x => x?.BrandName ?? "")" Variant="Variant.Outlined" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
                     </MudItem>
                     <MudItem xs="12" md="4">
-                        <MudAutocomplete T="StatusDto" Label="Status" Value="@(_statuses.FirstOrDefault(x => x.StatusId == _model.StatusId))" ValueChanged="@((StatusDto val) => { _model.StatusId = (int)(val?.StatusId ?? 0); })" SearchFunc="@SearchStatuses" ToStringFunc="@(x => x?.StatusName ?? "")" Variant="Variant.Outlined" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
+                        <MudAutocomplete MaxItems="1000" T="StatusDto" Label="Status" Value="@(_statuses.FirstOrDefault(x => x.StatusId == _model.StatusId))" ValueChanged="@((StatusDto val) => { _model.StatusId = (int)(val?.StatusId ?? 0); })" SearchFunc="@SearchStatuses" ToStringFunc="@(x => x?.StatusName ?? "")" Variant="Variant.Outlined" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
                     </MudItem>
                     <MudItem xs="12" md="4">
                         <MudNumericField @bind-Value="_model.TentativeExpiryDays" Label="Tentative Expiry (Days)" Variant="Variant.Outlined" Min="0" />
@@ -104,7 +104,7 @@
                             <MudNumericField @bind-Value="_batchModel.Quantity" Label="Quantity" Variant="Variant.Outlined" Min="0" />
                         </MudItem>
                         <MudItem xs="12" md="4">
-                            <MudAutocomplete T="WarehouseLookupDto" Label="Warehouse" Value="@(_warehouses.FirstOrDefault(x => x.WarehouseId == _batchModel.WarehouseId))" ValueChanged="@((WarehouseLookupDto val) => { _batchModel.WarehouseId = (int)(val?.WarehouseId ?? 0); })" SearchFunc="@SearchWarehouses" ToStringFunc="@(x => x?.WarehouseName ?? "")" Variant="Variant.Outlined" Required="true" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
+                            <MudAutocomplete MaxItems="1000" T="WarehouseLookupDto" Label="Warehouse" Value="@(_warehouses.FirstOrDefault(x => x.WarehouseId == _batchModel.WarehouseId))" ValueChanged="@((WarehouseLookupDto val) => { _batchModel.WarehouseId = (int)(val?.WarehouseId ?? 0); })" SearchFunc="@SearchWarehouses" ToStringFunc="@(x => x?.WarehouseName ?? "")" Variant="Variant.Outlined" Required="true" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
                         </MudItem>
                         <MudItem xs="12" md="4">
                             <MudDatePicker @bind-Date="_batchModel.ExpiryDate" Label="Expiry Date" Variant="Variant.Outlined" />

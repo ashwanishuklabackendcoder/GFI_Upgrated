@@ -44,14 +44,14 @@
             <MudTextField @bind-Value="_editor.LoginName" Label="Login name" Variant="Variant.Outlined" Class="mb-3" />
             <MudTextField @bind-Value="_editor.Password" Label="Password" Variant="Variant.Outlined" InputType="InputType.Password" Class="mb-3" />
             <MudTextField @bind-Value="_editor.ForgotEmail" Label="Email" Variant="Variant.Outlined" Class="mb-3" />
-            <MudAutocomplete T="StaffLookupDto" Label="Staff" Variant="Variant.Outlined" 
+            <MudAutocomplete MaxItems="1000" T="StaffLookupDto" Label="Staff" Variant="Variant.Outlined" 
                              Value="@(_activeStaff.FirstOrDefault(x => x.StaffId == _editor.StaffId))" 
                              ValueChanged="@((StaffLookupDto val) => { _editor.StaffId = val?.StaffId ?? 0; })" 
                              Class="mb-3"
                              SearchFunc="@SearchStaff" 
                              ToStringFunc="@(x => x == null ? "" : FormatStaff(x))"
                              ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
-            <MudAutocomplete T="RoleDto" Label="Primary Role" Variant="Variant.Outlined" 
+            <MudAutocomplete MaxItems="1000" T="RoleDto" Label="Primary Role" Variant="Variant.Outlined" 
                              Value="@(_roles.FirstOrDefault(x => x.RoleId == _editor.RoleId))" 
                              ValueChanged="@((RoleDto val) => { _editor.RoleId = val?.RoleId ?? 0; })" 
                              Class="mb-3"

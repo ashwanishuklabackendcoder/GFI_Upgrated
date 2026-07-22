@@ -25,7 +25,7 @@
         <DataAnnotationsValidator />
         <MudGrid>
             <MudItem xs="12" md="6">
-                <MudAutocomplete T="BomLookupDto" Label="Select BOM" 
+                <MudAutocomplete MaxItems="1000" T="BomLookupDto" Label="Select BOM" 
                                  Value="@(_boms.FirstOrDefault(x => x.BomId == _editor.BomId))" 
                                  ValueChanged="@((BomLookupDto val) => { _editor.BomId = val?.BomId ?? 0; })" 
                                  SearchFunc="@SearchBoms" ToStringFunc="@(x => x?.BomName ?? "")"
@@ -43,7 +43,7 @@
                 <MudNumericField @bind-Value="_editor.QuantityMade" Label="Actual Quantity Made" Min="1" Variant="Variant.Outlined" />
             </MudItem>
             <MudItem xs="12" md="4">
-                <MudAutocomplete T="UnitLookupDto" Label="Unit" 
+                <MudAutocomplete MaxItems="1000" T="UnitLookupDto" Label="Unit" 
                                  Value="@(_units.FirstOrDefault(x => x.UnitId == _editor.UnitMade))" 
                                  ValueChanged="@((UnitLookupDto val) => { _editor.UnitMade = val?.UnitId ?? 0; })" 
                                  SearchFunc="@SearchUnits" ToStringFunc="@(x => x?.UnitName ?? "")"
@@ -59,7 +59,7 @@
             </MudItem>
 
             <MudItem xs="12" md="6">
-                <MudAutocomplete T="WarehouseLookupDto" Label="Storage Warehouse" 
+                <MudAutocomplete MaxItems="1000" T="WarehouseLookupDto" Label="Storage Warehouse" 
                                  Value="@(_warehouses.FirstOrDefault(x => x.WarehouseId == _editor.WarehouseId))" 
                                  ValueChanged="@((WarehouseLookupDto val) => { _editor.WarehouseId = val?.WarehouseId ?? 0; })" 
                                  SearchFunc="@SearchWarehouses" ToStringFunc="@(x => x?.WarehouseName ?? "")"

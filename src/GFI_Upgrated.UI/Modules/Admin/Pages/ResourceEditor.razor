@@ -19,7 +19,7 @@
     <MudTabs Rounded="true" PanelClass="pa-2">
         <MudTabPanel Text="@LocalizationState.Text("Admin.ResourceEditor.ResourcesTab", "Resources")">
             <MudStack Row="true" AlignItems="AlignItems.End" Spacing="2" Class="mb-4">
-                <MudAutocomplete T="LanguageDto" Label="@LocalizationState.Text("Layout.Language", "Language")" 
+                <MudAutocomplete MaxItems="1000" T="LanguageDto" Label="@LocalizationState.Text("Layout.Language", "Language")" 
                                  Value="@(_languages.FirstOrDefault(x => x.Id == _selectedLanguageId))" 
                                  ValueChanged="@(async (LanguageDto val) => await OnLanguageFilterChangedAsync(val?.Id ?? 0))" 
                                  Variant="Variant.Outlined" Dense="true" Style="min-width:220px;"

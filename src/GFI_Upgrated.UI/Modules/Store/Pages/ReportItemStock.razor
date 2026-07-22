@@ -27,15 +27,15 @@
 
     <MudGrid Class="mb-4 no-print" Spacing="2" Style="max-width: 900px;">
         <MudItem xs="12" md="3">
-            <MudAutocomplete T="RawMaterialDto" Label="Select Item" @bind-Value="_selectedItem" SearchFunc="@SearchItems"
+            <MudAutocomplete MaxItems="1000" T="RawMaterialDto" Label="Select Item" @bind-Value="_selectedItem" SearchFunc="@SearchItems"
                              ToStringFunc="@(i => i?.ItemName ?? "")" Variant="Variant.Outlined" Clearable="true" 
                              Placeholder="Search items..." AdornmentIcon="@Icons.Material.Filled.Search" />
         </MudItem>
         <MudItem xs="12" md="3">
-            <MudAutocomplete T="WarehouseDto" Label="Warehouse" Value="@(_warehouses.FirstOrDefault(x => x.WarehouseId == _selectedWarehouseId))" ValueChanged="@((WarehouseDto val) => { _selectedWarehouseId = val?.WarehouseId; })" SearchFunc="@SearchWarehouses" ToStringFunc="@(x => x?.WarehouseName ?? "")" Variant="Variant.Outlined" Clearable="true" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
+            <MudAutocomplete MaxItems="1000" T="WarehouseDto" Label="Warehouse" Value="@(_warehouses.FirstOrDefault(x => x.WarehouseId == _selectedWarehouseId))" ValueChanged="@((WarehouseDto val) => { _selectedWarehouseId = val?.WarehouseId; })" SearchFunc="@SearchWarehouses" ToStringFunc="@(x => x?.WarehouseName ?? "")" Variant="Variant.Outlined" Clearable="true" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
         </MudItem>
         <MudItem xs="12" md="3">
-            <MudAutocomplete T="UnitDto" Label="Unit" Value="@(_units.FirstOrDefault(x => x.UnitId == _selectedUnitId))" ValueChanged="@((UnitDto val) => { _selectedUnitId = val?.UnitId; })" SearchFunc="@SearchUnits" ToStringFunc="@(x => x?.UnitName ?? "")" Variant="Variant.Outlined" Clearable="true" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
+            <MudAutocomplete MaxItems="1000" T="UnitDto" Label="Unit" Value="@(_units.FirstOrDefault(x => x.UnitId == _selectedUnitId))" ValueChanged="@((UnitDto val) => { _selectedUnitId = val?.UnitId; })" SearchFunc="@SearchUnits" ToStringFunc="@(x => x?.UnitName ?? "")" Variant="Variant.Outlined" Clearable="true" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
         </MudItem>
         <MudItem xs="12" md="3" Class="d-flex align-end">
             <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="OnSearch" FullWidth="true" Class="py-3">

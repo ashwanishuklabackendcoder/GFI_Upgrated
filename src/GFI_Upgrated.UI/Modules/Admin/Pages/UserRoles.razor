@@ -30,7 +30,7 @@
 
     <MudGrid Class="mb-4">
         <MudItem xs="12" md="5">
-            <MudAutocomplete T="UserDto" Label="Login" Variant="Variant.Outlined" 
+            <MudAutocomplete MaxItems="1000" T="UserDto" Label="Login" Variant="Variant.Outlined" 
                              Value="@(_users.FirstOrDefault(x => x.LoginId == _selectedLoginId))" 
                              ValueChanged="@(async (UserDto val) => await OnLoginChangedAsync(val?.LoginId ?? 0))" 
                              Disabled="_busy"

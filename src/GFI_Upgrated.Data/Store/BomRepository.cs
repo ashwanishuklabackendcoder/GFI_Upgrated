@@ -217,7 +217,7 @@ public sealed class BomRepository : IBomRepository
             new SqlParameter("@ItemName", SqlDbType.NVarChar, 500) { Value = string.Empty },
             new SqlParameter("@ItemCatID", SqlDbType.Int) { Value = 0 },
             new SqlParameter("@ItemTypeID", SqlDbType.Int) { Value = itemTypeId ?? 0 },
-            new SqlParameter("@StatusID", SqlDbType.Int) { Value = 1 }, // Only active
+            new SqlParameter("@StatusID", SqlDbType.Int) { Value = 0 }, // 0 includes all statuses
             new SqlParameter("@CurrentPage", SqlDbType.Int) { Value = 1 },
             new SqlParameter("@RecordPerPage", SqlDbType.Int) { Value = 10000 },
             new SqlParameter("@TotalRecord", SqlDbType.Int) { Direction = ParameterDirection.Output },
@@ -233,7 +233,9 @@ public sealed class BomRepository : IBomRepository
                 ItemId = row.SafeLong("ItemId", "ItemID"),
                 ItemName = row.SafeString("ItemName"),
                 ItemCode = row.SafeString("ItemCode"),
-                ItemTypeId = row.SafeLong("ItemTypeID", "ItemTypeId")
+                ItemTypeId = row.SafeLong("ItemTypeID", "ItemTypeId"),
+                TentativeExpiryDays = row.SafeInt("TentativeExpiryDays"),
+                PurchaseUnit = row.SafeLong("PurchaseUnit", "PurchaseUnitId")
             });
         }
         return list;

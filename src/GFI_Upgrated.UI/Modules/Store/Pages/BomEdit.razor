@@ -38,15 +38,19 @@
                 </MudSelect>
             </MudItem>
             <MudItem xs="12" md="4">
-                <MudAutocomplete T="RawMaterialDto" Label="Parent Product" @bind-Value="_selectedParent" SearchFunc="@SearchParentProducts"
+                <MudAutocomplete MaxItems="1000" T="RawMaterialDto" Label="Parent Product" 
+                                 Value="@(_allProducts.FirstOrDefault(x => x.ItemId == _model.ItemId) ?? _selectedParent)"
+                                 ValueChanged="@((RawMaterialDto val) => { _selectedParent = val; _model.ItemId = val?.ItemId ?? 0; })"
+                                 SearchFunc="@SearchParentProducts"
                                  ToStringFunc="@(p => p?.ItemName ?? "")" Variant="Variant.Outlined" Required="true" 
-                                 Placeholder="Search items..." AdornmentIcon="@Icons.Material.Filled.Search" />
+                                 ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true"
+                                 Placeholder="Select product..." AdornmentIcon="@Icons.Material.Filled.ArrowDropDown" />
             </MudItem>
             <MudItem xs="12" md="3">
                 <MudNumericField @bind-Value="_model.Quantity" Label="Yield Quantity" Variant="Variant.Outlined" Min="1" For="@(() => _model.Quantity)" />
             </MudItem>
             <MudItem xs="12" md="3">
-                <MudAutocomplete T="UnitDto" Label="Yield Unit" 
+                <MudAutocomplete MaxItems="1000" T="UnitDto" Label="Yield Unit" 
                                  Value="@(_units.FirstOrDefault(x => x.UnitId == _model.UnitId))" 
                                  ValueChanged="@((UnitDto val) => { _model.UnitId = val?.UnitId ?? 0; })" 
                                  SearchFunc="@SearchUnits" ToStringFunc="@(x => x?.UnitName ?? "")"
@@ -77,7 +81,7 @@
                     </HeaderContent>
                     <RowTemplate>
                         <MudTd DataLabel="Item">
-                            <MudAutocomplete T="RawMaterialDto" Value="@(GetItemById(itemContext.ItemID))" ValueChanged="@((v) => OnComponentChanged(itemContext, v))"
+                            <MudAutocomplete MaxItems="1000" T="RawMaterialDto" Value="@(GetItemById(itemContext.ItemID))" ValueChanged="@((v) => OnComponentChanged(itemContext, v))"
                                              SearchFunc="@SearchComponents" ToStringFunc="@(i => i?.ItemName ?? "")" 
                                              Variant="Variant.Text" Dense="true" />
                         </MudTd>
@@ -85,7 +89,7 @@
                             <MudNumericField @bind-Value="itemContext.Quantity" Variant="Variant.Text" Min="1" Dense="true" />
                         </MudTd>
                         <MudTd DataLabel="Unit">
-                            <MudAutocomplete T="UnitDto" Value="@(_units.FirstOrDefault(x => x.UnitId == itemContext.UnitId))" 
+                            <MudAutocomplete MaxItems="1000" T="UnitDto" Value="@(_units.FirstOrDefault(x => x.UnitId == itemContext.UnitId))" 
                                              ValueChanged="@((UnitDto val) => { itemContext.UnitId = val?.UnitId ?? 0; })" 
                                              SearchFunc="@SearchUnits" ToStringFunc="@(x => x?.UnitName ?? "")"
                                              Variant="Variant.Text" Dense="true" 
@@ -154,8 +158,10 @@
                 _allProducts = (await ApiClient.GetItemsForBomLookupAsync((int)_model.ItemTypeId)).OrderBy(x => x.ItemName).ToList();
             }
 
-            // Components: Raw Materials (3) or others
-            _allComponents = (await ApiClient.GetItemsForBomLookupAsync(null)).OrderBy(x => x.ItemName).ToList();
+            // Components: Raw Materials (3) and Semi-Finished (2)
+            var rawMaterials = await ApiClient.GetItemsForBomLookupAsync(3);
+            var semiFinished = await ApiClient.GetItemsForBomLookupAsync(2);
+            _allComponents = rawMaterials.Concat(semiFinished).OrderBy(x => x.ItemName).ToList();
         }
         catch (Exception ex)
         {
