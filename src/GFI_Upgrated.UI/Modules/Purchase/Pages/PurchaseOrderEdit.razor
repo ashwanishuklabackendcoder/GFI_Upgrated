@@ -17,7 +17,7 @@
     <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
         <MudStack Spacing="0">
             <MudText Typo="Typo.h5">@(Id == 0 ? "New Purchase Order" : "Edit Purchase Order")</MudText>
-            <MudText Typo="Typo.body2" Color="Color.Secondary">Generate formal orders for vendors.</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">Generate formal orders for supliers.</MudText>
         </MudStack>
         <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.ArrowBack" OnClick="OnBack">Back to List</MudButton>
     </MudStack>
@@ -29,7 +29,7 @@
                 <MudTextField @bind-Value="_model.VoucherNumber" Label="Order Number" Variant="Variant.Outlined" Required="true" For="@(() => _model.VoucherNumber)" />
             </MudItem>
             <MudItem xs="12" md="3">
-                <MudAutocomplete T="AccountLookupDto" Label="Vendor" @bind-Value="_selectedVendor" SearchFunc="@SearchVendors"
+                <MudAutocomplete T="AccountLookupDto" Label="Suplier" @bind-Value="_selectedVendor" SearchFunc="@SearchVendors"
                                  ToStringFunc="@(a => a?.AccountName ?? "")" Variant="Variant.Outlined" Required="true"
                                  AdornmentIcon="@Icons.Material.Filled.Search" />
             </MudItem>
