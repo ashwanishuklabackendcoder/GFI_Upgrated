@@ -1,4 +1,4 @@
-@page "/acc/customerorderreturnlist"
+﻿@page "/acc/customerorderreturnlist"
 @using GFI_Upgrated.SharedDto.Account
 @using GFI_Upgrated.UI.Services
 @using GFI_Upgrated.UI.State
@@ -29,8 +29,8 @@
         </MudStack>
 
         <MudStack Row="true" AlignItems="AlignItems.End" Spacing="2" Class="mb-4" Style="max-width: 500px;">
-            <MudTextField @bind-Value="_search" Label="Search returns" Variant="Variant.Outlined" Immediate="true" Class="flex-grow-1" />
-            <MudButton Variant="Variant.Outlined" OnClick="SearchAsync">Search</MudButton>
+            <MudTextField T="string" Value="@_search" ValueChanged="@OnSearchTextChanged" Label="Search returns" Variant="Variant.Outlined" Immediate="true" Class="flex-grow-1" />
+            
         </MudStack>
 
         <MudTable RowsPerPage="25" T="CustomerOrderReturnDto" @ref="_table" ServerData="LoadServerDataAsync" Hover="true" Dense="true" Striped="true" Bordered="true" Breakpoint="Breakpoint.Sm">
@@ -148,6 +148,14 @@ else
 }
 
 @code {
+    private List<CustomerOrderReturnDto>? _cachedItems;
+
+    private async Task OnSearchTextChanged(string text)
+    {
+        _search = text;
+        if (_table is not null) await _table.ReloadServerData();
+    }
+
     private MudTable<CustomerOrderReturnDto>? _table;
     private string? _search;
     
@@ -193,28 +201,24 @@ else
     {
         try
         {
-            var result = await ApiClient.GetCustomerOrderReturnsAsync(
-                page: state.Page + 1,
-                pageSize: state.PageSize,
-                cancellationToken: cancellationToken
-            );
-
-            // Filter if search criteria exists
-            var items = result.Items;
-            if (!string.IsNullOrEmpty(_search))
+            if (_cachedItems == null)
             {
-                items = items.Where(i => 
-                    (i.AccountName?.Contains(_search, StringComparison.OrdinalIgnoreCase) ?? false) ||
-                    (i.ItemName?.Contains(_search, StringComparison.OrdinalIgnoreCase) ?? false) ||
-                    (i.BatchNo?.Contains(_search, StringComparison.OrdinalIgnoreCase) ?? false) ||
-                    (i.ReturnReason?.Contains(_search, StringComparison.OrdinalIgnoreCase) ?? false)
-                ).ToList();
+                var result = await ApiClient.GetCustomerOrderReturnsAsync(
+                                                                                page: 1,
+                                                                                pageSize: 100000,
+                                                                                cancellationToken: cancellationToken
+                                                                            );
+                _cachedItems = result.Items.ToList();
             }
+
+            var filtered = _cachedItems.FilterAllColumns(_search);
+            var sorted = filtered.SortAllColumns(state.SortLabel ?? "1", state.SortDirection == SortDirection.Ascending ? "ASC" : "DESC");
+            var itemsList = sorted.ToList();
 
             return new TableData<CustomerOrderReturnDto>
             {
-                TotalItems = items.Count,
-                Items = items
+                TotalItems = itemsList.Count,
+                Items = itemsList.Skip(state.Page * state.PageSize).Take(state.PageSize).ToArray()
             };
         }
         catch (Exception ex)

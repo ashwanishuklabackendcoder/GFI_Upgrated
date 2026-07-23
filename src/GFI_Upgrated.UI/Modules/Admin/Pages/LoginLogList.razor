@@ -1,4 +1,4 @@
-@page "/admin/loginslog"
+﻿@page "/admin/loginslog"
 @using GFI_Upgrated.SharedDto.AdminSecurity
 @using GFI_Upgrated.SharedDto.Common
 @using GFI_Upgrated.UI.Services
@@ -16,7 +16,7 @@
     
     <MudGrid Class="align-center">
         <MudItem xs="12" md="4">
-            <MudTextField @bind-Value="_searchText" Label="Search IP, OS, Browser, Login..." Variant="Variant.Outlined" Dense="true" Clearable="true" Placeholder="e.g. 192.168.1.1, Windows, Chrome, admin" />
+            <MudTextField T="string" Value="@_searchText" ValueChanged="@OnSearchTextChanged" Label="Search IP, OS, Browser, Login..." Variant="Variant.Outlined" Dense="true" Clearable="true" Placeholder="e.g. 192.168.1.1, Windows, Chrome, admin" />
         </MudItem>
         <MudItem xs="12" sm="4" md="3">
             <MudDatePicker Label="From Date" @bind-Date="_fromDate" Variant="Variant.Outlined" Dense="true" Clearable="true" />
@@ -25,7 +25,7 @@
             <MudDatePicker Label="To Date" @bind-Date="_toDate" Variant="Variant.Outlined" Dense="true" Clearable="true" />
         </MudItem>
         <MudItem xs="12" sm="4" md="2" Class="d-flex gap-2">
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="OnSearch" StartIcon="@Icons.Material.Filled.Search" Class="flex-grow-1">Search</MudButton>
+            
             <MudButton Variant="Variant.Outlined" OnClick="OnClearFilters" StartIcon="@Icons.Material.Filled.Clear">Clear</MudButton>
         </MudItem>
     </MudGrid>
@@ -62,6 +62,14 @@
 </MudPaper>
 
 @code {
+    private List<LoginLogDto>? _cachedItems;
+
+    private async Task OnSearchTextChanged(string text)
+    {
+        _searchText = text;
+        if (_table is not null) await _table.ReloadServerData();
+    }
+
     private MudTable<LoginLogDto>? _table;
     private bool _loading;
     private string? _searchText;

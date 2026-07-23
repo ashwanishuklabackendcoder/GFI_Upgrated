@@ -1,4 +1,4 @@
-@page "/store/reports/item-stock-by-batch"
+﻿@page "/store/reports/item-stock-by-batch"
 @page "/admin/reports/item-stock-by-batch"
 @page "/store/itemstocklist"
 @page "/admin/itemstocklist"
@@ -94,6 +94,16 @@
 </MudPaper>
 
 @code {
+    private List<ItemStockByBatchReportDto>? _cachedItems;
+
+    private string? _searchString;
+
+    private async Task OnSearchTextChanged(string text)
+    {
+        _searchString = text;
+        if (_table is not null) await _table.ReloadServerData();
+    }
+
     private MudTable<ItemStockByBatchReportDto>? _table;
     private long? _selectedStockById;
     private RawMaterialDto? _selectedItem;
@@ -132,29 +142,29 @@
         _loading = true;
         try
         {
-            _currentSortLabel = state.SortLabel ?? "ItemStockByBatchId";
-            _currentSortDirection = state.SortDirection == SortDirection.Ascending ? "ASC" : "DESC";
-
-            var result = await ApiClient.GetItemStockByBatchReportAsync(
-                itemStockByBatchId: null,
-                stockById: _selectedStockById,
-                itemId: _selectedItem?.ItemId,
-                page: state.Page + 1,
-                size: state.PageSize,
-                sortCol: _currentSortLabel,
-                sortOrd: _currentSortDirection,
-                cancellationToken: cancellationToken
-            );
-
-            if (result.CurrentPage != state.Page + 1 && _table != null)
+            if (_cachedItems == null)
             {
-                _table.NavigateTo(result.CurrentPage - 1);
+                var result = await ApiClient.GetItemStockByBatchReportAsync(
+                                                                                itemStockByBatchId: null,
+                                                                                stockById: _selectedStockById,
+                                                                                itemId: _selectedItem?.ItemId,
+                                                                                page: 1,
+                                                                                size: state.PageSize,
+                                                                                sortCol: _currentSortLabel,
+                                                                                sortOrd: _currentSortDirection,
+                                                                                cancellationToken: cancellationToken
+                                                                            );
+                _cachedItems = result.Items.ToList();
             }
+
+            var filtered = _cachedItems.FilterAllColumns(_searchString);
+            var sorted = filtered.SortAllColumns(state.SortLabel ?? "ItemStockByBatchId", state.SortDirection == SortDirection.Ascending ? "ASC" : "DESC");
+            var itemsList = sorted.ToList();
 
             return new TableData<ItemStockByBatchReportDto>
             {
-                TotalItems = result.TotalRecord,
-                Items = result.Items
+                TotalItems = itemsList.Count,
+                Items = itemsList.Skip(state.Page * state.PageSize).Take(state.PageSize).ToArray()
             };
         }
         catch (Exception ex)

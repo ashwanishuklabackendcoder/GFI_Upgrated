@@ -1,4 +1,4 @@
-@page "/admin/item-type"
+﻿@page "/admin/item-type"
 @page "/admin/w_itemtypeaddlist"
 @page "/store/w_itemtypeaddlist"
 @page "/store/item-type"
@@ -29,8 +29,8 @@
     </MudStack>
 
     <MudStack Row="true" AlignItems="AlignItems.End" Spacing="2" Class="mb-4" Style="max-width: 500px;">
-        <MudTextField @bind-Value="_search" Label="Search types" Variant="Variant.Outlined" Immediate="true" Class="flex-grow-1" />
-        <MudButton Variant="Variant.Outlined" OnClick="SearchAsync">Search</MudButton>
+        <MudTextField T="string" Value="@_search" ValueChanged="@OnSearchTextChanged" Label="Search types" Variant="Variant.Outlined" Immediate="true" Class="flex-grow-1" />
+        
     </MudStack>
 
     <MudTable RowsPerPage="25" T="ItemTypeDto" @ref="_table" ServerData="LoadServerDataAsync" Hover="true" Dense="true" Striped="true" Bordered="true" Breakpoint="Breakpoint.Sm">
@@ -79,6 +79,14 @@
 </MudPaper>
 
 @code {
+    private List<ItemTypeDto>? _cachedItems;
+
+    private async Task OnSearchTextChanged(string text)
+    {
+        _search = text;
+        if (_table is not null) await _table.ReloadServerData();
+    }
+
     private MudTable<ItemTypeDto>? _table;
     private string? _search;
     private bool _canInsert;
@@ -103,18 +111,25 @@
     {
         try
         {
-            var result = await ApiClient.GetItemTypesAsync(new PagedRequest
+            if (_cachedItems == null)
             {
-                CurrentPage = state.Page + 1,
-                RecordPerPage = state.PageSize,
-                SortColumn = state.SortLabel ?? "ItemTypeId",
-                SortType = state.SortDirection == SortDirection.Ascending ? "ASC" : "DESC"
-            }, _search, cancellationToken);
+                var result = await ApiClient.GetItemTypesAsync(new PagedRequest
+                                                                            {
+                                                                                CurrentPage = 1,
+                                                                                RecordPerPage = 100000,
+                                                                                
+                                                                                }, _search, cancellationToken);
+                _cachedItems = result.Items.ToList();
+            }
+
+            var filtered = _cachedItems.FilterAllColumns(_search);
+            var sorted = filtered.SortAllColumns(state.SortLabel ?? "ItemTypeId", state.SortDirection == SortDirection.Ascending ? "ASC" : "DESC");
+            var itemsList = sorted.ToList();
 
             return new TableData<ItemTypeDto>
             {
-                TotalItems = result.TotalRecord,
-                Items = result.Items
+                TotalItems = itemsList.Count,
+                Items = itemsList.Skip(state.Page * state.PageSize).Take(state.PageSize).ToArray()
             };
         }
         catch (Exception ex)

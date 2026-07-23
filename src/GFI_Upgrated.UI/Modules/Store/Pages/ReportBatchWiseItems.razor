@@ -1,4 +1,4 @@
-@page "/store/reports/batch-wise-items"
+﻿@page "/store/reports/batch-wise-items"
 @page "/admin/reports/batch-wise-items"
 @page "/store/reportbatchwiseitems"
 @page "/admin/reportbatchwiseitems"
@@ -81,6 +81,16 @@
 </MudPaper>
 
 @code {
+    private List<BatchWiseItemDto>? _cachedItems;
+
+    private string? _searchString;
+
+    private async Task OnSearchTextChanged(string text)
+    {
+        _searchString = text;
+        if (_table is not null) await _table.ReloadServerData();
+    }
+
     private MudTable<BatchWiseItemDto>? _table;
     private string _batchNumber = "";
     private RawMaterialDto? _selectedItem;

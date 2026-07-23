@@ -1,4 +1,4 @@
-@page "/admin/item-write-off"
+﻿@page "/admin/item-write-off"
 @using GFI_Upgrated.SharedDto.Purchase
 @using GFI_Upgrated.UI.Services
 @using GFI_Upgrated.UI.State
@@ -50,6 +50,16 @@
 </MudPaper>
 
 @code {
+    private List<ItemWriteOffDto>? _cachedItems;
+
+    private string? _searchString;
+
+    private async Task OnSearchTextChanged(string text)
+    {
+        _searchString = text;
+        if (_table is not null) await _table.ReloadServerData();
+    }
+
     private MudTable<ItemWriteOffDto>? _table;
     private bool _loading;
     private bool _canInsert;
@@ -84,8 +94,21 @@
         _loading = true;
         try
         {
-            var result = await ApiClient.GetItemWriteOffsAsync(null, null, state.Page + 1, state.PageSize, cancellationToken);
-            return new TableData<ItemWriteOffDto> { TotalItems = result.TotalRecord, Items = result.Items };
+            if (_cachedItems == null)
+            {
+                var result = await ApiClient.GetItemWriteOffsAsync(null, null, state.Page + 1, state.PageSize, cancellationToken);
+                _cachedItems = result.Items.ToList();
+            }
+
+            var filtered = _cachedItems.FilterAllColumns(_searchString);
+            var sorted = filtered.SortAllColumns(state.SortLabel ?? "1", state.SortDirection == SortDirection.Ascending ? "ASC" : "DESC");
+            var itemsList = sorted.ToList();
+
+            return new TableData<ItemWriteOffDto>
+            {
+                TotalItems = itemsList.Count,
+                Items = itemsList.Skip(state.Page * state.PageSize).Take(state.PageSize).ToArray()
+            };
         }
         catch (Exception ex)
         {

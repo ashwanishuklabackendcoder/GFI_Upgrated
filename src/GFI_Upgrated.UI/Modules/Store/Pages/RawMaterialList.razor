@@ -1,4 +1,4 @@
-@page "/store/rawmaterials"
+﻿@page "/store/rawmaterials"
 @page "/store/w_masteritemlist"
 
 @page "/admin/w_masteritemlist"
@@ -24,8 +24,8 @@
     </MudStack>
 
     <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-4" Style="max-width: 500px;">
-        <MudTextField @bind-Value="_search" Placeholder="Search by name, code or short name..." Variant="Variant.Outlined" Immediate="true" Clearable="true" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" OnClearButtonClick="OnSearch" />
-        <MudButton Variant="Variant.Outlined" OnClick="OnSearch">Search</MudButton>
+        <MudTextField T="string" Value="@_search" ValueChanged="@OnSearchTextChanged" Placeholder="Search by name, code or short name..." Variant="Variant.Outlined" Immediate="true" Clearable="true" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" OnClearButtonClick="OnSearch" />
+        
     </MudStack>
 
     <MudTable RowsPerPage="25" T="RawMaterialDto" @ref="_table" ServerData="LoadServerDataAsync" Hover="true" Dense="true" Striped="true" Bordered="true" Loading="_loading">
@@ -69,6 +69,14 @@
 </MudPaper>
 
 @code {
+    private List<RawMaterialDto>? _cachedItems;
+
+    private async Task OnSearchTextChanged(string text)
+    {
+        _search = text;
+        if (_table is not null) await _table.ReloadServerData();
+    }
+
     private MudTable<RawMaterialDto>? _table;
     private string _search = "";
     private bool _loading;
@@ -108,23 +116,26 @@
         _loading = true;
         try
         {
-            var result = await ApiClient.GetRawMaterialsAsync(new RawMaterialListRequest
+            if (_cachedItems == null)
             {
-                SearchTerm = _search,
-                PageNumber = state.Page + 1,
-                PageSize = state.PageSize,
-                SortColumn = state.SortLabel,
-                SortType = state.SortDirection == SortDirection.Ascending ? "ASC" : "DESC"
-            }, cancellationToken);
-            if (result.CurrentPage != state.Page + 1 && _table != null)
-            {
-                _table.NavigateTo(result.CurrentPage - 1);
+                var result = await ApiClient.GetRawMaterialsAsync(new RawMaterialListRequest
+                                                                            {
+                                                                                SearchTerm = _search,
+                                                                                PageNumber = state.Page + 1,
+                                                                                PageSize = 100000,
+                                                                                SortColumn = state.SortLabel,
+                                                                                }, cancellationToken);
+                _cachedItems = result.Items.ToList();
             }
+
+            var filtered = _cachedItems.FilterAllColumns(_search);
+            var sorted = filtered.SortAllColumns(state.SortLabel ?? "1", state.SortDirection == SortDirection.Ascending ? "ASC" : "DESC");
+            var itemsList = sorted.ToList();
 
             return new TableData<RawMaterialDto>
             {
-                TotalItems = result.TotalRecord,
-                Items = result.Items
+                TotalItems = itemsList.Count,
+                Items = itemsList.Skip(state.Page * state.PageSize).Take(state.PageSize).ToArray()
             };
         }
         catch (Exception ex)

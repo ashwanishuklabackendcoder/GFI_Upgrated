@@ -1,4 +1,4 @@
-@page "/admin/status"
+﻿@page "/admin/status"
 @page "/store/w_masterstatusaddlist"
 @page "/store/status"
 @page "/admin/w_masterstatusaddlist"
@@ -29,8 +29,8 @@
     </MudStack>
 
     <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-4" Style="max-width: 500px;">
-        <MudTextField @bind-Value="_search" Label="Search statuses" Variant="Variant.Outlined" Immediate="true" Clearable="true" OnClearButtonClick="SearchAsync" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" />
-        <MudButton Variant="Variant.Outlined" OnClick="SearchAsync">Search</MudButton>
+        <MudTextField T="string" Value="@_search" ValueChanged="@OnSearchTextChanged" Label="Search statuses" Variant="Variant.Outlined" Immediate="true" Clearable="true" OnClearButtonClick="SearchAsync" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" />
+        
     </MudStack>
 
     <MudTable RowsPerPage="25" T="StatusDto" @ref="_table" ServerData="LoadServerDataAsync" Hover="true" Dense="true" Striped="true" Bordered="true" Breakpoint="Breakpoint.Sm">
@@ -73,6 +73,14 @@
 </MudPaper>
 
 @code {
+    private List<StatusDto>? _cachedItems;
+
+    private async Task OnSearchTextChanged(string text)
+    {
+        _search = text;
+        if (_table is not null) await _table.ReloadServerData();
+    }
+
     private MudTable<StatusDto>? _table;
     private string? _search;
     private bool _canInsert;
@@ -97,18 +105,25 @@
     {
         try
         {
-            var result = await ApiClient.GetStatusesAsync(new PagedRequest
+            if (_cachedItems == null)
             {
-                CurrentPage = state.Page + 1,
-                RecordPerPage = state.PageSize,
-                SortColumn = state.SortLabel ?? "StatusId",
-                SortType = state.SortDirection == SortDirection.Ascending ? "ASC" : "DESC"
-            }, _search, cancellationToken);
+                var result = await ApiClient.GetStatusesAsync(new PagedRequest
+                                                                            {
+                                                                                CurrentPage = 1,
+                                                                                RecordPerPage = 100000,
+                                                                                
+                                                                                }, _search, cancellationToken);
+                _cachedItems = result.Items.ToList();
+            }
+
+            var filtered = _cachedItems.FilterAllColumns(_search);
+            var sorted = filtered.SortAllColumns(state.SortLabel ?? "StatusId", state.SortDirection == SortDirection.Ascending ? "ASC" : "DESC");
+            var itemsList = sorted.ToList();
 
             return new TableData<StatusDto>
             {
-                TotalItems = result.TotalRecord,
-                Items = result.Items
+                TotalItems = itemsList.Count,
+                Items = itemsList.Skip(state.Page * state.PageSize).Take(state.PageSize).ToArray()
             };
         }
         catch (Exception ex)

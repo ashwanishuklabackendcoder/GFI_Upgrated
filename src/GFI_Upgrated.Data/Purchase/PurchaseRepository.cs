@@ -301,41 +301,49 @@ namespace GFI_Upgrated.Data.Purchase
 
         public async Task<long> SavePurchaseAsync(PurchaseDto purchase)
         {
-            var parameters = new[]
+            await using var conn = new SqlConnection(_connectionString);
+            await conn.OpenAsync();
+            await using var transaction = await conn.BeginTransactionAsync();
+            try
             {
-                new SqlParameter("@PurchaseID", SqlDbType.BigInt) { Value = purchase.PurchaseID },
-                new SqlParameter("@AccountID", SqlDbType.BigInt) { Value = purchase.AccountID },
-                new SqlParameter("@VoucherNumber", SqlDbType.NVarChar, 50) { Value = purchase.VoucherNumber ?? "" },
-                new SqlParameter("@GoodsRecievedDate", SqlDbType.Date) { Value = (object)purchase.GoodsRecievedDate ?? DBNull.Value },
-                new SqlParameter("@PurchaseOrderID", SqlDbType.BigInt) { Value = (object)purchase.PurchaseOrderID ?? 0 },
-                new SqlParameter("@InvoiceNo", SqlDbType.NVarChar, 50) { Value = purchase.InvoiceNo ?? "" },
-                new SqlParameter("@InvoiceDate", SqlDbType.Date) { Value = (object)purchase.InvoiceDate ?? DBNull.Value },
-                new SqlParameter("@Taxes", SqlDbType.Float) { Value = purchase.Taxes ?? 0 },
-                new SqlParameter("@Shipping", SqlDbType.Float) { Value = purchase.Shipping ?? 0 },
-                new SqlParameter("@Discount", SqlDbType.Float) { Value = purchase.Discount ?? 0 },
-                new SqlParameter("@TotalAmount", SqlDbType.Float) { Value = purchase.TotalAmount },
-                new SqlParameter("@CreatedDate", SqlDbType.DateTime) { Value = purchase.CreatedDate ?? DateTime.Now },
-                new SqlParameter("@CreatedBy", SqlDbType.NVarChar, 400) { Value = purchase.CreatedBy ?? "" },
-                new SqlParameter("@UpdatedBy", SqlDbType.NVarChar, 400) { Value = purchase.UpdatedBy ?? "" },
-                new SqlParameter("@FileName", SqlDbType.NVarChar, 1000) { Value = purchase.FileName ?? "" },
-                new SqlParameter("@Narration", SqlDbType.NVarChar, 4000) { Value = purchase.Narration ?? "" },
-                new SqlParameter("@ReturnVal", SqlDbType.Int) { Direction = ParameterDirection.Output }
-            };
-
-            await ExecuteNonQueryAsync("W_PurchaseMasterModify", parameters);
-            var purchaseId = Convert.ToInt64(parameters[^1].Value ?? 0);
-
-            if (purchaseId > 0 && purchase.Items != null)
-            {
-                foreach (var item in purchase.Items)
+                var parameters = new[]
                 {
-                    long unitId = item.UnitId ?? 0L;
-                    if (unitId <= 0)
+                    new SqlParameter("@PurchaseID", SqlDbType.BigInt) { Value = purchase.PurchaseID },
+                    new SqlParameter("@AccountID", SqlDbType.BigInt) { Value = purchase.AccountID },
+                    new SqlParameter("@VoucherNumber", SqlDbType.NVarChar, 50) { Value = purchase.VoucherNumber ?? "" },
+                    new SqlParameter("@GoodsRecievedDate", SqlDbType.Date) { Value = (object)purchase.GoodsRecievedDate ?? DBNull.Value },
+                    new SqlParameter("@PurchaseOrderID", SqlDbType.BigInt) { Value = (object)purchase.PurchaseOrderID ?? 0 },
+                    new SqlParameter("@InvoiceNo", SqlDbType.NVarChar, 50) { Value = purchase.InvoiceNo ?? "" },
+                    new SqlParameter("@InvoiceDate", SqlDbType.Date) { Value = (object)purchase.InvoiceDate ?? DBNull.Value },
+                    new SqlParameter("@Taxes", SqlDbType.Float) { Value = purchase.Taxes ?? 0 },
+                    new SqlParameter("@Shipping", SqlDbType.Float) { Value = purchase.Shipping ?? 0 },
+                    new SqlParameter("@Discount", SqlDbType.Float) { Value = purchase.Discount ?? 0 },
+                    new SqlParameter("@TotalAmount", SqlDbType.Float) { Value = purchase.TotalAmount },
+                    new SqlParameter("@CreatedDate", SqlDbType.DateTime) { Value = purchase.CreatedDate ?? DateTime.Now },
+                    new SqlParameter("@CreatedBy", SqlDbType.NVarChar, 400) { Value = purchase.CreatedBy ?? "" },
+                    new SqlParameter("@UpdatedBy", SqlDbType.NVarChar, 400) { Value = purchase.UpdatedBy ?? "" },
+                    new SqlParameter("@FileName", SqlDbType.NVarChar, 1000) { Value = purchase.FileName ?? "" },
+                    new SqlParameter("@Narration", SqlDbType.NVarChar, 4000) { Value = purchase.Narration ?? "" },
+                    new SqlParameter("@ReturnVal", SqlDbType.Int) { Direction = ParameterDirection.Output }
+                };
+
+                await using (var cmd = new SqlCommand("W_PurchaseMasterModify", conn, (SqlTransaction)transaction))
+                {
+                    cmd.CommandType = CommandType.StoredProcedure;
+                    cmd.Parameters.AddRange(parameters);
+                    await cmd.ExecuteNonQueryAsync();
+                }
+
+                var purchaseId = Convert.ToInt64(parameters[^1].Value ?? 0);
+
+                if (purchaseId > 0 && purchase.Items != null)
+                {
+                    foreach (var item in purchase.Items)
                     {
-                        await using (var conn = new SqlConnection(_connectionString))
+                        long unitId = item.UnitId ?? 0L;
+                        if (unitId <= 0)
                         {
-                            await conn.OpenAsync();
-                            await using (var cmd = new SqlCommand("SELECT PurchaseUnit FROM dbo.W_MasterItem WHERE ItemID = @ItemID", conn))
+                            await using (var cmd = new SqlCommand("SELECT PurchaseUnit FROM dbo.W_MasterItem WHERE ItemID = @ItemID", conn, (SqlTransaction)transaction))
                             {
                                 cmd.Parameters.AddWithValue("@ItemID", item.ItemID);
                                 var scalar = await cmd.ExecuteScalarAsync();
@@ -345,36 +353,41 @@ namespace GFI_Upgrated.Data.Purchase
                                 }
                             }
                         }
-                    }
-                    if (unitId <= 0)
-                    {
-                        unitId = 10L; // Fallback to Kg (10)
-                    }
-
-                    var itemParams = new[]
-                    {
-                        new SqlParameter("@PurchaseItemID", SqlDbType.BigInt) { Value = item.PurchaseItemID },
-                        new SqlParameter("@PurchaseID", SqlDbType.BigInt) { Value = purchaseId },
-                        new SqlParameter("@BrandID", SqlDbType.BigInt) { Value = (object)item.BrandID ?? 4 }, // Default to 4 (N/A)
-                        new SqlParameter("@ItemID", SqlDbType.BigInt) { Value = item.ItemID },
-                        new SqlParameter("@Quantity", SqlDbType.Float) { Value = item.Quantity },
-                        new SqlParameter("@UnitId", SqlDbType.BigInt) { Value = unitId },
-                        new SqlParameter("@UnitPrice", SqlDbType.Float) { Value = item.UnitPrice },
-                        new SqlParameter("@Amount", SqlDbType.Float) { Value = item.Amount },
-                        new SqlParameter("@Description", SqlDbType.NVarChar, 4000) { Value = item.Description ?? "" },
-                        new SqlParameter("@CreatedBy", SqlDbType.NVarChar, 400) { Value = purchase.CreatedBy ?? "" },
-                        new SqlParameter("@ReturnVal", SqlDbType.Int) { Direction = ParameterDirection.Output }
-                    };
-                    await ExecuteNonQueryAsync("W_PurchaseChildModify", itemParams);
-                    var purchaseItemId = Convert.ToInt64(itemParams[^1].Value ?? 0);
-
-                    if (purchaseItemId > 0)
-                    {
-                        long batchId = 0;
-                        await using (var conn = new SqlConnection(_connectionString))
+                        if (unitId <= 0)
                         {
-                            await conn.OpenAsync();
-                            await using (var cmd = new SqlCommand("SELECT ItemStockByBatchId FROM dbo.Inv_ItemStockByBatch WHERE IdFrom = @PurchaseItemID AND StockById = 1", conn))
+                            unitId = 10L; // Fallback to Kg (10)
+                        }
+
+                        object brandVal = item.BrandID ?? 1L;
+
+                        var itemParams = new[]
+                        {
+                            new SqlParameter("@PurchaseItemID", SqlDbType.BigInt) { Value = item.PurchaseItemID },
+                            new SqlParameter("@PurchaseID", SqlDbType.BigInt) { Value = purchaseId },
+                            new SqlParameter("@BrandID", SqlDbType.BigInt) { Value = brandVal },
+                            new SqlParameter("@ItemID", SqlDbType.BigInt) { Value = item.ItemID },
+                            new SqlParameter("@Quantity", SqlDbType.Float) { Value = item.Quantity },
+                            new SqlParameter("@UnitId", SqlDbType.BigInt) { Value = unitId },
+                            new SqlParameter("@UnitPrice", SqlDbType.Float) { Value = item.UnitPrice },
+                            new SqlParameter("@Amount", SqlDbType.Float) { Value = item.Amount },
+                            new SqlParameter("@Description", SqlDbType.NVarChar, 4000) { Value = item.Description ?? "" },
+                            new SqlParameter("@CreatedBy", SqlDbType.NVarChar, 400) { Value = purchase.CreatedBy ?? "" },
+                            new SqlParameter("@ReturnVal", SqlDbType.Int) { Direction = ParameterDirection.Output }
+                        };
+
+                        await using (var cmd = new SqlCommand("W_PurchaseChildModify", conn, (SqlTransaction)transaction))
+                        {
+                            cmd.CommandType = CommandType.StoredProcedure;
+                            cmd.Parameters.AddRange(itemParams);
+                            await cmd.ExecuteNonQueryAsync();
+                        }
+
+                        var purchaseItemId = Convert.ToInt64(itemParams[^1].Value ?? 0);
+
+                        if (purchaseItemId > 0)
+                        {
+                            long batchId = 0;
+                            await using (var cmd = new SqlCommand("SELECT ItemStockByBatchId FROM dbo.Inv_ItemStockByBatch WHERE IdFrom = @PurchaseItemID AND StockById = 1", conn, (SqlTransaction)transaction))
                             {
                                 cmd.Parameters.AddWithValue("@PurchaseItemID", purchaseItemId);
                                 var scalar = await cmd.ExecuteScalarAsync();
@@ -383,26 +396,45 @@ namespace GFI_Upgrated.Data.Purchase
                                     batchId = Convert.ToInt64(scalar);
                                 }
                             }
-                        }
 
-                        var batchParams = new[]
-                        {
-                            new SqlParameter("@PurchaseID", SqlDbType.BigInt) { Value = purchaseId },
-                            new SqlParameter("@ItemStockByBatchId", SqlDbType.BigInt) { Value = batchId },
-                            new SqlParameter("@StockById", SqlDbType.Int) { Value = 1 }, // 1 = Purchase / GRN
-                            new SqlParameter("@ItemId", SqlDbType.BigInt) { Value = item.ItemID },
-                            new SqlParameter("@Quantity", SqlDbType.Float) { Value = item.Quantity },
-                            new SqlParameter("@BatchNo", SqlDbType.NVarChar, 50) { Value = (object?)item.BatchNo ?? DBNull.Value },
-                            new SqlParameter("@ExpiryDate", SqlDbType.Date) { Value = (object?)item.ExpiryDate ?? DBNull.Value },
-                            new SqlParameter("@WarehouseId", SqlDbType.BigInt) { Value = (object?)item.WarehouseId ?? DBNull.Value },
-                            new SqlParameter("@ReturnVal", SqlDbType.Int) { Direction = ParameterDirection.Output }
-                        };
-                        await ExecuteNonQueryAsync("Inv_ItemStockByBatchModify", batchParams);
+                            var batchParams = new[]
+                            {
+                                new SqlParameter("@PurchaseID", SqlDbType.BigInt) { Value = purchaseId },
+                                new SqlParameter("@ItemStockByBatchId", SqlDbType.BigInt) { Value = batchId },
+                                new SqlParameter("@StockById", SqlDbType.Int) { Value = 1 }, // 1 = Purchase / GRN
+                                new SqlParameter("@ItemId", SqlDbType.BigInt) { Value = item.ItemID },
+                                new SqlParameter("@Quantity", SqlDbType.Float) { Value = item.Quantity },
+                                new SqlParameter("@BatchNo", SqlDbType.NVarChar, 50) { Value = (object?)item.BatchNo ?? DBNull.Value },
+                                new SqlParameter("@ExpiryDate", SqlDbType.Date) { Value = (object?)item.ExpiryDate ?? DBNull.Value },
+                                new SqlParameter("@WarehouseId", SqlDbType.BigInt) { Value = (object?)item.WarehouseId ?? DBNull.Value },
+                                new SqlParameter("@ReturnVal", SqlDbType.Int) { Direction = ParameterDirection.Output }
+                            };
+
+                            await using (var cmd = new SqlCommand("Inv_ItemStockByBatchModify", conn, (SqlTransaction)transaction))
+                            {
+                                cmd.CommandType = CommandType.StoredProcedure;
+                                cmd.Parameters.AddRange(batchParams);
+                                await cmd.ExecuteNonQueryAsync();
+                            }
+                        }
                     }
                 }
-            }
 
-            return purchaseId;
+                await transaction.CommitAsync();
+                return purchaseId;
+            }
+            catch (Exception)
+            {
+                try
+                {
+                    await transaction.RollbackAsync();
+                }
+                catch
+                {
+                    // Ignore rollback errors
+                }
+                throw;
+            }
         }
 
         public async Task<bool> DeletePurchaseAsync(string ids, string deletedBy)

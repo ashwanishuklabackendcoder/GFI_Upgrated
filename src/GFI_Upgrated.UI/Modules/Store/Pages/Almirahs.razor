@@ -1,4 +1,4 @@
-@page "/admin/almirah"
+﻿@page "/admin/almirah"
 @page "/admin/w_masteralmirahshelfaddlist"
 @page "/store/w_masteralmirahshelfaddlist"
 @page "/store/almirah"
@@ -29,14 +29,14 @@
     </MudStack>
 
     <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-4" Style="max-width: 500px;">
-        <MudTextField @bind-Value="_search" Label="Search almirahs" Variant="Variant.Outlined" Immediate="true" Clearable="true" OnClearButtonClick="SearchAsync" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" />
+        <MudTextField T="string" Value="@_search" ValueChanged="@OnSearchTextChanged" Label="Search almirahs" Variant="Variant.Outlined" Immediate="true" Clearable="true" OnClearButtonClick="SearchAsync" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" />
         <MudAutocomplete MaxItems="1000" T="WarehouseDto" Label="Warehouse" 
                          Value="@(_warehouses.FirstOrDefault(x => x.WarehouseId == _warehouseId))" 
                          ValueChanged="@((WarehouseDto val) => { _warehouseId = val?.WarehouseId; })" 
                          SearchFunc="@SearchWarehouses" ToStringFunc="@(x => x?.WarehouseName ?? "")"
                          Variant="Variant.Outlined" Clearable="true" Class="flex-grow-1" 
                          ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
-        <MudButton Variant="Variant.Outlined" OnClick="SearchAsync">Search</MudButton>
+        
     </MudStack>
 
     <MudTable RowsPerPage="25" T="AlmirahDto" @ref="_table" ServerData="LoadServerDataAsync" Hover="true" Dense="true" Striped="true" Bordered="true" Breakpoint="Breakpoint.Sm">
@@ -83,6 +83,14 @@
 </MudPaper>
 
 @code {
+    private List<AlmirahDto>? _cachedItems;
+
+    private async Task OnSearchTextChanged(string text)
+    {
+        _search = text;
+        if (_table is not null) await _table.ReloadServerData();
+    }
+
     private MudTable<AlmirahDto>? _table;
     private string? _search;
     private long? _warehouseId;
@@ -112,18 +120,25 @@
     {
         try
         {
-            var result = await ApiClient.GetAlmirahsAsync(new PagedRequest
+            if (_cachedItems == null)
             {
-                CurrentPage = state.Page + 1,
-                RecordPerPage = state.PageSize,
-                SortColumn = state.SortLabel ?? "AlmirahShelfID",
-                SortType = state.SortDirection == SortDirection.Ascending ? "ASC" : "DESC"
-            }, _search, _warehouseId, cancellationToken);
+                var result = await ApiClient.GetAlmirahsAsync(new PagedRequest
+                                                                            {
+                                                                                CurrentPage = 1,
+                                                                                RecordPerPage = 100000,
+                                                                                
+                                                                                }, _search, _warehouseId, cancellationToken);
+                _cachedItems = result.Items.ToList();
+            }
+
+            var filtered = _cachedItems.FilterAllColumns(_search);
+            var sorted = filtered.SortAllColumns(state.SortLabel ?? "AlmirahShelfID", state.SortDirection == SortDirection.Ascending ? "ASC" : "DESC");
+            var itemsList = sorted.ToList();
 
             return new TableData<AlmirahDto>
             {
-                TotalItems = result.TotalRecord,
-                Items = result.Items
+                TotalItems = itemsList.Count,
+                Items = itemsList.Skip(state.Page * state.PageSize).Take(state.PageSize).ToArray()
             };
         }
         catch (Exception ex)

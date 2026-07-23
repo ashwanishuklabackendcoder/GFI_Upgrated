@@ -1,4 +1,4 @@
-@page "/admin/z_usersactivitylog"
+﻿@page "/admin/z_usersactivitylog"
 @using GFI_Upgrated.SharedDto.AdminSecurity
 @using GFI_Upgrated.SharedDto.Common
 @using GFI_Upgrated.UI.Services
@@ -29,7 +29,7 @@
         </MudItem>
         <MudItem xs="12" Class="d-flex justify-end gap-2">
             <MudButton Variant="Variant.Outlined" OnClick="OnClearFilters" StartIcon="@Icons.Material.Filled.Clear">Clear</MudButton>
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="OnSearch" StartIcon="@Icons.Material.Filled.Search">Search</MudButton>
+            
         </MudItem>
     </MudGrid>
 </MudPaper>
@@ -63,6 +63,16 @@
 </MudPaper>
 
 @code {
+    private List<UserActivityLogDto>? _cachedItems;
+
+    private string? _searchString;
+
+    private async Task OnSearchTextChanged(string text)
+    {
+        _searchString = text;
+        if (_table is not null) await _table.ReloadServerData();
+    }
+
     private MudTable<UserActivityLogDto>? _table;
     private bool _loading;
     private string? _userName;

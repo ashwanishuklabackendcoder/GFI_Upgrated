@@ -41,8 +41,8 @@ public sealed class LocalizationState
 
         try
         {
-            var cachedLanguage = await jsRuntime.InvokeAsync<string?>("sessionStorage.getItem", LanguageStorageKey);
-            var cachedDictionary = await jsRuntime.InvokeAsync<string?>("sessionStorage.getItem", DictionaryStorageKey);
+            var cachedLanguage = await jsRuntime.InvokeAsync<string?>("localStorage.getItem", LanguageStorageKey);
+            var cachedDictionary = await jsRuntime.InvokeAsync<string?>("localStorage.getItem", DictionaryStorageKey);
 
             if (long.TryParse(cachedLanguage, out var languageId) && !string.IsNullOrWhiteSpace(cachedDictionary))
             {
@@ -109,8 +109,8 @@ public sealed class LocalizationState
         CurrentLanguageId = 0;
         CurrentCultureName = null;
 
-        await jsRuntime.InvokeVoidAsync("sessionStorage.removeItem", DictionaryStorageKey);
-        await jsRuntime.InvokeVoidAsync("sessionStorage.removeItem", LanguageStorageKey);
+        await jsRuntime.InvokeVoidAsync("localStorage.removeItem", DictionaryStorageKey);
+        await jsRuntime.InvokeVoidAsync("localStorage.removeItem", LanguageStorageKey);
         OnChange?.Invoke();
     }
 
@@ -126,7 +126,7 @@ public sealed class LocalizationState
         CurrentLanguageId = dictionary.LanguageId;
         CurrentCultureName = dictionary.CultureName;
 
-        await jsRuntime.InvokeVoidAsync("sessionStorage.setItem", LanguageStorageKey, CurrentLanguageId.ToString());
-        await jsRuntime.InvokeVoidAsync("sessionStorage.setItem", DictionaryStorageKey, JsonSerializer.Serialize(_entries));
+        await jsRuntime.InvokeVoidAsync("localStorage.setItem", LanguageStorageKey, CurrentLanguageId.ToString());
+        await jsRuntime.InvokeVoidAsync("localStorage.setItem", DictionaryStorageKey, JsonSerializer.Serialize(_entries));
     }
 }
