@@ -14,14 +14,14 @@
         <MudText Typo="Typo.h5">Role Permissions</MudText>
         <AuthorizeAction Action="update">
             <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" 
-                       Disabled="@(_selectedRoleId == 0 || _selectedModuleId == 0 || _isSaving)">
+                       Disabled="@(_selectedRoleId == 0 || _isSaving)">
                 @(_isSaving ? "Saving..." : "Save Permissions")
             </MudButton>
         </AuthorizeAction>
     </MudStack>
 
     <MudGrid Class="mb-4">
-        <MudItem xs="12" md="4">
+        <MudItem xs="12" md="6">
             <MudAutocomplete MaxItems="1000" T="RoleDto" Label="Role" Variant="Variant.Outlined" 
                              Value="@(_roles.FirstOrDefault(x => x.RoleId == _selectedRoleId))" 
                              ValueChanged="@(async (RoleDto val) => await OnRoleChanged(val?.RoleId ?? 0))" 
@@ -29,27 +29,6 @@
                              SearchFunc="@SearchRoles" 
                              ToStringFunc="@(x => x?.RoleName ?? "")"
                              ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
-        </MudItem>
-        <MudItem xs="12" md="4">
-            <MudAutocomplete MaxItems="1000" T="ModuleDto" Label="Module" Variant="Variant.Outlined" 
-                             Value="@(_modules.FirstOrDefault(x => x.ModuleId == _selectedModuleId))" 
-                             ValueChanged="@(async (ModuleDto val) => await OnModuleChanged(val?.ModuleId ?? 0))" 
-                             Dense="true"
-                             SearchFunc="@SearchModules" 
-                             ToStringFunc="@(x => x?.ModuleName ?? "")"
-                             ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
-        </MudItem>
-        <MudItem xs="12" md="4">
-            @* Dashboard selection hidden until DB schema is updated to support it *@
-            @*
-            <MudSelect SearchBox="true" T="string" Label="Dashboard" Variant="Variant.Outlined" @bind-Value="_selectedDashboard" Dense="true">
-                <MudSelectItem T="string" Value="@("")">Default Dashboard</MudSelectItem>
-                @foreach (var db in _dashboards)
-                {
-                    <MudSelectItem T="string" Value="@db.PagePath">@db.PageHeading</MudSelectItem>
-                }
-            </MudSelect>
-            *@
         </MudItem>
     </MudGrid>
 
@@ -61,7 +40,7 @@
     }
     else if (_permissions.Count == 0)
     {
-        <MudAlert Severity="Severity.Info">Select a Role and Module to manage permissions.</MudAlert>
+        <MudAlert Severity="Severity.Info">Select a Role to manage permissions.</MudAlert>
     }
     else
     {
@@ -160,6 +139,7 @@
             _roles = rolesTask.Result.Items.ToList();
             _modules = modulesTask.Result.ToList();
             _dashboards = dashboardsTask.Result.ToList();
+            _selectedModuleId = _modules.FirstOrDefault()?.ModuleId ?? 1;
         }
         catch (Exception ex)
         {
@@ -174,6 +154,10 @@
     private async Task OnRoleChanged(long roleId)
     {
         _selectedRoleId = roleId;
+        if (_selectedModuleId == 0)
+        {
+            _selectedModuleId = _modules.FirstOrDefault()?.ModuleId ?? 1;
+        }
         await LoadPermissionsAsync();
     }
 
@@ -197,9 +181,23 @@
             var existing = await ApiClient.GetRolePermissionsAsync(_selectedRoleId, _selectedModuleId);
             
             var allMenus = await ApiClient.GetMenusAsync();
-            var moduleMenus = allMenus.Where(x => x.ModuleId == _selectedModuleId).OrderBy(x => x.ParentId).ThenBy(x => x.SequenceNo).ToList();
+            var moduleMenus = allMenus.Where(x => x.ModuleId == _selectedModuleId).ToList();
 
-            _permissions = moduleMenus.Select(menu => 
+            var parentMenus = moduleMenus.Where(x => x.ParentId == 0).OrderBy(x => x.SequenceNo).ToList();
+            var orderedMenus = new List<MenuDto>();
+
+            foreach (var parent in parentMenus)
+            {
+                orderedMenus.Add(parent);
+                var children = moduleMenus.Where(x => x.ParentId == parent.LinkId).OrderBy(x => x.SequenceNo).ToList();
+                orderedMenus.AddRange(children);
+            }
+
+            var addedIds = orderedMenus.Select(x => x.LinkId).ToHashSet();
+            var remaining = moduleMenus.Where(x => !addedIds.Contains(x.LinkId)).OrderBy(x => x.SequenceNo);
+            orderedMenus.AddRange(remaining);
+
+            _permissions = orderedMenus.Select(menu => 
             {
                 var perm = existing.FirstOrDefault(e => e.LinkID == menu.LinkId);
                 return new RolePermissionDto
@@ -237,21 +235,6 @@
             case "Insert": item.InsertPer = value; break;
             case "Update": item.UpdatePer = value; break;
             case "Delete": item.DeletePer = value; break;
-        }
-
-        if (item.ParentID == 0)
-        {
-            var children = _permissions.Where(x => x.ParentID == item.LinkID).ToList();
-            foreach (var child in children)
-            {
-                switch (type)
-                {
-                    case "View": child.ViewPer = value; break;
-                    case "Insert": child.InsertPer = value; break;
-                    case "Update": child.UpdatePer = value; break;
-                    case "Delete": child.DeletePer = value; break;
-                }
-            }
         }
     }
 

@@ -1,4 +1,4 @@
-﻿@page "/admin/z_usersactivitylog"
+@page "/admin/z_usersactivitylog"
 @using GFI_Upgrated.SharedDto.AdminSecurity
 @using GFI_Upgrated.SharedDto.Common
 @using GFI_Upgrated.UI.Services
@@ -15,21 +15,15 @@
     <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">Monitor and track database-level activity logs of application users.</MudText>
     
     <MudGrid>
-        <MudItem xs="12" sm="6" md="3">
+        <MudItem xs="12" sm="6" md="4">
             <MudTextField @bind-Value="_userName" Label="User Name" Variant="Variant.Outlined" Dense="true" Clearable="true" Placeholder="e.g. Administrator" />
         </MudItem>
-        <MudItem xs="12" sm="6" md="3">
-            <MudTextField @bind-Value="_loginName" Label="Login Name" Variant="Variant.Outlined" Dense="true" Clearable="true" Placeholder="e.g. admin" />
+        <MudItem xs="12" sm="6" md="4">
+            <MudTextField @bind-Value="_eventName" Label="Event Name" Variant="Variant.Outlined" Dense="true" Clearable="true" Placeholder="e.g. INSERT, UPDATE, DELETE" />
         </MudItem>
-        <MudItem xs="12" sm="6" md="3">
-            <MudTextField @bind-Value="_eventName" Label="Event Name" Variant="Variant.Outlined" Dense="true" Clearable="true" Placeholder="e.g. INSERT, UPDATE" />
-        </MudItem>
-        <MudItem xs="12" sm="6" md="3">
-            <MudTextField @bind-Value="_eventModule" Label="Module" Variant="Variant.Outlined" Dense="true" Clearable="true" Placeholder="e.g. Purchase" />
-        </MudItem>
-        <MudItem xs="12" Class="d-flex justify-end gap-2">
+        <MudItem xs="12" sm="12" md="4" Class="d-flex align-center gap-2">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="OnSearch">Search</MudButton>
             <MudButton Variant="Variant.Outlined" OnClick="OnClearFilters" StartIcon="@Icons.Material.Filled.Clear">Clear</MudButton>
-            
         </MudItem>
     </MudGrid>
 </MudPaper>
@@ -39,8 +33,6 @@
         <HeaderContent>
             <MudTh><MudTableSortLabel SortLabel="DT" T="UserActivityLogDto" InitialDirection="SortDirection.Descending">Timestamp</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel SortLabel="UserName" T="UserActivityLogDto">User Name</MudTableSortLabel></MudTh>
-            <MudTh><MudTableSortLabel SortLabel="LoginName" T="UserActivityLogDto">Login Name</MudTableSortLabel></MudTh>
-            <MudTh><MudTableSortLabel SortLabel="EventModule" T="UserActivityLogDto">Module</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel SortLabel="EventName" T="UserActivityLogDto">Event</MudTableSortLabel></MudTh>
             <MudTh>Ref Key</MudTh>
             <MudTh>Remarks</MudTh>
@@ -49,8 +41,6 @@
         <RowTemplate>
             <MudTd DataLabel="Timestamp">@context.DT?.ToString("dd/MM/yyyy HH:mm:ss")</MudTd>
             <MudTd DataLabel="User Name">@context.UserName</MudTd>
-            <MudTd DataLabel="Login Name">@context.LoginName</MudTd>
-            <MudTd DataLabel="Module">@context.EventModule</MudTd>
             <MudTd DataLabel="Event">@context.EventName</MudTd>
             <MudTd DataLabel="Ref Key">@context.RefKey</MudTd>
             <MudTd DataLabel="Remarks">@context.Remarks</MudTd>

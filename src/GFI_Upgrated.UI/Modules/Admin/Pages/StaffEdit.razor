@@ -4,6 +4,8 @@
 @inject LocalizationState LocalizationState
 @inject NavigationManager Navigation
 @inject AdminSecurityApiClient ApiClient
+@inject StoreApiClient StoreApiClient
+@using GFI_Upgrated.SharedDto.Store
 
 <PageTitle>@_title</PageTitle>
 
@@ -16,9 +18,25 @@
         <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.ArrowBack" OnClick="Cancel">@LocalizationState.Text("Common.Actions.BackToList", "Back to List")</MudButton>
     </MudStack>
 
+    <style>
+        .validation-summary-errors-red,
+        .validation-summary-errors-red ul,
+        .validation-summary-errors-red li,
+        .validation-summary-errors-red .validation-message,
+        ul.validation-errors,
+        ul.validation-errors li,
+        li.validation-message,
+        .validation-errors {
+            color: #f44336 !important;
+            font-weight: 500 !important;
+        }
+    </style>
+
     <EditForm Model="_editor" OnValidSubmit="SaveAsync">
         <DataAnnotationsValidator />
-        <ValidationSummary />
+        <div class="validation-summary-errors-red mb-3">
+            <ValidationSummary />
+        </div>
 
         <MudGrid>
             <MudItem xs="12" md="4">
@@ -70,7 +88,12 @@
                 }
             </MudItem>
             <MudItem xs="12" md="4">
-                <MudNumericField T="int" @bind-Value="_editor.Status" Label="@LocalizationState.Text("Admin.Staff.Edit.Status", "Status")" Variant="Variant.Outlined" />
+                <MudAutocomplete MaxItems="1000" T="StatusDto" Label="@LocalizationState.Text("Admin.Staff.Edit.Status", "Status")" Variant="Variant.Outlined"
+                                 Value="@(_statuses.FirstOrDefault(x => x.StatusId == _editor.Status))"
+                                 ValueChanged="@((StatusDto val) => { _editor.Status = (int)(val?.StatusId ?? 0); })"
+                                 SearchFunc="@SearchStatuses"
+                                 ToStringFunc="@(x => x?.StatusName ?? "")"
+                                 ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
             </MudItem>
 
             <MudItem xs="12" Class="pt-2">
@@ -98,10 +121,11 @@
 
     private readonly SaveStaffRequest _editor = new()
     {
-        Status = 1
+        Status = 0
     };
     private IReadOnlyList<LookupItemDto> _salutations = Array.Empty<LookupItemDto>();
     private IReadOnlyList<LookupItemDto> _genders = Array.Empty<LookupItemDto>();
+    private IReadOnlyList<StatusDto> _statuses = Array.Empty<StatusDto>();
     private bool _busy;
     private string? _message;
     private string? _selectedPhotoName;
@@ -119,6 +143,12 @@
         return _genders.Where(x => x.Text.Contains(value, StringComparison.OrdinalIgnoreCase));
     }
 
+    private async Task<IEnumerable<StatusDto>> SearchStatuses(string value, CancellationToken token)
+    {
+        if (string.IsNullOrEmpty(value)) return _statuses;
+        return _statuses.Where(x => x.StatusName != null && x.StatusName.Contains(value, StringComparison.OrdinalIgnoreCase));
+    }
+
     protected override void OnInitialized()
     {
         if (!SessionState.IsLoggedIn)
@@ -132,6 +162,19 @@
         _title = LocalizationState.Text("Admin.Staff.Edit.PageTitle.Add", "Add Staff");
         _salutations = await ApiClient.GetMasterDropdownAsync(1);
         _genders = await ApiClient.GetMasterDropdownAsync(2);
+        try
+        {
+            var pagedStatuses = await StoreApiClient.GetStatusesAsync(new PagedRequest { CurrentPage = 1, RecordPerPage = 1000 });
+            _statuses = pagedStatuses.Items.Where(x => x.IsActive).OrderBy(x => x.StatusName).ToList();
+        }
+        catch
+        {
+            _statuses = new List<StatusDto>
+            {
+                new StatusDto { StatusId = 1, StatusName = "Active" },
+                new StatusDto { StatusId = 2, StatusName = "Inactive" }
+            };
+        }
 
         if (StaffId > 0)
         {
@@ -149,8 +192,8 @@
                 _editor.DOB = selected.DOB;
                 _editor.Gender = selected.Gender;
                 _editor.MobileNo = selected.MobileNo;
-                _editor.EmailIDPersonal = selected.EmailIDPersonal;
-                _editor.EmailIDOfficial = selected.EmailIDOfficial;
+                _editor.EmailIDPersonal = string.IsNullOrWhiteSpace(selected.EmailIDPersonal) ? null : selected.EmailIDPersonal.Trim();
+                _editor.EmailIDOfficial = string.IsNullOrWhiteSpace(selected.EmailIDOfficial) ? string.Empty : selected.EmailIDOfficial.Trim();
                 _editor.Photo = selected.Photo;
                 _editor.HasLogin = selected.HasLogin;
                 _selectedPhotoName = selected.Photo;
@@ -164,6 +207,8 @@
         _message = null;
         try
         {
+            _editor.EmailIDPersonal = string.IsNullOrWhiteSpace(_editor.EmailIDPersonal) ? null : _editor.EmailIDPersonal.Trim();
+            _editor.EmailIDOfficial = string.IsNullOrWhiteSpace(_editor.EmailIDOfficial) ? string.Empty : _editor.EmailIDOfficial.Trim();
             _editor.CreatedBy = SessionState.CurrentUserAuditName ?? "System";
             _editor.UpdatedBy = SessionState.CurrentUserAuditName ?? "System";
             if (!string.IsNullOrWhiteSpace(_selectedPhotoName))
