@@ -628,14 +628,14 @@ public sealed class AdminSecurityRepository : IAdminSecurityRepository
         }, null, cancellationToken);
 
         return result.Items
-            .Where(row => row.Status == 1)
+            .Where(row => row.StaffId > 0)
             .Select(row => new StaffLookupDto
             {
                 StaffId = row.StaffId,
                 StaffName = row.StaffName,
                 Email = row.EmailIDOfficial,
                 Status = row.Status,
-                IsActive = row.Status == 1
+                IsActive = row.Status != 0
             })
             .ToList();
     }

@@ -3,6 +3,7 @@
 @inject AppSessionState SessionState
 @inject NavigationManager Navigation
 @inject AdminSecurityApiClient ApiClient
+@inject ISnackbar Snackbar
 
 <PageTitle>Users</PageTitle>
 
@@ -43,10 +44,9 @@
             <MudText Typo="Typo.h5" Class="mb-4">User Details</MudText>
             <MudTextField @bind-Value="_editor.LoginName" Label="Login name" Variant="Variant.Outlined" Class="mb-3" />
             <MudTextField @bind-Value="_editor.Password" Label="Password" Variant="Variant.Outlined" InputType="InputType.Password" Class="mb-3" />
-            <MudTextField @bind-Value="_editor.ForgotEmail" Label="Email" Variant="Variant.Outlined" Class="mb-3" />
             <MudAutocomplete MaxItems="1000" T="StaffLookupDto" Label="Staff" Variant="Variant.Outlined" 
                              Value="@(_activeStaff.FirstOrDefault(x => x.StaffId == _editor.StaffId))" 
-                             ValueChanged="@((StaffLookupDto val) => { _editor.StaffId = val?.StaffId ?? 0; })" 
+                             ValueChanged="@((StaffLookupDto val) => OnStaffSelected(val))" 
                              Class="mb-3"
                              SearchFunc="@SearchStaff" 
                              ToStringFunc="@(x => x == null ? "" : FormatStaff(x))"
@@ -122,11 +122,41 @@
 
     private async Task SaveAsync()
     {
-        _editor.CreatedBy = "System";
-        _editor.UpdatedBy = "System";
-        await ApiClient.SaveUserAsync(_editor);
-        await LoadAsync();
-        NewUser();
+        if (string.IsNullOrWhiteSpace(_editor.LoginName))
+        {
+            Snackbar.Add("Login name is required.", Severity.Warning);
+            return;
+        }
+
+        try
+        {
+            _editor.CreatedBy = SessionState.CurrentUserAuditName ?? "System";
+            _editor.UpdatedBy = SessionState.CurrentUserAuditName ?? "System";
+            await ApiClient.SaveUserAsync(_editor);
+            Snackbar.Add("User saved successfully.", Severity.Success);
+            await LoadAsync();
+            NewUser();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error saving user: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private void OnStaffSelected(StaffLookupDto? val)
+    {
+        _editor.StaffId = val?.StaffId ?? 0;
+        if (val != null)
+        {
+            if (string.IsNullOrWhiteSpace(_editor.LoginName) && !string.IsNullOrWhiteSpace(val.Email))
+            {
+                _editor.LoginName = val.Email;
+            }
+            if (string.IsNullOrWhiteSpace(_editor.ForgotEmail) && !string.IsNullOrWhiteSpace(val.Email))
+            {
+                _editor.ForgotEmail = val.Email;
+            }
+        }
     }
 
     private void NewUser()

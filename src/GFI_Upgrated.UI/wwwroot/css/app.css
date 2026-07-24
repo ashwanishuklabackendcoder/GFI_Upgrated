@@ -1139,3 +1139,17 @@ code {
         margin-left: auto;
     }
 }
+
+/* Global Validation Error Text Styling */
+.validation-message,
+.validation-errors,
+.validation-errors li,
+ul.validation-errors,
+ul.validation-errors li,
+.mud-input-helper-text.mud-input-error,
+.mud-text-error,
+.text-danger {
+    color: #f44336 !important;
+    font-weight: 500;
+}
+

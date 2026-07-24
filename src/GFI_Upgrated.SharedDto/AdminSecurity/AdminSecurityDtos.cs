@@ -288,13 +288,12 @@ public sealed class SaveStaffRequest : IValidatableObject
     public long StaffId { get; set; }
     public int Status { get; set; }
 
-    [Required]
     public string? StaffSalutation { get; set; }
 
-    [Required]
+    [Required(ErrorMessage = "First Name is required.")]
     public string StaffFirstName { get; set; } = string.Empty;
 
-    [Required]
+    [Required(ErrorMessage = "Last Name is required.")]
     public string StaffLastName { get; set; } = string.Empty;
 
     public string? StaffNumber { get; set; }
@@ -303,16 +302,13 @@ public sealed class SaveStaffRequest : IValidatableObject
 
     public DateTime? DOB { get; set; }
 
-    [Range(1, long.MaxValue, ErrorMessage = "Gender is required.")]
     public long Gender { get; set; }
 
     public string? MobileNo { get; set; }
 
-    [EmailAddress]
     public string? EmailIDPersonal { get; set; }
 
-    [Required]
-    [EmailAddress]
+    [Required(ErrorMessage = "Email is required.")]
     public string EmailIDOfficial { get; set; } = string.Empty;
 
     public string? Photo { get; set; }
@@ -339,22 +335,24 @@ public sealed class SaveStaffRequest : IValidatableObject
 
         if (string.IsNullOrWhiteSpace(EmailIDOfficial))
         {
-            yield return new ValidationResult("Official email is required.", new[] { nameof(EmailIDOfficial) });
+            yield return new ValidationResult("Email is required.", new[] { nameof(EmailIDOfficial) });
+        }
+        else
+        {
+            var email = EmailIDOfficial.Trim();
+            if (!new EmailAddressAttribute().IsValid(email))
+            {
+                yield return new ValidationResult("Invalid Email Address.", new[] { nameof(EmailIDOfficial) });
+            }
         }
 
-        if (Gender <= 0)
+        if (!string.IsNullOrWhiteSpace(EmailIDPersonal))
         {
-            yield return new ValidationResult("Please select gender.", new[] { nameof(Gender) });
-        }
-
-        if (string.IsNullOrWhiteSpace(MobileNo))
-        {
-            yield return new ValidationResult("Mobile number is required.", new[] { nameof(MobileNo) });
-        }
-
-        if (string.IsNullOrWhiteSpace(StaffSalutation))
-        {
-            yield return new ValidationResult("Salutation is required.", new[] { nameof(StaffSalutation) });
+            var personalEmail = EmailIDPersonal.Trim();
+            if (!new EmailAddressAttribute().IsValid(personalEmail))
+            {
+                yield return new ValidationResult("Invalid Personal Email Address.", new[] { nameof(EmailIDPersonal) });
+            }
         }
     }
 }

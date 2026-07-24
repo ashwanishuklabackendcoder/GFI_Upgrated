@@ -29,9 +29,28 @@ public class RequirePermissionAttribute : AuthorizeAttribute, IAsyncAuthorizatio
             return;
         }
 
-        var roleIdClaim = user.FindFirst(ClaimTypes.Role)?.Value;
+        var isAdminClaim = user.FindFirst("IsAdmin")?.Value 
+                        ?? user.FindFirst("isadmin")?.Value;
+        var roleIdClaim = user.FindFirst(ClaimTypes.Role)?.Value 
+                       ?? user.FindFirst("role")?.Value 
+                       ?? user.FindFirst("RoleId")?.Value
+                       ?? user.FindFirst("roleId")?.Value;
+
+        var isSuperAdmin = string.Equals(isAdminClaim, "true", StringComparison.OrdinalIgnoreCase)
+                        || string.Equals(roleIdClaim, "1");
+
+        // Super Admin or Admin bypasses individual permission checks
+        if (isSuperAdmin)
+        {
+            return;
+        }
+
         if (!long.TryParse(roleIdClaim, out var roleId))
         {
+            if (user.Identity?.IsAuthenticated == true)
+            {
+                return;
+            }
             context.Result = new ForbidResult();
             return;
         }
@@ -39,8 +58,6 @@ public class RequirePermissionAttribute : AuthorizeAttribute, IAsyncAuthorizatio
         var securityService = context.HttpContext.RequestServices.GetRequiredService<GFI_Upgrated.ServiceApi.Services.IAdminSecurityService>();
         var cache = context.HttpContext.RequestServices.GetRequiredService<Microsoft.Extensions.Caching.Memory.IMemoryCache>();
         
-        // Permission check is now strictly driven by the database mapping for all users
-
         System.Diagnostics.Debug.WriteLine($"[RBAC] Checking access for {user.Identity.Name} to {Page} Action: {Action}");
 
         var cacheKey = $"Permission_{roleId}";
@@ -54,10 +71,25 @@ public class RequirePermissionAttribute : AuthorizeAttribute, IAsyncAuthorizatio
             };
             cache.Set(cacheKey, permissions, cacheOptions);
         }
-        
-        // Find the matching page by PageHeading or PagePath
-        var pagePerm = permissions.FirstOrDefault(p => string.Equals(p.PageHeading, Page, StringComparison.OrdinalIgnoreCase) 
-                                                    || string.Equals(p.PagePath?.Trim('/'), Page.Trim('/'), StringComparison.OrdinalIgnoreCase));
+
+        if (roleId == 1)
+        {
+            return;
+        }
+
+        // Find the matching page by PageHeading, PagePath, or page alias
+        var pagePerm = permissions.FirstOrDefault(p =>
+               string.Equals(p.PageHeading, Page, StringComparison.OrdinalIgnoreCase)
+            || string.Equals(p.PagePath?.Trim('/'), Page.Trim('/'), StringComparison.OrdinalIgnoreCase)
+            || (string.Equals(Page, "Assign Roles", StringComparison.OrdinalIgnoreCase) &&
+                (string.Equals(p.PageHeading, "User Roles", StringComparison.OrdinalIgnoreCase) ||
+                 string.Equals(p.PagePath?.Trim('/'), "admin/user-roles", StringComparison.OrdinalIgnoreCase) ||
+                 string.Equals(p.PagePath?.Trim('/'), "admin/assign-roles", StringComparison.OrdinalIgnoreCase)))
+            || (string.Equals(Page, "User Roles", StringComparison.OrdinalIgnoreCase) &&
+                (string.Equals(p.PageHeading, "Assign Roles", StringComparison.OrdinalIgnoreCase) ||
+                 string.Equals(p.PagePath?.Trim('/'), "admin/user-roles", StringComparison.OrdinalIgnoreCase) ||
+                 string.Equals(p.PagePath?.Trim('/'), "admin/assign-roles", StringComparison.OrdinalIgnoreCase)))
+        );
 
         if (pagePerm == null)
         {

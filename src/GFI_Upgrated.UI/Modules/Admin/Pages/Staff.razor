@@ -1,8 +1,10 @@
-﻿@page "/admin/staff"
+@page "/admin/staff"
 @inject AppSessionState SessionState
 @inject NavigationManager Navigation
 @inject AdminSecurityApiClient ApiClient
+@inject StoreApiClient StoreApiClient
 @inject IJSRuntime JS
+@using GFI_Upgrated.SharedDto.Store
 
 <PageTitle>Staff</PageTitle>
 
@@ -40,7 +42,11 @@
             <MudTd DataLabel="Mobile No">@context.MobileNo</MudTd>
             <MudTd DataLabel="EmailID Official">@context.EmailIDOfficial</MudTd>
             <MudTd DataLabel="Gender">@context.GenderName</MudTd>
-            <MudTd DataLabel="Status">@context.Status</MudTd>
+            <MudTd DataLabel="Status">
+                <MudChip T="string" Color="@GetStatusColor(context.Status)" Size="Size.Small">
+                    @GetStatusName(context.Status)
+                </MudChip>
+            </MudTd>
             <MudTd DataLabel="Action">
                 <MudStack Row="true" Spacing="1">
                     <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Size="Size.Small" OnClick="@(() => EditStaffAsync(context.StaffId))" />
@@ -68,6 +74,7 @@
 
     private MudTable<StaffDto>? _table;
     private string? _search;
+    private IReadOnlyList<StatusDto> _statuses = Array.Empty<StatusDto>();
 
     protected override void OnInitialized()
     {
@@ -75,6 +82,44 @@
         {
             Navigation.NavigateTo("/login");
         }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var pagedStatuses = await StoreApiClient.GetStatusesAsync(new PagedRequest { CurrentPage = 1, RecordPerPage = 1000 });
+            _statuses = pagedStatuses.Items.ToList();
+        }
+        catch
+        {
+            _statuses = new List<StatusDto>();
+        }
+    }
+
+    private string GetStatusName(int statusId)
+    {
+        var match = _statuses.FirstOrDefault(x => x.StatusId == statusId);
+        if (match != null && !string.IsNullOrWhiteSpace(match.StatusName))
+        {
+            return match.StatusName;
+        }
+        return statusId switch
+        {
+            1 => "Active",
+            0 => "Inactive",
+            _ => statusId.ToString()
+        };
+    }
+
+    private Color GetStatusColor(int statusId)
+    {
+        var name = GetStatusName(statusId);
+        if (name.Contains("Active", StringComparison.OrdinalIgnoreCase) || statusId == 1)
+        {
+            return Color.Success;
+        }
+        return Color.Secondary;
     }
 
     private async Task<TableData<StaffDto>> LoadServerDataAsync(TableState state, CancellationToken cancellationToken)

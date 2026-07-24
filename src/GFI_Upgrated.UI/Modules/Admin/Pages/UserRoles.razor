@@ -4,6 +4,7 @@
 @inject NavigationManager Navigation
 @inject AdminSecurityApiClient ApiClient
 @inject IJSRuntime JSRuntime
+@inject ISnackbar Snackbar
 
 <PageTitle>User Roles</PageTitle>
 
@@ -66,8 +67,8 @@
         <RowTemplate>
             <MudTd DataLabel="Assign">
                 <MudCheckBox T="bool"
-                             Checked="context.IsAssigned"
-                             CheckedChanged="@((bool value) => OnAssignedChanged(context, value))"
+                             Value="context.IsAssigned"
+                             ValueChanged="@((bool value) => OnAssignedChanged(context, value))"
                              Disabled="_busy" />
             </MudTd>
             <MudTd DataLabel="Default">
@@ -264,6 +265,7 @@
         {
             _message = "Select a login before saving.";
             _messageSeverity = Severity.Warning;
+            Snackbar.Add(_message, Severity.Warning);
             return;
         }
 
@@ -281,6 +283,7 @@
         {
             _message = "Select at least one role before saving.";
             _messageSeverity = Severity.Warning;
+            Snackbar.Add(_message, Severity.Warning);
             return;
         }
 
@@ -294,8 +297,7 @@
                 Roles = roles
             });
 
-            _message = "User roles saved successfully.";
-            _messageSeverity = Severity.Success;
+            var successText = "User roles saved successfully.";
 
             // If the updated user is the current user, refresh the local session
             if (_selectedLoginId == SessionState.CurrentUser?.LoginId)
@@ -304,16 +306,21 @@
                 if (refreshResult != null)
                 {
                     await SessionState.UpdateUserAsync(JSRuntime, refreshResult);
-                    _message = "Your roles have been updated and your session has been refreshed.";
+                    successText = "Your roles have been updated and your session has been refreshed.";
                 }
             }
 
             await LoadAssignmentsAsync(_selectedLoginId);
+
+            _message = successText;
+            _messageSeverity = Severity.Success;
+            Snackbar.Add(successText, Severity.Success);
         }
         catch (Exception ex)
         {
             _message = ex.Message;
             _messageSeverity = Severity.Error;
+            Snackbar.Add($"Error saving user roles: {ex.Message}", Severity.Error);
         }
         finally
         {

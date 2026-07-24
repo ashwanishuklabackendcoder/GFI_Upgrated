@@ -11,7 +11,10 @@ builder.Host.UseSerilog();
 // Add services to the container.
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-builder.Services.AddControllers();
+builder.Services.AddControllers(options =>
+{
+    options.Filters.Add<GFI_Upgrated.ServiceApi.Infrastructure.UserActivityLoggingFilter>();
+});
 builder.Services.AddMemoryCache();
 builder.Services.AddCors(options =>
 {
