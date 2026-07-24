@@ -1,4 +1,4 @@
-@page "/store/bom"
+﻿@page "/store/bom"
 @page "/admin/bom"
 @page "/store/w_masterbomitemslist"
 @page "/admin/w_masterbomitemslist"
@@ -23,7 +23,7 @@
 
     <MudGrid Class="mb-4">
         <MudItem xs="12" md="6">
-            <MudTextField @bind-Value="_search" Placeholder="Search by BOM name or Product..." Variant="Variant.Outlined" Immediate="true" Clearable="true" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" OnClearButtonClick="OnSearch" />
+            <MudTextField T="string" Value="@_search" ValueChanged="@OnSearchTextChanged" Placeholder="Search by BOM name or Product..." Variant="Variant.Outlined" Immediate="true" Clearable="true" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" OnClearButtonClick="OnSearch" />
         </MudItem>
         <MudItem xs="12" md="3">
             <MudSelect SearchBox="true" T="int?" @bind-Value="_itemTypeId" Label="Product Type" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter" Clearable="true">
@@ -33,7 +33,7 @@
             </MudSelect>
         </MudItem>
         <MudItem xs="12" md="3" Class="d-flex align-center">
-            <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="OnSearch" FullWidth="true" Style="height: 56px;">Search</MudButton>
+            
         </MudItem>
     </MudGrid>
 
@@ -73,6 +73,14 @@
 </MudPaper>
 
 @code {
+    private List<BomDto>? _cachedItems;
+
+    private async Task OnSearchTextChanged(string text)
+    {
+        _search = text;
+        if (_table is not null) await _table.ReloadServerData();
+    }
+
     private MudTable<BomDto>? _table;
     private string _search = "";
     private int? _itemTypeId;
@@ -111,20 +119,27 @@
         _loading = true;
         try
         {
-            var result = await ApiClient.GetBomsAsync(new BomListRequest
+            if (_cachedItems == null)
             {
-                SearchTerm = _search,
-                ItemTypeId = _itemTypeId,
-                PageNumber = state.Page + 1,
-                PageSize = state.PageSize,
-                SortColumn = state.SortLabel,
-                SortType = state.SortDirection == SortDirection.Ascending ? "ASC" : "DESC"
-            }, cancellationToken);
+                var result = await ApiClient.GetBomsAsync(new BomListRequest
+                                                                            {
+                                                                                SearchTerm = _search,
+                                                                                ItemTypeId = _itemTypeId,
+                                                                                PageNumber = state.Page + 1,
+                                                                                PageSize = 100000,
+                                                                                SortColumn = state.SortLabel,
+                                                                                }, cancellationToken);
+                _cachedItems = result.Items.ToList();
+            }
+
+            var filtered = _cachedItems.FilterAllColumns(_search);
+            var sorted = filtered.SortAllColumns(state.SortLabel ?? "1", state.SortDirection == SortDirection.Ascending ? "ASC" : "DESC");
+            var itemsList = sorted.ToList();
 
             return new TableData<BomDto>
             {
-                TotalItems = result.TotalRecord,
-                Items = result.Items
+                TotalItems = itemsList.Count,
+                Items = itemsList.Skip(state.Page * state.PageSize).Take(state.PageSize).ToArray()
             };
         }
         catch (Exception ex)

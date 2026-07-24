@@ -1,4 +1,4 @@
-@page "/store/purchase-request"
+﻿@page "/store/purchase-request"
 @using GFI_Upgrated.SharedDto.Purchase
 @using GFI_Upgrated.UI.Services
 @using GFI_Upgrated.UI.State
@@ -19,8 +19,8 @@
     </MudStack>
 
     <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-4" Style="max-width: 500px;">
-        <MudTextField @bind-Value="_search" Placeholder="Search by request number..." Variant="Variant.Outlined" Immediate="true" Clearable="true" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" OnClearButtonClick="OnSearch" />
-        <MudButton Variant="Variant.Outlined" OnClick="OnSearch">Search</MudButton>
+        <MudTextField T="string" Value="@_search" ValueChanged="@OnSearchTextChanged" Placeholder="Search by request number..." Variant="Variant.Outlined" Immediate="true" Clearable="true" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" OnClearButtonClick="OnSearch" />
+        
     </MudStack>
 
     <MudTable RowsPerPage="25" T="PurchaseRequestDto" @ref="_table" ServerData="LoadServerDataAsync" Hover="true" Dense="true" Striped="true" Bordered="true" Loading="_loading">
@@ -68,6 +68,14 @@
 </MudPaper>
 
 @code {
+    private List<PurchaseRequestDto>? _cachedItems;
+
+    private async Task OnSearchTextChanged(string text)
+    {
+        _search = text;
+        if (_table is not null) await _table.ReloadServerData();
+    }
+
     private MudTable<PurchaseRequestDto>? _table;
     private string _search = "";
     private bool _loading;
@@ -103,18 +111,26 @@
         _loading = true;
         try
         {
-            var result = await ApiClient.GetPurchaseRequestsAsync(
-                null, 
-                _search, 
-                null, 
-                state.Page + 1, 
-                state.PageSize, 
-                cancellationToken);
+            if (_cachedItems == null)
+            {
+                var result = await ApiClient.GetPurchaseRequestsAsync(
+                                                                                null, 
+                                                                                _search, 
+                                                                                null, 
+                                                                                state.Page + 1, 
+                                                                                state.PageSize, 
+                                                                                cancellationToken);
+                _cachedItems = result.Items.ToList();
+            }
+
+            var filtered = _cachedItems.FilterAllColumns(_search);
+            var sorted = filtered.SortAllColumns(state.SortLabel ?? "1", state.SortDirection == SortDirection.Ascending ? "ASC" : "DESC");
+            var itemsList = sorted.ToList();
 
             return new TableData<PurchaseRequestDto>
             {
-                TotalItems = result.TotalRecord,
-                Items = result.Items
+                TotalItems = itemsList.Count,
+                Items = itemsList.Skip(state.Page * state.PageSize).Take(state.PageSize).ToArray()
             };
         }
         catch (Exception ex)

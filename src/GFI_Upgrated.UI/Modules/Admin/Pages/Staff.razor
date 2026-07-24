@@ -1,4 +1,4 @@
-@page "/admin/staff"
+﻿@page "/admin/staff"
 @inject AppSessionState SessionState
 @inject NavigationManager Navigation
 @inject AdminSecurityApiClient ApiClient
@@ -18,8 +18,8 @@
     </MudStack>
 
     <MudStack Row="true" AlignItems="AlignItems.End" Spacing="2" Class="mb-4" Style="max-width: 500px;">
-        <MudTextField @bind-Value="_search" Label="Search staff" Variant="Variant.Outlined" Immediate="true" Class="flex-grow-1" />
-        <MudButton Variant="Variant.Outlined" OnClick="SearchAsync">Search</MudButton>
+        <MudTextField T="string" Value="@_search" ValueChanged="@OnSearchTextChanged" Label="Search staff" Variant="Variant.Outlined" Immediate="true" Class="flex-grow-1" />
+        
     </MudStack>
 
     <MudTable RowsPerPage="25" T="StaffDto" @ref="_table" ServerData="LoadServerDataAsync" Hover="true" Dense="true" Striped="true" Bordered="true" Breakpoint="Breakpoint.Sm">
@@ -58,6 +58,14 @@
 </MudPaper>
 
 @code {
+    private List<StaffDto>? _cachedItems;
+
+    private async Task OnSearchTextChanged(string text)
+    {
+        _search = text;
+        if (_table is not null) await _table.ReloadServerData();
+    }
+
     private MudTable<StaffDto>? _table;
     private string? _search;
 

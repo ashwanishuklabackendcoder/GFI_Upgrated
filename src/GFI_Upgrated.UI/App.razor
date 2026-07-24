@@ -39,9 +39,19 @@ else
     protected override async Task OnInitializedAsync()
     {
         SessionState.OnChange += StateHasChanged;
-        await SessionState.InitializeAsync(JSRuntime);
-        await LocalizationState.InitializeAsync(SessionState, ApiClient, JSRuntime);
-        _initialized = true;
+        try
+        {
+            await SessionState.InitializeAsync(JSRuntime);
+            await LocalizationState.InitializeAsync(SessionState, ApiClient, JSRuntime);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[Initialization Warning] Startup initialization failed (the app will still load): {ex.Message}");
+        }
+        finally
+        {
+            _initialized = true;
+        }
     }
 
     public void Dispose()

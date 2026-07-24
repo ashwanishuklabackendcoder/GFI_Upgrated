@@ -35,7 +35,7 @@
                                  Disabled="_editor.IsMainCategory" 
                                  ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
             </MudItem>
-
+            
             <MudItem xs="12" md="4">
                 <MudCheckBox @bind-Value="_editor.IsMainCategory" Label="Is Main Category?" Color="Color.Primary" />
             </MudItem>
@@ -44,9 +44,18 @@
                 <MudCheckBox @bind-Value="_editor.IsActive" Label="Active" Color="Color.Success" />
             </MudItem>
 
+            @if (!_editor.IsMainCategory && _editor.MainCategoryId == null)
+            {
+                <MudItem xs="12">
+                    <MudAlert Severity="Severity.Warning" Variant="Variant.Filled" Dense="true" Class="mt-2">
+                        Parent category is required when it is not a main category. Please select a parent category.
+                    </MudAlert>
+                </MudItem>
+            }
+
             <MudItem xs="12" Class="pt-4">
                 <MudStack Row="true" Spacing="2">
-                    <MudButton ButtonType="ButtonType.Submit" Color="Color.Primary" Variant="Variant.Filled" Disabled="_processing">@(_processing ? "Saving..." : "Save Category")</MudButton>
+                    <MudButton ButtonType="ButtonType.Submit" Color="Color.Primary" Variant="Variant.Filled" Disabled="@(_processing || (!_editor.IsMainCategory && _editor.MainCategoryId == null))">@(_processing ? "Saving..." : "Save Category")</MudButton>
                     <MudButton Variant="Variant.Outlined" OnClick="OnCancel" Disabled="_processing">Cancel</MudButton>
                 </MudStack>
             </MudItem>
@@ -98,6 +107,11 @@
 
     private async Task SaveAsync()
     {
+        if (!_editor.IsMainCategory && _editor.MainCategoryId == null)
+        {
+            return;
+        }
+
         _processing = true;
         try
         {

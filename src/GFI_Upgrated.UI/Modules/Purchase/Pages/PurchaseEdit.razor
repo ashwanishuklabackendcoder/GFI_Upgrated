@@ -200,7 +200,7 @@
                 .Where(x => x.AccountGroupId == 6 || x.AccountGroupId == 3)
                 .ToList();
             _warehouses = (await ApiClient.GetWarehousesLookupAsync()).ToList();
-            _allItems = (await ApiClient.GetItemsForBomLookupAsync(null)).ToList();
+            _allItems = (await ApiClient.GetItemsForBomLookupAsync(3)).ToList();
             _units = (await ApiClient.GetUnitsLookupAsync()).ToList();
             
             var pos = await ApiClient.GetPurchaseOrdersAsync(null, null, null, 1, 100);

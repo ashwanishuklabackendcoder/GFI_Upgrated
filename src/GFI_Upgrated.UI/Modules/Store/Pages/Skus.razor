@@ -1,4 +1,4 @@
-@page "/store/w_masterskuaddlist"
+﻿@page "/store/w_masterskuaddlist"
 @using GFI_Upgrated.SharedDto.Store
 @using GFI_Upgrated.UI.Services
 @using GFI_Upgrated.UI.State
@@ -25,9 +25,9 @@
 
     <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-4" Style="max-width: 500px;">
         
-        <MudTextField @bind-Value="_searchText" Label="Search SKUs" Variant="Variant.Outlined" Immediate="true" Clearable="true" 
+        <MudTextField T="string" Value="@_searchText" ValueChanged="@OnSearchTextChanged" Label="Search SKUs" Variant="Variant.Outlined" Immediate="true" Clearable="true" 
 OnClearButtonClick="OnSearch" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" />
-        <MudButton Variant="Variant.Outlined" OnClick="OnSearch">Search</MudButton>
+        
     </MudStack>
 
     <MudTable RowsPerPage="25" T="SkuDto" @ref="_table" ServerData="LoadServerDataAsync" Hover="true" Dense="true" Striped="true" Bordered="true" Breakpoint="Breakpoint.Sm">
@@ -76,6 +76,14 @@ OnClearButtonClick="OnSearch" Adornment="Adornment.Start" AdornmentIcon="@Icons.
 </MudPaper>
 
 @code {
+    private List<SkuDto>? _cachedItems;
+
+    private async Task OnSearchTextChanged(string text)
+    {
+        _searchText = text;
+        if (_table is not null) await _table.ReloadServerData();
+    }
+
     private MudTable<SkuDto> _table = null!;
     private string? _searchText;
     private bool _canInsert;

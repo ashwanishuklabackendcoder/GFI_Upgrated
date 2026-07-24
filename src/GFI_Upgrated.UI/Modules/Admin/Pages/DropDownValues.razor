@@ -1,4 +1,4 @@
-@page "/admin/drop-down-values/{DropDownMasterId:long}"
+﻿@page "/admin/drop-down-values/{DropDownMasterId:long}"
 @inject AppSessionState SessionState
 @inject NavigationManager Navigation
 @inject AdminSecurityApiClient ApiClient
@@ -21,8 +21,8 @@
     </MudStack>
 
     <MudStack Row="true" AlignItems="AlignItems.End" Spacing="2" Class="mb-4" Style="max-width: 500px;">
-        <MudTextField @bind-Value="_search" Placeholder="Search display text" Variant="Variant.Outlined" Immediate="true" Class="flex-grow-1" />
-        <MudButton Variant="Variant.Outlined" OnClick="SearchAsync">Search</MudButton>
+        <MudTextField T="string" Value="@_search" ValueChanged="@OnSearchTextChanged" Placeholder="Search display text" Variant="Variant.Outlined" Immediate="true" Class="flex-grow-1" />
+        
     </MudStack>
 
     <MudTable RowsPerPage="25" T="DropDownValueDto" @ref="_table" ServerData="LoadServerDataAsync" Hover="true" Dense="true" Striped="true" Bordered="true">
@@ -57,6 +57,14 @@
 </MudPaper>
 
 @code {
+    private List<DropDownValueDto>? _cachedItems;
+
+    private async Task OnSearchTextChanged(string text)
+    {
+        _search = text;
+        if (_table is not null) await _table.ReloadServerData();
+    }
+
     [Parameter]
     public long DropDownMasterId { get; set; }
 

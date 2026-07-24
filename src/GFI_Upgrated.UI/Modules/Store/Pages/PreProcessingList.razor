@@ -1,4 +1,4 @@
-@page "/store/w_masteritemprelist"
+﻿@page "/store/w_masteritemprelist"
 @page "/store/preprocessing"
 @page "/admin/w_masteritemprelist"
 @page "/admin/preprocessing"
@@ -28,8 +28,8 @@
     </MudStack>
 
     <MudStack Row="true" AlignItems="AlignItems.End" Spacing="2" Class="mb-4" Style="max-width: 500px;">
-        <MudTextField @bind-Value="_searchCreatedBy" Label="Search..." Variant="Variant.Outlined" Immediate="true" Clearable="true" OnClearButtonClick="SearchAsync" Class="flex-grow-1" />
-        <MudButton Variant="Variant.Outlined" OnClick="SearchAsync">Search</MudButton>
+        <MudTextField T="string" Value="@_searchCreatedBy" ValueChanged="@OnSearchTextChanged" Label="Search..." Variant="Variant.Outlined" Immediate="true" Clearable="true" OnClearButtonClick="SearchAsync" Class="flex-grow-1" />
+        
     </MudStack>
 
     <MudTable RowsPerPage="25" T="PreProcessingDto" @ref="_table" ServerData="LoadServerDataAsync" Hover="true" Dense="true" Striped="true" Bordered="true" Breakpoint="Breakpoint.Sm">
@@ -107,6 +107,14 @@
 </style>
 
 @code {
+    private List<PreProcessingDto>? _cachedItems;
+
+    private async Task OnSearchTextChanged(string text)
+    {
+        _searchCreatedBy = text;
+        if (_table is not null) await _table.ReloadServerData();
+    }
+
     private MudTable<PreProcessingDto>? _table;
     private string? _searchCreatedBy;
     private bool _canInsert;
@@ -134,19 +142,27 @@
     {
         try
         {
-            var result = await ApiClient.GetPreProcessingListAsync(new PreProcessingListRequest
+            if (_cachedItems == null)
             {
-                CurrentPage = state.Page + 1,
-                RecordPerPage = state.PageSize,
-                SortColumn = state.SortLabel ?? "PreProcessingId",
-                SortType = state.SortDirection == SortDirection.Ascending ? "ASC" : "DESC",
-                CreatedBy = _searchCreatedBy
-            }, cancellationToken);
+                var result = await ApiClient.GetPreProcessingListAsync(new PreProcessingListRequest
+                                                                            {
+                                                                                CurrentPage = 1,
+                                                                                RecordPerPage = 100000,
+                                                                                
+                                                                                
+                                                                                CreatedBy = _searchCreatedBy
+                                                                            }, cancellationToken);
+                _cachedItems = result.Items.ToList();
+            }
+
+            var filtered = _cachedItems.FilterAllColumns(_searchCreatedBy);
+            var sorted = filtered.SortAllColumns(state.SortLabel ?? "PreProcessingId", state.SortDirection == SortDirection.Ascending ? "ASC" : "DESC");
+            var itemsList = sorted.ToList();
 
             return new TableData<PreProcessingDto>
             {
-                TotalItems = result.TotalRecord,
-                Items = result.Items
+                TotalItems = itemsList.Count,
+                Items = itemsList.Skip(state.Page * state.PageSize).Take(state.PageSize).ToArray()
             };
         }
         catch (Exception ex)

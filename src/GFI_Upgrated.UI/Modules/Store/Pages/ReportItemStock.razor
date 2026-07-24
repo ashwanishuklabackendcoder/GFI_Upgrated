@@ -1,4 +1,4 @@
-
+﻿
 @page "/store/reportitemstock"
 
 @using GFI_Upgrated.SharedDto.Store
@@ -89,6 +89,16 @@
 </MudPaper>
 
 @code {
+    private List<ItemStockReportDto>? _cachedItems;
+
+    private string? _searchString;
+
+    private async Task OnSearchTextChanged(string text)
+    {
+        _searchString = text;
+        if (_table is not null) await _table.ReloadServerData();
+    }
+
     private MudTable<ItemStockReportDto>? _table;
     private RawMaterialDto? _selectedItem;
     private long? _selectedWarehouseId;

@@ -1304,14 +1304,30 @@ public sealed class AdminSecurityRepository : IAdminSecurityRepository
                 FOREIGN KEY (LanguageId) REFERENCES Localization.[Language](Id);
             END;";
 
-        await ExecuteNonQueryRawAsync(sql, Array.Empty<SqlParameter>(), cancellationToken);
-
-        var checkTable = await ExecuteDataTableRawAsync("SELECT TOP 1 Id FROM Localization.[Language];", Array.Empty<SqlParameter>(), cancellationToken);
-        if (checkTable.Rows.Count == 0)
+        try
         {
-            await ExecuteNonQueryRawAsync(@"
-                INSERT INTO Localization.[Language] (CultureName, DisplayName, Country, Region, IsDefaultLanguage)
-                VALUES (N'en-IN', N'English', N'India', N'Asia', 1);", Array.Empty<SqlParameter>(), cancellationToken);
+            await ExecuteNonQueryRawAsync(sql, Array.Empty<SqlParameter>(), cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            // Log it but do not throw, since the tables might already exist and the DB user might lack schema/DDL creation permissions
+            Console.WriteLine($"[Schema Warning] EnsureLocalizationSchemaAsync encountered an error (ignoring if tables exist): {ex.Message}");
+        }
+
+        try
+        {
+            var checkTable = await ExecuteDataTableRawAsync("SELECT TOP 1 Id FROM Localization.[Language];", Array.Empty<SqlParameter>(), cancellationToken);
+            if (checkTable.Rows.Count == 0)
+            {
+                await ExecuteNonQueryRawAsync(@"
+                    INSERT INTO Localization.[Language] (CultureName, DisplayName, Country, Region, IsDefaultLanguage)
+                    VALUES (N'en-IN', N'English', N'India', N'Asia', 1);", Array.Empty<SqlParameter>(), cancellationToken);
+            }
+        }
+        catch (Exception ex)
+        {
+            // If the query fails, then the schema truly does not exist or connection is broken, in which case we throw the error
+            throw new Exception("Localization tables do not exist and could not be auto-created due to lack of DDL permissions.", ex);
         }
     }
 

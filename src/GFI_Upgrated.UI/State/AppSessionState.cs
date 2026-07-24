@@ -284,12 +284,12 @@ public sealed class AppSessionState
     {
         try
         {
-            var json = await jsRuntime.InvokeAsync<string?>("sessionStorage.getItem", "currentUser");
+            var json = await jsRuntime.InvokeAsync<string?>("localStorage.getItem", "currentUser");
             if (!string.IsNullOrWhiteSpace(json))
             {
                 CurrentUser = JsonSerializer.Deserialize<LoginResultDto>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
             }
-            var isDarkStr = await jsRuntime.InvokeAsync<string?>("sessionStorage.getItem", "isDarkMode");
+            var isDarkStr = await jsRuntime.InvokeAsync<string?>("localStorage.getItem", "isDarkMode");
             if (bool.TryParse(isDarkStr, out var dark))
             {
                 IsDarkMode = dark;
@@ -318,9 +318,9 @@ public sealed class AppSessionState
         CurrentUser = user;
         if (user is null)
         {
-            await jsRuntime.InvokeVoidAsync("sessionStorage.removeItem", "currentUser");
+            await jsRuntime.InvokeVoidAsync("localStorage.removeItem", "currentUser");
             IsDarkMode = false;
-            await jsRuntime.InvokeVoidAsync("sessionStorage.removeItem", "isDarkMode");
+            await jsRuntime.InvokeVoidAsync("localStorage.removeItem", "isDarkMode");
             await jsRuntime.InvokeVoidAsync("document.body.classList.remove", "dark-theme");
             await jsRuntime.InvokeVoidAsync("document.documentElement.classList.remove", "dark-style");
             await jsRuntime.InvokeVoidAsync("document.documentElement.classList.add", "light-style");
@@ -328,7 +328,7 @@ public sealed class AppSessionState
         else
         {
             var json = JsonSerializer.Serialize(user);
-            await jsRuntime.InvokeVoidAsync("sessionStorage.setItem", "currentUser", json);
+            await jsRuntime.InvokeVoidAsync("localStorage.setItem", "currentUser", json);
         }
         OnChange?.Invoke();
     }
@@ -344,14 +344,14 @@ public sealed class AppSessionState
         CurrentUser.CultureName = cultureName;
 
         var json = JsonSerializer.Serialize(CurrentUser);
-        await jsRuntime.InvokeVoidAsync("sessionStorage.setItem", "currentUser", json);
+        await jsRuntime.InvokeVoidAsync("localStorage.setItem", "currentUser", json);
         OnChange?.Invoke();
     }
 
     public async Task ToggleThemeAsync(IJSRuntime jsRuntime)
     {
         IsDarkMode = !IsDarkMode;
-        await jsRuntime.InvokeVoidAsync("sessionStorage.setItem", "isDarkMode", IsDarkMode.ToString());
+        await jsRuntime.InvokeVoidAsync("localStorage.setItem", "isDarkMode", IsDarkMode.ToString());
         
         if (IsDarkMode)
         {

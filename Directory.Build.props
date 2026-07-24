@@ -6,5 +6,6 @@
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
     <BaseOutputPath>C:\Users\HP\source\repos\GFI_Upgrated_Bin\$(MSBuildProjectName)\bin\</BaseOutputPath>
     <BaseIntermediateOutputPath>C:\Users\HP\source\repos\GFI_Upgrated_Bin\$(MSBuildProjectName)\obj\</BaseIntermediateOutputPath>
+    <DefaultItemExcludes>$(DefaultItemExcludes);obj\**;bin\**</DefaultItemExcludes>
   </PropertyGroup>
 </Project>

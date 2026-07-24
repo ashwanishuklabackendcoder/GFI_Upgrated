@@ -1,4 +1,4 @@
-@page "/admin/currency"
+﻿@page "/admin/currency"
 @using GFI_Upgrated.SharedDto.Account
 @using GFI_Upgrated.UI.Services
 @using MudBlazor
@@ -59,6 +59,14 @@
 </MudPaper>
 
 @code {
+    private List<CurrencyDto>? _cachedItems;
+
+    private async Task OnSearchTextChanged(string text)
+    {
+        _searchString = text;
+        if (_table is not null) await _table.ReloadServerData();
+    }
+
     private MudTable<CurrencyDto>? _table;
     private string? _searchString;
 
@@ -66,19 +74,27 @@
     {
         try
         {
-            var result = await ApiClient.GetCurrenciesAsync(
-                symbol: _searchString,
-                page: state.Page + 1,
-                pageSize: state.PageSize,
-                sortCol: state.SortLabel ?? "CurrencyID",
-                sortOrd: state.SortDirection == SortDirection.Ascending ? "ASC" : "DESC",
-                cancellationToken: cancellationToken
-            );
+            if (_cachedItems == null)
+            {
+                var result = await ApiClient.GetCurrenciesAsync(
+                                                                                
+                                                                                page: 1,
+                                                                                pageSize: 100000,
+                                                                                
+                                                                                
+                                                                                cancellationToken: cancellationToken
+                                                                            );
+                _cachedItems = result.Items.ToList();
+            }
+
+            var filtered = _cachedItems.FilterAllColumns(_searchString);
+            var sorted = filtered.SortAllColumns(state.SortLabel ?? "CurrencyID", state.SortDirection == SortDirection.Ascending ? "ASC" : "DESC");
+            var itemsList = sorted.ToList();
 
             return new TableData<CurrencyDto>
             {
-                TotalItems = result.TotalRecord,
-                Items = result.Items
+                TotalItems = itemsList.Count,
+                Items = itemsList.Skip(state.Page * state.PageSize).Take(state.PageSize).ToArray()
             };
         }
         catch (Exception ex)

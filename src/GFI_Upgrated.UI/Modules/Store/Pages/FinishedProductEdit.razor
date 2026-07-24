@@ -75,9 +75,9 @@
                     <MudItem xs="12">
                         <MudTextField @bind-Value="_model.Description" Label="Description" Variant="Variant.Outlined" Lines="2" />
                     </MudItem>
-                    <MudItem xs="12">
+           @*          <MudItem xs="12">
                         <MudTextField @bind-Value="_model.Tags" Label="Tags (Comma separated)" Variant="Variant.Outlined" />
-                    </MudItem>
+                    </MudItem> *@
                 </MudGrid>
              </MudPaper>
                 </MudStack>
@@ -288,7 +288,7 @@
         }
         else
         {
-            _model.StatusId = 1;
+            _model.StatusId = 0;
             _model.ItemTypeId = 1; // Finished Product
             _model.CreatedBy = SessionState.CurrentUserAuditName ?? "System";
         }

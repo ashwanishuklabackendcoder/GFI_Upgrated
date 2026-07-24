@@ -1,4 +1,4 @@
-@page "/admin/invoice"
+﻿@page "/admin/invoice"
 @page "/admin/invoices"
 @using GFI_Upgrated.SharedDto.Account
 @using GFI_Upgrated.UI.Services
@@ -26,8 +26,8 @@
     </MudStack>
 
     <MudStack Row="true" AlignItems="AlignItems.End" Spacing="2" Class="mb-4" Style="max-width: 500px;">
-        <MudTextField @bind-Value="_search" Label="Search invoices" Variant="Variant.Outlined" Immediate="true" Class="flex-grow-1" />
-        <MudButton Variant="Variant.Outlined" OnClick="SearchAsync">Search</MudButton>
+        <MudTextField T="string" Value="@_search" ValueChanged="@OnSearchTextChanged" Label="Search invoices" Variant="Variant.Outlined" Immediate="true" Class="flex-grow-1" />
+        
     </MudStack>
 
     <MudTable RowsPerPage="25" T="InvoiceDto" @ref="_table" ServerData="LoadServerDataAsync" Hover="true" Dense="true" Striped="true" Bordered="true" Breakpoint="Breakpoint.Sm">
@@ -83,6 +83,14 @@
 </MudPaper>
 
 @code {
+    private List<InvoiceDto>? _cachedItems;
+
+    private async Task OnSearchTextChanged(string text)
+    {
+        _search = text;
+        if (_table is not null) await _table.ReloadServerData();
+    }
+
     private MudTable<InvoiceDto>? _table;
     private string? _search;
     
@@ -108,16 +116,24 @@
     {
         try
         {
-            var result = await ApiClient.GetInvoicesAsync(
-                page: state.Page + 1,
-                pageSize: state.PageSize,
-                invoiceNumber: _search
-            );
-    
+            if (_cachedItems == null)
+            {
+                var result = await ApiClient.GetInvoicesAsync(
+                                                                                page: 1,
+                                                                                pageSize: 100000,
+                                                                                invoiceNumber: null
+                                                                            );
+                _cachedItems = result.Items.ToList();
+            }
+
+            var filtered = _cachedItems.FilterAllColumns(_search);
+            var sorted = filtered.SortAllColumns(state.SortLabel ?? "1", state.SortDirection == SortDirection.Ascending ? "ASC" : "DESC");
+            var itemsList = sorted.ToList();
+
             return new TableData<InvoiceDto>
             {
-                TotalItems = result.TotalRecord,
-                Items = result.Items
+                TotalItems = itemsList.Count,
+                Items = itemsList.Skip(state.Page * state.PageSize).Take(state.PageSize).ToArray()
             };
         }
         catch (Exception ex)

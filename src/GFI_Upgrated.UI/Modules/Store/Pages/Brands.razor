@@ -1,4 +1,4 @@
-@page "/store/w_masterbrandsaddlist"
+﻿@page "/store/w_masterbrandsaddlist"
 @page "/store/brands"
 @page "/admin/w_masterbrandsaddlist"
 @page "/admin/brands"
@@ -27,7 +27,7 @@
     </MudStack>
 
     <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-4" Style="max-width: 500px;">
-        <MudTextField @bind-Value="_search" Label="@LocalizationState.Text("Store.Brands.List.SearchLabel", "Search brands")" Variant="Variant.Outlined" 
+        <MudTextField T="string" Value="@_search" ValueChanged="@OnSearchTextChanged" Label="@LocalizationState.Text("Store.Brands.List.SearchLabel", "Search brands")" Variant="Variant.Outlined" 
         Immediate="true" Clearable="true" OnClearButtonClick="SearchAsync" Class="flex-grow-1" />
         <MudButton Variant="Variant.Outlined" OnClick="SearchAsync">@LocalizationState.Text("Common.Actions.Search", "Search")</MudButton>
     </MudStack>
@@ -74,6 +74,14 @@
 </MudPaper>
 
 @code {
+    private List<GFI_Upgrated.SharedDto.Store.BrandDto>? _cachedItems;
+
+    private async Task OnSearchTextChanged(string text)
+    {
+        _search = text;
+        if (_table is not null) await _table.ReloadServerData();
+    }
+
     private MudTable<GFI_Upgrated.SharedDto.Store.BrandDto>? _table;
     private string? _search;
     
@@ -99,18 +107,25 @@
     {
         try
         {
-            var result = await ApiClient.GetBrandsAsync(new PagedRequest
+            if (_cachedItems == null)
             {
-                CurrentPage = state.Page + 1,
-                RecordPerPage = state.PageSize,
-                SortColumn = string.IsNullOrWhiteSpace(state.SortLabel) ? "BrandId" : state.SortLabel,
-                SortType = state.SortDirection == SortDirection.Ascending ? "ASC" : "DESC"
-            }, _search, cancellationToken);
-    
+                var result = await ApiClient.GetBrandsAsync(new PagedRequest
+                                                                            {
+                                                                                CurrentPage = 1,
+                                                                                RecordPerPage = 100000,
+                                                                                SortColumn = string.IsNullOrWhiteSpace(state.SortLabel) ? "BrandId" : state.SortLabel,
+                                                                                }, _search, cancellationToken);
+                _cachedItems = result.Items.ToList();
+            }
+
+            var filtered = _cachedItems.FilterAllColumns(_search);
+            var sorted = filtered.SortAllColumns(state.SortLabel ?? "1", state.SortDirection == SortDirection.Ascending ? "ASC" : "DESC");
+            var itemsList = sorted.ToList();
+
             return new TableData<GFI_Upgrated.SharedDto.Store.BrandDto>
             {
-                TotalItems = result.TotalRecord,
-                Items = result.Items
+                TotalItems = itemsList.Count,
+                Items = itemsList.Skip(state.Page * state.PageSize).Take(state.PageSize).ToArray()
             };
         }
         catch (Exception ex)
