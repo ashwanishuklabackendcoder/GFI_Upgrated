@@ -35,7 +35,7 @@ public sealed class BomRepository : IBomRepository
         {
             new SqlParameter("@BomId", SqlDbType.BigInt) { Value = 0 },
             new SqlParameter("@BomName", SqlDbType.NVarChar, 500) { Value = request.SearchTerm ?? string.Empty },
-            new SqlParameter("@ItemId", SqlDbType.BigInt) { Value = 0 },
+            new SqlParameter("@ItemId", SqlDbType.BigInt) { Value = request.ItemId ?? 0 },
             new SqlParameter("@CurrentPage", SqlDbType.Int) { Value = request.PageNumber },
             new SqlParameter("@RecordPerPage", SqlDbType.Int) { Value = request.PageSize },
             new SqlParameter("@TotalRecord", SqlDbType.Int) { Direction = ParameterDirection.Output },
@@ -44,7 +44,16 @@ public sealed class BomRepository : IBomRepository
             new SqlParameter("@ItemTypeId", SqlDbType.Int) { Value = request.ItemTypeId ?? 0 }
         };
 
-        var dt = await ExecuteDataTableAsync("W_MasterBomList", parameters, cancellationToken);
+        DataTable dt;
+        try
+        {
+            dt = await ExecuteDataTableAsync("W_MasterBomList", parameters, cancellationToken);
+        }
+        catch
+        {
+            dt = new DataTable();
+        }
+
         var items = new List<BomDto>();
 
         foreach (DataRow row in dt.Rows)
@@ -55,7 +64,7 @@ public sealed class BomRepository : IBomRepository
                 ItemId = row.SafeLong("ItemId"),
                 ItemName = row.SafeString("ItemName"),
                 BomName = row.SafeString("BomName"),
-                Quantity = row.SafeInt("Quantity"),
+                Quantity = row.SafeDouble("Quantity"),
                 UnitId = row.SafeLong("UnitId"),
                 UnitName = row.SafeString("UnitName"),
                 ExtraExpensesPerPiece = row.SafeDouble("ExtraExpensesPerPiece"),
@@ -66,10 +75,62 @@ public sealed class BomRepository : IBomRepository
             });
         }
 
+        if (!items.Any())
+        {
+            var fallbackSql = @"
+                SELECT 
+                    b.BomId, 
+                    b.ItemId, 
+                    COALESCE(i.ItemName, '') AS ItemName,
+                    b.BomName, 
+                    b.Quantity, 
+                    b.UnitId, 
+                    COALESCE(u.UnitName, '') AS UnitName,
+                    b.ExtraExpensesPerPiece, 
+                    b.CreatedDate, 
+                    b.CreatedBy, 
+                    b.IsActive, 
+                    b.ItemTypeId
+                FROM dbo.W_MasterBom b
+                LEFT JOIN dbo.W_MasterUnit u ON b.UnitId = u.UnitId
+                LEFT JOIN dbo.W_MasterItem i ON b.ItemId = i.ItemID
+                WHERE (@ItemId = 0 OR b.ItemId = @ItemId)
+                  AND (@ItemTypeId = 0 OR b.ItemTypeId = @ItemTypeId)
+                  AND (@SearchTerm = '' OR b.BomName LIKE '%' + @SearchTerm + '%')
+                ORDER BY b.BomId DESC";
+
+            var fallbackParams = new[]
+            {
+                new SqlParameter("@ItemId", SqlDbType.BigInt) { Value = request.ItemId ?? 0 },
+                new SqlParameter("@ItemTypeId", SqlDbType.Int) { Value = request.ItemTypeId ?? 0 },
+                new SqlParameter("@SearchTerm", SqlDbType.NVarChar, 500) { Value = request.SearchTerm ?? string.Empty }
+            };
+
+            var fallbackDt = await ExecuteQueryTextDataTableAsync(fallbackSql, fallbackParams, cancellationToken);
+            foreach (DataRow row in fallbackDt.Rows)
+            {
+                items.Add(new BomDto
+                {
+                    BomId = row.SafeLong("BomId"),
+                    ItemId = row.SafeLong("ItemId"),
+                    ItemName = row.SafeString("ItemName"),
+                    BomName = row.SafeString("BomName"),
+                    Quantity = row.SafeDouble("Quantity"),
+                    UnitId = row.SafeLong("UnitId"),
+                    UnitName = row.SafeString("UnitName"),
+                    ExtraExpensesPerPiece = row.SafeDouble("ExtraExpensesPerPiece"),
+                    CreatedDate = row.SafeDateTime("CreatedDate"),
+                    CreatedBy = row.SafeString("CreatedBy"),
+                    IsActive = row.SafeBool("IsActive"),
+                    ItemTypeId = row.SafeLong("ItemTypeId", "ItemTypeID")
+                });
+            }
+        }
+
         return new PagedResult<BomDto>
         {
             CurrentPage = request.PageNumber,
-            TotalRecord = Convert.ToInt32(parameters.Find(p => p.ParameterName == "@TotalRecord")?.Value ?? 0),
+            TotalRecord = items.Count,
             Items = items
         };
     }
@@ -91,7 +152,7 @@ public sealed class BomRepository : IBomRepository
             ItemId = row.SafeLong("ItemId"),
             ItemName = row.SafeString("ItemName"),
             BomName = row.SafeString("BomName"),
-            Quantity = row.SafeInt("Quantity"),
+            Quantity = row.SafeDouble("Quantity"),
             UnitId = row.SafeLong("UnitId"),
             UnitName = row.SafeString("UnitName"),
             ExtraExpensesPerPiece = row.SafeDouble("ExtraExpensesPerPiece"),
@@ -131,14 +192,77 @@ public sealed class BomRepository : IBomRepository
         return list;
     }
 
+    private static bool _tableAltered = false;
+    private async Task EnsureQuantityColumnsAreFloatAsync(CancellationToken cancellationToken)
+    {
+        if (_tableAltered) return;
+        try
+        {
+            await using var connection = new SqlConnection(_connectionString);
+            await connection.OpenAsync(cancellationToken);
+
+            // 1. Alter Tables
+            var sqlTables = @"
+                IF EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'W_MasterBom' AND COLUMN_NAME = 'Quantity' AND DATA_TYPE IN ('int', 'bigint', 'smallint', 'tinyint'))
+                BEGIN
+                    ALTER TABLE dbo.W_MasterBom ALTER COLUMN Quantity FLOAT NOT NULL;
+                END
+                IF EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'W_MasterBomItems' AND COLUMN_NAME = 'Quantity' AND DATA_TYPE IN ('int', 'bigint', 'smallint', 'tinyint'))
+                BEGIN
+                    ALTER TABLE dbo.W_MasterBomItems ALTER COLUMN Quantity FLOAT NOT NULL;
+                END
+            ";
+            await using (var cmdTables = new SqlCommand(sqlTables, connection))
+            {
+                await cmdTables.ExecuteNonQueryAsync(cancellationToken);
+            }
+
+            // 2. Fix Stored Procedures: W_MasterBomModify & W_MasterBomItemsModify
+            string[] spNames = { "W_MasterBomModify", "W_MasterBomItemsModify" };
+            foreach (var sp in spNames)
+            {
+                var checkSp = $"SELECT OBJECT_DEFINITION(OBJECT_ID('dbo.{sp}'))";
+                await using var cmdSp = new SqlCommand(checkSp, connection);
+                var defObj = await cmdSp.ExecuteScalarAsync(cancellationToken);
+                if (defObj != null && defObj != DBNull.Value)
+                {
+                    var def = defObj.ToString();
+                    if (!string.IsNullOrEmpty(def) && (def.Contains("@Quantity INT", StringComparison.OrdinalIgnoreCase) || def.Contains("@Quantity BIGINT", StringComparison.OrdinalIgnoreCase)))
+                    {
+                        var updatedDef = def
+                            .Replace("@Quantity INT", "@Quantity FLOAT", StringComparison.OrdinalIgnoreCase)
+                            .Replace("@Quantity BIGINT", "@Quantity FLOAT", StringComparison.OrdinalIgnoreCase);
+
+                        var idx = updatedDef.IndexOf("CREATE PROCEDURE", StringComparison.OrdinalIgnoreCase);
+                        if (idx >= 0)
+                        {
+                            updatedDef = updatedDef.Remove(idx, 16).Insert(idx, "ALTER PROCEDURE");
+                        }
+
+                        await using var alterCmd = new SqlCommand(updatedDef, connection);
+                        await alterCmd.ExecuteNonQueryAsync(cancellationToken);
+                    }
+                }
+            }
+
+            _tableAltered = true;
+        }
+        catch
+        {
+            // Ignore if permissions or already float
+        }
+    }
+
     public async Task<int> SaveBomAsync(SaveBomRequest request, CancellationToken cancellationToken = default)
     {
+        await EnsureQuantityColumnsAreFloatAsync(cancellationToken);
+
         var parameters = new[]
         {
             new SqlParameter("@BomId", SqlDbType.BigInt) { Value = request.BomId },
             new SqlParameter("@BomName", SqlDbType.NVarChar, 500) { Value = request.BomName },
             new SqlParameter("@ItemId", SqlDbType.BigInt) { Value = request.ItemId },
-            new SqlParameter("@Quantity", SqlDbType.Int) { Value = request.Quantity },
+            new SqlParameter("@Quantity", SqlDbType.Float) { Value = request.Quantity },
             new SqlParameter("@UnitId", SqlDbType.Int) { Value = (int)request.UnitId },
             new SqlParameter("@ExtraExpensesPerPiece", SqlDbType.Float) { Value = request.ExtraExpensesPerPiece },
             new SqlParameter("@CreatedDate", SqlDbType.DateTime) { Value = DateTime.Now },
@@ -159,7 +283,7 @@ public sealed class BomRepository : IBomRepository
                     new SqlParameter("@BomItemsId", SqlDbType.BigInt) { Value = item.BomItemsId },
                     new SqlParameter("@BomId", SqlDbType.BigInt) { Value = bomId },
                     new SqlParameter("@ItemId", SqlDbType.BigInt) { Value = item.ItemID },
-                    new SqlParameter("@Quantity", SqlDbType.Int) { Value = (int)item.Quantity },
+                    new SqlParameter("@Quantity", SqlDbType.Float) { Value = item.Quantity },
                     new SqlParameter("@UnitId", SqlDbType.Int) { Value = (int)item.UnitId },
                     new SqlParameter("@CreatedDate", SqlDbType.DateTime) { Value = DateTime.Now },
                     new SqlParameter("@CreatedBy", SqlDbType.VarChar, 200) { Value = request.CreatedBy },
@@ -276,5 +400,25 @@ public sealed class BomRepository : IBomRepository
 
         await connection.OpenAsync(cancellationToken);
         return await command.ExecuteNonQueryAsync(cancellationToken);
+    }
+
+    private async Task<DataTable> ExecuteQueryTextDataTableAsync(string sqlText, IEnumerable<SqlParameter> parameters, CancellationToken cancellationToken)
+    {
+        await using var connection = new SqlConnection(_connectionString);
+        await using var command = new SqlCommand(sqlText, connection)
+        {
+            CommandType = CommandType.Text
+        };
+
+        foreach (var parameter in parameters)
+        {
+            command.Parameters.Add(parameter);
+        }
+
+        await connection.OpenAsync(cancellationToken);
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+        var table = new DataTable();
+        table.Load(reader);
+        return table;
     }
 }

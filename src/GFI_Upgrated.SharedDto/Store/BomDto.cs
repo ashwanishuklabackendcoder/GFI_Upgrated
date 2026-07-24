@@ -10,7 +10,7 @@ public class BomDto
     public long ItemId { get; set; }
     public string? ItemName { get; set; }
     public string? BomName { get; set; }
-    public int Quantity { get; set; }
+    public double Quantity { get; set; }
     public long UnitId { get; set; }
     public string? UnitName { get; set; }
     public double ExtraExpensesPerPiece { get; set; }
@@ -37,6 +37,7 @@ public class BomListRequest
 {
     public string? SearchTerm { get; set; }
     public int? ItemTypeId { get; set; }
+    public long? ItemId { get; set; }
     public int PageNumber { get; set; } = 1;
     public int PageSize { get; set; } = 10;
     public string? SortColumn { get; set; }
@@ -47,16 +48,16 @@ public class SaveBomRequest
 {
     public long BomId { get; set; }
     
-    [Required(ErrorMessage = "Parent product is required")]
+    [Range(1, long.MaxValue, ErrorMessage = "Parent product is required")]
     public long ItemId { get; set; }
     
-    [Required(ErrorMessage = "BOM Name is required")]
+    [Required(ErrorMessage = "Recipe Name is required")]
     public string? BomName { get; set; }
     
-    [Range(1, int.MaxValue, ErrorMessage = "Quantity must be at least 1")]
-    public int Quantity { get; set; }
+    [Range(0.0001, 999999999.0, ErrorMessage = "Yield quantity must be greater than 0")]
+    public double Quantity { get; set; }
     
-    [Required(ErrorMessage = "Unit is required")]
+    [Range(1, long.MaxValue, ErrorMessage = "Yield Unit is required")]
     public long UnitId { get; set; }
     
     public double ExtraExpensesPerPiece { get; set; }

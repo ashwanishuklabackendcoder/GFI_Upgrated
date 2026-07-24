@@ -11,7 +11,7 @@
 <MudPaper Class="pa-4">
     <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
         <MudStack Spacing="0">
-            <MudText Typo="Typo.h5">@(Id == 0 ? "New Bill of Materials (BOM)" : "Edit BOM")</MudText>
+            <MudText Typo="Typo.h5">@(Id == 0 ? "New Recipe" : "Edit Recipe")</MudText>
             <MudText Typo="Typo.body2" Color="Color.Secondary">Define the recipe and components for your products.</MudText>
         </MudStack>
         <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.ArrowBack" OnClick="OnBack">Back to List</MudButton>
@@ -22,17 +22,17 @@
         <MudGrid>
             <!-- Header Section -->
             <MudItem xs="12">
-                <MudText Typo="Typo.subtitle1" Color="Color.Primary" Class="mb-2">BOM Configuration</MudText>
+                <MudText Typo="Typo.subtitle1" Color="Color.Primary" Class="mb-2">Recipe Configuration</MudText>
                 <MudDivider Class="mb-4" />
             </MudItem>
 
 
 
             <MudItem xs="12" md="4">
-                <MudTextField @bind-Value="_model.BomName" Label="BOM Name" Required="true" Variant="Variant.Outlined" For="@(() => _model.BomName)" />
+                <MudTextField @bind-Value="_model.BomName" Label="Recipe Name" Required="true" Variant="Variant.Outlined" For="@(() => _model.BomName)" />
             </MudItem>
             <MudItem xs="12" md="4">
-                <MudSelect SearchBox="true" T="MasterItemType?" Label="BOM Target Type" Value="@((MasterItemType?)_model.ItemTypeId)" ValueChanged="OnBomTypeChanged" Variant="Variant.Outlined" Required="true" AnchorOrigin="Origin.BottomCenter">
+                <MudSelect SearchBox="true" T="MasterItemType?" Label="Recipe Target Type" Value="@((MasterItemType?)_model.ItemTypeId)" ValueChanged="OnBomTypeChanged" Variant="Variant.Outlined" Required="true" AnchorOrigin="Origin.BottomCenter">
                     <MudSelectItem Value="@((MasterItemType?)MasterItemType.FinishedProduct)">Finished Product</MudSelectItem>
                     <MudSelectItem Value="@((MasterItemType?)MasterItemType.SemiFinished)">Semi-Finished</MudSelectItem>
                 </MudSelect>
@@ -47,7 +47,7 @@
                                  Placeholder="Select product..." AdornmentIcon="@Icons.Material.Filled.ArrowDropDown" />
             </MudItem>
             <MudItem xs="12" md="3">
-                <MudNumericField @bind-Value="_model.Quantity" Label="Yield Quantity" Variant="Variant.Outlined" Min="1" For="@(() => _model.Quantity)" />
+                <MudNumericField @bind-Value="_model.Quantity" Label="Yield Quantity" Variant="Variant.Outlined" Min="0.0001" Step="0.01" Format="0.##" For="@(() => _model.Quantity)" />
             </MudItem>
             <MudItem xs="12" md="3">
                 <MudAutocomplete MaxItems="1000" T="UnitDto" Label="Yield Unit" 
@@ -67,7 +67,7 @@
             <!-- Components Section -->
             <MudItem xs="12" Class="mt-6">
                 <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-2">
-                    <MudText Typo="Typo.subtitle1" Color="Color.Primary">Components (BOM Items)</MudText>
+                    <MudText Typo="Typo.subtitle1" Color="Color.Primary">Components (Recipe Items)</MudText>
                     <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" Size="Size.Small" OnClick="AddRow">Add Component</MudButton>
                 </MudStack>
                 <MudDivider Class="mb-4" />
@@ -86,7 +86,7 @@
                                              Variant="Variant.Text" Dense="true" />
                         </MudTd>
                         <MudTd DataLabel="Qty">
-                            <MudNumericField @bind-Value="itemContext.Quantity" Variant="Variant.Text" Min="1" Dense="true" />
+                            <MudNumericField @bind-Value="itemContext.Quantity" Variant="Variant.Text" Min="0.0001" Step="0.01" Format="0.##" Dense="true" />
                         </MudTd>
                         <MudTd DataLabel="Unit">
                             <MudAutocomplete MaxItems="1000" T="UnitDto" Value="@(_units.FirstOrDefault(x => x.UnitId == itemContext.UnitId))" 
@@ -108,7 +108,7 @@
 
             <MudItem xs="12" Class="d-flex justify-end mt-6 gap-2">
                 <MudButton Variant="Variant.Outlined" OnClick="OnBack">Back to List</MudButton>
-                <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Loading="_saving">Save BOM</MudButton>
+                <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Loading="_saving">Save Recipe</MudButton>
             </MudItem>
         </MudGrid>
     </EditForm>
@@ -116,6 +116,11 @@
 
 @code {
     [Parameter] public long Id { get; set; }
+
+    [SupplyParameterFromQuery(Name = "copyFromId")] public long? CopyFromId { get; set; }
+    [SupplyParameterFromQuery(Name = "itemId")] public long? TargetItemId { get; set; }
+    [SupplyParameterFromQuery(Name = "itemTypeId")] public long? TargetItemTypeId { get; set; }
+    [SupplyParameterFromQuery(Name = "returnUrl")] public string? ReturnUrl { get; set; }
 
     private SaveBomRequest _model = new() { Quantity = 1 };
     private RawMaterialDto? _selectedParent;
@@ -136,13 +141,77 @@
         {
             await LoadData();
         }
+        else if (CopyFromId.HasValue && CopyFromId.Value > 0)
+        {
+            await LoadCopyData(CopyFromId.Value);
+        }
         else
         {
             _model.CreatedBy = SessionState.CurrentUserAuditName ?? "System";
-            _model.ItemTypeId = (long)MasterItemType.FinishedProduct; // Default
+            _model.ItemTypeId = TargetItemTypeId ?? (long)MasterItemType.FinishedProduct;
+            if (TargetItemId.HasValue && TargetItemId.Value > 0)
+            {
+                _model.ItemId = TargetItemId.Value;
+            }
         }
 
         await LoadLookups();
+
+        if (_model.ItemId > 0 && _selectedParent == null && _allProducts.Any())
+        {
+            _selectedParent = _allProducts.FirstOrDefault(p => p.ItemId == _model.ItemId);
+        }
+    }
+
+    private async Task LoadCopyData(long copyFromId)
+    {
+        try
+        {
+            var bom = await ApiClient.GetBomByIdAsync(copyFromId);
+            if (bom != null)
+            {
+                _model = new SaveBomRequest
+                {
+                    BomId = 0,
+                    ItemId = bom.ItemId,
+                    BomName = string.IsNullOrWhiteSpace(bom.BomName) ? "Copy Recipe" : $"{bom.BomName} - Copy",
+                    Quantity = bom.Quantity,
+                    UnitId = bom.UnitId,
+                    ExtraExpensesPerPiece = bom.ExtraExpensesPerPiece,
+                    IsActive = true,
+                    CreatedBy = SessionState.CurrentUserAuditName ?? "System",
+                    ItemTypeId = bom.ItemTypeId
+                };
+
+                var p1 = await ApiClient.GetItemsForBomLookupAsync(1);
+                var p2 = await ApiClient.GetItemsForBomLookupAsync(2);
+                var allPotentialParents = p1.Concat(p2).ToList();
+                _selectedParent = allPotentialParents.FirstOrDefault(p => p.ItemId == bom.ItemId);
+
+                if (_selectedParent != null)
+                {
+                    _allProducts = (_model.ItemTypeId == 2 ? p2 : p1).OrderBy(x => x.ItemName).ToList();
+                }
+
+                var items = await ApiClient.GetBomComponentsAsync(copyFromId);
+                _model.Items = items.Select(i => new BomItemDto
+                {
+                    BomItemsId = 0,
+                    BomId = 0,
+                    ItemID = i.ItemID,
+                    ItemName = i.ItemName,
+                    Quantity = i.Quantity,
+                    UnitId = i.UnitId,
+                    UnitName = i.UnitName
+                }).ToList();
+
+                Snackbar.Add("Recipe details copied. Click 'Save Recipe' to create a new recipe.", Severity.Info);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error copying Recipe: {ex.Message}", Severity.Error);
+        }
     }
 
     private async Task LoadLookups()
@@ -156,6 +225,15 @@
             if (_model.ItemTypeId > 0)
             {
                 _allProducts = (await ApiClient.GetItemsForBomLookupAsync((int)_model.ItemTypeId)).OrderBy(x => x.ItemName).ToList();
+            }
+
+            if (_model.ItemId > 0)
+            {
+                _selectedParent = _allProducts.FirstOrDefault(p => p.ItemId == _model.ItemId);
+                if (_selectedParent != null && _model.UnitId == 0 && _selectedParent.PurchaseUnit > 0)
+                {
+                    _model.UnitId = (long)_selectedParent.PurchaseUnit;
+                }
             }
 
             // Components: Raw Materials (3) and Semi-Finished (2)
@@ -227,7 +305,7 @@
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Error loading BOM: {ex.Message}", Severity.Error);
+            Snackbar.Add($"Error loading Recipe: {ex.Message}", Severity.Error);
         }
     }
 
@@ -267,9 +345,21 @@
 
     private async Task SaveBom()
     {
+        if (string.IsNullOrWhiteSpace(_model.BomName))
+        {
+            Snackbar.Add("Please enter a Recipe Name.", Severity.Warning);
+            return;
+        }
+
         if (_selectedParent == null)
         {
             Snackbar.Add("Please select a parent product.", Severity.Warning);
+            return;
+        }
+
+        if (_model.UnitId <= 0)
+        {
+            Snackbar.Add("Please select a Yield Unit.", Severity.Warning);
             return;
         }
 
@@ -295,9 +385,12 @@
             var resultId = await ApiClient.SaveBomAsync(_model);
             if (resultId > 0)
             {
-                Snackbar.Add("BOM saved successfully.", Severity.Success);
-                // Navigate to edit page (or reload current edit) so user can verify saved components
-                if (Id == 0)
+                Snackbar.Add("Recipe saved successfully.", Severity.Success);
+                if (!string.IsNullOrWhiteSpace(ReturnUrl))
+                {
+                    Navigation.NavigateTo(ReturnUrl);
+                }
+                else if (Id == 0)
                 {
                     Navigation.NavigateTo($"/store/bom/edit/{resultId}");
                 }
@@ -311,7 +404,7 @@
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Error saving BOM: {ex.Message}", Severity.Error);
+            Snackbar.Add($"Error saving Recipe: {ex.Message}", Severity.Error);
         }
         finally
         {
@@ -319,7 +412,17 @@
         }
     }
 
-    private void OnBack() => Navigation.NavigateTo("/store/bom");
+    private void OnBack()
+    {
+        if (!string.IsNullOrWhiteSpace(ReturnUrl))
+        {
+            Navigation.NavigateTo(ReturnUrl);
+        }
+        else
+        {
+            Navigation.NavigateTo("/store/bom");
+        }
+    }
 
     private async Task<IEnumerable<UnitDto>> SearchUnits(string value, CancellationToken token)
     {

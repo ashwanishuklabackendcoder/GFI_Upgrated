@@ -109,7 +109,10 @@
                         <MudItem xs="12" md="4">
                             <MudDatePicker @bind-Date="_batchModel.ExpiryDate" Label="Expiry Date" Variant="Variant.Outlined" />
                         </MudItem>
-                        <MudItem xs="12" md="8" Class="d-flex align-center justify-end gap-2">
+                        <MudItem xs="12" md="4">
+                            <MudAutocomplete MaxItems="1000" T="UnitDto" Label="Unit" Value="@(_units.FirstOrDefault(x => x.UnitId == _batchModel.UnitId))" ValueChanged="@((UnitDto val) => { _batchModel.UnitId = (int)(val?.UnitId ?? 0); })" SearchFunc="@SearchUnits" ToStringFunc="@(x => x?.UnitName ?? "")" Variant="Variant.Outlined" Required="true" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
+                        </MudItem>
+                        <MudItem xs="12" md="4" Class="d-flex align-center justify-end gap-2">
                              <MudButton Variant="Variant.Outlined" OnClick="ResetBatchForm">Reset</MudButton>
                              <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveBatch" Loading="_savingBatch">@( _batchModel.ItemStockByBatchId == 0 ? "Add Batch" : "Update Batch")</MudButton>
                         </MudItem>
@@ -126,7 +129,7 @@
                     </HeaderContent>
                     <RowTemplate>
                         <MudTd DataLabel="Batch">@context.BatchNo</MudTd>
-                        <MudTd DataLabel="Qty">@context.Quantity</MudTd>
+                        <MudTd DataLabel="Qty">@context.Quantity @context.UnitName</MudTd>
                         <MudTd DataLabel="Warehouse">@context.WarehouseName</MudTd>
                         <MudTd DataLabel="Expiry">@context.ExpiryDate?.ToShortDateString()</MudTd>
                         <MudTd Style="text-align: center;">
@@ -134,6 +137,49 @@
                             <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => DeleteBatch(context))" />
                         </MudTd>
                     </RowTemplate>
+                </MudTable>
+            </MudStack>
+        </MudTabPanel>
+
+        <MudTabPanel Text="Recipe (BOM)" Icon="@Icons.Material.Filled.ReceiptLong" Disabled="Id == 0">
+            <MudStack Spacing="4" Class="pt-6">
+                <MudStack Row="true" Spacing="4" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-3">
+                    <MudText Typo="Typo.h6">Product Recipes</MudText>
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="CreateNewRecipe">
+                        Create New Recipe
+                    </MudButton>
+                </MudStack>
+
+                <MudTable Items="_recipes" Hover="true" Dense="true" Striped="true" Bordered="true" Elevation="0" Loading="_loadingRecipes">
+                    <HeaderContent>
+                        <MudTh>Recipe Name</MudTh>
+                        <MudTh Style="text-align: right;">Yield Qty</MudTh>
+                        <MudTh>Unit</MudTh>
+                        <MudTh Style="text-align: right;">Extra Expenses</MudTh>
+                        <MudTh Style="text-align: center;">Status</MudTh>
+                        <MudTh Style="text-align: center; width: 140px;">Action</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd DataLabel="Recipe Name">@context.BomName</MudTd>
+                        <MudTd DataLabel="Yield" Style="text-align: right;">@context.Quantity</MudTd>
+                        <MudTd DataLabel="Unit">@context.UnitName</MudTd>
+                        <MudTd DataLabel="Expenses" Style="text-align: right;">@context.ExtraExpensesPerPiece.ToString("N2")</MudTd>
+                        <MudTd DataLabel="Status" Style="text-align: center;">
+                            <MudChip T="string" Color="@(context.IsActive ? Color.Success : Color.Error)" Size="Size.Small">
+                                @(context.IsActive ? "Active" : "Inactive")
+                            </MudChip>
+                        </MudTd>
+                        <MudTd DataLabel="Action" Style="text-align: center;">
+                            <MudStack Row="true" Justify="Justify.Center" Spacing="1">
+                                <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Size="Size.Small" Title="Edit Recipe" OnClick="@(() => EditRecipe(context.BomId))" />
+                                <MudIconButton Icon="@Icons.Material.Filled.ContentCopy" Color="Color.Info" Size="Size.Small" Title="Copy Recipe" OnClick="@(() => CopyRecipe(context.BomId))" />
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" Title="Delete Recipe" OnClick="@(() => DeleteRecipe(context))" />
+                            </MudStack>
+                        </MudTd>
+                    </RowTemplate>
+                    <NoRecordsContent>
+                        <MudText Class="pa-4">No Recipes defined for this semi-finished product yet.</MudText>
+                    </NoRecordsContent>
                 </MudTable>
             </MudStack>
         </MudTabPanel>
@@ -165,6 +211,8 @@
     private List<StatusDto> _statuses = new();
     private List<WarehouseLookupDto> _warehouses = new();
     private List<SemiFinishedProductBatchDto> _batches = new();
+    private List<BomDto> _recipes = new();
+    private bool _loadingRecipes;
     private List<ItemTypeDto> _types = new();
 
     private bool _savingGeneral;
@@ -260,10 +308,64 @@
             if (details != null) _details = details;
 
             _batches = (await ApiClient.GetSemiFinishedProductBatchesAsync(Id)).ToList();
+            await LoadRecipesAsync();
         }
         catch (Exception ex)
         {
             Snackbar.Add($"Error loading item data: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task LoadRecipesAsync()
+    {
+        if (Id <= 0) return;
+        _loadingRecipes = true;
+        try
+        {
+            var result = await ApiClient.GetBomsAsync(new BomListRequest
+            {
+                ItemId = Id,
+                ItemTypeId = (int)MasterItemType.SemiFinished,
+                PageNumber = 1,
+                PageSize = 1000
+            });
+            _recipes = result.Items.Where(x => x.ItemId == Id && x.ItemTypeId == (long)MasterItemType.SemiFinished).ToList();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error loading Recipes: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _loadingRecipes = false;
+        }
+    }
+
+    private void CreateNewRecipe() => Navigation.NavigateTo($"/store/bom/new?itemId={Id}&itemTypeId=2&returnUrl=/store/semi-finished-products/edit/{Id}");
+    private void EditRecipe(long bomId) => Navigation.NavigateTo($"/store/bom/edit/{bomId}?returnUrl=/store/semi-finished-products/edit/{Id}");
+    private void CopyRecipe(long bomId) => Navigation.NavigateTo($"/store/bom/new?copyFromId={bomId}&itemId={Id}&itemTypeId=2&returnUrl=/store/semi-finished-products/edit/{Id}");
+
+    private async Task DeleteRecipe(BomDto recipe)
+    {
+        var confirmed = await JS.InvokeAsync<bool>("confirm", $"Are you sure you want to delete Recipe '{recipe.BomName}'?");
+        if (!confirmed) return;
+
+        try
+        {
+            var success = await ApiClient.DeleteBomAsync(recipe.BomId, SessionState.CurrentUserAuditName ?? "System");
+            if (success)
+            {
+                Snackbar.Add("Recipe deleted successfully.", Severity.Success);
+                await LoadRecipesAsync();
+            }
+            else
+            {
+                Snackbar.Add("Cannot delete Recipe because it is currently linked to production entries or other records.", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error deleting Recipe: {ex.Message}", Severity.Error);
         }
     }
 
@@ -419,7 +521,10 @@
         {
             _batchModel.ItemId = Id;
             _batchModel.CreatedBy = SessionState.CurrentUserAuditName ?? "System";
-            _batchModel.UnitId = _model.PurchaseUnit > 0 ? (int)_model.PurchaseUnit : (int)(_units.FirstOrDefault()?.UnitId ?? 0);
+            if (_batchModel.UnitId <= 0)
+            {
+                _batchModel.UnitId = _model.PurchaseUnit > 0 ? (int)_model.PurchaseUnit : (int)(_units.FirstOrDefault()?.UnitId ?? 0);
+            }
 
             await ApiClient.SaveSemiFinishedProductBatchAsync(_batchModel);
             Snackbar.Add("Batch saved successfully.", Severity.Success);
@@ -454,7 +559,10 @@
 
     private void ResetBatchForm()
     {
-        _batchModel = new SemiFinishedProductBatchDto();
+        _batchModel = new SemiFinishedProductBatchDto
+        {
+            UnitId = _model.PurchaseUnit > 0 ? (int)_model.PurchaseUnit : (int)(_units.FirstOrDefault()?.UnitId ?? 0)
+        };
     }
 
     private async Task DeleteBatch(SemiFinishedProductBatchDto batch)

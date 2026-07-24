@@ -418,7 +418,7 @@ public sealed class StoreApiClient : ApiClientBase
             RecordPerPage = request.PageSize,
             SortColumn = request.SortColumn,
             SortType = request.SortType
-        }, ("searchTerm", request.SearchTerm), ("itemTypeId", request.ItemTypeId?.ToString())), cancellationToken)
+        }, ("searchTerm", request.SearchTerm), ("itemTypeId", request.ItemTypeId?.ToString()), ("itemId", request.ItemId?.ToString())), cancellationToken)
            ?? new PagedResult<BomDto>();
 
     public async Task<BomDto?> GetBomByIdAsync(long id, CancellationToken cancellationToken = default)

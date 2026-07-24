@@ -1,4 +1,4 @@
-﻿@page "/store/bom"
+@page "/store/bom"
 @page "/admin/bom"
 @page "/store/w_masterbomitemslist"
 @page "/admin/w_masterbomitemslist"
@@ -11,22 +11,22 @@
 @inject AppSessionState SessionState
 @inject IJSRuntime JS
 
-<PageTitle>Bill of Materials (BOM)</PageTitle>
+<PageTitle>Recipe (BOM)</PageTitle>
 
 <MudPaper Class="pa-4">
     <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
-        <MudText Typo="Typo.h5">Bill of Materials (BOM)</MudText>
+        <MudText Typo="Typo.h5">Recipes (BOM)</MudText>
         <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OnAddNew" Disabled="!_canInsert">
-            Create New BOM
+            Create New Recipe
         </MudButton>
     </MudStack>
 
     <MudGrid Class="mb-4">
         <MudItem xs="12" md="6">
-            <MudTextField T="string" Value="@_search" ValueChanged="@OnSearchTextChanged" Placeholder="Search by BOM name or Product..." Variant="Variant.Outlined" Immediate="true" Clearable="true" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" OnClearButtonClick="OnSearch" />
+            <MudTextField T="string" Value="@_search" ValueChanged="@OnSearchTextChanged" Placeholder="Search by Recipe name or Product..." Variant="Variant.Outlined" Immediate="true" Clearable="true" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" OnClearButtonClick="OnSearch" />
         </MudItem>
         <MudItem xs="12" md="3">
-            <MudSelect SearchBox="true" T="int?" @bind-Value="_itemTypeId" Label="Product Type" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter" Clearable="true">
+            <MudSelect SearchBox="true" T="int?" Value="@_itemTypeId" ValueChanged="OnItemTypeFilterChanged" Label="Product Type" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter" Clearable="true">
                 <MudSelectItem T="int?" Value="null">All Types</MudSelectItem>
                 <MudSelectItem T="int?" Value="1">Finished Products</MudSelectItem>
                 <MudSelectItem T="int?" Value="2">Semi-Finished</MudSelectItem>
@@ -39,7 +39,7 @@
 
     <MudTable RowsPerPage="25" T="BomDto" @ref="_table" ServerData="LoadServerDataAsync" Hover="true" Dense="true" Striped="true" Bordered="true" Loading="_loading">
         <HeaderContent>
-            <MudTh><MudTableSortLabel SortLabel="BomName" T="BomDto">BOM Name</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel SortLabel="BomName" T="BomDto">Recipe Name</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel SortLabel="ItemName" T="BomDto">Parent Product</MudTableSortLabel></MudTh>
             <MudTh Style="text-align: right;"><MudTableSortLabel SortLabel="Quantity" T="BomDto">Yield Qty</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel SortLabel="UnitId" T="BomDto">Unit</MudTableSortLabel></MudTh>
@@ -48,7 +48,7 @@
             <MudTh Style="text-align: center; width: 120px;">Action</MudTh>
         </HeaderContent>
         <RowTemplate>
-            <MudTd DataLabel="BOM Name">@context.BomName</MudTd>
+            <MudTd DataLabel="Recipe Name">@context.BomName</MudTd>
             <MudTd DataLabel="Parent">@context.ItemName</MudTd>
             <MudTd DataLabel="Yield" Style="text-align: right;">@context.Quantity</MudTd>
             <MudTd DataLabel="Unit">@context.UnitName</MudTd>
@@ -67,17 +67,21 @@
             <MudTablePager />
         </PagerContent>
         <NoRecordsContent>
-            <MudText Class="pa-4">No BOMs found matching your criteria.</MudText>
+            <MudText Class="pa-4">No Recipes found matching your criteria.</MudText>
         </NoRecordsContent>
     </MudTable>
 </MudPaper>
 
 @code {
-    private List<BomDto>? _cachedItems;
-
     private async Task OnSearchTextChanged(string text)
     {
         _search = text;
+        if (_table is not null) await _table.ReloadServerData();
+    }
+
+    private async Task OnItemTypeFilterChanged(int? typeId)
+    {
+        _itemTypeId = typeId;
         if (_table is not null) await _table.ReloadServerData();
     }
 
@@ -110,8 +114,6 @@
             _canUpdate = perms.IsUpdate;
             _canDelete = perms.IsDelete;
         }
-        
-        Console.WriteLine($"[RBAC] BOM Permissions: Path='{path}', IsAdmin={SessionState.IsAdmin}, Insert={_canInsert}, Update={_canUpdate}, Delete={_canDelete}");
     }
 
     private async Task<TableData<BomDto>> LoadServerDataAsync(TableState state, CancellationToken cancellationToken)
@@ -119,22 +121,20 @@
         _loading = true;
         try
         {
-            if (_cachedItems == null)
+            var result = await ApiClient.GetBomsAsync(new BomListRequest
             {
-                var result = await ApiClient.GetBomsAsync(new BomListRequest
-                                                                            {
-                                                                                SearchTerm = _search,
-                                                                                ItemTypeId = _itemTypeId,
-                                                                                PageNumber = state.Page + 1,
-                                                                                PageSize = 100000,
-                                                                                SortColumn = state.SortLabel,
-                                                                                }, cancellationToken);
-                _cachedItems = result.Items.ToList();
-            }
+                SearchTerm = _search,
+                ItemTypeId = _itemTypeId,
+                PageNumber = state.Page + 1,
+                PageSize = 100000,
+                SortColumn = state.SortLabel,
+            }, cancellationToken);
 
-            var filtered = _cachedItems.FilterAllColumns(_search);
-            var sorted = filtered.SortAllColumns(state.SortLabel ?? "1", state.SortDirection == SortDirection.Ascending ? "ASC" : "DESC");
-            var itemsList = sorted.ToList();
+            var itemsList = result.Items.ToList();
+            if (!string.IsNullOrWhiteSpace(_search))
+            {
+                itemsList = itemsList.FilterAllColumns(_search).ToList();
+            }
 
             return new TableData<BomDto>
             {
@@ -144,7 +144,7 @@
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Error loading BOMs: {ex.Message}", Severity.Error);
+            Snackbar.Add($"Error loading Recipes: {ex.Message}", Severity.Error);
             return new TableData<BomDto> { Items = Array.Empty<BomDto>(), TotalItems = 0 };
         }
         finally
@@ -164,7 +164,7 @@
 
     private async Task OnDelete(BomDto item)
     {
-        var confirmed = await JS.InvokeAsync<bool>("confirm", $"Are you sure you want to delete BOM '{item.BomName}'?");
+        var confirmed = await JS.InvokeAsync<bool>("confirm", $"Are you sure you want to delete Recipe '{item.BomName}'?");
         if (!confirmed) return;
 
         try
@@ -172,17 +172,17 @@
             var success = await ApiClient.DeleteBomAsync(item.BomId, SessionState.CurrentUserAuditName ?? "System");
             if (success)
             {
-                Snackbar.Add("BOM deleted successfully.", Severity.Success);
+                Snackbar.Add("Recipe deleted successfully.", Severity.Success);
                 await OnSearch();
             }
             else
             {
-                Snackbar.Add("Cannot delete BOM because it is currently linked to production entries or other records.", Severity.Error);
+                Snackbar.Add("Cannot delete Recipe because it is currently linked to production entries or other records.", Severity.Error);
             }
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Error deleting BOM: {ex.Message}", Severity.Error);
+            Snackbar.Add($"Error deleting Recipe: {ex.Message}", Severity.Error);
         }
     }
 
