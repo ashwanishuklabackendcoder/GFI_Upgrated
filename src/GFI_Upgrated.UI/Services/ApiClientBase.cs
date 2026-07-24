@@ -107,16 +107,55 @@ public abstract class ApiClientBase
         {
             try
             {
-                var envelope = JsonSerializer.Deserialize<ApiEnvelope<object>>(payload, JsonOptions);
-                if (envelope != null && !string.IsNullOrWhiteSpace(envelope.Message))
+                using var doc = JsonDocument.Parse(payload);
+                var root = doc.RootElement;
+
+                // 1. Standard ApiEnvelope check
+                if (root.TryGetProperty("message", out var msgProp) && !string.IsNullOrWhiteSpace(msgProp.GetString()))
                 {
-                    throw new ApiException(envelope.Message);
+                    throw new ApiException(msgProp.GetString()!);
                 }
+
+                // 2. ASP.NET Core ValidationProblemDetails ("errors": { "Field": ["Error 1"] })
+                if (root.TryGetProperty("errors", out var errorsProp) && errorsProp.ValueKind == JsonValueKind.Object)
+                {
+                    var errorMessages = new List<string>();
+                    foreach (var prop in errorsProp.EnumerateObject())
+                    {
+                        if (prop.Value.ValueKind == JsonValueKind.Array)
+                        {
+                            foreach (var err in prop.Value.EnumerateArray())
+                            {
+                                if (!string.IsNullOrWhiteSpace(err.GetString()))
+                                    errorMessages.Add(err.GetString()!);
+                            }
+                        }
+                    }
+                    if (errorMessages.Any())
+                    {
+                        throw new ApiException(string.Join("; ", errorMessages));
+                    }
+                }
+
+                // 3. Fallback title or detail
+                if (root.TryGetProperty("title", out var titleProp) && !string.IsNullOrWhiteSpace(titleProp.GetString()))
+                {
+                    throw new ApiException(titleProp.GetString()!);
+                }
+            }
+            catch (ApiException)
+            {
+                throw;
             }
             catch (JsonException)
             {
-                // Payload wasn't our standard ApiEnvelope
+                // Payload wasn't JSON
             }
+        }
+
+        if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+        {
+            throw new ApiException("Your session has expired or is unauthorized. Please log in again.");
         }
 
         throw new ApiException($"An unexpected error occurred (HTTP {(int)response.StatusCode}).");
