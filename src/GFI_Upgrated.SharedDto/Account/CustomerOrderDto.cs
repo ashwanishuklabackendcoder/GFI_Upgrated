@@ -27,7 +27,7 @@ namespace GFI_Upgrated.SharedDto.Account
         public long OrderItemId { get; set; } // Maps to CustomerOrderDetailsID
         public long OrderId { get; set; }
         public long ItemId { get; set; }
-        public int Qty { get; set; }
+        public double Qty { get; set; }
         public string? Remarks { get; set; }
         public bool? IsComplete { get; set; }
 
