@@ -322,6 +322,7 @@ public sealed class RawMaterialRepository : IRawMaterialRepository
                 UnitId = row.SafeInt("UnitId"),
                 UnitName = row.SafeString("UnitName"),
                 BatchNo = row.SafeString("BatchNo"),
+                Amount = row.SafeDouble("Amount"),
                 ExpiryDate = row.SafeDateTime("ExpiryDate")
             });
         }
@@ -341,9 +342,10 @@ public sealed class RawMaterialRepository : IRawMaterialRepository
             new SqlParameter("@UnitId", SqlDbType.BigInt) { Value = request.UnitId },
             new SqlParameter("@BatchNo", SqlDbType.NVarChar, 100) { Value = request.BatchNo },
             new SqlParameter("@ExpiryDate", SqlDbType.DateTime) { Value = (object?)request.ExpiryDate ?? DBNull.Value },
-            new SqlParameter("@StockById", SqlDbType.Int) { Value = 1 }, // Default to Master Item stock
+            new SqlParameter("@StockById", SqlDbType.Int) { Value = 3 }, // Raw Material stock type
             new SqlParameter("@CreatedBy", SqlDbType.NVarChar, 100) { Value = request.CreatedBy },
             new SqlParameter("@DeletedBatchIds", SqlDbType.NVarChar, -1) { Value = (object?)deletedBatchIds ?? DBNull.Value },
+            new SqlParameter("@Amount", SqlDbType.Float) { Value = request.Amount },
             new SqlParameter("@ReturnVal", SqlDbType.Int) { Direction = ParameterDirection.Output }
         };
 

@@ -161,6 +161,9 @@
                             <MudNumericField @bind-Value="_batchModel.Quantity" Label="Quantity" Variant="Variant.Outlined" Min="0" />
                         </MudItem>
                         <MudItem xs="12" md="4">
+                            <MudNumericField @bind-Value="_batchModel.Amount" Label="Amount (SRD)" Variant="Variant.Outlined" Min="0" Adornment="Adornment.Start" AdornmentText="SRD" Format="N2" />
+                        </MudItem>
+                        <MudItem xs="12" md="4">
                             <MudAutocomplete MaxItems="1000" T="WarehouseLookupDto" Label="Warehouse" Value="@(_warehouses.FirstOrDefault(x => x.WarehouseId == _batchModel.WarehouseId))" ValueChanged="@((WarehouseLookupDto val) => { _batchModel.WarehouseId = (int)(val?.WarehouseId ?? 0); })" SearchFunc="@SearchWarehouses" ToStringFunc="@(x => x?.WarehouseName ?? "")" Variant="Variant.Outlined" Required="true" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
                         </MudItem>
                         <MudItem xs="12" md="4">
@@ -180,7 +183,7 @@
                     <HeaderContent>
                         <MudTh>Batch No</MudTh>
                         <MudTh>Quantity</MudTh>
-                        @* <MudTh>Unit</MudTh> *@
+                        <MudTh>Amount (SRD)</MudTh>
                         <MudTh>Warehouse</MudTh>
                         <MudTh>Expiry</MudTh>
                         <MudTh Style="text-align: center;">Action</MudTh>
@@ -188,7 +191,7 @@
                     <RowTemplate>
                         <MudTd DataLabel="Batch">@context.BatchNo</MudTd>
                         <MudTd DataLabel="Qty">@context.Quantity @context.UnitName</MudTd>
-                        @* <MudTd DataLabel="Unit">@context.UnitName</MudTd> *@
+                        <MudTd DataLabel="Amount">@context.Amount.ToString("N2") SRD</MudTd>
                         <MudTd DataLabel="Warehouse">@context.WarehouseName</MudTd>
                         <MudTd DataLabel="Expiry">@context.ExpiryDate?.ToShortDateString()</MudTd>
                         <MudTd Style="text-align: center;">
@@ -619,6 +622,7 @@
             Quantity = batch.Quantity,
             UnitId = batch.UnitId,
             BatchNo = batch.BatchNo,
+            Amount = batch.Amount,
             ExpiryDate = batch.ExpiryDate
         };
     }
