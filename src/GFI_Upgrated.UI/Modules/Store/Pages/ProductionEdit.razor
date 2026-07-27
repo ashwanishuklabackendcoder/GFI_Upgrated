@@ -193,7 +193,7 @@
 
             await Task.WhenAll(bomsTask, skusTask, kettlesTask, unitsTask, countriesTask, whTask, staffTask);
 
-            _boms = (await bomsTask).Where(b => b.ItemTypeId == (long)MasterItemType.FinishedProduct).ToList();
+            _boms = (await bomsTask).Where(b => b.ItemTypeId == (long)MasterItemType.FinishedProduct || b.ItemTypeId == (long)MasterItemType.SemiFinished).ToList();
             _skus = (await skusTask).ToList();
             _kettles = (await kettlesTask).ToList();
             _units = (await unitsTask).ToList();

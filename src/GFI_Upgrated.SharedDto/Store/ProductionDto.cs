@@ -33,7 +33,7 @@ public sealed class ProductionDto
     public long ProductionId { get; set; }
     public long BomId { get; set; }
     public string? BomName { get; set; }
-    public long BomQty { get; set; }
+    public double BomQty { get; set; }
     
     public string? CookingDate { get; set; }
     public string? ExpiryDate { get; set; }
@@ -75,8 +75,8 @@ public sealed class SaveProductionRequest
     [Required(ErrorMessage = "BOM is required")]
     public long BomId { get; set; }
     
-    [Range(1, long.MaxValue, ErrorMessage = "BOM Quantity must be at least 1")]
-    public long BomQty { get; set; }
+    [Range(0.0001, double.MaxValue, ErrorMessage = "BOM Quantity must be greater than 0")]
+    public double BomQty { get; set; }
     
     [Required(ErrorMessage = "Cooking Date is required")]
     public DateTime? CookingDate { get; set; }
