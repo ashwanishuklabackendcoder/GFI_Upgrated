@@ -31,7 +31,7 @@
 
     <MudGrid Class="mb-4">
         <MudItem xs="12" md="5">
-            <MudAutocomplete MaxItems="1000" T="UserDto" Label="Login" Variant="Variant.Outlined" 
+            <MudAutocomplete Clearable="true"      MaxItems="1000" T="UserDto" Label="Login" Variant="Variant.Outlined" 
                              Value="@(_users.FirstOrDefault(x => x.LoginId == _selectedLoginId))" 
                              ValueChanged="@(async (UserDto val) => await OnLoginChangedAsync(val?.LoginId ?? 0))" 
                              Disabled="_busy"
@@ -48,9 +48,7 @@
                 else
                 {
                     <MudText Typo="Typo.subtitle1" Class="fw-semibold">@FormatUser(_selectedUser)</MudText>
-                    <MudText Typo="Typo.body2">Login ID: @_selectedUser.LoginId</MudText>
-                    <MudText Typo="Typo.body2">Staff ID: @_selectedUser.StaffId</MudText>
-                    <MudText Typo="Typo.body2">Status: @(_selectedUser.IsActive ? "Active" : "Inactive")</MudText>
+
                 }
             </MudPaper>
         </MudItem>
@@ -62,7 +60,7 @@
             <MudTh>Default</MudTh>
             <MudTh>Role</MudTh>
             <MudTh>Module</MudTh>
-            <MudTh>Status</MudTh>
+
         </HeaderContent>
         <RowTemplate>
             <MudTd DataLabel="Assign">
@@ -82,7 +80,7 @@
             </MudTd>
             <MudTd DataLabel="Role">@context.RoleName</MudTd>
             <MudTd DataLabel="Module">@context.ModuleName</MudTd>
-            <MudTd DataLabel="Status">@context.StatusText</MudTd>
+
         </RowTemplate>
     </MudTable>
 </MudPaper>

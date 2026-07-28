@@ -24,7 +24,7 @@
                     <MudTextField @bind-Value="_editor.SkuName" Label="SKU Name" Variant="Variant.Outlined" />
                 </MudItem>
                 <MudItem xs="12" md="6">
-                    <MudAutocomplete MaxItems="1000" T="UnitLookupDto" Label="Unit" Value="@(_units.FirstOrDefault(x => x.UnitId == _editor.UnitId))" ValueChanged="@((UnitLookupDto val) => { _editor.UnitId = val?.UnitId ?? 0; })" SearchFunc="@SearchUnits" ToStringFunc="@(x => x?.UnitName ?? "")" Variant="Variant.Outlined" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
+                    <MudAutocomplete Clearable="true"      MaxItems="1000" T="UnitLookupDto" Label="Unit" Value="@(_units.FirstOrDefault(x => x.UnitId == _editor.UnitId))" ValueChanged="@((UnitLookupDto val) => { _editor.UnitId = val?.UnitId ?? 0; })" SearchFunc="@SearchUnits" ToStringFunc="@(x => x?.UnitName ?? "")" Variant="Variant.Outlined" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
                 </MudItem>
                 <MudItem xs="12" md="3">
                     <MudNumericField @bind-Value="_editor.Quantity" Label="Content" Variant="Variant.Outlined" />
@@ -124,7 +124,11 @@
 
     private void OnCancel() => NavigationManager.NavigateTo("/store/w_masterskuaddlist");
 
-    private async Task<IEnumerable<UnitLookupDto>> SearchUnits(string value, CancellationToken token) { if (string.IsNullOrEmpty(value)) return _units; return _units.Where(x => x.UnitName.Contains(value, StringComparison.OrdinalIgnoreCase)); }
+    private async Task<IEnumerable<UnitLookupDto>> SearchUnits(string value, CancellationToken token)
+    {
+        if (string.IsNullOrEmpty(value) || _units.Any(x => (x.UnitName ?? "").Equals(value, StringComparison.OrdinalIgnoreCase))) return _units;
+        return _units.Where(x => (x.UnitName ?? "").Contains(value, StringComparison.OrdinalIgnoreCase));
+    }
 }
 
 

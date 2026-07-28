@@ -566,7 +566,7 @@ public sealed class StoreApiClient : ApiClientBase
         if (request.StockID.HasValue) query.Add($"StockID={request.StockID}");
         if (request.ItemID.HasValue) query.Add($"ItemID={request.ItemID}");
         if (request.WarehouseID.HasValue) query.Add($"WarehouseID={request.WarehouseID}");
-        if (request.UnitId.HasValue) query.Add($"UnitId={request.UnitId}");
+        if (request.ItemTypeId.HasValue) query.Add($"ItemTypeId={request.ItemTypeId}");
         if (!string.IsNullOrWhiteSpace(request.CreatedBy)) query.Add($"CreatedBy={Uri.EscapeDataString(request.CreatedBy)}");
 
         return await GetEnvelopeAsync<PagedResult<ItemStockReportDto>>($"api/store/reports/item-stock?{string.Join('&', query)}", cancellationToken)

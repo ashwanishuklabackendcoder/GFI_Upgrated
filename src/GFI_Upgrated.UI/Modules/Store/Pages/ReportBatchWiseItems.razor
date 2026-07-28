@@ -32,9 +32,9 @@
                           Variant="Variant.Outlined" Placeholder="Enter batch number..." Clearable="true" />
         </MudItem>
         <MudItem xs="12" md="4">
-            <MudAutocomplete MaxItems="1000" T="RawMaterialDto" Label="Select Item" Value="_selectedItem" ValueChanged="OnItemChanged"
+            <MudAutocomplete Clearable="true"      MaxItems="1000" T="RawMaterialDto" Label="Select Item" Value="_selectedItem" ValueChanged="OnItemChanged"
                              SearchFunc="@SearchItems" ToStringFunc="@(i => i?.ItemName ?? "")" Variant="Variant.Outlined" 
-                             Clearable="true" Placeholder="Search items..." AdornmentIcon="@Icons.Material.Filled.Search" />
+                              Placeholder="Search items..." AdornmentIcon="@Icons.Material.Filled.Search" />
         </MudItem>
         <MudItem xs="12" md="4" Class="d-flex align-end">
             <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="OnSearch" FullWidth="true" Class="py-3">

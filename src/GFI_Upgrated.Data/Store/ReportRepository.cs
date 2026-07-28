@@ -27,7 +27,7 @@ public sealed class ReportRepository : IReportRepository
             new("@SortColumn", SqlDbType.VarChar, 20) { Value = request.SortColumn ?? "StockID" },
             new("@ItemID", SqlDbType.BigInt) { Value = request.ItemID ?? 0 },
             new("@WarehouseID", SqlDbType.BigInt) { Value = request.WarehouseID ?? 0 },
-            new("@UnitId", SqlDbType.BigInt) { Value = request.UnitId ?? 0 }
+            new("@ItemTypeId", SqlDbType.Int) { Value = request.ItemTypeId ?? 0 }
         };
 
         try
@@ -145,7 +145,9 @@ public sealed class ReportRepository : IReportRepository
         PurchasedQuantity = row.SafeDouble("PurchasedQuantity"),
         IssuedQuantity = row.SafeDouble("IssuedQuantity"),
         RemovedQuantity = row.SafeDouble("RemovedQuantity"),
-        FinalStock = row.SafeDouble("FinalStock")
+        FinalStock = row.SafeDouble("FinalStock"),
+        UnitId = row.SafeLong("UnitId"),
+        TotalValue = row.SafeDouble("TotalValue")
     };
 
     private BatchWiseItemDto MapBatchWiseItem(DataRow row) => new()

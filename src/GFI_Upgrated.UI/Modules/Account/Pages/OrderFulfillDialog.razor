@@ -20,7 +20,7 @@
             </HeaderContent>
             <RowTemplate>
                 <MudTd DataLabel="Batch Number">
-                    <MudAutocomplete MaxItems="1000" T="ItemStockByBatchForBOMDto" Value="@(AvailableBatches.FirstOrDefault(x => x.ItemStockByBatchID == context.BatchId))" ValueChanged="@((ItemStockByBatchForBOMDto val) => { context.BatchId = val?.ItemStockByBatchID ?? 0; })" SearchFunc="@SearchBatches" ToStringFunc="@(x => x == null ? "" : $"{x.BatchNo} (Qty: {x.FinalQuantityLeft})")" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" Variant="Variant.Outlined" Margin="Margin.Dense" Placeholder="Select Batch" />
+                    <MudAutocomplete Clearable="true"      MaxItems="1000" T="ItemStockByBatchForBOMDto" Value="@(AvailableBatches.FirstOrDefault(x => x.ItemStockByBatchID == context.BatchId))" ValueChanged="@((ItemStockByBatchForBOMDto val) => { context.BatchId = val?.ItemStockByBatchID ?? 0; })" SearchFunc="@SearchBatches" ToStringFunc="@(x => x == null ? "" : $"{x.BatchNo} (Qty: {x.FinalQuantityLeft})")" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" Variant="Variant.Outlined" Margin="Margin.Dense" Placeholder="Select Batch" />
                 </MudTd>
                 <MudTd DataLabel="Description">
                     <MudTextField @bind-Value="context.Description" Variant="Variant.Outlined" Margin="Margin.Dense" />
@@ -169,7 +169,7 @@
 
     private async Task<IEnumerable<ItemStockByBatchForBOMDto>> SearchBatches(string value, CancellationToken token)
     {
-        if (string.IsNullOrEmpty(value)) return AvailableBatches;
+        if (string.IsNullOrEmpty(value) || AvailableBatches.Any(x => (x.BatchNo ?? "").Equals(value, StringComparison.OrdinalIgnoreCase))) return AvailableBatches;
         return AvailableBatches.Where(x => (x.BatchNo ?? "").Contains(value, StringComparison.OrdinalIgnoreCase));
     }
 }

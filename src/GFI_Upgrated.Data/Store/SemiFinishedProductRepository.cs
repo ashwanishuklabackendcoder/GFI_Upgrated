@@ -326,6 +326,7 @@ public sealed class SemiFinishedProductRepository : ISemiFinishedProductReposito
                 UnitId = row.SafeInt("UnitId"),
                 UnitName = row.SafeString("UnitName"),
                 BatchNo = row.SafeString("BatchNo"),
+                Amount = row.SafeDouble("Amount"),
                 ExpiryDate = row.SafeDateTime("ExpiryDate"),
                 CreatedBy = row.SafeString("CreatedBy")
             });
@@ -349,6 +350,7 @@ public sealed class SemiFinishedProductRepository : ISemiFinishedProductReposito
             new SqlParameter("@StockById", SqlDbType.Int) { Value = 1 }, // Default to Master Item stock
             new SqlParameter("@CreatedBy", SqlDbType.NVarChar, 100) { Value = request.CreatedBy },
             new SqlParameter("@DeletedBatchIds", SqlDbType.NVarChar, -1) { Value = (object?)deletedBatchIds ?? DBNull.Value },
+            new SqlParameter("@Amount", SqlDbType.Float) { Value = request.Amount },
             new SqlParameter("@ReturnVal", SqlDbType.Int) { Direction = ParameterDirection.Output }
         };
 

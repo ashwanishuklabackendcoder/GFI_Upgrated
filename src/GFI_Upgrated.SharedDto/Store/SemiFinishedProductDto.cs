@@ -98,6 +98,7 @@ public class SemiFinishedProductBatchDto
     public int UnitId { get; set; }
     public string? UnitName { get; set; }
     public string? BatchNo { get; set; }
+    public double Amount { get; set; }
     public DateTime? ExpiryDate { get; set; }
     public string? CreatedBy { get; set; }
 }

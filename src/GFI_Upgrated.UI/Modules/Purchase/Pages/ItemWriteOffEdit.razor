@@ -25,7 +25,7 @@
         <DataAnnotationsValidator />
         <MudGrid>
             <MudItem xs="12" md="6">
-                <MudAutocomplete MaxItems="1000" T="WriteOffBatchLookupDto" Label="Item (Batch)" @bind-Value="_selectedBatch" SearchFunc="@SearchBatches"
+                <MudAutocomplete Clearable="true"      MaxItems="1000" T="WriteOffBatchLookupDto" Label="Item (Batch)" @bind-Value="_selectedBatch" SearchFunc="@SearchBatches"
                                  ToStringFunc="@(b => b == null ? "" : $"{b.ItemName} - Batch: {b.BatchNo} (Available: {b.FinalQuantityLeft} {b.UnitName})")" 
                                  Variant="Variant.Outlined" Required="true" />
             </MudItem>
@@ -44,11 +44,11 @@
             </MudItem>
 
             <MudItem xs="12" md="3">
-                <MudDatePicker Label="Removal Date" @bind-Date="_model.RemovalDate" Variant="Variant.Outlined" Editable="true" Required="true" />
+                <MudDatePicker Editable="true"  DateFormat="dd/MM/yyyy" Placeholder="dd/MM/yyyy"           Label="Removal Date (DD/MM/YYYY)" @bind-Date="_model.RemovalDate" Variant="Variant.Outlined"  Required="true" />
             </MudItem>
 
             <MudItem xs="12" md="3">
-                <MudAutocomplete MaxItems="1000" T="LookupItemDto" Label="Reason" Variant="Variant.Outlined" Required="true"
+                <MudAutocomplete Clearable="true"      MaxItems="1000" T="LookupItemDto" Label="Reason" Variant="Variant.Outlined" Required="true"
                                  Value="@(_reasons.FirstOrDefault(x => x.Value == _model.ReasonFor))"
                                  ValueChanged="@((LookupItemDto val) => { _model.ReasonFor = val?.Value; })"
                                  SearchFunc="@SearchReasons"
@@ -155,8 +155,8 @@
 
     private async Task<IEnumerable<LookupItemDto>> SearchReasons(string value, CancellationToken token)
     {
-        if (string.IsNullOrEmpty(value)) return _reasons;
-        return _reasons.Where(x => x.Text.Contains(value, StringComparison.OrdinalIgnoreCase));
+        if (string.IsNullOrEmpty(value) || _reasons.Any(x => (x.Text ?? "").Equals(value, StringComparison.OrdinalIgnoreCase))) return _reasons;
+        return _reasons.Where(x => (x.Text ?? "").Contains(value, StringComparison.OrdinalIgnoreCase));
     }
 
     private string? ValidateQuantity(double qty)
