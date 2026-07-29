@@ -40,7 +40,7 @@
 
         <MudGrid>
             <MudItem xs="12" md="4">
-                <MudAutocomplete MaxItems="1000" T="LookupItemDto" Label="@LocalizationState.Text("Admin.Staff.Edit.Salutation", "Salutation")" Variant="Variant.Outlined"
+                <MudAutocomplete Clearable="true"      MaxItems="1000" T="LookupItemDto" Label="@LocalizationState.Text("Admin.Staff.Edit.Salutation", "Salutation")" Variant="Variant.Outlined"
                                  Value="@(_salutations.FirstOrDefault(x => x.Value.ToString() == _editor.StaffSalutation))"
                                  ValueChanged="@((LookupItemDto val) => { _editor.StaffSalutation = val?.Value.ToString() ?? string.Empty; })"
                                  SearchFunc="@SearchSalutations"
@@ -61,7 +61,7 @@
                 <MudTextField @bind-Value="_editor.NIN" Label="@LocalizationState.Text("Admin.Staff.Edit.NIN", "NIN")" Variant="Variant.Outlined" />
             </MudItem>
             <MudItem xs="12" md="4">
-                <MudDatePicker @bind-Date="_editor.DOB" Label="@LocalizationState.Text("Admin.Staff.Edit.Dob", "D.O.B")" Variant="Variant.Outlined" DateFormat="dd/MM/yyyy" />
+                <MudDatePicker Editable="true"  DateFormat="dd/MM/yyyy" Placeholder="dd/MM/yyyy"  @bind-Date="_editor.DOB" Label="@(LocalizationState.Text("Admin.Staff.Edit.Dob", "D.O.B") + " (DD/MM/YYYY)")" Variant="Variant.Outlined"  />
             </MudItem>
 
             <MudItem xs="12" md="4">
@@ -72,7 +72,7 @@
             </MudItem>
 
             <MudItem xs="12" md="4">
-                <MudAutocomplete MaxItems="1000" T="LookupItemDto" Label="@LocalizationState.Text("Admin.Staff.Edit.Gender", "Gender")" Variant="Variant.Outlined"
+                <MudAutocomplete Clearable="true"      MaxItems="1000" T="LookupItemDto" Label="@LocalizationState.Text("Admin.Staff.Edit.Gender", "Gender")" Variant="Variant.Outlined"
                                  Value="@(_genders.FirstOrDefault(x => x.Value.ToString() == _editor.Gender.ToString()))"
                                  ValueChanged="@((LookupItemDto val) => { _editor.Gender = long.TryParse(val?.Value.ToString(), out var g) ? g : 0; })"
                                  SearchFunc="@SearchGenders"
@@ -88,7 +88,7 @@
                 }
             </MudItem>
             <MudItem xs="12" md="4">
-                <MudAutocomplete MaxItems="1000" T="StatusDto" Label="@LocalizationState.Text("Admin.Staff.Edit.Status", "Status")" Variant="Variant.Outlined"
+                <MudAutocomplete Clearable="true"      MaxItems="1000" T="StatusDto" Label="@LocalizationState.Text("Admin.Staff.Edit.Status", "Status")" Variant="Variant.Outlined"
                                  Value="@(_statuses.FirstOrDefault(x => x.StatusId == _editor.Status))"
                                  ValueChanged="@((StatusDto val) => { _editor.Status = (int)(val?.StatusId ?? 0); })"
                                  SearchFunc="@SearchStatuses"
@@ -133,14 +133,14 @@
 
     private async Task<IEnumerable<LookupItemDto>> SearchSalutations(string value, CancellationToken token)
     {
-        if (string.IsNullOrEmpty(value)) return _salutations;
-        return _salutations.Where(x => x.Text.Contains(value, StringComparison.OrdinalIgnoreCase));
+        if (string.IsNullOrEmpty(value) || _salutations.Any(x => (x.Text ?? "").Equals(value, StringComparison.OrdinalIgnoreCase))) return _salutations;
+        return _salutations.Where(x => (x.Text ?? "").Contains(value, StringComparison.OrdinalIgnoreCase));
     }
 
     private async Task<IEnumerable<LookupItemDto>> SearchGenders(string value, CancellationToken token)
     {
-        if (string.IsNullOrEmpty(value)) return _genders;
-        return _genders.Where(x => x.Text.Contains(value, StringComparison.OrdinalIgnoreCase));
+        if (string.IsNullOrEmpty(value) || _genders.Any(x => (x.Text ?? "").Equals(value, StringComparison.OrdinalIgnoreCase))) return _genders;
+        return _genders.Where(x => (x.Text ?? "").Contains(value, StringComparison.OrdinalIgnoreCase));
     }
 
     private async Task<IEnumerable<StatusDto>> SearchStatuses(string value, CancellationToken token)

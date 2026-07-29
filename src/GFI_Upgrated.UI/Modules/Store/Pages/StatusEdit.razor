@@ -27,7 +27,7 @@
             </MudItem>
             
             <MudItem xs="12" md="6">
-                <MudAutocomplete MaxItems="1000" T="StatusOfOption" Label="Status Of" Value="@(_statusOfOptions.FirstOrDefault(x => x.Id == _editor.StatusOf))" ValueChanged="@((StatusOfOption val) => { _editor.StatusOf = val?.Id ?? 0; })" SearchFunc="@SearchStatusOf" ToStringFunc="@(x => x?.Name ?? "")" Variant="Variant.Outlined" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
+                <MudAutocomplete Clearable="true"      MaxItems="1000" T="StatusOfOption" Label="Status Of" Value="@(_statusOfOptions.FirstOrDefault(x => x.Id == _editor.StatusOf))" ValueChanged="@((StatusOfOption val) => { _editor.StatusOf = val?.Id ?? 0; })" SearchFunc="@SearchStatusOf" ToStringFunc="@(x => x?.Name ?? "")" Variant="Variant.Outlined" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
             </MudItem>
 
             <MudItem xs="12" md="4">
@@ -109,6 +109,10 @@
 
     private void OnCancel() => NavigationManager.NavigateTo("/admin/status");
 
-    private async Task<IEnumerable<StatusOfOption>> SearchStatusOf(string value, CancellationToken token) { if (string.IsNullOrEmpty(value)) return _statusOfOptions; return _statusOfOptions.Where(x => x.Name.Contains(value, StringComparison.OrdinalIgnoreCase)); }
+    private async Task<IEnumerable<StatusOfOption>> SearchStatusOf(string value, CancellationToken token)
+    {
+        if (string.IsNullOrEmpty(value) || _statusOfOptions.Any(x => (x.Name ?? "").Equals(value, StringComparison.OrdinalIgnoreCase))) return _statusOfOptions;
+        return _statusOfOptions.Where(x => (x.Name ?? "").Contains(value, StringComparison.OrdinalIgnoreCase));
+    }
 }
 

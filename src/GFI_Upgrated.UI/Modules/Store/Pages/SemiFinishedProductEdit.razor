@@ -36,20 +36,20 @@
                     </MudItem>
 
                     <MudItem xs="12" md="4">
-                        <MudAutocomplete MaxItems="1000" T="ItemCategoryDto" Label="Category" Value="@(_categories.FirstOrDefault(x => x.ItemCatId == _model.ItemCatId))" ValueChanged="@((ItemCategoryDto val) => { _model.ItemCatId = val?.ItemCatId ?? 0; })" SearchFunc="@SearchCategories" ToStringFunc="@(x => x?.ItemCatName ?? "")" Variant="Variant.Outlined" Required="true" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
+                        <MudAutocomplete Clearable="true"   MaxItems="1000" T="ItemCategoryDto" Label="Category" Value="@(_categories.FirstOrDefault(x => x.ItemCatId == _model.ItemCatId))" ValueChanged="@((ItemCategoryDto val) => { _model.ItemCatId = val?.ItemCatId ?? 0; })" SearchFunc="@SearchCategories" ToStringFunc="@(x => x?.ItemCatName ?? "")" Variant="Variant.Outlined" Required="true" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
                     </MudItem>
                     <MudItem xs="12" md="4">
-                        <MudAutocomplete MaxItems="1000" T="ItemTypeDto" Label="Item Type" Value="@(_types.FirstOrDefault(x => x.ItemTypeId == _model.MasterItemTypeId))" ValueChanged="@((ItemTypeDto val) => { _model.MasterItemTypeId = val?.ItemTypeId; })" SearchFunc="@SearchTypes" ToStringFunc="@(x => x?.ItemTypeName ?? "")" Variant="Variant.Outlined" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
+                        <MudAutocomplete Clearable="true"   MaxItems="1000" T="ItemTypeDto" Label="Item Type" Value="@(_types.FirstOrDefault(x => x.ItemTypeId == _model.MasterItemTypeId))" ValueChanged="@((ItemTypeDto val) => { _model.MasterItemTypeId = val?.ItemTypeId; })" SearchFunc="@SearchTypes" ToStringFunc="@(x => x?.ItemTypeName ?? "")" Variant="Variant.Outlined" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
                     </MudItem>
                     <MudItem xs="12" md="4">
-                        <MudAutocomplete MaxItems="1000" T="UnitDto" Label="Base Unit" Value="@(_units.FirstOrDefault(x => x.UnitId == _model.PurchaseUnit))" ValueChanged="@((UnitDto val) => { _model.PurchaseUnit = val?.UnitId ?? 0; })" SearchFunc="@SearchUnits" ToStringFunc="@(x => x?.UnitName ?? "")" Variant="Variant.Outlined" Required="true" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
+                        <MudAutocomplete Clearable="true"   MaxItems="1000" T="UnitDto" Label="Base Unit" Value="@(_units.FirstOrDefault(x => x.UnitId == _model.PurchaseUnit))" ValueChanged="@((UnitDto val) => { _model.PurchaseUnit = val?.UnitId ?? 0; })" SearchFunc="@SearchUnits" ToStringFunc="@(x => x?.UnitName ?? "")" Variant="Variant.Outlined" Required="true" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
                     </MudItem>
 
                     <MudItem xs="12" md="4">
-                        <MudAutocomplete MaxItems="1000" T="BrandDto" Label="Brand" Value="@(_brands.FirstOrDefault(x => x.BrandId == _model.BrandId))" ValueChanged="@((BrandDto val) => { _model.BrandId = val?.BrandId ?? 0; })" SearchFunc="@SearchBrands" ToStringFunc="@(x => x?.BrandName ?? "")" Variant="Variant.Outlined" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
+                        <MudAutocomplete Clearable="true"   MaxItems="1000" T="BrandDto" Label="Brand" Value="@(_brands.FirstOrDefault(x => x.BrandId == _model.BrandId))" ValueChanged="@((BrandDto val) => { _model.BrandId = val?.BrandId ?? 0; })" SearchFunc="@SearchBrands" ToStringFunc="@(x => x?.BrandName ?? "")" Variant="Variant.Outlined" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
                     </MudItem>
                     <MudItem xs="12" md="4">
-                        <MudAutocomplete MaxItems="1000" T="StatusDto" Label="Status" Value="@(_statuses.FirstOrDefault(x => x.StatusId == _model.StatusId))" ValueChanged="@((StatusDto val) => { _model.StatusId = (int)(val?.StatusId ?? 0); })" SearchFunc="@SearchStatuses" ToStringFunc="@(x => x?.StatusName ?? "")" Variant="Variant.Outlined" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
+                        <MudAutocomplete Clearable="true"   MaxItems="1000" T="StatusDto" Label="Status" Value="@(_statuses.FirstOrDefault(x => x.StatusId == _model.StatusId))" ValueChanged="@((StatusDto val) => { _model.StatusId = (int)(val?.StatusId ?? 0); })" SearchFunc="@SearchStatuses" ToStringFunc="@(x => x?.StatusName ?? "")" Variant="Variant.Outlined" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
                     </MudItem>
                     <MudItem xs="12" md="4">
                         <MudNumericField @bind-Value="_model.TentativeExpiryDays" Label="Tentative Expiry (Days)" Variant="Variant.Outlined" Min="0" />
@@ -104,13 +104,16 @@
                             <MudNumericField @bind-Value="_batchModel.Quantity" Label="Quantity" Variant="Variant.Outlined" Min="0" />
                         </MudItem>
                         <MudItem xs="12" md="4">
-                            <MudAutocomplete MaxItems="1000" T="WarehouseLookupDto" Label="Warehouse" Value="@(_warehouses.FirstOrDefault(x => x.WarehouseId == _batchModel.WarehouseId))" ValueChanged="@((WarehouseLookupDto val) => { _batchModel.WarehouseId = (int)(val?.WarehouseId ?? 0); })" SearchFunc="@SearchWarehouses" ToStringFunc="@(x => x?.WarehouseName ?? "")" Variant="Variant.Outlined" Required="true" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
+                            <MudAutocomplete Clearable="true"   MaxItems="1000" T="WarehouseLookupDto" Label="Warehouse" Value="@(_warehouses.FirstOrDefault(x => x.WarehouseId == _batchModel.WarehouseId))" ValueChanged="@((WarehouseLookupDto val) => { _batchModel.WarehouseId = (int)(val?.WarehouseId ?? 0); })" SearchFunc="@SearchWarehouses" ToStringFunc="@(x => x?.WarehouseName ?? "")" Variant="Variant.Outlined" Required="true" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
                         </MudItem>
                         <MudItem xs="12" md="4">
-                            <MudDatePicker @bind-Date="_batchModel.ExpiryDate" Label="Expiry Date" Variant="Variant.Outlined" />
+                            <MudDatePicker Editable="true"  DateFormat="dd/MM/yyyy" Placeholder="dd/MM/yyyy"  @bind-Date="_batchModel.ExpiryDate" Label="Expiry Date (DD/MM/YYYY)" Variant="Variant.Outlined" />
                         </MudItem>
                         <MudItem xs="12" md="4">
-                            <MudAutocomplete MaxItems="1000" T="UnitDto" Label="Unit" Value="@(_units.FirstOrDefault(x => x.UnitId == _batchModel.UnitId))" ValueChanged="@((UnitDto val) => { _batchModel.UnitId = (int)(val?.UnitId ?? 0); })" SearchFunc="@SearchUnits" ToStringFunc="@(x => x?.UnitName ?? "")" Variant="Variant.Outlined" Required="true" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
+                            <MudAutocomplete Clearable="true"   MaxItems="1000" T="UnitDto" Label="Unit" Value="@(_units.FirstOrDefault(x => x.UnitId == _batchModel.UnitId))" ValueChanged="@((UnitDto val) => { _batchModel.UnitId = (int)(val?.UnitId ?? 0); })" SearchFunc="@SearchUnits" ToStringFunc="@(x => x?.UnitName ?? "")" Variant="Variant.Outlined" Required="true" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
+                        </MudItem>
+                        <MudItem xs="12" md="4">
+                            <MudNumericField @bind-Value="_batchModel.Amount" Label="Amount (SRD)" Variant="Variant.Outlined" Min="0" Adornment="Adornment.Start" AdornmentText="SRD" Format="N2" />
                         </MudItem>
                         <MudItem xs="12" md="4" Class="d-flex align-center justify-end gap-2">
                              <MudButton Variant="Variant.Outlined" OnClick="ResetBatchForm">Reset</MudButton>
@@ -125,6 +128,7 @@
                         <MudTh>Quantity</MudTh>
                         <MudTh>Warehouse</MudTh>
                         <MudTh>Expiry</MudTh>
+                        <MudTh>Amount (SRD)</MudTh>
                         <MudTh Style="text-align: center;">Action</MudTh>
                     </HeaderContent>
                     <RowTemplate>
@@ -132,6 +136,7 @@
                         <MudTd DataLabel="Qty">@context.Quantity @context.UnitName</MudTd>
                         <MudTd DataLabel="Warehouse">@context.WarehouseName</MudTd>
                         <MudTd DataLabel="Expiry">@context.ExpiryDate?.ToShortDateString()</MudTd>
+                        <MudTd DataLabel="Amount">@context.Amount.ToString("N2") SRD</MudTd>
                         <MudTd Style="text-align: center;">
                             <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Size="Size.Small" OnClick="@(() => EditBatch(context))" />
                             <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => DeleteBatch(context))" />
@@ -553,6 +558,7 @@
             Quantity = batch.Quantity,
             UnitId = batch.UnitId,
             BatchNo = batch.BatchNo,
+            Amount = batch.Amount,
             ExpiryDate = batch.ExpiryDate
         };
     }
@@ -561,7 +567,8 @@
     {
         _batchModel = new SemiFinishedProductBatchDto
         {
-            UnitId = _model.PurchaseUnit > 0 ? (int)_model.PurchaseUnit : (int)(_units.FirstOrDefault()?.UnitId ?? 0)
+            UnitId = _model.PurchaseUnit > 0 ? (int)_model.PurchaseUnit : (int)(_units.FirstOrDefault()?.UnitId ?? 0),
+            Amount = 0
         };
     }
 
@@ -604,19 +611,35 @@
 
     private async Task<IEnumerable<ItemCategoryDto>> SearchCategories(string value, CancellationToken token)
     {
-        if (string.IsNullOrEmpty(value)) return _categories;
-        return _categories.Where(x => x.ItemCatName.Contains(value, StringComparison.OrdinalIgnoreCase));
+        if (string.IsNullOrEmpty(value) || _categories.Any(x => (x.ItemCatName ?? "").Equals(value, StringComparison.OrdinalIgnoreCase))) return _categories;
+        return _categories.Where(x => (x.ItemCatName ?? "").Contains(value, StringComparison.OrdinalIgnoreCase));
     }
 
     private async Task<IEnumerable<BrandDto>> SearchBrands(string value, CancellationToken token)
     {
-        if (string.IsNullOrEmpty(value)) return _brands;
-        return _brands.Where(x => x.BrandName.Contains(value, StringComparison.OrdinalIgnoreCase));
+        if (string.IsNullOrEmpty(value) || _brands.Any(x => (x.BrandName ?? "").Equals(value, StringComparison.OrdinalIgnoreCase))) return _brands;
+        return _brands.Where(x => (x.BrandName ?? "").Contains(value, StringComparison.OrdinalIgnoreCase));
     }
 
-    private async Task<IEnumerable<ItemTypeDto>> SearchTypes(string value, CancellationToken token) { if (string.IsNullOrEmpty(value)) return _types; return _types.Where(x => x.ItemTypeName.Contains(value, StringComparison.OrdinalIgnoreCase)); }
-    private async Task<IEnumerable<UnitDto>> SearchUnits(string value, CancellationToken token) { if (string.IsNullOrEmpty(value)) return _units; return _units.Where(x => x.UnitName.Contains(value, StringComparison.OrdinalIgnoreCase)); }
-    private async Task<IEnumerable<StatusDto>> SearchStatuses(string value, CancellationToken token) { if (string.IsNullOrEmpty(value)) return _statuses; return _statuses.Where(x => x.StatusName.Contains(value, StringComparison.OrdinalIgnoreCase)); }
-    private async Task<IEnumerable<WarehouseLookupDto>> SearchWarehouses(string value, CancellationToken token) { if (string.IsNullOrEmpty(value)) return _warehouses; return _warehouses.Where(x => x.WarehouseName.Contains(value, StringComparison.OrdinalIgnoreCase)); }
+    private async Task<IEnumerable<ItemTypeDto>> SearchTypes(string value, CancellationToken token)
+    {
+        if (string.IsNullOrEmpty(value) || _types.Any(x => (x.ItemTypeName ?? "").Equals(value, StringComparison.OrdinalIgnoreCase))) return _types;
+        return _types.Where(x => (x.ItemTypeName ?? "").Contains(value, StringComparison.OrdinalIgnoreCase));
+    }
+    private async Task<IEnumerable<UnitDto>> SearchUnits(string value, CancellationToken token)
+    {
+        if (string.IsNullOrEmpty(value) || _units.Any(x => (x.UnitName ?? "").Equals(value, StringComparison.OrdinalIgnoreCase))) return _units;
+        return _units.Where(x => (x.UnitName ?? "").Contains(value, StringComparison.OrdinalIgnoreCase));
+    }
+    private async Task<IEnumerable<StatusDto>> SearchStatuses(string value, CancellationToken token)
+    {
+        if (string.IsNullOrEmpty(value) || _statuses.Any(x => (x.StatusName ?? "").Equals(value, StringComparison.OrdinalIgnoreCase))) return _statuses;
+        return _statuses.Where(x => (x.StatusName ?? "").Contains(value, StringComparison.OrdinalIgnoreCase));
+    }
+    private async Task<IEnumerable<WarehouseLookupDto>> SearchWarehouses(string value, CancellationToken token)
+    {
+        if (string.IsNullOrEmpty(value) || _warehouses.Any(x => (x.WarehouseName ?? "").Equals(value, StringComparison.OrdinalIgnoreCase))) return _warehouses;
+        return _warehouses.Where(x => (x.WarehouseName ?? "").Contains(value, StringComparison.OrdinalIgnoreCase));
+    }
 }
 

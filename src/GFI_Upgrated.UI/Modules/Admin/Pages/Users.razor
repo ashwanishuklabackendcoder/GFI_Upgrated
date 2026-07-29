@@ -44,14 +44,14 @@
             <MudText Typo="Typo.h5" Class="mb-4">User Details</MudText>
             <MudTextField @bind-Value="_editor.LoginName" Label="Login name" Variant="Variant.Outlined" Class="mb-3" />
             <MudTextField @bind-Value="_editor.Password" Label="Password" Variant="Variant.Outlined" InputType="InputType.Password" Class="mb-3" />
-            <MudAutocomplete MaxItems="1000" T="StaffLookupDto" Label="Staff" Variant="Variant.Outlined" 
+            <MudAutocomplete Clearable="true"      MaxItems="1000" T="StaffLookupDto" Label="Staff" Variant="Variant.Outlined" 
                              Value="@(_activeStaff.FirstOrDefault(x => x.StaffId == _editor.StaffId))" 
                              ValueChanged="@((StaffLookupDto val) => OnStaffSelected(val))" 
                              Class="mb-3"
                              SearchFunc="@SearchStaff" 
                              ToStringFunc="@(x => x == null ? "" : FormatStaff(x))"
                              ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
-            <MudAutocomplete MaxItems="1000" T="RoleDto" Label="Primary Role" Variant="Variant.Outlined" 
+            <MudAutocomplete Clearable="true"      MaxItems="1000" T="RoleDto" Label="Primary Role" Variant="Variant.Outlined" 
                              Value="@(_roles.FirstOrDefault(x => x.RoleId == _editor.RoleId))" 
                              ValueChanged="@((RoleDto val) => { _editor.RoleId = val?.RoleId ?? 0; })" 
                              Class="mb-3"
@@ -84,8 +84,8 @@
 
     private async Task<IEnumerable<RoleDto>> SearchRoles(string value, CancellationToken token)
     {
-        if (string.IsNullOrEmpty(value)) return _roles;
-        return _roles.Where(x => x.RoleName.Contains(value, StringComparison.OrdinalIgnoreCase));
+        if (string.IsNullOrEmpty(value) || _roles.Any(x => (x.RoleName ?? "").Equals(value, StringComparison.OrdinalIgnoreCase))) return _roles;
+        return _roles.Where(x => (x.RoleName ?? "").Contains(value, StringComparison.OrdinalIgnoreCase));
     }
 
     protected override void OnInitialized()

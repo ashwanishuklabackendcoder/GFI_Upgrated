@@ -1,4 +1,4 @@
-﻿
+
 @page "/store/reportitemstock"
 
 @using GFI_Upgrated.SharedDto.Store
@@ -27,15 +27,19 @@
 
     <MudGrid Class="mb-4 no-print" Spacing="2" Style="max-width: 900px;">
         <MudItem xs="12" md="3">
-            <MudAutocomplete MaxItems="1000" T="RawMaterialDto" Label="Select Item" @bind-Value="_selectedItem" SearchFunc="@SearchItems"
-                             ToStringFunc="@(i => i?.ItemName ?? "")" Variant="Variant.Outlined" Clearable="true" 
+            <MudAutocomplete Clearable="true" MaxItems="1000" T="RawMaterialDto" Label="Select Item" @bind-Value="_selectedItem" SearchFunc="@SearchItems"
+                             ToStringFunc="@(i => i?.ItemName ?? "")" Variant="Variant.Outlined"  
                              Placeholder="Search items..." AdornmentIcon="@Icons.Material.Filled.Search" />
         </MudItem>
         <MudItem xs="12" md="3">
-            <MudAutocomplete MaxItems="1000" T="WarehouseDto" Label="Warehouse" Value="@(_warehouses.FirstOrDefault(x => x.WarehouseId == _selectedWarehouseId))" ValueChanged="@((WarehouseDto val) => { _selectedWarehouseId = val?.WarehouseId; })" SearchFunc="@SearchWarehouses" ToStringFunc="@(x => x?.WarehouseName ?? "")" Variant="Variant.Outlined" Clearable="true" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
+            <MudAutocomplete Clearable="true" MaxItems="1000" T="WarehouseDto" Label="Warehouse" Value="@(_warehouses.FirstOrDefault(x => x.WarehouseId == _selectedWarehouseId))" ValueChanged="@((WarehouseDto val) => { _selectedWarehouseId = val?.WarehouseId; })" SearchFunc="@SearchWarehouses" ToStringFunc="@(x => x?.WarehouseName ?? "")" Variant="Variant.Outlined"  ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
         </MudItem>
         <MudItem xs="12" md="3">
-            <MudAutocomplete MaxItems="1000" T="UnitDto" Label="Unit" Value="@(_units.FirstOrDefault(x => x.UnitId == _selectedUnitId))" ValueChanged="@((UnitDto val) => { _selectedUnitId = val?.UnitId; })" SearchFunc="@SearchUnits" ToStringFunc="@(x => x?.UnitName ?? "")" Variant="Variant.Outlined" Clearable="true" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
+            <MudSelect T="int?" Label="Item Type" @bind-Value="_selectedItemTypeId" Variant="Variant.Outlined" Clearable="true">
+                <MudSelectItem T="int?" Value="@((int)MasterItemType.RawMaterial)">Raw Material</MudSelectItem>
+                <MudSelectItem T="int?" Value="@((int)MasterItemType.SemiFinished)">Semi-Finished Product</MudSelectItem>
+                <MudSelectItem T="int?" Value="@((int)MasterItemType.FinishedProduct)">Finished Product</MudSelectItem>
+            </MudSelect>
         </MudItem>
         <MudItem xs="12" md="3" Class="d-flex align-end">
             <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="OnSearch" FullWidth="true" Class="py-3">
@@ -54,7 +58,7 @@
             <strong>Filters Applied:</strong><br />
             Item: @(_selectedItem?.ItemName ?? "All Items") | 
             Warehouse: @(_warehouses.FirstOrDefault(w => w.WarehouseId == _selectedWarehouseId)?.WarehouseName ?? "All Warehouses") | 
-            Unit: @(_units.FirstOrDefault(u => u.UnitId == _selectedUnitId)?.UnitName ?? "All Units")
+            Item Type: @(_selectedItemTypeId == 3 ? "Raw Material" : _selectedItemTypeId == 2 ? "Semi-Finished" : _selectedItemTypeId == 1 ? "Finished Product" : "All Types")
         </div>
     </div>
 
@@ -68,16 +72,18 @@
             <MudTh Style="text-align: right;">Issued Qty</MudTh>
             <MudTh Style="text-align: right;">Removed Qty</MudTh>
             <MudTh Style="text-align: right;">Final Stock</MudTh>
+            <MudTh Style="text-align: right;">Stock Value</MudTh>
         </HeaderContent>
         <RowTemplate>
             <MudTd DataLabel="Stock ID">@context.StockID</MudTd>
             <MudTd DataLabel="Item Name">@context.ItemName</MudTd>
             <MudTd DataLabel="Warehouse Name">@context.WarehouseName</MudTd>
-            <MudTd DataLabel="Opening Qty" Style="text-align: right;">@context.OpeningQuantity.ToString("N2")</MudTd>
-            <MudTd DataLabel="Purchased Qty" Style="text-align: right;">@context.PurchasedQuantity.ToString("N2")</MudTd>
-            <MudTd DataLabel="Issued Qty" Style="text-align: right;">@context.IssuedQuantity.ToString("N2")</MudTd>
-            <MudTd DataLabel="Removed Qty" Style="text-align: right;">@context.RemovedQuantity.ToString("N2")</MudTd>
-            <MudTd DataLabel="Final Stock" Style="text-align: right; font-weight: bold;">@context.FinalStock.ToString("N2")</MudTd>
+            <MudTd DataLabel="Opening Qty" Style="text-align: right;">@FormatQty(context.OpeningQuantity, context.UnitId)</MudTd>
+            <MudTd DataLabel="Purchased Qty" Style="text-align: right;">@FormatQty(context.PurchasedQuantity, context.UnitId)</MudTd>
+            <MudTd DataLabel="Issued Qty" Style="text-align: right;">@FormatQty(context.IssuedQuantity, context.UnitId)</MudTd>
+            <MudTd DataLabel="Removed Qty" Style="text-align: right;">@FormatQty(context.RemovedQuantity, context.UnitId)</MudTd>
+            <MudTd DataLabel="Final Stock" Style="text-align: right; font-weight: bold;">@FormatQty(context.FinalStock, context.UnitId)</MudTd>
+            <MudTd DataLabel="Stock Value" Style="text-align: right; font-weight: bold;">@FormatAmount(context.TotalValue) SRD</MudTd>
         </RowTemplate>
         <PagerContent>
             <MudTablePager Class="no-print" />
@@ -99,10 +105,22 @@
         if (_table is not null) await _table.ReloadServerData();
     }
 
+    private string FormatQty(double qty, long unitId)
+    {
+        var unitName = _units.FirstOrDefault(u => u.UnitId == unitId)?.UnitName ?? "";
+        string formattedVal = (qty % 1 == 0) ? qty.ToString("0") : qty.ToString("0.##");
+        return string.IsNullOrWhiteSpace(unitName) ? formattedVal : $"{formattedVal} {unitName}";
+    }
+
+    private string FormatAmount(double val)
+    {
+        return (val % 1 == 0) ? val.ToString("0") : val.ToString("0.##");
+    }
+
     private MudTable<ItemStockReportDto>? _table;
     private RawMaterialDto? _selectedItem;
     private long? _selectedWarehouseId;
-    private long? _selectedUnitId;
+    private int? _selectedItemTypeId;
     private bool _loading;
     
     private string _currentSortLabel = "StockID";
@@ -160,7 +178,7 @@
             {
                 ItemID = _selectedItem?.ItemId,
                 WarehouseID = _selectedWarehouseId,
-                UnitId = _selectedUnitId,
+                ItemTypeId = _selectedItemTypeId,
                 CurrentPage = state.Page + 1,
                 RecordPerPage = state.PageSize,
                 SortColumn = _currentSortLabel,
@@ -204,7 +222,7 @@
             {
                 ItemID = _selectedItem?.ItemId,
                 WarehouseID = _selectedWarehouseId,
-                UnitId = _selectedUnitId,
+                ItemTypeId = _selectedItemTypeId,
                 CurrentPage = 1,
                 RecordPerPage = 1000000,
                 SortColumn = _currentSortLabel,
@@ -224,10 +242,10 @@
     {
         var data = await GetAllDataAsync();
         var sb = new StringBuilder();
-        sb.AppendLine("StockID\tItem Name\tWarehouse\tOpening Qty\tPurchased Qty\tIssued Qty\tRemoved Qty\tFinal Stock");
+        sb.AppendLine("StockID\tItem Name\tWarehouse\tOpening Qty\tPurchased Qty\tIssued Qty\tRemoved Qty\tFinal Stock\tStock Value");
         foreach (var item in data)
         {
-            sb.AppendLine($"{item.StockID}\t{item.ItemName}\t{item.WarehouseName}\t{item.OpeningQuantity}\t{item.PurchasedQuantity}\t{item.IssuedQuantity}\t{item.RemovedQuantity}\t{item.FinalStock}");
+            sb.AppendLine($"${item.StockID}\t${item.ItemName}\t${item.WarehouseName}\t${FormatQty(item.OpeningQuantity, item.UnitId)}\t${FormatQty(item.PurchasedQuantity, item.UnitId)}\t${FormatQty(item.IssuedQuantity, item.UnitId)}\t${FormatQty(item.RemovedQuantity, item.UnitId)}\t${FormatQty(item.FinalStock, item.UnitId)}\t${FormatAmount(item.TotalValue)} SRD");
         }
         var success = await JS.InvokeAsync<bool>("gfiCopyToClipboard", sb.ToString());
         if (success)
@@ -244,12 +262,12 @@
     {
         var data = await GetAllDataAsync();
         var sb = new StringBuilder();
-        sb.AppendLine("StockID,Item Name,Warehouse,Opening Qty,Purchased Qty,Issued Qty,Removed Qty,Final Stock");
+        sb.AppendLine("StockID,Item Name,Warehouse,Opening Qty,Purchased Qty,Issued Qty,Removed Qty,Final Stock,Stock Value");
         foreach (var item in data)
         {
             var name = (item.ItemName ?? "").Replace("\"", "\"\"");
             var whName = (item.WarehouseName ?? "").Replace("\"", "\"\"");
-            sb.AppendLine($"{item.StockID},\"{name}\",\"{whName}\",{item.OpeningQuantity},{item.PurchasedQuantity},{item.IssuedQuantity},{item.RemovedQuantity},{item.FinalStock}");
+            sb.AppendLine($"{item.StockID},\"{name}\",\"{whName}\",{FormatQty(item.OpeningQuantity, item.UnitId)},{FormatQty(item.PurchasedQuantity, item.UnitId)},{FormatQty(item.IssuedQuantity, item.UnitId)},{FormatQty(item.RemovedQuantity, item.UnitId)},{FormatQty(item.FinalStock, item.UnitId)},{FormatAmount(item.TotalValue)} SRD");
         }
         await JS.InvokeVoidAsync("gfiDownloadTextFile", $"item-stock-report-{DateTime.Now:yyyyMMddHHmmss}.csv", sb.ToString(), "text/csv;charset=utf-8");
         Snackbar.Add("Report data exported as CSV.", Severity.Success);
@@ -266,7 +284,15 @@
         await JS.InvokeVoidAsync("window.print");
     }
 
-    private async Task<IEnumerable<WarehouseDto>> SearchWarehouses(string value, CancellationToken token) { if (string.IsNullOrEmpty(value)) return _warehouses; return _warehouses.Where(x => x.WarehouseName.Contains(value, StringComparison.OrdinalIgnoreCase)); }
-    private async Task<IEnumerable<UnitDto>> SearchUnits(string value, CancellationToken token) { if (string.IsNullOrEmpty(value)) return _units; return _units.Where(x => x.UnitName.Contains(value, StringComparison.OrdinalIgnoreCase)); }
+    private async Task<IEnumerable<WarehouseDto>> SearchWarehouses(string value, CancellationToken token)
+    {
+        if (string.IsNullOrEmpty(value) || _warehouses.Any(x => (x.WarehouseName ?? "").Equals(value, StringComparison.OrdinalIgnoreCase))) return _warehouses;
+        return _warehouses.Where(x => (x.WarehouseName ?? "").Contains(value, StringComparison.OrdinalIgnoreCase));
+    }
+    private async Task<IEnumerable<UnitDto>> SearchUnits(string value, CancellationToken token)
+    {
+        if (string.IsNullOrEmpty(value) || _units.Any(x => (x.UnitName ?? "").Equals(value, StringComparison.OrdinalIgnoreCase))) return _units;
+        return _units.Where(x => (x.UnitName ?? "").Contains(value, StringComparison.OrdinalIgnoreCase));
+    }
 }
 
