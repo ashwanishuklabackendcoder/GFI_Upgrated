@@ -35,7 +35,7 @@
             </MudSelect>
         </MudItem>
         <MudItem xs="12" md="4">
-            <MudAutocomplete Clearable="true"      MaxItems="1000" T="RawMaterialDto" Label="Select Item" @bind-Value="_selectedItem" SearchFunc="@SearchItems"
+            <MudAutocomplete Clearable="true"           MaxItems="1000" T="RawMaterialDto" Label="Select Item" @bind-Value="_selectedItem" SearchFunc="@SearchItems"
                              ToStringFunc="@(i => i?.ItemName ?? "")" Variant="Variant.Outlined"  
                              Placeholder="Search items..." AdornmentIcon="@Icons.Material.Filled.Search" />
         </MudItem>

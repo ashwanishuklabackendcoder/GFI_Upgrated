@@ -28,24 +28,24 @@
         <MudGrid>
             <!-- BOM Details -->
             <MudItem xs="12" md="4">
-                <MudAutocomplete Clearable="true"      MaxItems="1000" T="BomLookupDto" Label="Select BOM" Value="@(_boms.FirstOrDefault(x => x.BomId == _editor.BomId))" ValueChanged="@((BomLookupDto val) => { _editor.BomId = val?.BomId ?? 0; })" SearchFunc="@SearchBoms" ToStringFunc="@(x => x?.BomName ?? "")" Variant="Variant.Outlined" Required="true" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
+                <MudAutocomplete Clearable="true"           MaxItems="1000" T="BomLookupDto" Label="Select BOM" Value="@(_boms.FirstOrDefault(x => x.BomId == _editor.BomId))" ValueChanged="@OnBomChanged" SearchFunc="@SearchBoms" ToStringFunc="@(x => x?.BomName ?? "")" Variant="Variant.Outlined" Required="true" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
             </MudItem>
             <MudItem xs="12" md="4">
                 <MudNumericField @bind-Value="_editor.BomQty" Label="BOM Quantity" Variant="Variant.Outlined" Min="1" />
             </MudItem>
             <MudItem xs="12" md="4">
-                <MudAutocomplete Clearable="true"      MaxItems="1000" T="SkuLookupDto" Label="SKU packaging" Value="@(_skus.FirstOrDefault(x => x.SkuId == _editor.SkuId))" ValueChanged="@((SkuLookupDto val) => { _editor.SkuId = val?.SkuId ?? 0; })" SearchFunc="@SearchSkus" ToStringFunc="@(x => x?.SkuName ?? "")" Variant="Variant.Outlined" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
+                <MudAutocomplete Clearable="true"           MaxItems="1000" T="SkuLookupDto" Label="SKU packaging" Value="@(_skus.FirstOrDefault(x => x.SkuId == _editor.SkuId))" ValueChanged="@((SkuLookupDto val) => { _editor.SkuId = val?.SkuId ?? 0; })" SearchFunc="@SearchSkus" ToStringFunc="@(x => x?.SkuName ?? "")" Variant="Variant.Outlined" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
             </MudItem>
 
             <!-- Dates -->
             <MudItem xs="12" md="4">
-                <MudDatePicker Editable="true"  DateFormat="dd/MM/yyyy" Placeholder="dd/MM/yyyy"           @bind-Date="_editor.CookingDate" Label="Cooking Date (DD/MM/YYYY)" Variant="Variant.Outlined" Required="true" />
+                <MudDatePicker DateFormat="dd/MM/yyyy" Placeholder="dd/MM/yyyy" Editable="true"                         @bind-Date="_editor.CookingDate" Label="Cooking Date (DD/MM/YYYY)" Variant="Variant.Outlined" Required="true" />
             </MudItem>
             <MudItem xs="12" md="4">
-                <MudDatePicker Editable="true"  DateFormat="dd/MM/yyyy" Placeholder="dd/MM/yyyy"           @bind-Date="_editor.ExpiryDate" Label="Expiry Date (DD/MM/YYYY)" Variant="Variant.Outlined" />
+                <MudDatePicker DateFormat="dd/MM/yyyy" Placeholder="dd/MM/yyyy" Editable="true"                         @bind-Date="_editor.ExpiryDate" Label="Expiry Date (DD/MM/YYYY)" Variant="Variant.Outlined" />
             </MudItem>
             <MudItem xs="12" md="4">
-                <MudDatePicker Editable="true"  DateFormat="dd/MM/yyyy" Placeholder="dd/MM/yyyy"           @bind-Date="_editor.FilledDate" Label="Filled Date (DD/MM/YYYY)" Variant="Variant.Outlined" />
+                <MudDatePicker DateFormat="dd/MM/yyyy" Placeholder="dd/MM/yyyy" Editable="true"                         @bind-Date="_editor.FilledDate" Label="Filled Date (DD/MM/YYYY)" Variant="Variant.Outlined" />
             </MudItem>
 
             <!-- Kettle Details -->
@@ -69,17 +69,17 @@
                 <MudNumericField @bind-Value="_editor.FillingBottles" Label="Filling Bottles" Variant="Variant.Outlined" Min="0" />
             </MudItem>
             <MudItem xs="12" md="4">
-                <MudAutocomplete Clearable="true"      MaxItems="1000" T="UnitLookupDto" Label="Filling Per Bottle Unit" Value="@(_units.FirstOrDefault(x => x.UnitId == _editor.FillingPerBottleUnit))" ValueChanged="@((UnitLookupDto val) => { _editor.FillingPerBottleUnit = val?.UnitId ?? 0; })" SearchFunc="@SearchUnits" ToStringFunc="@(x => x?.UnitName ?? "")" Variant="Variant.Outlined" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
+                <MudAutocomplete Clearable="true"           MaxItems="1000" T="UnitLookupDto" Label="Filling Per Bottle Unit" Value="@(_units.FirstOrDefault(x => x.UnitId == _editor.FillingPerBottleUnit))" ValueChanged="@((UnitLookupDto val) => { _editor.FillingPerBottleUnit = val?.UnitId ?? 0; })" SearchFunc="@SearchUnits" ToStringFunc="@(x => x?.UnitName ?? "")" Variant="Variant.Outlined" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
             </MudItem>
 
             <MudItem xs="12" md="4">
                 <MudNumericField @bind-Value="_editor.ExtraBottles" Label="Extra Bottles" Variant="Variant.Outlined" Min="0.0" Step="0.1" />
             </MudItem>
             <MudItem xs="12" md="4">
-                <MudAutocomplete Clearable="true"      MaxItems="1000" T="CountryLookupDto" Label="Packed Country" Value="@(_countries.FirstOrDefault(x => x.CountryId.ToString() == _editor.PackedCountry))" ValueChanged="@((CountryLookupDto val) => { _editor.PackedCountry = val?.CountryId.ToString(); })" SearchFunc="@SearchCountries" ToStringFunc="@(x => x?.CountryName ?? "")" Variant="Variant.Outlined" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
+                <MudAutocomplete Clearable="true"           MaxItems="1000" T="CountryLookupDto" Label="Packed Country" Value="@(_countries.FirstOrDefault(x => x.CountryId.ToString() == _editor.PackedCountry))" ValueChanged="@((CountryLookupDto val) => { _editor.PackedCountry = val?.CountryId.ToString(); })" SearchFunc="@SearchCountries" ToStringFunc="@(x => x?.CountryName ?? "")" Variant="Variant.Outlined" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
             </MudItem>
             <MudItem xs="12" md="4">
-                <MudAutocomplete Clearable="true"      MaxItems="1000" T="WarehouseLookupDto" Label="Output Warehouse" Value="@(_warehouses.FirstOrDefault(x => x.WarehouseId == _editor.WarehouseId))" ValueChanged="@((WarehouseLookupDto val) => { _editor.WarehouseId = val?.WarehouseId ?? 0; })" SearchFunc="@SearchWarehouses" ToStringFunc="@(x => x?.WarehouseName ?? "")" Variant="Variant.Outlined" Required="true" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
+                <MudAutocomplete Clearable="true"           MaxItems="1000" T="WarehouseLookupDto" Label="Output Warehouse" Value="@(_warehouses.FirstOrDefault(x => x.WarehouseId == _editor.WarehouseId))" ValueChanged="@((WarehouseLookupDto val) => { _editor.WarehouseId = val?.WarehouseId ?? 0; })" SearchFunc="@SearchWarehouses" ToStringFunc="@(x => x?.WarehouseName ?? "")" Variant="Variant.Outlined" Required="true" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
             </MudItem>
 
             <!-- Employees Multi-Select -->
@@ -130,6 +130,7 @@
     private IReadOnlyCollection<string> _selectedEmployees { get; set; } = new HashSet<string>();
     private IReadOnlyCollection<string> _selectedKettles { get; set; } = new HashSet<string>();
     private bool _processing;
+    private long? _selectedBomUnitId;
 
     protected override async Task OnInitializedAsync()
     {
@@ -197,6 +198,14 @@
             _skus = (await skusTask).ToList();
             _kettles = (await kettlesTask).ToList();
             _units = (await unitsTask).ToList();
+            if (_editor.BomId > 0)
+            {
+                var bomDetails = await ApiClient.GetBomByIdAsync(_editor.BomId);
+                if (bomDetails != null)
+                {
+                    _selectedBomUnitId = bomDetails.UnitId;
+                }
+            }
             _countries = (await countriesTask).ToList();
             _warehouses = (await whTask).ToList();
             _staffList = (await staffTask).ToList();
@@ -260,10 +269,31 @@
         if (string.IsNullOrEmpty(value) || _skus.Any(x => (x.SkuName ?? "").Equals(value, StringComparison.OrdinalIgnoreCase))) return _skus;
         return _skus.Where(x => (x.SkuName ?? "").Contains(value, StringComparison.OrdinalIgnoreCase));
     }
+    private async Task OnBomChanged(BomLookupDto val)
+    {
+        _editor.BomId = val?.BomId ?? 0;
+        if (val != null)
+        {
+            var bomDetails = await ApiClient.GetBomByIdAsync(val.BomId);
+            if (bomDetails != null)
+            {
+                _selectedBomUnitId = bomDetails.UnitId;
+                _editor.FillingPerBottleUnit = bomDetails.UnitId;
+            }
+        }
+        else
+        {
+            _selectedBomUnitId = null;
+            _editor.FillingPerBottleUnit = 0;
+        }
+    }
+
     private async Task<IEnumerable<UnitLookupDto>> SearchUnits(string value, CancellationToken token)
     {
-        if (string.IsNullOrEmpty(value) || _units.Any(x => (x.UnitName ?? "").Equals(value, StringComparison.OrdinalIgnoreCase))) return _units;
-        return _units.Where(x => (x.UnitName ?? "").Contains(value, StringComparison.OrdinalIgnoreCase));
+        if (_selectedBomUnitId == null || _selectedBomUnitId <= 0) return _units;
+        var filtered = _units.Where(x => x.UnitId == _selectedBomUnitId || x.BaseUnit == _selectedBomUnitId);
+        if (string.IsNullOrEmpty(value)) return filtered;
+        return filtered.Where(x => (x.UnitName ?? "").Contains(value, StringComparison.OrdinalIgnoreCase));
     }
     private async Task<IEnumerable<CountryLookupDto>> SearchCountries(string value, CancellationToken token)
     {

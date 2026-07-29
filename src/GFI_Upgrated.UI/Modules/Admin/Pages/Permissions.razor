@@ -22,7 +22,7 @@
 
     <MudGrid Class="mb-4">
         <MudItem xs="12" md="6">
-            <MudAutocomplete Clearable="true"     MaxItems="1000" T="RoleDto" Label="Role" Variant="Variant.Outlined" 
+            <MudAutocomplete Clearable="true"          MaxItems="1000" T="RoleDto" Label="Role" Variant="Variant.Outlined" 
                              Value="@(_roles.FirstOrDefault(x => x.RoleId == _selectedRoleId))" 
                              ValueChanged="@(async (RoleDto val) => await OnRoleChanged(val?.RoleId ?? 0))" 
                              Dense="true"
@@ -44,26 +44,57 @@
     }
     else
     {
-        <MudTable Items="_permissions" Dense="true" Hover="true" FixedHeader="true" Height="600px" Elevation="0" Class="border">
+        <div class="d-flex gap-2 mb-2">
+            <MudButton Variant="Variant.Outlined" OnClick="CollapseAll" StartIcon="@Icons.Material.Filled.UnfoldLess" Size="Size.Small">Collapse All</MudButton>
+            <MudButton Variant="Variant.Outlined" OnClick="ExpandAll" StartIcon="@Icons.Material.Filled.UnfoldMore" Size="Size.Small">Expand All</MudButton>
+        </div>
+        <MudTable Items="GetVisiblePermissions()" Dense="true" Hover="true" FixedHeader="true" Height="600px" Elevation="0" Class="border">
             <HeaderContent>
-                <MudTh Style="width: 40%">Menu / Page</MudTh>
-                <MudTh Style="text-align: center">View</MudTh>
-                <MudTh Style="text-align: center">Insert</MudTh>
-                <MudTh Style="text-align: center">Update</MudTh>
-                <MudTh Style="text-align: center">Delete</MudTh>
+                <MudTh Style="width: 40%">
+                    <div class="d-flex align-center">
+                        <MudCheckBox T="bool" Value="@IsAllEverythingChecked()" ValueChanged="@(v => OnMasterEverythingToggle(v))" Color="Color.Default" Dense="true" Class="mr-2" />
+                        Menu / Page
+                    </div>
+                </MudTh>
+                <MudTh Style="text-align: center">
+                    View
+                    <div class="d-flex justify-center">
+                        <MudCheckBox T="bool" Value="@IsAllChecked("View")" ValueChanged="@(v => OnHeaderToggle("View", v))" Color="Color.Primary" Dense="true" />
+                    </div>
+                </MudTh>
+                <MudTh Style="text-align: center">
+                    Insert
+                    <div class="d-flex justify-center">
+                        <MudCheckBox T="bool" Value="@IsAllChecked("Insert")" ValueChanged="@(v => OnHeaderToggle("Insert", v))" Color="Color.Success" Dense="true" />
+                    </div>
+                </MudTh>
+                <MudTh Style="text-align: center">
+                    Update
+                    <div class="d-flex justify-center">
+                        <MudCheckBox T="bool" Value="@IsAllChecked("Update")" ValueChanged="@(v => OnHeaderToggle("Update", v))" Color="Color.Warning" Dense="true" />
+                    </div>
+                </MudTh>
+                <MudTh Style="text-align: center">
+                    Delete
+                    <div class="d-flex justify-center">
+                        <MudCheckBox T="bool" Value="@IsAllChecked("Delete")" ValueChanged="@(v => OnHeaderToggle("Delete", v))" Color="Color.Error" Dense="true" />
+                    </div>
+                </MudTh>
             </HeaderContent>
             <RowTemplate>
                 <MudTd>
-                    <div style="padding-left: @(context.ParentID == 0 ? "0" : "24px")">
+                    <div style="padding-left: @(context.ParentID == 0 ? "0" : "24px")" class="d-flex align-center">
                         @if (context.ParentID == 0)
                         {
+                            <MudIconButton Icon="@(_collapsedParents.Contains(context.LinkID) ? Icons.Material.Filled.ChevronRight : Icons.Material.Filled.ExpandMore)"
+                                           Size="Size.Small" OnClick="@(() => ToggleParentCollapse(context.LinkID))" Class="mr-1" />
                             <MudIcon Icon="@Icons.Material.Filled.Folder" Size="Size.Small" Class="mr-2" Color="Color.Primary" />
-                            <strong>@context.PageHeading</strong>
+                            <strong>@FormatPageHeading(context.PageHeading)</strong>
                         }
                         else
                         {
                             <MudIcon Icon="@Icons.Material.Filled.Description" Size="Size.Small" Class="mr-2" />
-                            @context.PageHeading
+                            @FormatPageHeading(context.PageHeading)
                         }
                     </div>
                 </MudTd>
@@ -93,6 +124,85 @@
 </MudPaper>
 
 @code {
+        private HashSet<long> _collapsedParents = new();
+
+    private IEnumerable<RolePermissionDto> GetVisiblePermissions()
+    {
+        return _permissions.Where(p => p.ParentID == 0 || !_collapsedParents.Contains(p.ParentID));
+    }
+
+    private void ToggleParentCollapse(long parentId)
+    {
+        if (_collapsedParents.Contains(parentId))
+            _collapsedParents.Remove(parentId);
+        else
+            _collapsedParents.Add(parentId);
+    }
+
+    private void CollapseAll()
+    {
+        foreach (var item in _permissions.Where(x => x.ParentID == 0))
+        {
+            _collapsedParents.Add(item.LinkID);
+        }
+    }
+
+    private void ExpandAll()
+    {
+        _collapsedParents.Clear();
+    }
+
+    private string FormatPageHeading(string? heading)
+    {
+        if (string.IsNullOrEmpty(heading)) return string.Empty;
+        var clean = heading.Replace("_", " ").Replace("-", " ");
+        return System.Globalization.CultureInfo.CurrentCulture.TextInfo.ToTitleCase(clean.ToLower());
+    }
+
+    private bool IsAllChecked(string type)
+    {
+        if (_permissions.Count == 0) return false;
+        switch (type)
+        {
+            case "View": return _permissions.All(x => x.ViewPer);
+            case "Insert": return _permissions.All(x => x.InsertPer);
+            case "Update": return _permissions.All(x => x.UpdatePer);
+            case "Delete": return _permissions.All(x => x.DeletePer);
+            default: return false;
+        }
+    }
+
+    private void OnHeaderToggle(string type, bool value)
+    {
+        foreach (var item in _permissions)
+        {
+            switch (type)
+            {
+                case "View": item.ViewPer = value; break;
+                case "Insert": item.InsertPer = value; break;
+                case "Update": item.UpdatePer = value; break;
+                case "Delete": item.DeletePer = value; break;
+            }
+        }
+    }
+
+    private bool IsAllEverythingChecked()
+    {
+        if (_permissions.Count == 0) return false;
+        return _permissions.All(x => x.ViewPer && x.InsertPer && x.UpdatePer && x.DeletePer);
+    }
+
+    private void OnMasterEverythingToggle(bool value)
+    {
+        foreach (var item in _permissions)
+        {
+            item.ViewPer = value;
+            item.InsertPer = value;
+            item.UpdatePer = value;
+            item.DeletePer = value;
+        }
+    }
+
     private List<RoleDto> _roles = new();
     private List<ModuleDto> _modules = new();
     private List<MenuDto> _dashboards = new();

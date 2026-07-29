@@ -55,6 +55,8 @@ public interface IAdminSecurityRepository
     Task<PagedResult<UserActivityLogDto>> GetUserActivityLogsAsync(string? userName, string? loginName, string? eventName, string? eventModule, PagedRequest request, CancellationToken cancellationToken = default);
     Task<PagedResult<LoginLogDto>> GetLoginLogsAsync(string? searchText, long? loginId, DateTime? fromDate, DateTime? toDate, PagedRequest request, CancellationToken cancellationToken = default);
     Task<long> InsertUserActivityLogAsync(UserActivityLogDto log, CancellationToken cancellationToken = default);
+    Task<string?> GetPasswordByEmailAsync(string forgotEmail, CancellationToken cancellationToken = default);
+    Task<bool> ResetPasswordAsync(string email, string newPassword, CancellationToken cancellationToken = default);
 }
 
 public sealed class AdminSecurityRepository : IAdminSecurityRepository
@@ -1621,6 +1623,48 @@ public sealed class AdminSecurityRepository : IAdminSecurityRepository
         
         return Convert.ToInt64(outputParam.Value ?? 0L);
     }
+
+    public async Task<string?> GetPasswordByEmailAsync(string forgotEmail, CancellationToken cancellationToken = default)
+    {
+        var parameters = new[]
+        {
+            new SqlParameter("@ForgotEmail", SqlDbType.NVarChar, 200) { Value = forgotEmail }
+        };
+
+        var dt = await ExecuteDataTableAsync("Z_UsersLoginsGetPassword", parameters, cancellationToken);
+        if (dt.Rows.Count > 0)
+        {
+            var encryptedPassword = dt.Rows[0].SafeString("Password");
+            if (!string.IsNullOrEmpty(encryptedPassword))
+            {
+                return LegacyCrypto.DecryptString(encryptedPassword);
+            }
+        }
+        return null;
+    }
+
+    public async Task<bool> ResetPasswordAsync(string email, string newPassword, CancellationToken cancellationToken = default)
+    {
+        var parameters = new[]
+        {
+            new SqlParameter("@ForgotEmail", SqlDbType.NVarChar, 200) { Value = email }
+        };
+
+        var dt = await ExecuteDataTableAsync("Z_UsersLoginsGetPassword", parameters, cancellationToken);
+        if (dt.Rows.Count > 0)
+        {
+            var loginId = dt.Rows[0].SafeLong("LoginID", "LoginId");
+            using var connection = new SqlConnection(_connectionString);
+            using var command = new SqlCommand("UPDATE Z_UsersLogins SET Password = @NewPassword WHERE LoginID = @LoginID", connection);
+            command.Parameters.AddWithValue("@NewPassword", LegacyCrypto.EncryptString(newPassword));
+            command.Parameters.AddWithValue("@LoginID", loginId);
+
+            await connection.OpenAsync(cancellationToken);
+            var affected = await command.ExecuteNonQueryAsync(cancellationToken);
+            return affected > 0;
+        }
+        return false;
+    }
 }
 
 internal static class LegacyCrypto
@@ -1640,6 +1684,21 @@ internal static class LegacyCrypto
         using var transform = tripleDes.CreateEncryptor();
         var result = transform.TransformFinalBlock(data, 0, data.Length);
         return Convert.ToBase64String(result);
+    }
+
+    public static string DecryptString(string encryptedValue)
+    {
+        using var md5 = System.Security.Cryptography.MD5.Create();
+        var key = md5.ComputeHash(System.Text.Encoding.UTF8.GetBytes(EncryptKey));
+        using var tripleDes = System.Security.Cryptography.TripleDES.Create();
+        tripleDes.Key = key;
+        tripleDes.Mode = System.Security.Cryptography.CipherMode.ECB;
+        tripleDes.Padding = System.Security.Cryptography.PaddingMode.PKCS7;
+
+        var data = Convert.FromBase64String(encryptedValue);
+        using var transform = tripleDes.CreateDecryptor();
+        var result = transform.TransformFinalBlock(data, 0, data.Length);
+        return System.Text.Encoding.UTF8.GetString(result);
     }
 }
 

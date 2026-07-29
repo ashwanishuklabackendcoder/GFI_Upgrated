@@ -29,14 +29,14 @@
                 <MudTextField @bind-Value="_order.OrderNo" Label="Order Number" Required="true" Variant="Variant.Outlined" For="@(() => _order.OrderNo)" />
             </MudItem>
             <MudItem xs="12" md="4">
-                <MudAutocomplete Clearable="true"      MaxItems="1000" T="AccountLookupDto" Label="Customer" Value="@(_customers.FirstOrDefault(x => x.AccountId == _order.CustomerID))" ValueChanged="@((AccountLookupDto val) => { _order.CustomerID = val?.AccountId ?? 0; })" SearchFunc="@SearchCustomers" ToStringFunc="@(x => x?.AccountName ?? "")" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter" Required="true" />
+                <MudAutocomplete Clearable="true"           MaxItems="1000" T="AccountLookupDto" Label="Customer" Value="@(_customers.FirstOrDefault(x => x.AccountId == _order.CustomerID))" ValueChanged="@((AccountLookupDto val) => { _order.CustomerID = val?.AccountId ?? 0; })" SearchFunc="@SearchCustomers" ToStringFunc="@(x => x?.AccountName ?? "")" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter" Required="true" />
             </MudItem>
             <MudItem xs="12" md="4">
-                <MudDatePicker Editable="true"  DateFormat="dd/MM/yyyy" Placeholder="dd/MM/yyyy"           @bind-Date="_order.OrderDate" Label="Order Date (DD/MM/YYYY)" Required="true" Variant="Variant.Outlined" />
+                <MudDatePicker DateFormat="dd/MM/yyyy" Placeholder="dd/MM/yyyy" Editable="true"                         @bind-Date="_order.OrderDate" Label="Order Date (DD/MM/YYYY)" Required="true" Variant="Variant.Outlined" />
             </MudItem>
             
             <MudItem xs="12" md="4">
-                <MudDatePicker Editable="true"  DateFormat="dd/MM/yyyy" Placeholder="dd/MM/yyyy"           @bind-Date="_order.SentDate" Label="Sent Date (Nullable) (DD/MM/YYYY)" Variant="Variant.Outlined" />
+                <MudDatePicker DateFormat="dd/MM/yyyy" Placeholder="dd/MM/yyyy" Editable="true"                         @bind-Date="_order.SentDate" Label="Sent Date (Nullable) (DD/MM/YYYY)" Variant="Variant.Outlined" />
             </MudItem>
             <MudItem xs="12" md="8">
                 <MudTextField @bind-Value="_order.Remarks" Label="Remarks / Delivery Instructions" Variant="Variant.Outlined" />
@@ -60,7 +60,7 @@
                     </HeaderContent>
                     <RowTemplate Context="row">
                         <MudTd DataLabel="Item (SKU)">
-                            <MudAutocomplete Clearable="true"      MaxItems="1000" T="RawMaterialDto" Value="@(_items.FirstOrDefault(x => x.ItemId == row.ItemId))" ValueChanged="@((RawMaterialDto val) => OnItemChanged(row, val?.ItemId ?? 0))" SearchFunc="@SearchItems" ToStringFunc="@(x => x?.ItemName ?? "")" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" Variant="Variant.Outlined" Dense="true" Margin="Margin.Dense" AnchorOrigin="Origin.BottomCenter" />
+                            <MudAutocomplete Clearable="true"           MaxItems="1000" T="RawMaterialDto" Value="@(_items.FirstOrDefault(x => x.ItemId == row.ItemId))" ValueChanged="@((RawMaterialDto val) => OnItemChanged(row, val?.ItemId ?? 0))" SearchFunc="@SearchItems" ToStringFunc="@(x => x?.ItemName ?? "")" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" Variant="Variant.Outlined" Dense="true" Margin="Margin.Dense" AnchorOrigin="Origin.BottomCenter" />
                         </MudTd>
                         <MudTd DataLabel="Quantity" Style="text-align: center;">
                             <MudNumericField @bind-Value="row.Qty" Variant="Variant.Outlined" Dense="true" Margin="Margin.Dense" Min="1" Style="text-align: center;" />

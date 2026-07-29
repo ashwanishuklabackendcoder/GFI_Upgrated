@@ -102,6 +102,77 @@ public sealed class SecurityController : ControllerBase
         }
     }
 
+    [HttpPost("forgot-password/send-otp")]
+    public async Task<ActionResult<ApiEnvelope<string>>> SendOtp([FromQuery] string email, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var emailTrimmed = email?.Trim() ?? string.Empty;
+            if (string.IsNullOrEmpty(emailTrimmed))
+            {
+                return BadRequest(new ApiEnvelope<string> { Success = false, Message = "Email address is required." });
+            }
+
+            var password = await _service.GetPasswordByEmailAsync(emailTrimmed, cancellationToken);
+            if (string.IsNullOrEmpty(password))
+            {
+                return Ok(new ApiEnvelope<string> { Success = false, Message = "Email address not found." });
+            }
+
+            var otp = Random.Shared.Next(100000, 999999).ToString();
+            _memoryCache.Set($"OTP_{emailTrimmed}", otp, TimeSpan.FromMinutes(10));
+
+            var subject = "Password Reset Verification Code - GFI";
+            var body = $"<h3>GFI System Password Reset Request</h3>" +
+                       $"<p>We received a request to reset your password.</p>" +
+                       $"<p>Your 6-digit verification code is: <strong>{otp}</strong></p>" +
+                       $"<p>This code is valid for 10 minutes. If you did not make this request, you can ignore this email.</p>";
+
+            await GFI_Upgrated.ServiceApi.Helpers.EmailSender.SendEmailAsync(emailTrimmed, subject, body);
+
+            return Ok(new ApiEnvelope<string> { Success = true, Message = "Verification OTP code sent to your email address.", Data = "OTP_SENT" });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new ApiEnvelope<string> { Success = false, Message = $"Server Error: {ex.Message}" });
+        }
+    }
+
+    [HttpPost("forgot-password/reset")]
+    public async Task<ActionResult<ApiEnvelope<bool>>> ResetPasswordOtp([FromQuery] string email, [FromQuery] string otp, [FromQuery] string newPassword, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var emailTrimmed = email?.Trim() ?? string.Empty;
+            var otpTrimmed = otp?.Trim() ?? string.Empty;
+            if (string.IsNullOrEmpty(emailTrimmed) || string.IsNullOrEmpty(otpTrimmed))
+            {
+                return BadRequest(new ApiEnvelope<bool> { Success = false, Message = "Email and OTP are required." });
+            }
+
+            if (!_memoryCache.TryGetValue($"OTP_{emailTrimmed}", out string? cachedOtp) || cachedOtp != otpTrimmed)
+            {
+                return Ok(new ApiEnvelope<bool> { Success = false, Message = "Invalid or expired OTP code." });
+            }
+
+            _memoryCache.Remove($"OTP_{emailTrimmed}");
+
+            var result = await _service.ResetPasswordAsync(emailTrimmed, newPassword, cancellationToken);
+            if (result)
+            {
+                return Ok(new ApiEnvelope<bool> { Success = true, Message = "Password reset successfully.", Data = true });
+            }
+            else
+            {
+                return Ok(new ApiEnvelope<bool> { Success = false, Message = "Failed to update password." });
+            }
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new ApiEnvelope<bool> { Success = false, Message = $"Server Error: {ex.Message}" });
+        }
+    }
+
     [HttpGet("roles")]
     public async Task<ActionResult<ApiEnvelope<PagedResult<RoleDto>>>> GetRoles([FromQuery] PagedRequest request, [FromQuery] string? searchText, CancellationToken cancellationToken)
     {

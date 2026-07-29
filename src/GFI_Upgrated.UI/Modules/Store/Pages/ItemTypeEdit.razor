@@ -27,7 +27,7 @@
             </MudItem>
             
             <MudItem xs="12" md="6">
-                <MudAutocomplete Clearable="true"      MaxItems="1000" T="ParentTypeLookupDto" Label="Parent Type" 
+                <MudAutocomplete Clearable="true"           MaxItems="1000" T="ParentTypeLookupDto" Label="Parent Type" 
                                  Value="@(_parents.FirstOrDefault(x => x.ItemTypeId == _editor.MainTypeId))" 
                                  ValueChanged="@((ParentTypeLookupDto val) => { _editor.MainTypeId = val?.ItemTypeId; })" 
                                  SearchFunc="@SearchParents" ToStringFunc="@(x => x?.ItemTypeName ?? "")"
