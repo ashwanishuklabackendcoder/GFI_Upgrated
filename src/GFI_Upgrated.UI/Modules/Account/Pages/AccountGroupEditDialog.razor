@@ -16,7 +16,7 @@
 
                 @if (!Model.IsMainAccountGroup)
                 {
-                    <MudAutocomplete Clearable="true"      MaxItems="1000" T="AccountGroupLookupDto" Label="Main Account Group" Value="@(_mainGroups.FirstOrDefault(x => x.AccountGroupID == Model.MainAccountGroupID))" ValueChanged="@((AccountGroupLookupDto val) => { Model.MainAccountGroupID = val?.AccountGroupID; })" SearchFunc="@SearchMainGroups" ToStringFunc="@(x => x?.AccountGroupName ?? "")" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter" Required="true" RequiredError="Parent group is required for sub-groups" />
+                    <MudAutocomplete Clearable="true"          MaxItems="1000" T="AccountGroupLookupDto" Label="Main Account Group" Value="@(_mainGroups.FirstOrDefault(x => x.AccountGroupID == Model.MainAccountGroupID))" ValueChanged="@((AccountGroupLookupDto val) => { Model.MainAccountGroupID = val?.AccountGroupID; })" SearchFunc="@SearchMainGroups" ToStringFunc="@(x => x?.AccountGroupName ?? "")" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter" Required="true" RequiredError="Parent group is required for sub-groups" />
                 }
 
                 <MudSwitch @bind-Value="Model.IsActive" Label="Active" Color="Color.Success" />

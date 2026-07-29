@@ -25,7 +25,7 @@
         <DataAnnotationsValidator />
         <MudGrid>
             <MudItem xs="12" md="6">
-                <MudAutocomplete Clearable="true"      MaxItems="1000" T="BomLookupDto" Label="Select BOM" 
+                <MudAutocomplete Clearable="true"          MaxItems="1000" T="BomLookupDto" Label="Select BOM" 
                                  Value="@(_boms.FirstOrDefault(x => x.BomId == _editor.BomId))" 
                                  ValueChanged="@((BomLookupDto val) => { _editor.BomId = val?.BomId ?? 0; })" 
                                  SearchFunc="@SearchBoms" ToStringFunc="@(x => x?.BomName ?? "")"
@@ -37,13 +37,13 @@
             </MudItem>
 
             <MudItem xs="12" md="4">
-                <MudDatePicker Editable="true"  DateFormat="dd/MM/yyyy" Placeholder="dd/MM/yyyy"           @bind-Date="_editor.ProcessingDate" Label="Processing Date (DD/MM/YYYY)" Variant="Variant.Outlined" Required="true" />
+                <MudDatePicker Editable="true" DateFormat="dd/MM/yyyy" Placeholder="dd/MM/yyyy"                      @bind-Date="_editor.ProcessingDate" Label="Processing Date (DD/MM/YYYY)" Variant="Variant.Outlined" Required="true" />
             </MudItem>
             <MudItem xs="12" md="4">
                 <MudNumericField @bind-Value="_editor.QuantityMade" Label="Actual Quantity Made" Min="1" Variant="Variant.Outlined" />
             </MudItem>
             <MudItem xs="12" md="4">
-                <MudAutocomplete Clearable="true"      MaxItems="1000" T="UnitLookupDto" Label="Unit" 
+                <MudAutocomplete Clearable="true"          MaxItems="1000" T="UnitLookupDto" Label="Unit" 
                                  Value="@(_units.FirstOrDefault(x => x.UnitId == _editor.UnitMade))" 
                                  ValueChanged="@((UnitLookupDto val) => { _editor.UnitMade = val?.UnitId ?? 0; })" 
                                  SearchFunc="@SearchUnits" ToStringFunc="@(x => x?.UnitName ?? "")"
@@ -55,11 +55,11 @@
                 <MudTextField @bind-Value="_editor.BatchNumberMade" Label="Batch Number" Variant="Variant.Outlined" HelperText="Leave blank for auto-generation" />
             </MudItem>
             <MudItem xs="12" md="6">
-                <MudDatePicker Editable="true"  DateFormat="dd/MM/yyyy" Placeholder="dd/MM/yyyy"           @bind-Date="_editor.ExpiryDate" Label="Expiry Date (DD/MM/YYYY)" Variant="Variant.Outlined" />
+                <MudDatePicker Editable="true" DateFormat="dd/MM/yyyy" Placeholder="dd/MM/yyyy"                      @bind-Date="_editor.ExpiryDate" Label="Expiry Date (DD/MM/YYYY)" Variant="Variant.Outlined" />
             </MudItem>
 
             <MudItem xs="12" md="6">
-                <MudAutocomplete Clearable="true"      MaxItems="1000" T="WarehouseLookupDto" Label="Storage Warehouse" 
+                <MudAutocomplete Clearable="true"          MaxItems="1000" T="WarehouseLookupDto" Label="Storage Warehouse" 
                                  Value="@(_warehouses.FirstOrDefault(x => x.WarehouseId == _editor.WarehouseId))" 
                                  ValueChanged="@((WarehouseLookupDto val) => { _editor.WarehouseId = val?.WarehouseId ?? 0; })" 
                                  SearchFunc="@SearchWarehouses" ToStringFunc="@(x => x?.WarehouseName ?? "")"

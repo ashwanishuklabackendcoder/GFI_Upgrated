@@ -38,7 +38,7 @@
                 </MudSelect>
             </MudItem>
             <MudItem xs="12" md="4">
-                <MudAutocomplete Clearable="true"      MaxItems="1000" T="RawMaterialDto" Label="Parent Product" 
+                <MudAutocomplete Clearable="true"          MaxItems="1000" T="RawMaterialDto" Label="Parent Product" 
                                  Value="@(_allProducts.FirstOrDefault(x => x.ItemId == _model.ItemId) ?? _selectedParent)"
                                  ValueChanged="@((RawMaterialDto val) => { _selectedParent = val; _model.ItemId = val?.ItemId ?? 0; })"
                                  SearchFunc="@SearchParentProducts"
@@ -50,7 +50,7 @@
                 <MudNumericField @bind-Value="_model.Quantity" Label="Yield Quantity" Variant="Variant.Outlined" Min="0.0001" Step="0.01" Format="0.##" For="@(() => _model.Quantity)" />
             </MudItem>
             <MudItem xs="12" md="3">
-                <MudAutocomplete Clearable="true"      MaxItems="1000" T="UnitDto" Label="Yield Unit" 
+                <MudAutocomplete Clearable="true"          MaxItems="1000" T="UnitDto" Label="Yield Unit" 
                                  Value="@(_units.FirstOrDefault(x => x.UnitId == _model.UnitId))" 
                                  ValueChanged="@((UnitDto val) => { _model.UnitId = val?.UnitId ?? 0; })" 
                                  SearchFunc="@SearchUnits" ToStringFunc="@(x => x?.UnitName ?? "")"
@@ -81,7 +81,7 @@
                     </HeaderContent>
                     <RowTemplate>
                         <MudTd DataLabel="Item">
-                            <MudAutocomplete Clearable="true"      MaxItems="1000" T="RawMaterialDto" Value="@(GetItemById(itemContext.ItemID))" ValueChanged="@((v) => OnComponentChanged(itemContext, v))"
+                            <MudAutocomplete Clearable="true"          MaxItems="1000" T="RawMaterialDto" Value="@(GetItemById(itemContext.ItemID))" ValueChanged="@((v) => OnComponentChanged(itemContext, v))"
                                              SearchFunc="@SearchComponents" ToStringFunc="@(i => i?.ItemName ?? "")" 
                                              Variant="Variant.Text" Dense="true" />
                         </MudTd>
@@ -89,7 +89,7 @@
                             <MudNumericField @bind-Value="itemContext.Quantity" Variant="Variant.Text" Min="0.0001" Step="0.01" Format="0.##" Dense="true" />
                         </MudTd>
                         <MudTd DataLabel="Unit">
-                            <MudAutocomplete Clearable="true"      MaxItems="1000" T="UnitDto" Value="@(_units.FirstOrDefault(x => x.UnitId == itemContext.UnitId))" 
+                            <MudAutocomplete Clearable="true"          MaxItems="1000" T="UnitDto" Value="@(_units.FirstOrDefault(x => x.UnitId == itemContext.UnitId))" 
                                              ValueChanged="@((UnitDto val) => { itemContext.UnitId = val?.UnitId ?? 0; })" 
                                              SearchFunc="@SearchUnits" ToStringFunc="@(x => x?.UnitName ?? "")"
                                              Variant="Variant.Text" Dense="true" 

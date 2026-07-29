@@ -318,6 +318,16 @@ public sealed class SaveStaffRequest : IValidatableObject
 
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {
+        if (string.IsNullOrWhiteSpace(StaffSalutation))
+        {
+            yield return new ValidationResult("Salutation is required.", new[] { nameof(StaffSalutation) });
+        }
+
+        if (Gender <= 0)
+        {
+            yield return new ValidationResult("Gender is required.", new[] { nameof(Gender) });
+        }
+
         if (DOB is not null && DOB.Value.Date > DateTime.Today)
         {
             yield return new ValidationResult("DOB cannot be a future date.", new[] { nameof(DOB) });

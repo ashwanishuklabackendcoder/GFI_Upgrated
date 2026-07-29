@@ -32,7 +32,7 @@
                           Variant="Variant.Outlined" Placeholder="Enter batch number..." Clearable="true" />
         </MudItem>
         <MudItem xs="12" md="4">
-            <MudAutocomplete Clearable="true"      MaxItems="1000" T="RawMaterialDto" Label="Select Item" Value="_selectedItem" ValueChanged="OnItemChanged"
+            <MudAutocomplete Clearable="true"          MaxItems="1000" T="RawMaterialDto" Label="Select Item" Value="_selectedItem" ValueChanged="OnItemChanged"
                              SearchFunc="@SearchItems" ToStringFunc="@(i => i?.ItemName ?? "")" Variant="Variant.Outlined" 
                               Placeholder="Search items..." AdornmentIcon="@Icons.Material.Filled.Search" />
         </MudItem>

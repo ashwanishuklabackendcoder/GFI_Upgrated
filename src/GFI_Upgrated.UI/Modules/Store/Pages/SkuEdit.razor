@@ -24,7 +24,7 @@
                     <MudTextField @bind-Value="_editor.SkuName" Label="SKU Name" Variant="Variant.Outlined" />
                 </MudItem>
                 <MudItem xs="12" md="6">
-                    <MudAutocomplete Clearable="true"      MaxItems="1000" T="UnitLookupDto" Label="Unit" Value="@(_units.FirstOrDefault(x => x.UnitId == _editor.UnitId))" ValueChanged="@((UnitLookupDto val) => { _editor.UnitId = val?.UnitId ?? 0; })" SearchFunc="@SearchUnits" ToStringFunc="@(x => x?.UnitName ?? "")" Variant="Variant.Outlined" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
+                    <MudAutocomplete Clearable="true"          MaxItems="1000" T="UnitLookupDto" Label="Unit" Value="@(_units.FirstOrDefault(x => x.UnitId == _editor.UnitId))" ValueChanged="@((UnitLookupDto val) => { _editor.UnitId = val?.UnitId ?? 0; })" SearchFunc="@SearchUnits" ToStringFunc="@(x => x?.UnitName ?? "")" Variant="Variant.Outlined" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
                 </MudItem>
                 <MudItem xs="12" md="3">
                     <MudNumericField @bind-Value="_editor.Quantity" Label="Content" Variant="Variant.Outlined" />

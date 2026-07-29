@@ -52,6 +52,8 @@ public interface IAdminSecurityService
     Task<PagedResult<UserActivityLogDto>> GetUserActivityLogsAsync(string? userName, string? loginName, string? eventName, string? eventModule, PagedRequest request, CancellationToken cancellationToken = default);
     Task<PagedResult<LoginLogDto>> GetLoginLogsAsync(string? searchText, long? loginId, DateTime? fromDate, DateTime? toDate, PagedRequest request, CancellationToken cancellationToken = default);
     Task<long> InsertUserActivityLogAsync(UserActivityLogDto log, CancellationToken cancellationToken = default);
+    Task<string?> GetPasswordByEmailAsync(string forgotEmail, CancellationToken cancellationToken = default);
+    Task<bool> ResetPasswordAsync(string email, string newPassword, CancellationToken cancellationToken = default);
 }
 
 public sealed class AdminSecurityService : IAdminSecurityService
@@ -81,8 +83,34 @@ public sealed class AdminSecurityService : IAdminSecurityService
     public Task<UserDto?> GetUserByIdAsync(long loginId, CancellationToken cancellationToken = default)
         => _repository.GetUserByIdAsync(loginId, cancellationToken);
 
-    public Task<int> SaveUserAsync(SaveUserRequest request, CancellationToken cancellationToken = default)
-        => _repository.SaveUserAsync(request, cancellationToken);
+    public async Task<int> SaveUserAsync(SaveUserRequest request, CancellationToken cancellationToken = default)
+    {
+        var isNewUser = request.LoginId == 0;
+        var result = await _repository.SaveUserAsync(request, cancellationToken);
+        if (result > 0 && isNewUser)
+        {
+            try
+            {
+                var staff = await _repository.GetStaffByIdAsync(request.StaffId, cancellationToken);
+                if (staff != null && !string.IsNullOrEmpty(staff.EmailIDOfficial))
+                {
+                    var subject = "Your GFI Account Login Credentials";
+                    var body = $"<h3>Welcome to GFI</h3>" +
+                               $"<p>A new account has been created for you.</p>" +
+                               $"<p><strong>Username:</strong> {request.LoginName}</p>" +
+                               $"<p><strong>Password:</strong> {request.Password}</p>" +
+                               $"<p>Please log in and update your password if needed.</p>";
+
+                    _ = Task.Run(() => GFI_Upgrated.ServiceApi.Helpers.EmailSender.SendEmailAsync(staff.EmailIDOfficial, subject, body), CancellationToken.None);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[SaveUserAsync Email Error]: {ex.Message}");
+            }
+        }
+        return result;
+    }
 
     public Task<PagedResult<StaffDto>> GetStaffsAsync(PagedRequest request, string? searchText, CancellationToken cancellationToken = default)
         => _repository.GetStaffsAsync(request, searchText, cancellationToken);
@@ -200,4 +228,10 @@ public sealed class AdminSecurityService : IAdminSecurityService
 
     public Task<long> InsertUserActivityLogAsync(UserActivityLogDto log, CancellationToken cancellationToken = default)
         => _repository.InsertUserActivityLogAsync(log, cancellationToken);
+
+    public Task<string?> GetPasswordByEmailAsync(string forgotEmail, CancellationToken cancellationToken = default)
+        => _repository.GetPasswordByEmailAsync(forgotEmail, cancellationToken);
+
+    public Task<bool> ResetPasswordAsync(string email, string newPassword, CancellationToken cancellationToken = default)
+        => _repository.ResetPasswordAsync(email, newPassword, cancellationToken);
 }

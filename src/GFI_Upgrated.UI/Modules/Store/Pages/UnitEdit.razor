@@ -29,7 +29,7 @@
                 <MudNumericField @bind-Value="_editor.ConversionValue" Label="Conversion Value" Variant="Variant.Outlined" For="@(() => _editor.ConversionValue)" HideSpinButtons="true" Step="0.000001" />
             </MudItem>
             <MudItem xs="12" md="6">
-                <MudAutocomplete Clearable="true"      MaxItems="1000" T="BaseUnitLookupDto" Label="Base Unit" Value="@(_baseUnits.FirstOrDefault(x => x.UnitId == _editor.BaseUnit))" ValueChanged="@((BaseUnitLookupDto val) => { _editor.BaseUnit = val?.UnitId; })" SearchFunc="@SearchBaseUnits" ToStringFunc="@(x => x?.UnitName ?? "")" Variant="Variant.Outlined"  ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
+                <MudAutocomplete Clearable="true"          MaxItems="1000" T="BaseUnitLookupDto" Label="Base Unit" Value="@(_baseUnits.FirstOrDefault(x => x.UnitId == _editor.BaseUnit))" ValueChanged="@((BaseUnitLookupDto val) => { _editor.BaseUnit = val?.UnitId; })" SearchFunc="@SearchBaseUnits" ToStringFunc="@(x => x?.UnitName ?? "")" Variant="Variant.Outlined"  ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
             </MudItem>
             <MudItem xs="12" md="6" Class="d-flex align-center">
                 <MudCheckBox T="bool" @bind-Value="_editor.IsActive" Label="Is Active" Color="Color.Primary" />
