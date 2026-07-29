@@ -27,7 +27,7 @@
             </MudItem>
             
             <MudItem xs="12" md="6">
-                <MudAutocomplete Clearable="true"          MaxItems="1000" T="WarehouseDto" Label="Warehouse" 
+                <MudAutocomplete Clearable="true"           MaxItems="1000" T="WarehouseDto" Label="Warehouse" 
                                  Value="@(_warehouses.FirstOrDefault(x => x.WarehouseId == _editor.WarehouseID))" 
                                  ValueChanged="@((WarehouseDto val) => { _editor.WarehouseID = val?.WarehouseId ?? 0; })" 
                                  SearchFunc="@SearchWarehouses" ToStringFunc="@(x => x?.WarehouseName ?? "")"

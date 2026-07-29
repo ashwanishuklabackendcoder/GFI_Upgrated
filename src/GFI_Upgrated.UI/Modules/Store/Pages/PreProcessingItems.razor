@@ -40,7 +40,7 @@
         </HeaderContent>
         <RowTemplate>
             <MudTd DataLabel="Ingredient">
-                <MudAutocomplete Clearable="true"          MaxItems="1000" T="RawMaterialDto" 
+                <MudAutocomplete Clearable="true"           MaxItems="1000" T="RawMaterialDto" 
                                  Value="@(_allRawMaterials.FirstOrDefault(x => x.ItemId == context.ItemID))" 
                                  ValueChanged="@(async (RawMaterialDto val) => await OnItemChanged(context, val))"
                                  SearchFunc="@SearchRawMaterials" ToStringFunc="@(x => x?.ItemName ?? "")"
@@ -48,7 +48,7 @@
                                  ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
             </MudTd>
             <MudTd DataLabel="Lot / Batch Number">
-                <MudAutocomplete Clearable="true"          MaxItems="1000" T="AvailableBatchDto" 
+                <MudAutocomplete Clearable="true"           MaxItems="1000" T="AvailableBatchDto" 
                                  Value="@(context.AvailableBatches.FirstOrDefault(x => x.ItemStockByBatchId == context.ItemStockByBatchId))" 
                                  ValueChanged="@((AvailableBatchDto val) => OnBatchChanged(context, val))"
                                  SearchFunc="@((val, token) => SearchBatches(context, val, token))" 

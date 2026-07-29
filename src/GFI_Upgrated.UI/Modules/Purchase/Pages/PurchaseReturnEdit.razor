@@ -25,11 +25,11 @@
         <DataAnnotationsValidator />
         <MudGrid>
             <MudItem xs="12" md="4">
-                <MudAutocomplete Clearable="true"          MaxItems="1000" T="AccountLookupDto" Label="Supplier" Value="_selectedVendor" ValueChanged="OnVendorChanged" SearchFunc="SearchVendors"
+                <MudAutocomplete Clearable="true"           MaxItems="1000" T="AccountLookupDto" Label="Supplier" Value="_selectedVendor" ValueChanged="OnVendorChanged" SearchFunc="SearchVendors"
                                  ToStringFunc="@(a => a?.AccountName ?? "")" Variant="Variant.Outlined" Required="true" />
             </MudItem>
             <MudItem xs="12" md="4">
-                <MudDatePicker Editable="true" DateFormat="dd/MM/yyyy" Placeholder="dd/MM/yyyy"                      Label="Return Date (DD/MM/YYYY)" @bind-Date="_meta.ReturnDate" Variant="Variant.Outlined"  Required="true" />
+                <MudDatePicker DateFormat="dd/MM/yyyy" Placeholder="dd/MM/yyyy" Editable="true"                         Label="Return Date (DD/MM/YYYY)" @bind-Date="_meta.ReturnDate" Variant="Variant.Outlined"  Required="true" />
             </MudItem>
             <MudItem xs="12" md="4">
                 <MudTextField @bind-Value="_meta.Description" Label="Narration / Remarks" Variant="Variant.Outlined" />
@@ -72,7 +72,7 @@
                             <MudNumericField T="double" Value="rowContext.Quantity" ValueChanged="@((qty) => OnQtyChanged(rowContext, qty))" Variant="Variant.Text" Dense="true" Min="0.001" Required="true" />
                         </MudTd>
                         <MudTd DataLabel="Reason">
-                            <MudAutocomplete Clearable="true"          MaxItems="1000" T="LookupItemDto" Label="Select Reason" Variant="Variant.Text" Required="true"
+                            <MudAutocomplete Clearable="true"           MaxItems="1000" T="LookupItemDto" Label="Select Reason" Variant="Variant.Text" Required="true"
                                              Value="@(_reasons.FirstOrDefault(x => x.Value == rowContext.ReasonId))"
                                              ValueChanged="@((LookupItemDto val) => { rowContext.ReasonId = val?.Value; })"
                                              SearchFunc="@SearchReasons"

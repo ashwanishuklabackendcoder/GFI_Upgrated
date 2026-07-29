@@ -14,14 +14,14 @@
 
         <MudForm @ref="_form">
             <MudStack Spacing="4">
-                <MudAutocomplete Clearable="true"          MaxItems="1000" T="BomItemDetailDto" Label="Select Ingredient" 
+                <MudAutocomplete Clearable="true"           MaxItems="1000" T="BomItemDetailDto" Label="Select Ingredient" 
                                  Value="@(BomItems.FirstOrDefault(x => x.ItemID == _newItem.ItemID))" 
                                  ValueChanged="@(async (BomItemDetailDto val) => await OnIngredientChanged(val?.ItemID ?? 0))" 
                                  SearchFunc="@SearchBomItems" ToStringFunc="@(x => x?.ItemName ?? "")"
                                  Variant="Variant.Outlined" Required="true" RequiredError="Ingredient is required." 
                                  ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
 
-                <MudAutocomplete Clearable="true"          MaxItems="1000" T="AvailableBatchDto" Label="Select Batch" 
+                <MudAutocomplete Clearable="true"           MaxItems="1000" T="AvailableBatchDto" Label="Select Batch" 
                                  Value="@(_availableBatches.FirstOrDefault(x => x.ItemStockByBatchId == _newItem.ItemStockByBatchId))" 
                                  ValueChanged="@((AvailableBatchDto val) => { _newItem.ItemStockByBatchId = val?.ItemStockByBatchId ?? 0; })" 
                                  SearchFunc="@SearchAvailableBatches" ToStringFunc="@(x => x != null ? $"{x.BatchNo} (Avail: {x.FinalQuantityLeft} | Exp: {x.ExpiryDate})" : "")"

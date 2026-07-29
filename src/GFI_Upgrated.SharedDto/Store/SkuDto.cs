@@ -53,4 +53,5 @@ public sealed class UnitLookupDto
 {
     public long UnitId { get; set; }
     public string UnitName { get; set; } = string.Empty;
+    public long? BaseUnit { get; set; }
 }

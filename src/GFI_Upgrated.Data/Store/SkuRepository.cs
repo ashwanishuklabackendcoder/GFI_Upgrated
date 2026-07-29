@@ -106,7 +106,8 @@ public sealed class SkuRepository : ISkuRepository
         return table.AsEnumerable().Select(r => new UnitLookupDto
         {
             UnitId = r.SafeLong("UnitID", "UnitId"),
-            UnitName = r.SafeString("UnitName", "Unit_Name")
+            UnitName = r.SafeString("UnitName", "Unit_Name"),
+            BaseUnit = r.Table.Columns.Contains("BaseUnit") && r["BaseUnit"] != DBNull.Value ? Convert.ToInt64(r["BaseUnit"]) : null
         }).ToList();
     }
 
