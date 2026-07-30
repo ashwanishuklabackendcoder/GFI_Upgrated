@@ -193,7 +193,15 @@
         try
         {
             var pagedStatuses = await StoreApiClient.GetStatusesAsync(new PagedRequest { CurrentPage = 1, RecordPerPage = 1000 });
-            _statuses = pagedStatuses.Items.Where(x => x.IsActive).OrderBy(x => x.StatusName).ToList();
+            _statuses = pagedStatuses.Items.Where(x => x.IsActive && x.StatusOf == 4).OrderBy(x => x.StatusName).ToList();
+            if (!_statuses.Any())
+            {
+                _statuses = new List<StatusDto>
+                {
+                    new StatusDto { StatusId = 1, StatusName = "Active" },
+                    new StatusDto { StatusId = 2, StatusName = "Inactive" }
+                };
+            }
         }
         catch
         {

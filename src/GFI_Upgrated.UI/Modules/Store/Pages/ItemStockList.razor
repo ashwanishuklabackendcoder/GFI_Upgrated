@@ -1,4 +1,4 @@
-﻿@page "/store/reports/item-stock-by-batch"
+@page "/store/reports/item-stock-by-batch"
 @page "/admin/reports/item-stock-by-batch"
 @page "/store/itemstocklist"
 @page "/admin/itemstocklist"
@@ -27,19 +27,22 @@
     </MudStack>
 
     <MudGrid Class="mb-4 no-print" Spacing="2">
-        <MudItem xs="12" md="4">
+        <MudItem xs="12" md="3">
             <MudSelect T="long?" @bind-Value="_selectedStockById" Label="Stock From" Variant="Variant.Outlined" Clearable="true" AnchorOrigin="Origin.BottomCenter">
                 <MudSelectItem Value="@((long?)null)">All Sources</MudSelectItem>
                 <MudSelectItem Value="@((long?)1)">Purchase</MudSelectItem>
                 <MudSelectItem Value="@((long?)2)">Pre-Processing</MudSelectItem>
             </MudSelect>
         </MudItem>
-        <MudItem xs="12" md="4">
+        <MudItem xs="12" md="3">
             <MudAutocomplete Clearable="true"           MaxItems="1000" T="RawMaterialDto" Label="Select Item" @bind-Value="_selectedItem" SearchFunc="@SearchItems"
                              ToStringFunc="@(i => i?.ItemName ?? "")" Variant="Variant.Outlined"  
                              Placeholder="Search items..." AdornmentIcon="@Icons.Material.Filled.Search" />
         </MudItem>
-        <MudItem xs="12" md="4" Class="d-flex align-end">
+        <MudItem xs="12" md="3">
+            <MudTextField T="string" ValueChanged="OnSearchTextChanged" Label="Search Keyword" Variant="Variant.Outlined" Placeholder="Search all columns..." Clearable="true" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" />
+        </MudItem>
+        <MudItem xs="12" md="3" Class="d-flex align-end">
             <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="OnSearch" FullWidth="true" Class="py-3">
                 Search
             </MudButton>
@@ -62,13 +65,13 @@
     <MudTable RowsPerPage="25" T="ItemStockByBatchReportDto" @ref="_table" ServerData="LoadServerDataAsync" Hover="true" Dense="true" Striped="true" Bordered="true" Loading="_loading">
         <HeaderContent>
             <MudTh><MudTableSortLabel SortLabel="ItemStockByBatchId" T="ItemStockByBatchReportDto">ID</MudTableSortLabel></MudTh>
-            <MudTh>Item Name</MudTh>
-            <MudTh Style="text-align: right;">Quantity</MudTh>
-            <MudTh>Batch No.</MudTh>
-            <MudTh>Warehouse</MudTh>
-            <MudTh Style="text-align: right;">Final Quantity</MudTh>
-            <MudTh>Expiry Date</MudTh>
-            <MudTh>Stock From</MudTh>
+            <MudTh><MudTableSortLabel SortLabel="ItemName" T="ItemStockByBatchReportDto">Item Name</MudTableSortLabel></MudTh>
+            <MudTh Style="text-align: right;"><MudTableSortLabel SortLabel="Quantity" T="ItemStockByBatchReportDto">Quantity</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel SortLabel="BatchNo" T="ItemStockByBatchReportDto">Batch No.</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel SortLabel="WarehouseName" T="ItemStockByBatchReportDto">Warehouse</MudTableSortLabel></MudTh>
+            <MudTh Style="text-align: right;"><MudTableSortLabel SortLabel="FinalQuantityLeft" T="ItemStockByBatchReportDto">Final Quantity</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel SortLabel="ExpiryDate" T="ItemStockByBatchReportDto">Expiry Date</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel SortLabel="StockById" T="ItemStockByBatchReportDto">Stock From</MudTableSortLabel></MudTh>
         </HeaderContent>
         <RowTemplate>
             <MudTd DataLabel="ID">@context.ItemStockByBatchId</MudTd>
@@ -180,6 +183,7 @@
 
     private async Task OnSearch()
     {
+        _cachedItems = null;
         if (_table != null) await _table.ReloadServerData();
     }
 
