@@ -11,7 +11,7 @@ public static class EmailSender
     {
         try
         {
-            var fromAddress = new MailAddress("info@creativ-eras.com", "GFI System");
+            var fromAddress = new MailAddress("info@creativ-eras.com", "GFI Portal");
             var toAddress = new MailAddress(toEmail);
 
             using var smtp = new SmtpClient

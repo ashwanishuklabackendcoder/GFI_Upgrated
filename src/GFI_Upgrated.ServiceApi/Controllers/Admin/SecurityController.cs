@@ -122,11 +122,11 @@ public sealed class SecurityController : ControllerBase
             var otp = Random.Shared.Next(100000, 999999).ToString();
             _memoryCache.Set($"OTP_{emailTrimmed}", otp, TimeSpan.FromMinutes(10));
 
-            var subject = "Password Reset Verification Code - GFI";
+            var subject = "GFI Portal - Password Reset Verification Code";
             var body = $"<h3>GFI System Password Reset Request</h3>" +
                        $"<p>We received a request to reset your password.</p>" +
                        $"<p>Your 6-digit verification code is: <strong>{otp}</strong></p>" +
-                       $"<p>This code is valid for 10 minutes. If you did not make this request, you can ignore this email.</p>";
+                       $"<p>This code is valid for 10 minutes. If you did not make this request, ignore this email.</p>";
 
             await GFI_Upgrated.ServiceApi.Helpers.EmailSender.SendEmailAsync(emailTrimmed, subject, body);
 
