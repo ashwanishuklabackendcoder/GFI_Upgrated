@@ -1,0 +1,94 @@
+@using GFI_Upgrated.SharedDto.AdminSecurity
+@using GFI_Upgrated.UI.Services
+@using System.ComponentModel.DataAnnotations
+@inject AdminSecurityApiClient ApiClient
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="_form" @bind-IsValid="_isValid">
+            <MudStack Spacing="3">
+                <MudText Typo="Typo.body2" Color="Color.Secondary">Drafting communication for <b>@StaffName</b></MudText>
+                
+                <MudTextField @bind-Value="_request.RecipientEmail" 
+                              Label="Recipient Email" 
+                              Variant="Variant.Outlined" 
+                              Required="true" 
+                              RequiredError="Recipient email is required."
+                              Validation="@(new EmailAddressAttribute { ErrorMessage = "The email address is invalid." })" />
+                
+                <MudTextField @bind-Value="_request.Subject" 
+                              Label="Subject" 
+                              Variant="Variant.Outlined" 
+                              Required="true" 
+                              RequiredError="Subject is required." />
+                
+                <MudTextField @bind-Value="_request.Body" 
+                              Label="Message Body" 
+                              Variant="Variant.Outlined" 
+                              Lines="8" 
+                              Required="true" 
+                              RequiredError="Message body is required." />
+            </MudStack>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Variant="Variant.Outlined" Disabled="_sending">Cancel</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SendAsync" Disabled="!_isValid || _sending">
+            @(_sending ? "Sending..." : "Send Email")
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public long StaffId { get; set; }
+    [Parameter] public string StaffName { get; set; } = string.Empty;
+    [Parameter] public string InitialEmail { get; set; } = string.Empty;
+
+    private MudForm? _form;
+    private bool _isValid;
+    private bool _sending;
+    private SendStaffEmailRequest _request = new();
+
+    protected override void OnInitialized()
+    {
+        _request.StaffId = StaffId;
+        _request.RecipientEmail = InitialEmail;
+        _request.Subject = "GFI Staff Communication";
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task SendAsync()
+    {
+        if (_form != null)
+        {
+            await _form.Validate();
+            if (!_isValid) return;
+        }
+
+        _sending = true;
+        try
+        {
+            var success = await ApiClient.SendStaffEmailAsync(_request);
+            if (success)
+            {
+                Snackbar.Add("Email sent successfully.", Severity.Success);
+                MudDialog.Close(DialogResult.Ok(true));
+            }
+            else
+            {
+                Snackbar.Add("Failed to send email. Please check configuration.", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _sending = false;
+        }
+    }
+}
