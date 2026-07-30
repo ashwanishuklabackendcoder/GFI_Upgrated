@@ -223,6 +223,14 @@
                 _model.Items = await ApiClient.GetPurchaseItemsAsync(Id);
                 _selectedVendor = _vendors.FirstOrDefault(v => v.AccountId == _model.AccountID);
                 _selectedPO = _pendingPOs.FirstOrDefault(p => p.PurchaseOrderID == _model.PurchaseOrderID);
+                
+                foreach (var item in _model.Items)
+                {
+                    if (item.WarehouseId == null || item.WarehouseId == 0)
+                    {
+                        item.WarehouseId = _warehouses.FirstOrDefault()?.WarehouseId;
+                    }
+                }
             }
         }
         catch (Exception ex)

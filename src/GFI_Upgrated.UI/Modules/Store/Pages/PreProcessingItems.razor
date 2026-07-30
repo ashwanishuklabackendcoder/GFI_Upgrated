@@ -25,7 +25,7 @@
     @if (_header != null)
     {
         <MudAlert Severity="Severity.Info" Class="mb-4">
-            <b>Produced:</b> @_header.ItemName | <b>Qty Made:</b> @_header.QuantityMade @_header.UnitName | <b>BOM:</b> @_header.BomName (@_header.BomQty)
+            <b>Produced:</b> @_header.ItemName | <b>Qty Made:</b> @_header.QuantityMade.ToString("0.####") @_header.UnitName | <b>BOM:</b> @_header.BomName (@_header.BomQty.ToString("0.####"))
         </MudAlert>
     }
 
@@ -60,7 +60,7 @@
             <MudTd DataLabel="Recipe Qty">
                 @if (context.RecipeQty > 0)
                 {
-                    <MudText Typo="Typo.body2">@context.RecipeQty.ToString("N4")</MudText>
+                    <MudText Typo="Typo.body2">@context.RecipeQty.ToString("0.####")</MudText>
                 }
                 else
                 {
@@ -68,7 +68,7 @@
                 }
             </MudTd>
             <MudTd DataLabel="Qty Used">
-                <MudNumericField @bind-Value="context.Quantity" Variant="Variant.Outlined" Dense="true" Margin="Margin.Dense" Min="0.0001" Format="N4" HideSpinButtons="true" />
+                <MudNumericField @bind-Value="context.Quantity" Variant="Variant.Outlined" Dense="true" Margin="Margin.Dense" Min="0.0001" Format="0.####" HideSpinButtons="true" />
             </MudTd>
             <MudTd DataLabel="Description / Remarks">
                 <MudTextField @bind-Value="context.Description" Variant="Variant.Outlined" Dense="true" Margin="Margin.Dense" />
@@ -146,7 +146,7 @@
 
             _bomItems = (await ApiClient.GetBomItemsAsync(_header.BomId)).ToList();
             _savedItems = (await ApiClient.GetPreProcessingItemsAsync(HeaderId)).ToList();
-            _allRawMaterials = (await ApiClient.GetItemsForBomLookupAsync(3)).ToList(); // 3 = Raw Materials
+            _allRawMaterials = (await ApiClient.GetItemsForBomLookupAsync(null)).Where(x => x.ItemTypeId == 2 || x.ItemTypeId == 3).ToList();
 
             _rows.Clear();
 
