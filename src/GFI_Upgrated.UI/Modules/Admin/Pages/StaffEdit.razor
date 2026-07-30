@@ -32,7 +32,7 @@
         }
     </style>
 
-    <EditForm Model="_editor" OnValidSubmit="SaveAsync">
+    <EditForm EditContext="_editContext" OnValidSubmit="SaveAsync">
         <DataAnnotationsValidator />
         <div class="validation-summary-errors-red mb-3">
             <ValidationSummary />
@@ -40,9 +40,9 @@
 
         <MudGrid>
             <MudItem xs="12" md="4">
-                <MudAutocomplete MaxItems="1000" T="LookupItemDto" Label="@LocalizationState.Text("Admin.Staff.Edit.Salutation", "Salutation")" Variant="Variant.Outlined"
+                <MudAutocomplete Clearable="true"        MaxItems="1000" T="LookupItemDto" Label="@LocalizationState.Text("Admin.Staff.Edit.Salutation", "Salutation")" Variant="Variant.Outlined"
                                  Value="@(_salutations.FirstOrDefault(x => x.Value.ToString() == _editor.StaffSalutation))"
-                                 ValueChanged="@((LookupItemDto val) => { _editor.StaffSalutation = val?.Value.ToString() ?? string.Empty; })"
+                                 ValueChanged="@(async (LookupItemDto val) => await OnSalutationChanged(val))"
                                  SearchFunc="@SearchSalutations"
                                  ToStringFunc="@(x => x?.Text ?? "")"
                                  ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
@@ -66,7 +66,7 @@
             </MudItem>
           
             <MudItem xs="12" md="4">
-                <MudDatePicker @bind-Date="_editor.DOB" Label="@LocalizationState.Text("Admin.Staff.Edit.Dob", "D.O.B")" Variant="Variant.Outlined" DateFormat="dd/MM/yyyy" />
+                <MudDatePicker Editable="true" DateFormat="dd/MM/yyyy" Placeholder="dd/MM/yyyy"       @bind-Date="_editor.DOB" Label="@(LocalizationState.Text("Admin.Staff.Edit.Dob", "D.O.B") + " (DD/MM/YYYY)")" Variant="Variant.Outlined"  />
             </MudItem>
 
             <MudItem xs="12" md="4">
@@ -75,11 +75,16 @@
             <MudItem xs="12" md="4">
                 <MudTextField @bind-Value="_editor.EmailIDOfficial" Label="@LocalizationState.Text("Admin.Staff.Edit.Email", "Email")" Variant="Variant.Outlined" />
             </MudItem>
-            <MudItem xs="12" md="4" Style="display:none;">
-                <MudTextField @bind-Value="_editor.NIN" Label="@LocalizationState.Text("Admin.Staff.Edit.NIN", "NIN")" Variant="Variant.Outlined"  />
+
+            <MudItem xs="12" md="4">
+                <MudAutocomplete MaxItems="1000" T="LookupItemDto" Label="@LocalizationState.Text("Admin.Staff.Edit.Gender", "Gender")" Variant="Variant.Outlined"
+                                 Value="@(_genders.FirstOrDefault(x => x.Value.ToString() == _editor.Gender.ToString()))"
+                                 ValueChanged="@((LookupItemDto val) => { _editor.Gender = long.TryParse(val?.Value.ToString(), out var g) ? g : 0; })"
+                                 SearchFunc="@SearchGenders"
+                                 ToStringFunc="@(x => x?.Text ?? "")"
+                                 ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
             </MudItem>
-            
-            <MudItem xs="12" md="4" Style="display:none;">
+            <MudItem xs="12" md="4">
                 <label class="form-label">@LocalizationState.Text("Admin.Staff.Edit.Photo", "Photo")</label>
                 <InputFile OnChange="OnPhotoChanged" class="form-control" />
                 @if (!string.IsNullOrWhiteSpace(_selectedPhotoName))
@@ -87,7 +92,7 @@
                     <MudText Typo="Typo.caption" Class="mt-1">@_selectedPhotoName</MudText>
                 }
             </MudItem>
-            <MudItem xs="12" md="4" Style="display:none;">
+            <MudItem xs="12" md="4">
                 <MudAutocomplete MaxItems="1000" T="StatusDto" Label="@LocalizationState.Text("Admin.Staff.Edit.Status", "Status")" Variant="Variant.Outlined"
                                  Value="@(_statuses.FirstOrDefault(x => x.StatusId == _editor.Status))"
                                  ValueChanged="@((StatusDto val) => { _editor.Status = (int)(val?.StatusId ?? 0); })"
@@ -133,20 +138,43 @@
 
     private async Task<IEnumerable<LookupItemDto>> SearchSalutations(string value, CancellationToken token)
     {
-        if (string.IsNullOrEmpty(value)) return _salutations;
-        return _salutations.Where(x => x.Text.Contains(value, StringComparison.OrdinalIgnoreCase));
+        if (string.IsNullOrEmpty(value) || _salutations.Any(x => (x.Text ?? "").Equals(value, StringComparison.OrdinalIgnoreCase))) return _salutations;
+        return _salutations.Where(x => (x.Text ?? "").Contains(value, StringComparison.OrdinalIgnoreCase));
     }
 
     private async Task<IEnumerable<LookupItemDto>> SearchGenders(string value, CancellationToken token)
     {
-        if (string.IsNullOrEmpty(value)) return _genders;
-        return _genders.Where(x => x.Text.Contains(value, StringComparison.OrdinalIgnoreCase));
+        if (string.IsNullOrEmpty(value) || _genders.Any(x => (x.Text ?? "").Equals(value, StringComparison.OrdinalIgnoreCase))) return _genders;
+        return _genders.Where(x => (x.Text ?? "").Contains(value, StringComparison.OrdinalIgnoreCase));
     }
 
     private async Task<IEnumerable<StatusDto>> SearchStatuses(string value, CancellationToken token)
     {
         if (string.IsNullOrEmpty(value)) return _statuses;
         return _statuses.Where(x => x.StatusName != null && x.StatusName.Contains(value, StringComparison.OrdinalIgnoreCase));
+    }
+
+        private EditContext _editContext => _lazyEditContext ??= new EditContext(_editor);
+    private EditContext? _lazyEditContext;
+
+    private async Task OnSalutationChanged(LookupItemDto val)
+    {
+        _editor.StaffSalutation = val?.Value.ToString() ?? string.Empty;
+        if (_editContext != null)
+        {
+            _editContext.NotifyFieldChanged(_editContext.Field(nameof(_editor.StaffSalutation)));
+        }
+        await Task.CompletedTask;
+    }
+
+    private async Task OnGenderChanged(LookupItemDto val)
+    {
+        _editor.Gender = val?.Value ?? 0;
+        if (_editContext != null)
+        {
+            _editContext.NotifyFieldChanged(_editContext.Field(nameof(_editor.Gender)));
+        }
+        await Task.CompletedTask;
     }
 
     protected override void OnInitialized()
@@ -221,6 +249,10 @@
             {
                 Navigation.NavigateTo("/admin/staff");
                 return;
+            }
+            else if (id == -1)
+            {
+                _message = "This name is already registered. Please try with another name.";
             }
 
             _message = LocalizationState.Text("Admin.Staff.Edit.SaveFailed", "Staff save failed.");
