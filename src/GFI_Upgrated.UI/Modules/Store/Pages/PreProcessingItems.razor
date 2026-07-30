@@ -3,12 +3,10 @@
 @using GFI_Upgrated.SharedDto.Store
 @using GFI_Upgrated.UI.Services
 @using GFI_Upgrated.UI.State
-@using GFI_Upgrated.UI.Modules.Store.Components
 @inject StoreApiClient ApiClient
 @inject ISnackbar Snackbar
 @inject NavigationManager Navigation
 @inject AppSessionState SessionState
-@inject IDialogService DialogService
 @inject IJSRuntime JS
 
 <PageTitle>Manage Ingredients</PageTitle>
@@ -27,76 +25,107 @@
     @if (_header != null)
     {
         <MudAlert Severity="Severity.Info" Class="mb-4">
-            <b>Produced:</b> @_header.ItemName | <b>Qty Made:</b> @_header.QuantityMade @_header.UnitName | <b>BOM:</b> @_header.BomName (@_header.BomQty)
+            <b>Produced:</b> @_header.ItemName | <b>Qty Made:</b> @_header.QuantityMade.ToString("0.####") @_header.UnitName | <b>BOM:</b> @_header.BomName (@_header.BomQty.ToString("0.####"))
         </MudAlert>
     }
 
-    <MudGrid>
-        <MudItem xs="12" md="4">
-            <MudPaper Outlined="true" Class="pa-4">
-                <MudText Typo="Typo.h6" Class="mb-2">Required Ingredients (BOM)</MudText>
-                <MudList T="string">
-                    @foreach (var req in _bomItems)
-                    {
-                        var consumed = _items.Where(i => i.ItemID == req.ItemID).Sum(i => i.Quantity);
-                        var remaining = (req.Quantity * (_header?.BomQty ?? 1)) - consumed;
-                        <MudListItem Icon="@(remaining <= 0 ? Icons.Material.Filled.CheckCircle : Icons.Material.Filled.Pending)" IconColor="@(remaining <= 0 ? Color.Success : Color.Warning)">
-                            <MudStack Spacing="0">
-                                <MudText Typo="Typo.body1">@req.ItemName</MudText>
-                                <MudText Typo="Typo.caption" Color="Color.Secondary">
-                                    Required: @(req.Quantity * (_header?.BomQty ?? 1)) | Consumed: @consumed | Remaining: @(remaining < 0 ? 0 : remaining)
-                                </MudText>
-                            </MudStack>
-                        </MudListItem>
-                    }
-                </MudList>
-            </MudPaper>
-        </MudItem>
-
-        <MudItem xs="12" md="8">
-            <MudPaper Outlined="true" Class="pa-4">
-                <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
-                    <MudText Typo="Typo.h6">Consumption Records</MudText>
-                    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OpenAddDialog" Disabled="_finalizing">
-                        Add Consumption
-                    </MudButton>
+    <MudTable Items="_rows" Hover="true" Dense="true" Bordered="true" Striped="true" Class="mb-4" Elevation="0">
+        <HeaderContent>
+            <MudTh>Ingredient</MudTh>
+            <MudTh Style="width: 250px;">Lot / Batch Number</MudTh>
+            <MudTh Style="width: 120px;">Recipe Qty</MudTh>
+            <MudTh Style="width: 150px;">Qty Used</MudTh>
+            <MudTh>Description / Remarks</MudTh>
+            <MudTh Style="width: 100px; text-align: center;">Action</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Ingredient">
+                <MudAutocomplete Clearable="true"           MaxItems="1000" T="RawMaterialDto" 
+                                 Value="@(_allRawMaterials.FirstOrDefault(x => x.ItemId == context.ItemID))" 
+                                 ValueChanged="@(async (RawMaterialDto val) => await OnItemChanged(context, val))"
+                                 SearchFunc="@SearchRawMaterials" ToStringFunc="@(x => x?.ItemName ?? "")"
+                                 Variant="Variant.Outlined" Dense="true" Margin="Margin.Dense"
+                                 ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
+            </MudTd>
+            <MudTd DataLabel="Lot / Batch Number">
+                <MudAutocomplete Clearable="true"           MaxItems="1000" T="AvailableBatchDto" 
+                                 Value="@(context.AvailableBatches.FirstOrDefault(x => x.ItemStockByBatchId == context.ItemStockByBatchId))" 
+                                 ValueChanged="@((AvailableBatchDto val) => OnBatchChanged(context, val))"
+                                 SearchFunc="@((val, token) => SearchBatches(context, val, token))" 
+                                 ToStringFunc="@(x => x != null ? $"{x.BatchNo} (Stock: {x.FinalQuantityLeft})" : "")"
+                                 Variant="Variant.Outlined" Dense="true" Margin="Margin.Dense"
+                                 Disabled="@(context.ItemID == 0)"
+                                 ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
+            </MudTd>
+            <MudTd DataLabel="Recipe Qty">
+                @if (context.RecipeQty > 0)
+                {
+                    <MudText Typo="Typo.body2">@context.RecipeQty.ToString("0.####")</MudText>
+                }
+                else
+                {
+                    <MudText Typo="Typo.body2" Color="Color.Secondary">Manual</MudText>
+                }
+            </MudTd>
+            <MudTd DataLabel="Qty Used">
+                <MudNumericField @bind-Value="context.Quantity" Variant="Variant.Outlined" Dense="true" Margin="Margin.Dense" Min="0.0001" Format="0.####" HideSpinButtons="true" />
+            </MudTd>
+            <MudTd DataLabel="Description / Remarks">
+                <MudTextField @bind-Value="context.Description" Variant="Variant.Outlined" Dense="true" Margin="Margin.Dense" />
+            </MudTd>
+            <MudTd Style="text-align: center;">
+                <MudStack Row="true" Spacing="1" Justify="Justify.Center">
+                    <MudTooltip Text="Split Line">
+                        <MudIconButton Icon="@Icons.Material.Filled.CallSplit" Color="Color.Info" Size="Size.Small" OnClick="@(() => OnSplitLine(context))" Disabled="@(context.ItemID == 0 || _saving)" />
+                    </MudTooltip>
+                    <MudTooltip Text="Delete">
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => OnDeleteRow(context))" Disabled="_saving" />
+                    </MudTooltip>
                 </MudStack>
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
 
-                <MudTable Items="_items" Hover="true" Dense="true" Bordered="true">
-                    <HeaderContent>
-                        <MudTh>Item</MudTh>
-                        <MudTh>Batch</MudTh>
-                        <MudTh>Quantity</MudTh>
-                        <MudTh Style="width: 80px;">Action</MudTh>
-                    </HeaderContent>
-                    <RowTemplate>
-                        <MudTd DataLabel="Item">@context.ItemName</MudTd>
-                        <MudTd DataLabel="Batch">@context.BatchNo</MudTd>
-                        <MudTd DataLabel="Quantity">@context.Quantity</MudTd>
-                        <MudTd DataLabel="Action">
-                            <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Size="Size.Small" OnClick="@(() => OpenEditDialog(context))" Disabled="_finalizing" />
-                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => OnDeleteItem(context))" Disabled="_finalizing" />
-                        </MudTd>
-                    </RowTemplate>
-                </MudTable>
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mt-4">
+        <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OnAddCustomLine" Disabled="_saving">
+            Add Custom Ingredient
+        </MudButton>
 
-                <MudStack Row="true" Justify="Justify.FlexEnd" Class="mt-4">
-                    <MudButton Variant="Variant.Filled" Color="Color.Success" OnClick="OnFinalize" Disabled="@(_items.Count == 0 || _finalizing)">
-                        @(_finalizing ? "Finalizing..." : "Finalize & Update Stock")
-                    </MudButton>
-                </MudStack>
-            </MudPaper>
-        </MudItem>
-    </MudGrid>
+        <MudStack Row="true" Spacing="2">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveConsumptionAsync" Disabled="_saving" StartIcon="@Icons.Material.Filled.Save">
+                @(_saving ? "Saving..." : "Save Consumption")
+            </MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Success" OnClick="OnFinalizeAsync" Disabled="@(_rows.Count == 0 || _saving || _finalizing)" StartIcon="@Icons.Material.Filled.DoneAll">
+                @(_finalizing ? "Finalizing..." : "Finalize & Update Stock")
+            </MudButton>
+        </MudStack>
+    </MudStack>
 </MudPaper>
-
 
 @code {
     [Parameter] public long HeaderId { get; set; }
+
     private PreProcessingDto? _header;
-    private List<PreProcessingItemDto> _items = new();
+    private List<PreProcessingItemDto> _savedItems = new();
     private List<BomItemDetailDto> _bomItems = new();
+    private List<RawMaterialDto> _allRawMaterials = new();
+    private List<ConsumptionRow> _rows = new();
+
+    private bool _saving;
     private bool _finalizing;
+
+    private sealed class ConsumptionRow
+    {
+        public long ItemStockUsedID { get; set; }
+        public long ItemID { get; set; }
+        public string? ItemName { get; set; }
+        public long ItemStockByBatchId { get; set; }
+        public string? BatchNo { get; set; }
+        public double Quantity { get; set; }
+        public double RecipeQty { get; set; }
+        public string? Description { get; set; }
+        public List<AvailableBatchDto> AvailableBatches { get; set; } = new();
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -116,7 +145,106 @@
             if (_header == null) { Snackbar.Add("Header not found.", Severity.Error); OnBack(); return; }
 
             _bomItems = (await ApiClient.GetBomItemsAsync(_header.BomId)).ToList();
-            _items = (await ApiClient.GetPreProcessingItemsAsync(HeaderId)).ToList();
+            _savedItems = (await ApiClient.GetPreProcessingItemsAsync(HeaderId)).ToList();
+            _allRawMaterials = (await ApiClient.GetItemsForBomLookupAsync(null)).Where(x => x.ItemTypeId == 2 || x.ItemTypeId == 3).ToList();
+
+            _rows.Clear();
+
+            if (_savedItems.Any())
+            {
+                // Load previously saved items
+                foreach (var saved in _savedItems)
+                {
+                    var row = new ConsumptionRow
+                    {
+                        ItemStockUsedID = saved.ItemStockUsedID,
+                        ItemID = saved.ItemID,
+                        ItemName = saved.ItemName,
+                        ItemStockByBatchId = saved.ItemStockByBatchId,
+                        BatchNo = saved.BatchNo,
+                        Quantity = saved.Quantity,
+                        Description = saved.Description
+                    };
+
+                    // Match matching recipe item if exists to show reference recipe qty
+                    var matchRecipe = _bomItems.FirstOrDefault(b => b.ItemID == saved.ItemID);
+                    if (matchRecipe != null)
+                    {
+                        row.RecipeQty = matchRecipe.Quantity * (_header.BomQty);
+                    }
+
+                    row.AvailableBatches = (await ApiClient.GetAvailableBatchesAsync(saved.ItemID)).ToList();
+                    _rows.Add(row);
+                }
+            }
+            else
+            {
+                // Auto-suggest and allocate recipe items
+                foreach (var recipe in _bomItems)
+                {
+                    double neededQty = recipe.Quantity * (_header.BomQty);
+                    var batches = (await ApiClient.GetAvailableBatchesAsync(recipe.ItemID)).ToList();
+
+                    double remainingNeeded = neededQty;
+
+                    if (batches.Any(b => b.FinalQuantityLeft > 0))
+                    {
+                        foreach (var batch in batches.Where(b => b.FinalQuantityLeft > 0))
+                        {
+                            if (remainingNeeded <= 0 && _rows.Any(r => r.ItemID == recipe.ItemID))
+                            {
+                                break;
+                            }
+
+                            double allocated = Math.Min(remainingNeeded, batch.FinalQuantityLeft);
+                            if (allocated <= 0 && remainingNeeded > 0)
+                            {
+                                // Fallback to allocate the remaining needed amount even if no stock left
+                                allocated = remainingNeeded;
+                            }
+
+                            _rows.Add(new ConsumptionRow
+                            {
+                                ItemID = recipe.ItemID,
+                                ItemName = recipe.ItemName,
+                                ItemStockByBatchId = batch.ItemStockByBatchId,
+                                BatchNo = batch.BatchNo,
+                                Quantity = allocated,
+                                RecipeQty = neededQty,
+                                AvailableBatches = batches
+                            });
+
+                            remainingNeeded -= allocated;
+                            if (remainingNeeded <= 0) break;
+                        }
+
+                        // If there is still remainder needed, add an extra row with the remainder
+                        if (remainingNeeded > 0)
+                        {
+                            _rows.Add(new ConsumptionRow
+                            {
+                                ItemID = recipe.ItemID,
+                                ItemName = recipe.ItemName,
+                                Quantity = remainingNeeded,
+                                RecipeQty = neededQty,
+                                AvailableBatches = batches
+                            });
+                        }
+                    }
+                    else
+                    {
+                        // No batches available, add a single row with needed qty and empty batch selection
+                        _rows.Add(new ConsumptionRow
+                        {
+                            ItemID = recipe.ItemID,
+                            ItemName = recipe.ItemName,
+                            Quantity = neededQty,
+                            RecipeQty = neededQty,
+                            AvailableBatches = batches
+                        });
+                    }
+                }
+            }
         }
         catch (Exception ex)
         {
@@ -124,90 +252,174 @@
         }
     }
 
-    private void OnBack() => Navigation.NavigateTo("/store/preprocessing");
-
-    private async Task OpenAddDialog()
+    private async Task OnItemChanged(ConsumptionRow row, RawMaterialDto? item)
     {
-        var parameters = new DialogParameters
+        if (item == null)
         {
-            { nameof(PreProcessingItemDialog.HeaderId), HeaderId },
-            { nameof(PreProcessingItemDialog.BomItems), _bomItems }
-        };
-
-        var options = new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true };
-        var dialog = await DialogService.ShowAsync<PreProcessingItemDialog>("Add Ingredient", parameters, options);
-        var result = await dialog.Result;
-
-        if (!result.Canceled)
-        {
-            await LoadDataAsync();
+            row.ItemID = 0;
+            row.ItemName = null;
+            row.ItemStockByBatchId = 0;
+            row.BatchNo = null;
+            row.AvailableBatches.Clear();
+            return;
         }
-    }
 
-    private async Task OpenEditDialog(PreProcessingItemDto item)
-    {
-        var parameters = new DialogParameters
-        {
-            { nameof(PreProcessingItemDialog.HeaderId), HeaderId },
-            { nameof(PreProcessingItemDialog.BomItems), _bomItems },
-            { nameof(PreProcessingItemDialog.EditItem), item }
-        };
-
-        var options = new DialogOptions { MaxWidth = MaxWidth.Small, FullWidth = true };
-        var dialog = await DialogService.ShowAsync<PreProcessingItemDialog>("Edit Ingredient", parameters, options);
-        var result = await dialog.Result;
-
-        if (!result.Canceled)
-        {
-            await LoadDataAsync();
-        }
-    }
-
-
-    private async Task OnDeleteItem(PreProcessingItemDto item)
-    {
-        var confirmed = await JS.InvokeAsync<bool>("confirm", $"Are you sure you want to delete this consumption record for '{item.ItemName}' (Qty: {item.Quantity})?");
-        if (!confirmed) return;
+        row.ItemID = item.ItemId;
+        row.ItemName = item.ItemName;
+        row.ItemStockByBatchId = 0;
+        row.BatchNo = null;
+        row.AvailableBatches.Clear();
 
         try
         {
-            var result = await ApiClient.DeletePreProcessingItemAsync(item.ItemStockUsedID);
-            if (result > 0)
+            row.AvailableBatches = (await ApiClient.GetAvailableBatchesAsync(item.ItemId)).ToList();
+            if (!row.AvailableBatches.Any())
             {
-                Snackbar.Add("Consumption record deleted successfully.", Severity.Success);
-                await LoadDataAsync();
+                Snackbar.Add($"No stock found for ingredient '{item.ItemName}'. Please select another ingredient.", Severity.Warning);
             }
-            else
+            var firstBatch = row.AvailableBatches.FirstOrDefault(b => b.FinalQuantityLeft > 0) 
+                             ?? row.AvailableBatches.FirstOrDefault();
+
+            if (firstBatch != null)
             {
-                Snackbar.Add("Failed to delete consumption record.", Severity.Error);
+                row.ItemStockByBatchId = firstBatch.ItemStockByBatchId;
+                row.BatchNo = firstBatch.BatchNo;
             }
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+            Snackbar.Add($"Error loading batches: {ex.Message}", Severity.Error);
         }
     }
 
-    private async Task OnFinalize()
+    private void OnBatchChanged(ConsumptionRow row, AvailableBatchDto? batch)
     {
-        // Check if all BOM items are satisfied
-        bool allSatisfied = true;
-        foreach (var req in _bomItems)
+        if (batch == null)
         {
-            var consumed = _items.Where(i => i.ItemID == req.ItemID).Sum(i => i.Quantity);
-            if (consumed < (req.Quantity * (_header?.BomQty ?? 1)))
+            row.ItemStockByBatchId = 0;
+            row.BatchNo = null;
+            return;
+        }
+        row.ItemStockByBatchId = batch.ItemStockByBatchId;
+        row.BatchNo = batch.BatchNo;
+    }
+
+    private void OnSplitLine(ConsumptionRow row)
+    {
+        var newRow = new ConsumptionRow
+        {
+            ItemID = row.ItemID,
+            ItemName = row.ItemName,
+            RecipeQty = row.RecipeQty,
+            AvailableBatches = row.AvailableBatches
+        };
+
+        // Insert new row immediately after the split row
+        var index = _rows.IndexOf(row);
+        if (index >= 0)
+        {
+            _rows.Insert(index + 1, newRow);
+        }
+        else
+        {
+            _rows.Add(newRow);
+        }
+    }
+
+    private void OnDeleteRow(ConsumptionRow row)
+    {
+        _rows.Remove(row);
+    }
+
+    private void OnAddCustomLine()
+    {
+        _rows.Add(new ConsumptionRow());
+    }
+
+    private async Task<bool> SaveConsumptionAsync()
+    {
+        if (!_rows.Any())
+        {
+            Snackbar.Add("Please add at least one material consumption row.", Severity.Warning);
+            return false;
+        }
+
+        foreach (var row in _rows)
+        {
+            if (row.ItemID == 0)
             {
-                allSatisfied = false;
-                break;
+                Snackbar.Add("One or more rows do not have an ingredient selected.", Severity.Warning);
+                return false;
+            }
+            if (row.ItemStockByBatchId == 0)
+            {
+                Snackbar.Add($"Please select a lot/batch number for '{row.ItemName}'.", Severity.Warning);
+                return false;
+            }
+            if (row.Quantity <= 0)
+            {
+                Snackbar.Add($"Quantity for '{row.ItemName}' must be greater than 0.", Severity.Warning);
+                return false;
+            }
+
+            var batch = row.AvailableBatches.FirstOrDefault(b => b.ItemStockByBatchId == row.ItemStockByBatchId);
+            if (batch != null && row.Quantity > batch.FinalQuantityLeft)
+            {
+                Snackbar.Add($"Warning: Quantity for '{row.ItemName}' exceeds available batch stock ({batch.FinalQuantityLeft}).", Severity.Warning);
             }
         }
 
-        if (!allSatisfied)
+        _saving = true;
+        try
         {
-            // Optional: Ask for confirmation if not all satisfied
-            // var confirmed = await JS.InvokeAsync<bool>("confirm", "Some ingredients are still below BOM requirement. Proceed anyway?");
-            // if (!confirmed) return;
+            // Clear existing saved items first to prevent duplicate entries
+            foreach (var saved in _savedItems)
+            {
+                await ApiClient.DeletePreProcessingItemAsync(saved.ItemStockUsedID);
+            }
+
+            // Save all current rows
+            foreach (var row in _rows)
+            {
+                var request = new SavePreProcessingItemRequest
+                {
+                    ItemStockUsedID = 0, // Always insert new rows to overwrite
+                    UsedForId = HeaderId,
+                    ItemID = row.ItemID,
+                    ItemStockByBatchId = row.ItemStockByBatchId,
+                    Quantity = row.Quantity,
+                    Description = row.Description,
+                    UsedFor = 2, // 2 = Pre-Processing
+                    UpdatedBy = SessionState.CurrentUserAuditName ?? "System"
+                };
+
+                var result = await ApiClient.SavePreProcessingItemAsync(request);
+                if (result <= 0)
+                {
+                    Snackbar.Add($"Failed to save consumption line for '{row.ItemName}'.", Severity.Error);
+                    return false;
+                }
+            }
+
+            Snackbar.Add("Material consumption saved successfully.", Severity.Success);
+            await LoadDataAsync();
+            return true;
         }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error saving consumption: {ex.Message}", Severity.Error);
+            return false;
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+
+    private async Task OnFinalizeAsync()
+    {
+        var saved = await SaveConsumptionAsync();
+        if (!saved) return;
 
         _finalizing = true;
         try
@@ -215,7 +427,7 @@
             var result = await ApiClient.FinalizePreProcessingStockAsync(HeaderId, SessionState.CurrentUserAuditName ?? "System");
             if (result > 0)
             {
-                Snackbar.Add("Stock updated successfully.", Severity.Success);
+                Snackbar.Add("Stock updated and production run finalized successfully.", Severity.Success);
                 Navigation.NavigateTo("/store/preprocessing");
             }
             else
@@ -232,5 +444,18 @@
             _finalizing = false;
         }
     }
-}
 
+    private void OnBack() => Navigation.NavigateTo("/store/preprocessing");
+
+    private async Task<IEnumerable<RawMaterialDto>> SearchRawMaterials(string value, CancellationToken token)
+    {
+        if (string.IsNullOrEmpty(value)) return _allRawMaterials;
+        return _allRawMaterials.Where(x => x.ItemName?.Contains(value, StringComparison.OrdinalIgnoreCase) == true);
+    }
+
+    private async Task<IEnumerable<AvailableBatchDto>> SearchBatches(ConsumptionRow row, string value, CancellationToken token)
+    {
+        if (string.IsNullOrEmpty(value)) return row.AvailableBatches;
+        return row.AvailableBatches.Where(x => x.BatchNo?.Contains(value, StringComparison.OrdinalIgnoreCase) == true);
+    }
+}

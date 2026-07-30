@@ -7,7 +7,7 @@ public sealed class PreProcessingDto
     public long PreProcessingId { get; set; }
     public long BomId { get; set; }
     public string? BomName { get; set; }
-    public int BomQty { get; set; }
+    public double BomQty { get; set; }
     public string? ProcessingDate { get; set; } // SP returns as string formatted 106
     public double QuantityMade { get; set; }
     public long UnitMade { get; set; }
@@ -32,8 +32,8 @@ public sealed class SavePreProcessingRequest
     [Required(ErrorMessage = "BOM is required")]
     public long BomId { get; set; }
 
-    [Range(1, int.MaxValue, ErrorMessage = "BOM Quantity must be at least 1")]
-    public int BomQty { get; set; }
+    [Range(0.0001, double.MaxValue, ErrorMessage = "BOM Quantity must be greater than 0")]
+    public double BomQty { get; set; }
 
     [Required(ErrorMessage = "Processing Date is required")]
     public DateTime? ProcessingDate { get; set; }

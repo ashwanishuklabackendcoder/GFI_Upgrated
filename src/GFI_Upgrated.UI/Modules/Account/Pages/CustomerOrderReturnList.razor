@@ -83,12 +83,12 @@ else
 
         <MudGrid Class="mb-4">
             <MudItem xs="12" md="6">
-                <MudAutocomplete MaxItems="1000" T="AccountLookupDto" Label="Select Customer" SearchFunc="SearchCustomers"
+                <MudAutocomplete Clearable="true"           MaxItems="1000" T="AccountLookupDto" Label="Select Customer" SearchFunc="SearchCustomers"
                                  Value="_selectedCustomer" ValueChanged="OnCustomerChanged"
                                  ToStringFunc="@(c => c?.AccountName ?? "")" Required="true" Variant="Variant.Outlined" />
             </MudItem>
             <MudItem xs="12" md="6">
-                <MudAutocomplete MaxItems="1000" T="CustomerOrderDto" Label="Select Customer Order" Value="_selectedOrder" ValueChanged="OnOrderChanged" SearchFunc="SearchOrders" ToStringFunc="@(x => x?.OrderNo ?? "")" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" Required="true" Variant="Variant.Outlined" Disabled="@(_selectedCustomer == null)" />
+                <MudAutocomplete Clearable="true"           MaxItems="1000" T="CustomerOrderDto" Label="Select Customer Order" Value="_selectedOrder" ValueChanged="OnOrderChanged" SearchFunc="SearchOrders" ToStringFunc="@(x => x?.OrderNo ?? "")" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" Required="true" Variant="Variant.Outlined" Disabled="@(_selectedCustomer == null)" />
             </MudItem>
             <MudItem xs="12" md="6">
                 <MudTextField Label="Order Date" Value="@(_selectedOrder?.OrderDate?.ToString("dd MMM yyyy") ?? "")" ReadOnly="true" Variant="Variant.Outlined" />
@@ -97,7 +97,7 @@ else
                 <MudTextField Label="Sent Date" Value="@(_selectedOrder?.SentDate?.ToString("dd MMM yyyy") ?? "")" ReadOnly="true" Variant="Variant.Outlined" />
             </MudItem>
             <MudItem xs="12" md="6">
-                <MudDatePicker Label="Return Date" @bind-Date="_returnDate" Required="true" Variant="Variant.Outlined" />
+                <MudDatePicker DateFormat="dd/MM/yyyy" Placeholder="dd/MM/yyyy" Editable="true"                         Label="Return Date (DD/MM/YYYY)" @bind-Date="_returnDate" Required="true" Variant="Variant.Outlined" />
             </MudItem>
             <MudItem xs="12" md="6">
                 <MudTextField Label="Return Reason" @bind-Value="_returnReason" Lines="2" Required="true" Variant="Variant.Outlined" />

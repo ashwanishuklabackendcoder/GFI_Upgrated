@@ -71,7 +71,7 @@ public sealed class ProductionRepository : IProductionRepository
         {
             new SqlParameter("@ProductionId", SqlDbType.BigInt) { Value = request.ProductionId },
             new SqlParameter("@BomId", SqlDbType.BigInt) { Value = request.BomId },
-            new SqlParameter("@BomQty", SqlDbType.BigInt) { Value = request.BomQty },
+            new SqlParameter("@BomQty", SqlDbType.Float) { Value = request.BomQty },
             new SqlParameter("@CookingDate", SqlDbType.DateTime) { Value = (object?)request.CookingDate ?? DBNull.Value },
             new SqlParameter("@ExpiryDate", SqlDbType.DateTime) { Value = (object?)request.ExpiryDate ?? DBNull.Value },
             new SqlParameter("@FilledDate", SqlDbType.DateTime) { Value = (object?)request.FilledDate ?? DBNull.Value },
@@ -318,7 +318,7 @@ public sealed class ProductionRepository : IProductionRepository
         ProductionId = row.SafeLong("ProductionId", "ProductionID"),
         BomId = row.SafeLong("BomId", "BomID"),
         BomName = row.SafeString("BomName"),
-        BomQty = row.SafeLong("BomQty"),
+        BomQty = row.SafeDouble("BomQty"),
         CookingDate = row.SafeString("CookingDate"),
         ExpiryDate = row.SafeString("ExpiryDate"),
         FilledDate = row.SafeString("FilledDate"),

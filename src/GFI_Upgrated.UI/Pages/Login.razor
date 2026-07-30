@@ -30,51 +30,144 @@
             <div class="mb-4 text-center text-lg-start">
                 <img src="assets/img/branding/logo.png" alt="@LocalizationState.Text("Login.SystemTitle", "GFI Traceability System")" class="auth-brand-logo mb-4" />
                 <h3 class="mb-2 fw-bold login-title">@LocalizationState.Text("Login.SystemTitle", "GFI Traceability System")</h3>
-                <p class="mb-0 login-subtitle">@LocalizationState.Text("Login.Subtitle", "Please sign in to your account.")</p>
+                @if (!_forgotPasswordMode)
+                {
+                    <p class="mb-0 login-subtitle">@LocalizationState.Text("Login.Subtitle", "Please sign in to your account.")</p>
+                }
+                else
+                {
+                    <p class="mb-0 login-subtitle">Reset your account password via email verification.</p>
+                }
             </div>
 
             <div class="card shadow-lg border-0 auth-card">
                 <div class="card-body p-4 p-md-5">
-                    <div id="loginError" class="alert alert-danger @(string.IsNullOrWhiteSpace(_message) ? "d-none" : string.Empty)" role="alert">
-                        @_message
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label" for="txtusername">@LocalizationState.Text("Login.Username", "Username")</label>
-                        <input id="txtusername"
-                               class="form-control"
-                               autocomplete="username"
-                               @bind="_model.LoginName"
-                               @bind:event="oninput" />
-                    </div>
-
-                    <div class="mb-3 form-password-toggle">
-                        <div class="d-flex justify-content-between">
-                            <label class="form-label" for="password">@LocalizationState.Text("Login.Password", "Password")</label>
+                    @if (string.IsNullOrWhiteSpace(_forgotPasswordResult))
+                    {
+                        <div id="loginError" class="alert alert-danger @(string.IsNullOrWhiteSpace(_message) ? "d-none" : string.Empty)" role="alert">
+                            @_message
                         </div>
-                        <div class="input-group input-group-merge">
-                            <input id="password"
-                                   type="@_passwordType"
+                    }
+                    else
+                    {
+                        <div class="alert alert-success" role="alert">
+                            @_forgotPasswordResult
+                        </div>
+                    }
+
+                    @if (!_forgotPasswordMode)
+                    {
+                        <!-- Login Form -->
+                        <div class="mb-3">
+                            <label class="form-label" for="txtusername">@LocalizationState.Text("Login.Username", "Username")</label>
+                            <input id="txtusername"
                                    class="form-control"
-                                   autocomplete="current-password"
-                                   @bind="_model.Password"
-                                   @bind:event="oninput" />
-                            <span class="input-group-text cursor-pointer" @onclick="TogglePasswordVisibility">
-                                <i class="ti @(_showPassword ? "ti-eye" : "ti-eye-off")"></i>
-                            </span>
+                                   autocomplete="username"
+                                   tabindex="1"
+                                   @bind="_model.LoginName"
+                                   @bind:event="oninput"
+                                   @onkeyup="HandleKeyUp" />
                         </div>
-                    </div>
 
-                    <button type="button" class="btn btn-primary d-grid w-100" disabled="@_busy" @onclick="SubmitAsync">
-                        @if (_busy)
+                        <div class="mb-3 form-password-toggle">
+                            <div class="d-flex justify-content-between">
+                                <label class="form-label" for="password">@LocalizationState.Text("Login.Password", "Password")</label>
+                                
+                            </div>
+                            <div class="input-group input-group-merge">
+                                <input id="password"
+                                       type="@_passwordType"
+                                       class="form-control"
+                                       autocomplete="current-password"
+                                       tabindex="2"
+                                       @bind="_model.Password"
+                                       @bind:event="oninput"
+                                       @onkeyup="HandleKeyUp" />
+                                <span class="input-group-text cursor-pointer" @onclick="TogglePasswordVisibility">
+                                    <i class="ti @(_showPassword ? "ti-eye" : "ti-eye-off")"></i>
+                                </span>
+
+                                
+                            </div>
+                        </div>
+
+                        <button type="button" class="btn btn-primary d-grid w-100" disabled="@_busy" @onclick="SubmitAsync" tabindex="3">
+                            @if (_busy)
+                            {
+                                <span>@LocalizationState.Text("Login.SigningIn", "Signing in...")</span>
+                            }
+                            else
+                            {
+                                <span>@LocalizationState.Text("Login.SignIn", "Sign in")</span>
+                            }
+                        </button>
+                        <a href="javascript:void(0)" @onclick="ToggleForgotPasswordMode" class="small text-primary" tabindex="4">Forgot Password?</a>
+                    }
+                    else
+                    {
+                        <!-- Forgot Password View -->
+                        @if (!_otpSent)
                         {
-                            <span>@LocalizationState.Text("Login.SigningIn", "Signing in...")</span>
+                            <div class="mb-3">
+                                <label class="form-label" for="txtemail">Registered Email Address</label>
+                                <input id="txtemail"
+                                       type="email"
+                                       class="form-control"
+                                       placeholder="Enter your registered email"
+                                       @bind="_forgotEmail"
+                                       @bind:event="oninput"
+                                       @onkeyup="HandleForgotPasswordKeyUp" />
+                            </div>
+
+                            <button type="button" class="btn btn-primary d-grid w-100 mb-3" disabled="@_busy" @onclick="RequestOtpAsync">
+                                @if (_busy)
+                                {
+                                    <span>Sending OTP...</span>
+                                }
+                                else
+                                {
+                                    <span>Send OTP Verification Code</span>
+                                }
+                            </button>
                         }
                         else
                         {
-                            <span>@LocalizationState.Text("Login.SignIn", "Sign in")</span>
+                            <div class="mb-3">
+                                <label class="form-label" for="txtotp">Enter 6-Digit OTP</label>
+                                <input id="txtotp"
+                                       class="form-control text-center fw-bold"
+                                       maxlength="6"
+                                       placeholder="e.g. 123456"
+                                       @bind="_otpCode"
+                                       @bind:event="oninput" />
+                            </div>
+
+                            <div class="mb-3 form-password-toggle">
+                                <label class="form-label" for="newpassword">New Password</label>
+                                <input id="newpassword"
+                                       type="password"
+                                       class="form-control"
+                                       placeholder="Min 6 characters"
+                                       @bind="_newPassword"
+                                       @bind:event="oninput" />
+                            </div>
+
+                            <button type="button" class="btn btn-primary d-grid w-100 mb-3" disabled="@_busy" @onclick="ResetPasswordAsync">
+                                @if (_busy)
+                                {
+                                    <span>Resetting...</span>
+                                }
+                                else
+                                {
+                                    <span>Reset Password</span>
+                                }
+                            </button>
                         }
-                    </button>
+
+                        <button type="button" class="btn btn-outline-secondary d-grid w-100" @onclick="CancelForgotPasswordMode">
+                            Back to Sign In
+                        </button>
+                    }
                 </div>
             </div>
         </div>
@@ -88,9 +181,123 @@
     private bool _showPassword;
     private string _passwordType => _showPassword ? "text" : "password";
 
+    // Forgot password states
+    private bool _forgotPasswordMode;
+    private string? _forgotEmail;
+    private bool _otpSent;
+    private string? _otpCode;
+    private string? _newPassword;
+    private string? _forgotPasswordResult;
+
     private void TogglePasswordVisibility()
     {
         _showPassword = !_showPassword;
+    }
+
+    private void ToggleForgotPasswordMode()
+    {
+        _forgotPasswordMode = true;
+        _message = null;
+        _forgotPasswordResult = null;
+        _otpSent = false;
+        _otpCode = null;
+        _newPassword = null;
+    }
+
+    private void CancelForgotPasswordMode()
+    {
+        _forgotPasswordMode = false;
+        _message = null;
+        _forgotPasswordResult = null;
+        _otpSent = false;
+    }
+
+    private async Task HandleKeyUp(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !_busy)
+        {
+            await SubmitAsync();
+        }
+    }
+
+    private async Task HandleForgotPasswordKeyUp(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !_busy && !_otpSent)
+        {
+            await RequestOtpAsync();
+        }
+    }
+
+    private async Task RequestOtpAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_forgotEmail))
+        {
+            _message = "Please enter your registered email address.";
+            return;
+        }
+
+        _busy = true;
+        _message = null;
+        _forgotPasswordResult = null;
+
+        try
+        {
+            var res = await ApiClient.SendPasswordResetOtpAsync(_forgotEmail);
+            if (res != null) // returns the success message or null if not found
+            {
+                _otpSent = true;
+                _forgotPasswordResult = "Verification OTP code sent to your email. Please check your inbox.";
+            }
+            else
+            {
+                _message = "Email address not found.";
+            }
+        }
+        catch (Exception ex)
+        {
+            _message = ex.Message;
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task ResetPasswordAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_otpCode) || string.IsNullOrWhiteSpace(_newPassword))
+        {
+            _message = "Please enter both the OTP code and new password.";
+            return;
+        }
+
+        _busy = true;
+        _message = null;
+        _forgotPasswordResult = null;
+
+        try
+        {
+            var success = await ApiClient.ResetPasswordWithOtpAsync(_forgotEmail!, _otpCode, _newPassword);
+            if (success)
+            {
+                _forgotPasswordResult = "Password reset successfully! You can now log in with your new password.";
+                _forgotPasswordMode = false;
+                _otpSent = false;
+                _model.Password = string.Empty; // clear
+            }
+            else
+            {
+                _message = "Invalid/expired OTP code, or failed to update password.";
+            }
+        }
+        catch (Exception ex)
+        {
+            _message = ex.Message;
+        }
+        finally
+        {
+            _busy = false;
+        }
     }
 
     private async Task SubmitAsync()
@@ -129,4 +336,3 @@
         }
     }
 }
-

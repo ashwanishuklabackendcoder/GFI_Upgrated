@@ -27,11 +27,11 @@
             </MudItem>
             
             <MudItem xs="12" md="6">
-                <MudAutocomplete MaxItems="1000" T="ParentCategoryLookupDto" Label="Parent Category" 
+                <MudAutocomplete Clearable="true"           MaxItems="1000" T="ParentCategoryLookupDto" Label="Parent Category" 
                                  Value="@(_parents.FirstOrDefault(x => x.ItemCatId == _editor.MainCategoryId))" 
                                  ValueChanged="@((ParentCategoryLookupDto val) => { _editor.MainCategoryId = val?.ItemCatId; })" 
                                  SearchFunc="@SearchParents" ToStringFunc="@(x => x?.ItemCatName ?? "")"
-                                 Variant="Variant.Outlined" Clearable="true" Placeholder="Select Main Category (Optional)" 
+                                 Variant="Variant.Outlined"  Placeholder="Select Main Category (Optional)" 
                                  Disabled="_editor.IsMainCategory" 
                                  ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
             </MudItem>

@@ -392,7 +392,7 @@ namespace GFI_Upgrated.Data.Account
                     ItemId = itemCols.Contains("ItemID") && itemRow["ItemID"] != DBNull.Value ? Convert.ToInt64(itemRow["ItemID"]) : 0,
                     ItemName = itemCols.Contains("ItemName") ? itemRow["ItemName"]?.ToString() : null,
                     ItemCode = itemCols.Contains("ItemCode") ? itemRow["ItemCode"]?.ToString() : null,
-                    Qty = itemCols.Contains("Qty") && itemRow["Qty"] != DBNull.Value ? Convert.ToInt32(itemRow["Qty"]) : 0,
+                    Qty = itemCols.Contains("Qty") && itemRow["Qty"] != DBNull.Value ? Convert.ToDouble(itemRow["Qty"]) : 0,
                     Remarks = itemCols.Contains("Remarks") ? itemRow["Remarks"]?.ToString() : null,
                     IsComplete = itemCols.Contains("IsComplete") && itemRow["IsComplete"] != DBNull.Value ? Convert.ToBoolean(itemRow["IsComplete"]) : null
                 });
@@ -589,7 +589,7 @@ namespace GFI_Upgrated.Data.Account
                     OrderNo = itemCols.Contains("OrderNo") ? itemRow["OrderNo"]?.ToString() : null,
                     PrintHeading = itemCols.Contains("PrintHeading") ? itemRow["PrintHeading"]?.ToString() : null,
                     Amount = itemCols.Contains("Amount") && itemRow["Amount"] != DBNull.Value ? Convert.ToDouble(itemRow["Amount"]) : 0,
-                    Quantity = itemCols.Contains("Quantity") && itemRow["Quantity"] != DBNull.Value ? Convert.ToInt32(itemRow["Quantity"]) : 0,
+                    Quantity = itemCols.Contains("Quantity") && itemRow["Quantity"] != DBNull.Value ? Convert.ToDouble(itemRow["Quantity"]) : 0,
                     UnitPrice = itemCols.Contains("UnitPrice") && itemRow["UnitPrice"] != DBNull.Value ? Convert.ToDouble(itemRow["UnitPrice"]) : 0,
                     Description = itemCols.Contains("Description") ? itemRow["Description"]?.ToString() : null,
                     BatchNumber = itemCols.Contains("BatchNumber") ? itemRow["BatchNumber"]?.ToString() : null

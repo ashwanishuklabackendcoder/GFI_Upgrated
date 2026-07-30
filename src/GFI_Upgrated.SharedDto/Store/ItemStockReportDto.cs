@@ -12,4 +12,6 @@ public sealed class ItemStockReportDto
     public double IssuedQuantity { get; set; }
     public double RemovedQuantity { get; set; }
     public double FinalStock { get; set; }
+    public long UnitId { get; set; }
+    public double TotalValue { get; set; }
 }

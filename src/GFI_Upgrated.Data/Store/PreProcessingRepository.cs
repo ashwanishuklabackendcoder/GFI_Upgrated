@@ -71,7 +71,7 @@ public sealed class PreProcessingRepository : IPreProcessingRepository
         {
             new SqlParameter("@PreProcessingId", SqlDbType.BigInt) { Value = request.PreProcessingId },
             new SqlParameter("@BomId", SqlDbType.BigInt) { Value = request.BomId },
-            new SqlParameter("@BomQty", SqlDbType.Int) { Value = request.BomQty },
+            new SqlParameter("@BomQty", SqlDbType.Float) { Value = request.BomQty },
             new SqlParameter("@ProcessingDate", SqlDbType.Date) { Value = (object?)request.ProcessingDate ?? DateTime.Today },
             new SqlParameter("@QuantityMade", SqlDbType.Float) { Value = request.QuantityMade },
             new SqlParameter("@UnitMade", SqlDbType.BigInt) { Value = request.UnitMade },
@@ -380,7 +380,7 @@ public sealed class PreProcessingRepository : IPreProcessingRepository
         PreProcessingId = row.SafeLong("PreProcessingId"),
         BomId = row.SafeLong("BomId"),
         BomName = row.SafeString("BomName"),
-        BomQty = row.SafeInt("BomQty"),
+        BomQty = row.SafeDouble("BomQty"),
         ProcessingDate = row.SafeString("ProcessingDate"), // SP returns as string formatted 106
         QuantityMade = row.SafeDouble("QuantityMade"),
         UnitMade = row.SafeLong("UnitMade"),

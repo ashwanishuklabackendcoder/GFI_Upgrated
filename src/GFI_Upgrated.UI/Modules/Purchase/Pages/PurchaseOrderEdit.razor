@@ -29,17 +29,17 @@
                 <MudTextField @bind-Value="_model.VoucherNumber" Label="Order Number" Variant="Variant.Outlined" Required="true" For="@(() => _model.VoucherNumber)" />
             </MudItem>
             <MudItem xs="12" md="3">
-                <MudAutocomplete T="AccountLookupDto" Label="Suplier" @bind-Value="_selectedVendor" SearchFunc="@SearchVendors"
+                <MudAutocomplete Clearable="true"          T="AccountLookupDto" Label="Suplier" @bind-Value="_selectedVendor" SearchFunc="@SearchVendors"
                                  ToStringFunc="@(a => a?.AccountName ?? "")" Variant="Variant.Outlined" Required="true"
                                  AdornmentIcon="@Icons.Material.Filled.Search" />
             </MudItem>
             <MudItem xs="12" md="3">
-                <MudAutocomplete MaxItems="1000" T="PurchaseRequestDto" Label="Link PR" @bind-Value="_selectedPR" SearchFunc="@SearchPRs"
+                <MudAutocomplete Clearable="true"          MaxItems="1000" T="PurchaseRequestDto" Label="Link PR" @bind-Value="_selectedPR" SearchFunc="@SearchPRs"
                                  ToStringFunc="@(p => p?.RequestNumber ?? "")" Variant="Variant.Outlined"
                                  AdornmentIcon="@Icons.Material.Filled.Link" />
             </MudItem>
             <MudItem xs="12" md="3">
-                <MudDatePicker Label="Order Date" @bind-Date="_model.OrderDate" Variant="Variant.Outlined" Editable="true" />
+                <MudDatePicker Editable="true" DateFormat="dd/MM/yyyy" Placeholder="dd/MM/yyyy"                      Label="Order Date (DD/MM/YYYY)" @bind-Date="_model.OrderDate" Variant="Variant.Outlined"  />
             </MudItem>
 
             <!-- Items Section -->
@@ -61,7 +61,7 @@
                     </HeaderContent>
                     <RowTemplate>
                         <MudTd DataLabel="Item">
-                            <MudAutocomplete MaxItems="1000" T="RawMaterialDto" Value="@(GetItemById(itemContext.ItemID))" ValueChanged="@((v) => OnItemChanged(itemContext, v))"
+                            <MudAutocomplete Clearable="true"          MaxItems="1000" T="RawMaterialDto" Value="@(GetItemById(itemContext.ItemID))" ValueChanged="@((v) => OnItemChanged(itemContext, v))"
                                              SearchFunc="@SearchItems" ToStringFunc="@(i => i?.ItemName ?? "")" 
                                              Variant="Variant.Text" Dense="true" Required="true" />
                         </MudTd>
@@ -69,7 +69,7 @@
                             <MudNumericField @bind-Value="itemContext.Quantity" Variant="Variant.Text" Dense="true" Min="1" />
                         </MudTd>
                         <MudTd DataLabel="Unit">
-                            <MudAutocomplete MaxItems="1000" T="UnitDto" 
+                            <MudAutocomplete Clearable="true"          MaxItems="1000" T="UnitDto" 
                                              Value="@(_units.FirstOrDefault(x => x.UnitId == itemContext.UnitId))"
                                              ValueChanged="@((UnitDto val) => { itemContext.UnitId = val?.UnitId; })"
                                              Variant="Variant.Text" Dense="true"

@@ -34,7 +34,7 @@ namespace GFI_Upgrated.SharedDto.Account
         public long ItemId { get; set; }
         public string? PrintHeading { get; set; }
         public double Amount { get; set; }
-        public int Quantity { get; set; }
+        public double Quantity { get; set; }
         public double UnitPrice { get; set; }
         public string? Description { get; set; }
         public string? BatchNumber { get; set; }
