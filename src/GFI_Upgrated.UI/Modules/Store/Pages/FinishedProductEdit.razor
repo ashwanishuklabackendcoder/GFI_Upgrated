@@ -291,6 +291,7 @@
     private FinishedProductDetailDto _details = new();
     private FinishedProductVendorDto _vendorModel = new() { StatusId = 1, CurrencyId = 1 };
     private FinishedProductBatchDto _batchModel = new();
+    private MudAutocomplete<WarehouseLookupDto> _warehouseAutocomplete;
 
     private List<ItemCategoryDto> _categories = new();
     private List<UnitDto> _units = new();
@@ -698,7 +699,7 @@
             await ApiClient.SaveFinishedProductBatchAsync(_batchModel);
             Snackbar.Add("Batch saved successfully.", Severity.Success);
             _batches = (await ApiClient.GetFinishedProductBatchesAsync(Id)).ToList();
-            ResetBatchForm();
+            await ResetBatchForm();
             return true;
         }
         catch (Exception ex)
@@ -761,7 +762,7 @@
         }
     }
 
-    private void ResetBatchForm()
+    private async Task ResetBatchForm()
     {
         _batchModel = new FinishedProductBatchDto();
     }

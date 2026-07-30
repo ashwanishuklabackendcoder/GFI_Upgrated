@@ -323,7 +323,7 @@ public sealed class SemiFinishedProductRepository : ISemiFinishedProductReposito
                 WarehouseId = row.SafeInt("WarehouseId"),
                 WarehouseName = row.SafeString("WarehouseName"),
                 Quantity = row.SafeDouble("Quantity"),
-                UnitId = row.SafeInt("UnitId"),
+                UnitId = row.Table.Columns.Contains("Unit") ? row.SafeInt("Unit") : row.SafeInt("UnitId"),
                 UnitName = row.SafeString("UnitName"),
                 BatchNo = row.SafeString("BatchNo"),
                 Amount = row.SafeDouble("Amount"),
