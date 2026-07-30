@@ -32,6 +32,7 @@
                 <MudSelectItem Value="@((long?)null)">All Sources</MudSelectItem>
                 <MudSelectItem Value="@((long?)1)">Purchase</MudSelectItem>
                 <MudSelectItem Value="@((long?)2)">Pre-Processing</MudSelectItem>
+                <MudSelectItem Value="@((long?)3)">Opening Stock</MudSelectItem>
             </MudSelect>
         </MudItem>
         <MudItem xs="12" md="3">
@@ -57,7 +58,7 @@
         </div>
         <div style="font-size: 14px; margin-bottom: 16px;">
             <strong>Filters Applied:</strong><br />
-            Stock From: @(_selectedStockById == 1 ? "Purchase" : _selectedStockById == 2 ? "Pre-Processing" : "All Sources") | 
+            Stock From: @(_selectedStockById == 1 ? "Purchase" : _selectedStockById == 2 ? "Pre-Processing" : _selectedStockById == 3 ? "Opening Stock" : "All Sources") | 
             Item: @(_selectedItem?.ItemName ?? "All Items")
         </div>
     </div>
@@ -82,8 +83,8 @@
             <MudTd DataLabel="Final Quantity" Style="text-align: right;">@context.FinalQuantityLeft.ToString("N2")</MudTd>
             <MudTd DataLabel="Expiry Date">@context.ExpiryDate</MudTd>
             <MudTd DataLabel="Stock From">
-                <MudChip T="string" Color="@(context.StockById == 1 ? Color.Info : Color.Warning)" Size="Size.Small">
-                    @(context.StockById == 1 ? "Purchase" : context.StockById == 2 ? "PreProcessing" : "Unknown")
+                <MudChip T="string" Color="@(context.StockById == 1 ? Color.Info : context.StockById == 2 ? Color.Warning : Color.Success)" Size="Size.Small">
+                    @(context.StockById == 1 ? "Purchase" : context.StockById == 2 ? "PreProcessing" : context.StockById == 3 ? "Opening Stock" : "Unknown")
                 </MudChip>
             </MudTd>
         </RowTemplate>
