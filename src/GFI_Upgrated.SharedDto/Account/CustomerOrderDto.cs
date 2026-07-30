@@ -1,14 +1,22 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 
 namespace GFI_Upgrated.SharedDto.Account
 {
     public class CustomerOrderDto
     {
         public long OrderID { get; set; }
+        
+        [Required(ErrorMessage = "Customer is required")]
+        [Range(1, long.MaxValue, ErrorMessage = "Please select a valid Customer")]
         public long CustomerID { get; set; }
+        
         public string? OrderNo { get; set; }
+        
+        [Required(ErrorMessage = "Order Date is required")]
         public DateTime? OrderDate { get; set; }
+        
         public DateTime? SentDate { get; set; }
         public DateTime? CreatedDate { get; set; }
         public string? CreatedBy { get; set; }

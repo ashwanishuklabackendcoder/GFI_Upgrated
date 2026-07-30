@@ -37,7 +37,7 @@
                                  ToStringFunc="@(p => p?.VoucherNumber ?? "")" Variant="Variant.Outlined" />
             </MudItem>
             <MudItem xs="12" md="3">
-                <MudDatePicker Editable="true" DateFormat="dd/MM/yyyy" Placeholder="dd/MM/yyyy"                      Label="Received Date (DD/MM/YYYY)" @bind-Date="_model.GoodsRecievedDate" Variant="Variant.Outlined"  />
+                <MudDatePicker Editable="true" DateFormat="dd/MM/yyyy" Placeholder="dd/MM/yyyy"                      Label="Received Date (DD/MM/YYYY)" @bind-Date="_model.GoodsRecievedDate" Variant="Variant.Outlined" For="@(() => _model.GoodsRecievedDate)" />
             </MudItem>
 
             <MudItem xs="12" md="3">

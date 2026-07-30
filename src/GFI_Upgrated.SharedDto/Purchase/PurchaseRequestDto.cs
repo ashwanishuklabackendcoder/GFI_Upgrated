@@ -1,13 +1,16 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 
 namespace GFI_Upgrated.SharedDto.Purchase
 {
     public class PurchaseRequestDto
     {
         public long PurchaseRequestMasterID { get; set; }
+        [Required(ErrorMessage = "Request Number is required")]
         public string? RequestNumber { get; set; }
         public string? Description { get; set; }
+        [Required(ErrorMessage = "Requested By is required")]
         public long? RequestedBy { get; set; }
         public long? CheckedBy { get; set; }
         public long? ConfirmedBy { get; set; }

@@ -1,11 +1,15 @@
 using System;
+using System.ComponentModel.DataAnnotations;
 
 namespace GFI_Upgrated.SharedDto.Account
 {
     public sealed class AccountGroupDto
     {
         public long AccountGroupID { get; set; }
+        
+        [Required(ErrorMessage = "Account Group Name is required")]
         public string AccountGroupName { get; set; } = string.Empty;
+        
         public bool IsMainAccountGroup { get; set; }
         public long? MainAccountGroupID { get; set; }
         public bool IsActive { get; set; } = true;

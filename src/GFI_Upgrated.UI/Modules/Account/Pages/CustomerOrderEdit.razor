@@ -29,10 +29,10 @@
                 <MudTextField @bind-Value="_order.OrderNo" Label="Order Number" Required="true" Variant="Variant.Outlined" For="@(() => _order.OrderNo)" />
             </MudItem>
             <MudItem xs="12" md="4">
-                <MudAutocomplete Clearable="true"           MaxItems="1000" T="AccountLookupDto" Label="Customer" Value="@(_customers.FirstOrDefault(x => x.AccountId == _order.CustomerID))" ValueChanged="@((AccountLookupDto val) => { _order.CustomerID = val?.AccountId ?? 0; })" SearchFunc="@SearchCustomers" ToStringFunc="@(x => x?.AccountName ?? "")" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter" Required="true" />
+                <MudAutocomplete Clearable="true" MaxItems="1000" T="long" Label="Customer" Value="@_order.CustomerID" ValueChanged="@((long val) => { _order.CustomerID = val; })" SearchFunc="@SearchCustomerIds" ToStringFunc="@(val => _customers.FirstOrDefault(x => x.AccountId == val)?.AccountName ?? "")" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter" For="@(() => _order.CustomerID)" />
             </MudItem>
             <MudItem xs="12" md="4">
-                <MudDatePicker DateFormat="dd/MM/yyyy" Placeholder="dd/MM/yyyy" Editable="true"                         @bind-Date="_order.OrderDate" Label="Order Date (DD/MM/YYYY)" Required="true" Variant="Variant.Outlined" />
+                <MudDatePicker DateFormat="dd/MM/yyyy" Placeholder="dd/MM/yyyy" Editable="true" @bind-Date="_order.OrderDate" Label="Order Date (DD/MM/YYYY)" Variant="Variant.Outlined" For="@(() => _order.OrderDate)" />
             </MudItem>
             
             <MudItem xs="12" md="4">
@@ -293,10 +293,12 @@
         }
     }
 
-    private async Task<IEnumerable<AccountLookupDto>> SearchCustomers(string value, CancellationToken token)
+    private async Task<IEnumerable<long>> SearchCustomerIds(string value, CancellationToken token)
     {
-        if (string.IsNullOrEmpty(value) || _customers.Any(x => (x.AccountName ?? "").Equals(value, StringComparison.OrdinalIgnoreCase))) return _customers;
-        return _customers.Where(x => (x.AccountName ?? "").Contains(value, StringComparison.OrdinalIgnoreCase));
+        if (string.IsNullOrEmpty(value) || _customers.Any(x => (x.AccountName ?? "").Equals(value, StringComparison.OrdinalIgnoreCase))) 
+            return _customers.Select(x => (long)x.AccountId);
+            
+        return _customers.Where(x => (x.AccountName ?? "").Contains(value, StringComparison.OrdinalIgnoreCase)).Select(x => (long)x.AccountId);
     }
 
     private async Task<IEnumerable<RawMaterialDto>> SearchItems(string value, CancellationToken token)

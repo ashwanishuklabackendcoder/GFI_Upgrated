@@ -1,15 +1,25 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 
 namespace GFI_Upgrated.SharedDto.Account
 {
     public class InvoiceDto
     {
         public long InvoiceID { get; set; }
+        
+        [Required(ErrorMessage = "Account is required")]
+        [Range(1, long.MaxValue, ErrorMessage = "Please select a valid Account")]
         public long AccountID { get; set; }
+        
         public string? InvoiceNumber { get; set; }
+        
+        [Required(ErrorMessage = "Due Date is required")]
         public DateTime? DueDate { get; set; }
+        
         public bool? IsPaid { get; set; }
+        
+        [Required(ErrorMessage = "Invoice Date is required")]
         public DateTime? InvoiceDate { get; set; }
         public string? InvoiceStatus { get; set; }
         public DateTime? CreatedDate { get; set; }

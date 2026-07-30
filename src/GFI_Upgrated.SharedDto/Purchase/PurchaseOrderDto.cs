@@ -1,14 +1,18 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 
 namespace GFI_Upgrated.SharedDto.Purchase
 {
     public class PurchaseOrderDto
     {
         public long PurchaseOrderID { get; set; }
+        [Required(ErrorMessage = "Order Number is required")]
         public string? VoucherNumber { get; set; }
+        [Required(ErrorMessage = "Supplier is required")]
         public long AccountID { get; set; }
         public long? PurchaseRequestID { get; set; }
+        [Required(ErrorMessage = "Order Date is required")]
         public DateTime? OrderDate { get; set; }
         public int? TaxType { get; set; }
         public string? TaxName1 { get; set; }
