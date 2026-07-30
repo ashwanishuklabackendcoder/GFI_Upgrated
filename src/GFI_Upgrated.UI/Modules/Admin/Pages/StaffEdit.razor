@@ -46,34 +46,28 @@
                                  SearchFunc="@SearchSalutations"
                                  ToStringFunc="@(x => x?.Text ?? "")"
                                  ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
+                <ValidationMessage For="@(() => _editor.StaffSalutation)" />
             </MudItem>
             <MudItem xs="12" md="4">
-                <MudTextField @bind-Value="_editor.StaffFirstName" Label="@LocalizationState.Text("Admin.Staff.Edit.FirstName", "First Name")" Variant="Variant.Outlined" />
+                <MudTextField @bind-Value="_editor.StaffFirstName" For="@(() => _editor.StaffFirstName)" Label="@LocalizationState.Text("Admin.Staff.Edit.FirstName", "First Name")" Variant="Variant.Outlined" />
             </MudItem>
             <MudItem xs="12" md="4">
-                <MudTextField @bind-Value="_editor.StaffLastName" Label="@LocalizationState.Text("Admin.Staff.Edit.LastName", "Last Name")" Variant="Variant.Outlined" />
+                <MudTextField @bind-Value="_editor.StaffLastName" For="@(() => _editor.StaffLastName)" Label="@LocalizationState.Text("Admin.Staff.Edit.LastName", "Last Name")" Variant="Variant.Outlined" />
             </MudItem>
+
             <MudItem xs="12" md="4">
-                <MudAutocomplete MaxItems="1000" T="LookupItemDto" Label="@LocalizationState.Text("Admin.Staff.Edit.Gender", "Gender")" Variant="Variant.Outlined"
-                                 Value="@(_genders.FirstOrDefault(x => x.Value.ToString() == _editor.Gender.ToString()))"
-                                 ValueChanged="@((LookupItemDto val) => { _editor.Gender = long.TryParse(val?.Value.ToString(), out var g) ? g : 0; })"
-                                 SearchFunc="@SearchGenders"
-                                 ToStringFunc="@(x => x?.Text ?? "")"
-                                 ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
-            </MudItem>
-            <MudItem xs="12" md="4">
-                <MudTextField @bind-Value="_editor.StaffNumber" Label="@LocalizationState.Text("Admin.Staff.Edit.StaffNumber", "Staff Number")" Variant="Variant.Outlined" />
+                <MudTextField @bind-Value="_editor.StaffNumber" For="@(() => _editor.StaffNumber)" Label="@LocalizationState.Text("Admin.Staff.Edit.StaffNumber", "Staff Number")" Variant="Variant.Outlined" />
             </MudItem>
           
             <MudItem xs="12" md="4">
-                <MudDatePicker Editable="true" DateFormat="dd/MM/yyyy" Placeholder="dd/MM/yyyy"       @bind-Date="_editor.DOB" Label="@(LocalizationState.Text("Admin.Staff.Edit.Dob", "D.O.B") + " (DD/MM/YYYY)")" Variant="Variant.Outlined"  />
+                <MudDatePicker Editable="true" DateFormat="dd/MM/yyyy" Placeholder="dd/MM/yyyy"       @bind-Date="_editor.DOB" For="@(() => _editor.DOB)" Label="@(LocalizationState.Text("Admin.Staff.Edit.Dob", "D.O.B") + " (DD/MM/YYYY)")" Variant="Variant.Outlined"  />
             </MudItem>
 
             <MudItem xs="12" md="4">
-                <MudTextField @bind-Value="_editor.MobileNo" Label="@LocalizationState.Text("Admin.Staff.Edit.MobileNo", "Mobile No.")" Variant="Variant.Outlined" />
+                <MudTextField @bind-Value="_editor.MobileNo" For="@(() => _editor.MobileNo)" Label="@LocalizationState.Text("Admin.Staff.Edit.MobileNo", "Mobile No.")" Variant="Variant.Outlined" />
             </MudItem>
             <MudItem xs="12" md="4">
-                <MudTextField @bind-Value="_editor.EmailIDOfficial" Label="@LocalizationState.Text("Admin.Staff.Edit.Email", "Email")" Variant="Variant.Outlined" />
+                <MudTextField @bind-Value="_editor.EmailIDOfficial" For="@(() => _editor.EmailIDOfficial)" Label="@LocalizationState.Text("Admin.Staff.Edit.Email", "Email")" Variant="Variant.Outlined" />
             </MudItem>
 
             <MudItem xs="12" md="4">
@@ -83,6 +77,7 @@
                                  SearchFunc="@SearchGenders"
                                  ToStringFunc="@(x => x?.Text ?? "")"
                                  ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
+                <ValidationMessage For="@(() => _editor.Gender)" />
             </MudItem>
             <MudItem xs="12" md="4">
                 <label class="form-label">@LocalizationState.Text("Admin.Staff.Edit.Photo", "Photo")</label>
@@ -99,10 +94,11 @@
                                  SearchFunc="@SearchStatuses"
                                  ToStringFunc="@(x => x?.StatusName ?? "")"
                                  ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
+                <ValidationMessage For="@(() => _editor.Status)" />
             </MudItem>
 
             <MudItem xs="12" Class="pt-2">
-                <MudCheckBox T="bool" @bind-Value="_editor.HasLogin" Label="@LocalizationState.Text("Admin.Staff.Edit.HasLogin", "Has Login")" />
+                <MudCheckBox T="bool" @bind-Value="_editor.HasLogin" For="@(() => _editor.HasLogin)" Label="@LocalizationState.Text("Admin.Staff.Edit.HasLogin", "Has Login")" />
             </MudItem>
 
             <MudItem xs="12" Class="pt-2">

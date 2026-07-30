@@ -41,30 +41,35 @@
 
     <MudItem xs="12" md="5">
         <MudPaper Class="pa-4">
-            <MudText Typo="Typo.h5" Class="mb-4">User Details</MudText>
-            <MudTextField @bind-Value="_editor.LoginName" Label="Login name" Variant="Variant.Outlined" Class="mb-3" />
-            <MudTextField @bind-Value="_editor.Password" Label="Password" Variant="Variant.Outlined" InputType="InputType.Password" Class="mb-3" />
-            <MudAutocomplete Clearable="true"        MaxItems="1000" T="StaffLookupDto" Label="Staff" Variant="Variant.Outlined" 
-                             Value="@(_activeStaff.FirstOrDefault(x => x.StaffId == _editor.StaffId))" 
-                             ValueChanged="@((StaffLookupDto val) => OnStaffSelected(val))" 
-                             Class="mb-3"
-                             SearchFunc="@SearchStaff" 
-                             ToStringFunc="@(x => x == null ? "" : FormatStaff(x))"
-                             ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
-            <MudAutocomplete Clearable="true"        MaxItems="1000" T="RoleDto" Label="Primary Role" Variant="Variant.Outlined" 
-                             Value="@(_roles.FirstOrDefault(x => x.RoleId == _editor.RoleId))" 
-                             ValueChanged="@((RoleDto val) => { _editor.RoleId = val?.RoleId ?? 0; })" 
-                             Class="mb-3"
-                             SearchFunc="@SearchRoles" 
-                             ToStringFunc="@(x => x?.RoleName ?? "")"
-                             ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
-            <MudCheckBox T="bool" @bind-Value="_editor.IsActive" Label="Is Active" />
-            <MudStack Row="true" Spacing="2" Class="mt-4">
-                <AuthorizeAction Action="@(_editor.LoginId > 0 ? "update" : "insert")">
-                    <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="SaveAsync">Save</MudButton>
-                </AuthorizeAction>
-                <MudButton Variant="Variant.Outlined" OnClick="NewUser">Reset</MudButton>
-            </MudStack>
+            <EditForm Model="_editor" OnValidSubmit="SaveAsync">
+                <DataAnnotationsValidator />
+                <MudText Typo="Typo.h5" Class="mb-4">User Details</MudText>
+                <MudTextField @bind-Value="_editor.LoginName" For="@(() => _editor.LoginName)" Label="Login name" Variant="Variant.Outlined" Class="mb-3" />
+                <MudTextField @bind-Value="_editor.Password" For="@(() => _editor.Password)" Label="Password" Variant="Variant.Outlined" InputType="InputType.Password" Class="mb-3" />
+                <MudAutocomplete Clearable="true"        MaxItems="1000" T="StaffLookupDto" Label="Staff" Variant="Variant.Outlined" 
+                                 Value="@(_activeStaff.FirstOrDefault(x => x.StaffId == _editor.StaffId))" 
+                                 ValueChanged="@((StaffLookupDto val) => OnStaffSelected(val))" 
+                                 Class="mb-3"
+                                 SearchFunc="@SearchStaff" 
+                                 ToStringFunc="@(x => x == null ? "" : FormatStaff(x))"
+                                 ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
+                <ValidationMessage For="@(() => _editor.StaffId)" />
+                <MudAutocomplete Clearable="true"        MaxItems="1000" T="RoleDto" Label="Primary Role" Variant="Variant.Outlined" 
+                                 Value="@(_roles.FirstOrDefault(x => x.RoleId == _editor.RoleId))" 
+                                 ValueChanged="@((RoleDto val) => { _editor.RoleId = val?.RoleId ?? 0; })" 
+                                 Class="mb-3"
+                                 SearchFunc="@SearchRoles" 
+                                 ToStringFunc="@(x => x?.RoleName ?? "")"
+                                 ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
+                <ValidationMessage For="@(() => _editor.RoleId)" />
+                <MudCheckBox T="bool" @bind-Value="_editor.IsActive" For="@(() => _editor.IsActive)" Label="Is Active" />
+                <MudStack Row="true" Spacing="2" Class="mt-4">
+                    <AuthorizeAction Action="@(_editor.LoginId > 0 ? "update" : "insert")">
+                        <MudButton ButtonType="ButtonType.Submit" Color="Color.Primary" Variant="Variant.Filled">Save</MudButton>
+                    </AuthorizeAction>
+                    <MudButton Variant="Variant.Outlined" OnClick="NewUser">Reset</MudButton>
+                </MudStack>
+            </EditForm>
         </MudPaper>
     </MudItem>
 </MudGrid>
