@@ -56,7 +56,7 @@
                     </MudItem>
 
                     <MudItem xs="12">
-                        <MudTextField @bind-Value="_model.Description" Label="Description" Variant="Variant.Outlined" Lines="2" />
+                        <MudTextField @bind-Value="_model.Description" Label="Remarks" Variant="Variant.Outlined" Lines="2" />
                     </MudItem>
              @*        <MudItem xs="12">
                         <MudTextField @bind-Value="_model.Tags" Label="Tags (Comma separated)" Variant="Variant.Outlined" />
@@ -161,16 +161,18 @@
                             <MudNumericField @bind-Value="_batchModel.Quantity" Label="Quantity" Variant="Variant.Outlined" Min="0" />
                         </MudItem>
                         <MudItem xs="12" md="4">
-                            <MudNumericField @bind-Value="_batchModel.Amount" Label="Amount (SRD)" Variant="Variant.Outlined" Min="0" Adornment="Adornment.Start" AdornmentText="SRD" Format="N2" />
+                            <MudAutocomplete Clearable="true" MaxItems="1000" T="UnitDto" Label="Unit" Value="@(_units.FirstOrDefault(x => x.UnitId == _batchModel.UnitId))" ValueChanged="@((UnitDto val) => { _batchModel.UnitId = (int)(val?.UnitId ?? 0); })" SearchFunc="@SearchBatchUnits" ToStringFunc="@(x => x?.UnitName ?? "")" Variant="Variant.Outlined" Required="true" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
                         </MudItem>
                         <MudItem xs="12" md="4">
-                            <MudAutocomplete Clearable="true"           MaxItems="1000" T="WarehouseLookupDto" Label="Warehouse" Value="@(_warehouses.FirstOrDefault(x => x.WarehouseId == _batchModel.WarehouseId))" ValueChanged="@((WarehouseLookupDto val) => { _batchModel.WarehouseId = (int)(val?.WarehouseId ?? 0); })" SearchFunc="@SearchWarehouses" ToStringFunc="@(x => x?.WarehouseName ?? "")" Variant="Variant.Outlined" Required="true" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
+                            <MudNumericField @bind-Value="_batchModel.Amount" Label="Amount (SRD)" Variant="Variant.Outlined" Min="0" Adornment="Adornment.Start" AdornmentText="SRD" Format="N2" />
                         </MudItem>
+                       
                         <MudItem xs="12" md="4">
                             <MudDatePicker DateFormat="dd/MM/yyyy" Placeholder="dd/MM/yyyy" Editable="true"                         @bind-Date="_batchModel.ExpiryDate" Label="Expiry Date (DD/MM/YYYY)" Variant="Variant.Outlined" />
                         </MudItem>
+                     
                         <MudItem xs="12" md="4">
-                            <MudAutocomplete Clearable="true"           MaxItems="1000" T="UnitDto" Label="Unit" Value="@(_units.FirstOrDefault(x => x.UnitId == _batchModel.UnitId))" ValueChanged="@((UnitDto val) => { _batchModel.UnitId = (int)(val?.UnitId ?? 0); })" SearchFunc="@SearchBatchUnits" ToStringFunc="@(x => x?.UnitName ?? "")" Variant="Variant.Outlined" Required="true" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
+                            <MudAutocomplete Clearable="true" MaxItems="1000" T="WarehouseLookupDto" Label="Warehouse" Value="@(_warehouses.FirstOrDefault(x => x.WarehouseId == _batchModel.WarehouseId))" ValueChanged="@((WarehouseLookupDto val) => { _batchModel.WarehouseId = (int)(val?.WarehouseId ?? 0); })" SearchFunc="@SearchWarehouses" ToStringFunc="@(x => x?.WarehouseName ?? "")" Variant="Variant.Outlined" Required="true" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
                         </MudItem>
                         <MudItem xs="12" md="4" Class="d-flex align-center justify-end gap-2">
                              <MudButton Variant="Variant.Outlined" OnClick="ResetBatchForm">Reset</MudButton>
