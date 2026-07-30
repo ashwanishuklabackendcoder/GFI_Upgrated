@@ -1,1 +1,7 @@
 /* Add your custom styles and overrides here */
+
+.mud-table-head {
+background-color:#262841 !important;
+colour:#fff !important;
+
+}
