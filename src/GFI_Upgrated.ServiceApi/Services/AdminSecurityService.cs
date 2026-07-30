@@ -94,12 +94,13 @@ public sealed class AdminSecurityService : IAdminSecurityService
                 var staff = await _repository.GetStaffByIdAsync(request.StaffId, cancellationToken);
                 if (staff != null && !string.IsNullOrEmpty(staff.EmailIDOfficial))
                 {
-                    var subject = "Your GFI Account Login Credentials";
-                    var body = $"<h3>Welcome to GFI</h3>" +
-                               $"<p>A new account has been created for you.</p>" +
+                    var subject = "GFI Portal Login Credentials";
+                    var body = $"<h3>Welcome to GFI Portal</h3>" +
+                               $"<p>A new account has been created on the GFI portal, whose login details are as follows -</p>" +
                                $"<p><strong>Username:</strong> {request.LoginName}</p>" +
                                $"<p><strong>Password:</strong> {request.Password}</p>" +
-                               $"<p>Please log in and update your password if needed.</p>";
+                               $"<p><strong>URL:</strong> https://gfi.ifnoss.us</p>" +
+                               $"<p>GFI Team</p>";
 
                     _ = Task.Run(() => GFI_Upgrated.ServiceApi.Helpers.EmailSender.SendEmailAsync(staff.EmailIDOfficial, subject, body), CancellationToken.None);
                 }
