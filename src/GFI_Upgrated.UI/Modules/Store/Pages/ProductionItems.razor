@@ -273,6 +273,10 @@
         try
         {
             row.AvailableBatches = (await ApiClient.GetAvailableBatchesAsync(item.ItemId)).ToList();
+            if (!row.AvailableBatches.Any())
+            {
+                Snackbar.Add($"No stock found for ingredient '{item.ItemName}'. Please select another ingredient.", Severity.Warning);
+            }
             var firstBatch = row.AvailableBatches.FirstOrDefault(b => b.FinalQuantityLeft > 0) 
                              ?? row.AvailableBatches.FirstOrDefault();
 
