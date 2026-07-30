@@ -14,7 +14,7 @@
     <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
         <MudStack Spacing="0">
             <MudText Typo="Typo.h5">Staff</MudText>
-            <MudText Typo="Typo.body2" Color="Color.Secondary">Legacy staff master parity</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">Staff List</MudText>
         </MudStack>
         <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="NewStaff">
             Add New
@@ -22,7 +22,7 @@
     </MudStack>
 
     <MudStack Row="true" AlignItems="AlignItems.End" Spacing="2" Class="mb-4" Style="max-width: 500px;">
-        <MudTextField T="string" Value="@_search" ValueChanged="@OnSearchTextChanged" Label="Search staff" Variant="Variant.Outlined" Immediate="true" Class="flex-grow-1" />
+        <MudTextField T="string" Value="@_search" ValueChanged="@OnSearchTextChanged" Label="Search" Variant="Variant.Outlined" Immediate="true" Class="flex-grow-1" />
         
     </MudStack>
 

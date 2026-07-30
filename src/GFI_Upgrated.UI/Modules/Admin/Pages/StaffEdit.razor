@@ -13,7 +13,7 @@
     <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
         <MudStack Spacing="0">
             <MudText Typo="Typo.h5">@_title</MudText>
-            <MudText Typo="Typo.body2" Color="Color.Secondary">@LocalizationState.Text("Admin.Staff.Edit.Subtitle", "Add or edit staff details using the legacy fi")</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">@LocalizationState.Text("Admin.Staff.Edit.Subtitle", "add / edit staff details")</MudText>
         </MudStack>
         <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.ArrowBack" OnClick="Cancel">@LocalizationState.Text("Common.Actions.BackToList", "Back to List")</MudButton>
     </MudStack>
@@ -54,7 +54,15 @@
             <MudItem xs="12" md="4">
                 <MudTextField @bind-Value="_editor.StaffLastName" For="@(() => _editor.StaffLastName)" Label="@LocalizationState.Text("Admin.Staff.Edit.LastName", "Last Name")" Variant="Variant.Outlined" />
             </MudItem>
-
+            <MudItem xs="12" md="4">
+                <MudAutocomplete MaxItems="1000" T="LookupItemDto" Label="@LocalizationState.Text("Admin.Staff.Edit.Gender", "Gender")" Variant="Variant.Outlined"
+                                 Value="@(_genders.FirstOrDefault(x => x.Value.ToString() == _editor.Gender.ToString()))"
+                                 ValueChanged="@((LookupItemDto val) => { _editor.Gender = long.TryParse(val?.Value.ToString(), out var g) ? g : 0; })"
+                                 SearchFunc="@SearchGenders"
+                                 ToStringFunc="@(x => x?.Text ?? "")"
+                                 ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
+                <ValidationMessage For="@(() => _editor.Gender)" />
+            </MudItem>
             <MudItem xs="12" md="4">
                 <MudTextField @bind-Value="_editor.StaffNumber" For="@(() => _editor.StaffNumber)" Label="@LocalizationState.Text("Admin.Staff.Edit.StaffNumber", "Staff Number")" Variant="Variant.Outlined" />
             </MudItem>
@@ -70,16 +78,8 @@
                 <MudTextField @bind-Value="_editor.EmailIDOfficial" For="@(() => _editor.EmailIDOfficial)" Label="@LocalizationState.Text("Admin.Staff.Edit.Email", "Email")" Variant="Variant.Outlined" />
             </MudItem>
 
-            <MudItem xs="12" md="4">
-                <MudAutocomplete MaxItems="1000" T="LookupItemDto" Label="@LocalizationState.Text("Admin.Staff.Edit.Gender", "Gender")" Variant="Variant.Outlined"
-                                 Value="@(_genders.FirstOrDefault(x => x.Value.ToString() == _editor.Gender.ToString()))"
-                                 ValueChanged="@((LookupItemDto val) => { _editor.Gender = long.TryParse(val?.Value.ToString(), out var g) ? g : 0; })"
-                                 SearchFunc="@SearchGenders"
-                                 ToStringFunc="@(x => x?.Text ?? "")"
-                                 ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
-                <ValidationMessage For="@(() => _editor.Gender)" />
-            </MudItem>
-            <MudItem xs="12" md="4">
+            
+            <MudItem xs="12" md="4" Style="display:none;">
                 <label class="form-label">@LocalizationState.Text("Admin.Staff.Edit.Photo", "Photo")</label>
                 <InputFile OnChange="OnPhotoChanged" class="form-control" />
                 @if (!string.IsNullOrWhiteSpace(_selectedPhotoName))

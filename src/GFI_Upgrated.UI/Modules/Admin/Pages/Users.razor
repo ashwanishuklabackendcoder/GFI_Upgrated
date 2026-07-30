@@ -16,7 +16,7 @@
                     <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="NewUser">New User</MudButton>
                 </AuthorizeAction>
             </MudStack>
-            <MudTextField @bind-Value="_search" Placeholder="Search login name" Variant="Variant.Outlined" Immediate="true" />
+            <MudTextField @bind-Value="_search" Placeholder="Search" Variant="Variant.Outlined" Immediate="true" />
             <MudTable Items="_users" Dense="true" Hover="true" Class="mt-4">
                 <HeaderContent>
                     <MudTh>Login</MudTh>
@@ -43,16 +43,17 @@
         <MudPaper Class="pa-4">
             <EditForm Model="_editor" OnValidSubmit="SaveAsync">
                 <DataAnnotationsValidator />
-                <MudText Typo="Typo.h5" Class="mb-4">User Details</MudText>
-                <MudTextField @bind-Value="_editor.LoginName" For="@(() => _editor.LoginName)" Label="Login name" Variant="Variant.Outlined" Class="mb-3" />
-                <MudTextField @bind-Value="_editor.Password" For="@(() => _editor.Password)" Label="Password" Variant="Variant.Outlined" InputType="InputType.Password" Class="mb-3" />
-                <MudAutocomplete Clearable="true"        MaxItems="1000" T="StaffLookupDto" Label="Staff" Variant="Variant.Outlined" 
-                                 Value="@(_activeStaff.FirstOrDefault(x => x.StaffId == _editor.StaffId))" 
-                                 ValueChanged="@((StaffLookupDto val) => OnStaffSelected(val))" 
+                <MudText Typo="Typo.h5" Class="mb-4">Add New Login</MudText>
+                <MudAutocomplete Clearable="true" MaxItems="1000" T="StaffLookupDto" Label="Staff" Variant="Variant.Outlined"
+                                 Value="@(_activeStaff.FirstOrDefault(x => x.StaffId == _editor.StaffId))"
+                                 ValueChanged="@((StaffLookupDto val) => OnStaffSelected(val))"
                                  Class="mb-3"
-                                 SearchFunc="@SearchStaff" 
+                                 SearchFunc="@SearchStaff"
                                  ToStringFunc="@(x => x == null ? "" : FormatStaff(x))"
                                  ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
+                <MudTextField @bind-Value="_editor.LoginName" For="@(() => _editor.LoginName)" Label="User ID" Variant="Variant.Outlined" Class="mb-3" />
+                <MudTextField @bind-Value="_editor.Password" For="@(() => _editor.Password)" Label="Password" Variant="Variant.Outlined" InputType="InputType.Password" Class="mb-3" />
+               
                 <ValidationMessage For="@(() => _editor.StaffId)" />
                 <MudAutocomplete Clearable="true"        MaxItems="1000" T="RoleDto" Label="Primary Role" Variant="Variant.Outlined" 
                                  Value="@(_roles.FirstOrDefault(x => x.RoleId == _editor.RoleId))" 
