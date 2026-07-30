@@ -68,6 +68,8 @@
         </MudTabPanel>
 
         <MudTabPanel Text="Inventory Details" Icon="@Icons.Material.Filled.Inventory" Disabled="Id == 0">
+             <MudStack Spacing="4">
+                <MudPaper Class="pa-4" Outlined="true" Elevation="0">
             <MudGrid>
                 <MudItem xs="12" md="4">
                     <MudNumericField @bind-Value="_details.CurrentQuantity" Label="Current Quantity" Variant="Variant.Outlined" Disabled="true" Min="0" />
@@ -91,9 +93,11 @@
                 </MudItem>
 
             </MudGrid>
+            </MudPaper>
+            </MudStack>
         </MudTabPanel>
 
-        <MudTabPanel Text="Stock Batches" Icon="@Icons.Material.Filled.Layers" Disabled="Id == 0">
+        <MudTabPanel Text="Opening Stock" Icon="@Icons.Material.Filled.Layers" Disabled="Id == 0">
             <MudStack Spacing="4">
                 <MudPaper Class="pa-4" Outlined="true" Elevation="0">
                     <MudGrid>
@@ -120,6 +124,7 @@
                 </MudPaper>
 
                 <MudTable Items="_batches" Hover="true" Dense="true" Striped="true" Bordered="true" Elevation="0">
+
                     <HeaderContent>
                         <MudTh>Batch No</MudTh>
                         <MudTh>Quantity</MudTh>
@@ -142,7 +147,10 @@
         </MudTabPanel>
 
         <MudTabPanel Text="Recipe (BOM)" Icon="@Icons.Material.Filled.ReceiptLong" Disabled="Id == 0">
+            
+                
             <MudStack Spacing="4" Class="pt-6">
+                <MudPaper Class="pa-4" Outlined="true" Elevation="0">
                 <MudStack Row="true" Spacing="4" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-3">
                     <MudText Typo="Typo.h6">Product Recipes</MudText>
                     <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="CreateNewRecipe">
@@ -181,7 +189,9 @@
                         <MudText Class="pa-4">No Recipes defined for this semi-finished product yet.</MudText>
                     </NoRecordsContent>
                 </MudTable>
+                </MudPaper>
             </MudStack>
+        
         </MudTabPanel>
     </MudTabs>
 

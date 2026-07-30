@@ -53,13 +53,18 @@
             <MudItem xs="12" md="4">
                 <MudTextField @bind-Value="_editor.StaffLastName" Label="@LocalizationState.Text("Admin.Staff.Edit.LastName", "Last Name")" Variant="Variant.Outlined" />
             </MudItem>
-
+            <MudItem xs="12" md="4">
+                <MudAutocomplete MaxItems="1000" T="LookupItemDto" Label="@LocalizationState.Text("Admin.Staff.Edit.Gender", "Gender")" Variant="Variant.Outlined"
+                                 Value="@(_genders.FirstOrDefault(x => x.Value.ToString() == _editor.Gender.ToString()))"
+                                 ValueChanged="@((LookupItemDto val) => { _editor.Gender = long.TryParse(val?.Value.ToString(), out var g) ? g : 0; })"
+                                 SearchFunc="@SearchGenders"
+                                 ToStringFunc="@(x => x?.Text ?? "")"
+                                 ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
+            </MudItem>
             <MudItem xs="12" md="4">
                 <MudTextField @bind-Value="_editor.StaffNumber" Label="@LocalizationState.Text("Admin.Staff.Edit.StaffNumber", "Staff Number")" Variant="Variant.Outlined" />
             </MudItem>
-            <MudItem xs="12" md="4">
-                <MudTextField @bind-Value="_editor.NIN" Label="@LocalizationState.Text("Admin.Staff.Edit.NIN", "NIN")" Variant="Variant.Outlined" />
-            </MudItem>
+          
             <MudItem xs="12" md="4">
                 <MudDatePicker @bind-Date="_editor.DOB" Label="@LocalizationState.Text("Admin.Staff.Edit.Dob", "D.O.B")" Variant="Variant.Outlined" DateFormat="dd/MM/yyyy" />
             </MudItem>
@@ -70,16 +75,11 @@
             <MudItem xs="12" md="4">
                 <MudTextField @bind-Value="_editor.EmailIDOfficial" Label="@LocalizationState.Text("Admin.Staff.Edit.Email", "Email")" Variant="Variant.Outlined" />
             </MudItem>
-
-            <MudItem xs="12" md="4">
-                <MudAutocomplete MaxItems="1000" T="LookupItemDto" Label="@LocalizationState.Text("Admin.Staff.Edit.Gender", "Gender")" Variant="Variant.Outlined"
-                                 Value="@(_genders.FirstOrDefault(x => x.Value.ToString() == _editor.Gender.ToString()))"
-                                 ValueChanged="@((LookupItemDto val) => { _editor.Gender = long.TryParse(val?.Value.ToString(), out var g) ? g : 0; })"
-                                 SearchFunc="@SearchGenders"
-                                 ToStringFunc="@(x => x?.Text ?? "")"
-                                 ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
+            <MudItem xs="12" md="4" Style="display:none;">
+                <MudTextField @bind-Value="_editor.NIN" Label="@LocalizationState.Text("Admin.Staff.Edit.NIN", "NIN")" Variant="Variant.Outlined"  />
             </MudItem>
-            <MudItem xs="12" md="4">
+            
+            <MudItem xs="12" md="4" Style="display:none;">
                 <label class="form-label">@LocalizationState.Text("Admin.Staff.Edit.Photo", "Photo")</label>
                 <InputFile OnChange="OnPhotoChanged" class="form-control" />
                 @if (!string.IsNullOrWhiteSpace(_selectedPhotoName))
@@ -87,7 +87,7 @@
                     <MudText Typo="Typo.caption" Class="mt-1">@_selectedPhotoName</MudText>
                 }
             </MudItem>
-            <MudItem xs="12" md="4">
+            <MudItem xs="12" md="4" Style="display:none;">
                 <MudAutocomplete MaxItems="1000" T="StatusDto" Label="@LocalizationState.Text("Admin.Staff.Edit.Status", "Status")" Variant="Variant.Outlined"
                                  Value="@(_statuses.FirstOrDefault(x => x.StatusId == _editor.Status))"
                                  ValueChanged="@((StatusDto val) => { _editor.Status = (int)(val?.StatusId ?? 0); })"
