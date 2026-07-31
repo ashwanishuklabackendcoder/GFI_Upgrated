@@ -405,6 +405,7 @@ namespace GFI_Upgrated.Data.Purchase
                                 new SqlParameter("@ItemId", SqlDbType.BigInt) { Value = item.ItemID },
                                 new SqlParameter("@Quantity", SqlDbType.Float) { Value = item.Quantity },
                                 new SqlParameter("@BatchNo", SqlDbType.NVarChar, 50) { Value = (object?)item.BatchNo ?? DBNull.Value },
+                                new SqlParameter("@Amount", SqlDbType.Float) { Value = item.Amount },
                                 new SqlParameter("@ExpiryDate", SqlDbType.Date) { Value = (object?)item.ExpiryDate ?? DBNull.Value },
                                 new SqlParameter("@WarehouseId", SqlDbType.BigInt) { Value = (object?)item.WarehouseId ?? DBNull.Value },
                                 new SqlParameter("@IdFrom", SqlDbType.BigInt) { Value = purchaseItemId },

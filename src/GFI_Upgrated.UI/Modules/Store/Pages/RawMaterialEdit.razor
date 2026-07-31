@@ -216,6 +216,7 @@
                         <MudTh>Amount (SRD)</MudTh>
                         <MudTh>Warehouse</MudTh>
                         <MudTh>Expiry</MudTh>
+                        <MudTh>Source</MudTh>
                         <MudTh Style="text-align: center;">Action</MudTh>
                     </HeaderContent>
                     <RowTemplate>
@@ -224,9 +225,21 @@
                         <MudTd DataLabel="Amount">@context.Amount.ToString("N2") SRD</MudTd>
                         <MudTd DataLabel="Warehouse">@context.WarehouseName</MudTd>
                         <MudTd DataLabel="Expiry">@context.ExpiryDate?.ToShortDateString()</MudTd>
+                        <MudTd DataLabel="Source">
+                            <MudChip T="string" Color="@(context.StockById == 1 ? Color.Info : (context.StockById == 2 || context.StockById == 4) ? Color.Warning : Color.Success)" Size="Size.Small">
+                                @(context.StockById == 1 ? "Purchase" : (context.StockById == 2 || context.StockById == 4) ? "Production / Make Plan" : "Opening Stock")
+                            </MudChip>
+                        </MudTd>
                         <MudTd Style="text-align: center;">
-                            <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Size="Size.Small" OnClick="@(() => EditBatch(context))" />
-                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => DeleteBatch(context))" />
+                            @if (context.StockById == 3 || context.StockById == 0)
+                            {
+                                <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Size="Size.Small" OnClick="@(() => EditBatch(context))" />
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => DeleteBatch(context))" />
+                            }
+                            else
+                            {
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">System Managed</MudText>
+                            }
                         </MudTd>
                     </RowTemplate>
                 </MudTable>

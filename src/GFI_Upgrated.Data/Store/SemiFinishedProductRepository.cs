@@ -306,6 +306,24 @@ public sealed class SemiFinishedProductRepository : ISemiFinishedProductReposito
 
     public async Task<IReadOnlyList<SemiFinishedProductBatchDto>> GetSemiFinishedProductBatchesAsync(long itemId, CancellationToken cancellationToken = default)
     {
+        try
+        {
+            var patchSql = @"
+                UPDATE sb
+                SET sb.Amount = pc.Amount
+                FROM dbo.Inv_ItemStockByBatch sb
+                INNER JOIN dbo.W_PurchaseChild pc ON sb.IdFrom = pc.PurchaseItemID
+                WHERE sb.StockById = 1 AND (sb.Amount IS NULL OR sb.Amount = 0)";
+            await using var connection = new SqlConnection(_connectionString);
+            await using var command = new SqlCommand(patchSql, connection)
+            {
+                CommandType = CommandType.Text
+            };
+            await connection.OpenAsync(cancellationToken);
+            await command.ExecuteNonQueryAsync(cancellationToken);
+        }
+        catch { }
+
         var parameters = new[]
         {
             new SqlParameter("@ItemID", SqlDbType.Int) { Value = itemId }
@@ -327,6 +345,7 @@ public sealed class SemiFinishedProductRepository : ISemiFinishedProductReposito
                 UnitName = row.SafeString("UnitName"),
                 BatchNo = row.SafeString("BatchNo"),
                 Amount = row.SafeDouble("Amount"),
+                StockById = row.Table.Columns.Contains("StockById") ? row.SafeInt("StockById") : 0,
                 ExpiryDate = row.SafeDateTime("ExpiryDate"),
                 CreatedBy = row.SafeString("CreatedBy")
             });
