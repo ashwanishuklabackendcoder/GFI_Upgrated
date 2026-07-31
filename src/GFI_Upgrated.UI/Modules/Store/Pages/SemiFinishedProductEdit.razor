@@ -178,19 +178,19 @@
                 <MudTable Items="_recipes" Hover="true" Dense="true" Striped="true" Bordered="true" Elevation="0" Loading="_loadingRecipes">
                     <HeaderContent>
                         <MudTh>Recipe Name</MudTh>
-                        <MudTh Style="text-align: right;">Yield Qty.</MudTh>
+                        <MudTh >Yield Qty.</MudTh>
                         <MudTh>Unit</MudTh>
-                        <MudTh Style="text-align: right;">Extra Expense</MudTh>
+                        <MudTh>Extra Expense</MudTh>
                         <MudTh Style="text-align: center;">Status</MudTh>
                         <MudTh Style="text-align: center; width: 140px;">Action</MudTh>
                     </HeaderContent>
                     <RowTemplate>
                         <MudTd DataLabel="Recipe Name">@context.BomName</MudTd>
-                        <MudTd DataLabel="Yield" Style="text-align: right;">@context.Quantity</MudTd>
+                        <MudTd DataLabel="Yield">@context.Quantity</MudTd>
                         <MudTd DataLabel="Unit">@context.UnitName</MudTd>
-                        <MudTd DataLabel="Expenses" Style="text-align: right;">@context.ExtraExpensesPerPiece.ToString("N2")</MudTd>
+                        <MudTd DataLabel="Expenses">@context.ExtraExpensesPerPiece.ToString("N2")</MudTd>
                         <MudTd DataLabel="Status" Style="text-align: center;">
-                            <MudChip T="string" Color="@(context.IsActive ? Color.Success : Color.Error)" Size="Size.Small">
+                        <MudChip T="string" Color="@(context.IsActive ? Color.Success : Color.Error)" Size="Size.Small">
                                 @(context.IsActive ? "Active" : "Inactive")
                             </MudChip>
                         </MudTd>
