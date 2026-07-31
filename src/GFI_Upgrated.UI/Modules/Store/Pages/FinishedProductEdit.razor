@@ -15,7 +15,7 @@
     <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
         <MudStack Spacing="0">
             <MudText Typo="Typo.h5">@(Id == 0 ? "New Finished Product" : "Edit Finished Product")</MudText>
-            <MudText Typo="Typo.body2" Color="Color.Secondary">Manage finished product details and inventory settings.</MudText>
+            @* <MudText Typo="Typo.body2" Color="Color.Secondary">Manage finished product details and inventory settings.</MudText> *@
         </MudStack>
         <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.ArrowBack" OnClick="OnBack">Back to List</MudButton>
     </MudStack>
@@ -87,7 +87,7 @@
             </EditForm>
         </MudTabPanel>
 
-        <MudTabPanel Text="Inventory Details" Icon="@Icons.Material.Filled.Inventory" Disabled="Id == 0">
+        <MudTabPanel Text="Item Details" Icon="@Icons.Material.Filled.Inventory" Disabled="Id == 0">
             <MudStack Spacing="4">
 <MudPaper Class="pa-4" Outlined="true" Elevation="0">
             <MudGrid>
