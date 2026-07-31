@@ -26,9 +26,11 @@
 
     <MudTable RowsPerPage="25" T="AccountMasterDto" @ref="_table" ServerData="LoadServerDataAsync" Hover="true" Dense="true" Striped="true" Bordered="true" Breakpoint="Breakpoint.Sm">
         <HeaderContent>
-            <MudTh><MudTableSortLabel T="AccountMasterDto" SortLabel="AccountName">Account Name</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel T="AccountMasterDto" SortLabel="AccountGroupName">Group</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel T="AccountMasterDto" SortLabel="StakeholderType">Type</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel T="AccountMasterDto" SortLabel="AccountName">Company Name</MudTableSortLabel></MudTh>
+            
+           
             <MudTh><MudTableSortLabel T="AccountMasterDto" SortLabel="MobileNo">Mobile</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel T="AccountMasterDto" SortLabel="EmailID">Email</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel T="AccountMasterDto" SortLabel="CountryName">Country</MudTableSortLabel></MudTh>
@@ -36,11 +38,13 @@
             <MudTh Style="width: 120px; text-align: center;">Action</MudTh>
         </HeaderContent>
         <RowTemplate>
+            <MudTd DataLabel="Group">@context.AccountGroupName</MudTd>
+            <MudTd DataLabel="Type">@context.StakeholderTypeName</MudTd>
             <MudTd DataLabel="Name">
                 <MudText Typo="Typo.body2" Class="fw-bold">@context.AccountName</MudText>
             </MudTd>
-            <MudTd DataLabel="Group">@context.AccountGroupName</MudTd>
-            <MudTd DataLabel="Type">@context.StakeholderTypeName</MudTd>
+           
+                    
             <MudTd DataLabel="Mobile">@context.MobileNo</MudTd>
             <MudTd DataLabel="Email">@context.EmailID</MudTd>
             <MudTd DataLabel="Country">@context.CountryName</MudTd>
