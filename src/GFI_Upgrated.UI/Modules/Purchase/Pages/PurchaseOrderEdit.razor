@@ -39,7 +39,7 @@
                                  AdornmentIcon="@Icons.Material.Filled.Link" />
             </MudItem>
             <MudItem xs="12" md="3">
-                <MudDatePicker Editable="true" DateFormat="dd/MM/yyyy" Placeholder="dd/MM/yyyy"                      Label="Order Date (DD/MM/YYYY)" @bind-Date="_model.OrderDate" Variant="Variant.Outlined"  />
+                <MudDatePicker Editable="true" DateFormat="dd/MM/yyyy" Placeholder="dd/MM/yyyy"                      Label="Order Date (DD/MM/YYYY)" @bind-Date="_model.OrderDate" Variant="Variant.Outlined" For="@(() => _model.OrderDate)" />
             </MudItem>
 
             <!-- Items Section -->

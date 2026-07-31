@@ -122,11 +122,11 @@ public sealed class SecurityController : ControllerBase
             var otp = Random.Shared.Next(100000, 999999).ToString();
             _memoryCache.Set($"OTP_{emailTrimmed}", otp, TimeSpan.FromMinutes(10));
 
-            var subject = "Password Reset Verification Code - GFI";
+            var subject = "GFI Portal - Password Reset Verification Code";
             var body = $"<h3>GFI System Password Reset Request</h3>" +
                        $"<p>We received a request to reset your password.</p>" +
                        $"<p>Your 6-digit verification code is: <strong>{otp}</strong></p>" +
-                       $"<p>This code is valid for 10 minutes. If you did not make this request, you can ignore this email.</p>";
+                       $"<p>This code is valid for 10 minutes. If you did not make this request, ignore this email.</p>";
 
             await GFI_Upgrated.ServiceApi.Helpers.EmailSender.SendEmailAsync(emailTrimmed, subject, body);
 
@@ -900,6 +900,127 @@ public sealed class SecurityController : ControllerBase
         else if (userAgent.Contains("Firefox/")) browser = "Firefox";
         
         return (browser, os);
+    }
+
+    [HttpPost("staff/send-email")]
+    public async Task<ActionResult<ApiEnvelope<bool>>> SendStaffEmail([FromBody] SendStaffEmailRequest request, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await GFI_Upgrated.ServiceApi.Helpers.EmailSender.SendEmailAsync(request.RecipientEmail, request.Subject, request.Body);
+            
+            var log = new EmailLogDto
+            {
+                RecipientEmail = request.RecipientEmail,
+                Subject = request.Subject,
+                Body = request.Body,
+                SentDate = DateTime.UtcNow,
+                IsSuccess = result.Success,
+                ErrorMessage = result.ErrorMessage,
+                StaffId = request.StaffId
+            };
+            
+            await _service.LogEmailAsync(log, cancellationToken);
+            
+            return Ok(new ApiEnvelope<bool>
+            {
+                Success = result.Success,
+                Message = result.Success ? "Email sent successfully." : $"Failed to send email: {result.ErrorMessage}",
+                Data = result.Success
+            });
+        }
+        catch (Exception ex)
+        {
+            return Ok(new ApiEnvelope<bool>
+            {
+                Success = false,
+                Message = ex.Message,
+                Data = false
+            });
+        }
+    }
+
+    [HttpGet("staff/email-logs/{staffId:long}")]
+    public async Task<ActionResult<ApiEnvelope<IReadOnlyList<EmailLogDto>>>> GetEmailLogsByStaffId(long staffId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await _service.GetEmailLogsByStaffIdAsync(staffId, cancellationToken);
+            return Ok(new ApiEnvelope<IReadOnlyList<EmailLogDto>>
+            {
+                Success = true,
+                Message = "Email logs loaded.",
+                Data = result
+            });
+        }
+        catch (Exception ex)
+        {
+            return Ok(new ApiEnvelope<IReadOnlyList<EmailLogDto>>
+            {
+                Success = false,
+                Message = ex.Message,
+                Data = Array.Empty<EmailLogDto>()
+            });
+        }
+    }
+
+    [HttpPost("staff/resend-login/{staffId:long}")]
+    public async Task<ActionResult<ApiEnvelope<bool>>> ResendStaffLogin(long staffId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var staff = await _service.GetStaffByIdAsync(staffId, cancellationToken);
+            if (staff == null)
+            {
+                return Ok(new ApiEnvelope<bool> { Success = false, Message = "Staff member not found.", Data = false });
+            }
+
+            var email = !string.IsNullOrWhiteSpace(staff.EmailIDOfficial) ? staff.EmailIDOfficial : staff.EmailIDPersonal;
+            if (string.IsNullOrWhiteSpace(email))
+            {
+                return Ok(new ApiEnvelope<bool> { Success = false, Message = "Staff member does not have a registered email address.", Data = false });
+            }
+
+            var user = await _service.GetUserByStaffIdAsync(staffId, cancellationToken);
+            if (user == null)
+            {
+                return Ok(new ApiEnvelope<bool> { Success = false, Message = "No user login account exists for this staff member.", Data = false });
+            }
+
+            var subject = "GFI Portal Login Credentials";
+            var body = $"<h3>Welcome to GFI Portal</h3>" +
+                       $"<p>Your login details on the GFI portal are as follows -</p>" +
+                       $"<p><strong>Username:</strong> {user.LoginName}</p>" +
+                       $"<p><strong>Password:</strong> {user.Password}</p>" +
+                       $"<p><strong>URL:</strong> https://gfi.ifnoss.us</p>" +
+                       $"<p>GFI Team</p>";
+
+            var sendResult = await GFI_Upgrated.ServiceApi.Helpers.EmailSender.SendEmailAsync(email, subject, body);
+
+            var log = new EmailLogDto
+            {
+                RecipientEmail = email,
+                Subject = subject,
+                Body = body,
+                SentDate = DateTime.UtcNow,
+                IsSuccess = sendResult.Success,
+                ErrorMessage = sendResult.ErrorMessage,
+                StaffId = staffId
+            };
+
+            await _service.LogEmailAsync(log, cancellationToken);
+
+            return Ok(new ApiEnvelope<bool>
+            {
+                Success = sendResult.Success,
+                Message = sendResult.Success ? $"Login credentials successfully resent to {email}." : $"Failed to resend credentials: {sendResult.ErrorMessage}",
+                Data = sendResult.Success
+            });
+        }
+        catch (Exception ex)
+        {
+            return Ok(new ApiEnvelope<bool> { Success = false, Message = ex.Message, Data = false });
+        }
     }
 }
 

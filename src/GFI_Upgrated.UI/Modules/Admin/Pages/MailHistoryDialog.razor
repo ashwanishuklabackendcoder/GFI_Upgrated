@@ -1,0 +1,122 @@
+@using GFI_Upgrated.SharedDto.AdminSecurity
+@using GFI_Upgrated.UI.Services
+@inject AdminSecurityApiClient ApiClient
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        <MudStack Spacing="3">
+            <MudText Typo="Typo.body2" Color="Color.Secondary">Sent email logs for <b>@StaffName</b></MudText>
+            
+            @if (_loading)
+            {
+                <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="my-7" />
+            }
+            else if (!_logs.Any())
+            {
+                <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Class="my-4">No email log records found for this staff member.</MudAlert>
+            }
+            else
+            {
+                <div style="max-height: 400px; overflow-y: auto;">
+                    <MudTable Items="_logs" Hover="true" Dense="true" Bordered="true" Striped="true">
+                        <HeaderContent>
+                            <MudTh>Sent Date</MudTh>
+                            <MudTh>Recipient</MudTh>
+                            <MudTh>Subject</MudTh>
+                            <MudTh>Status</MudTh>
+                            <MudTh>Actions</MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd DataLabel="Sent Date">@context.SentDate.ToLocalTime().ToString("g")</MudTd>
+                            <MudTd DataLabel="Recipient">@context.RecipientEmail</MudTd>
+                            <MudTd DataLabel="Subject">@context.Subject</MudTd>
+                            <MudTd DataLabel="Status">
+                                @if (context.IsSuccess)
+                                {
+                                    <MudChip T="string" Color="Color.Success" Size="Size.Small" StartIcon="@Icons.Material.Filled.Check">Success</MudChip>
+                                }
+                                else
+                                {
+                                    <MudTooltip Text="@context.ErrorMessage">
+                                        <MudChip T="string" Color="Color.Error" Size="Size.Small" StartIcon="@Icons.Material.Filled.Error">Failed</MudChip>
+                                    </MudTooltip>
+                                }
+                            </MudTd>
+                            <MudTd DataLabel="Actions">
+                                <MudIconButton Icon="@Icons.Material.Filled.Visibility" Size="Size.Small" Color="Color.Primary" OnClick="@(() => ShowMailBody(context))" Title="View Message" />
+                            </MudTd>
+                        </RowTemplate>
+                    </MudTable>
+                </div>
+            }
+
+            @if (_selectedLog != null)
+            {
+                <MudCard Outlined="true" Class="mt-3 pa-3">
+                    <MudCardHeader Class="pa-2">
+                        <CardHeaderContent>
+                            <MudText Typo="Typo.subtitle2"><b>Message Content:</b></MudText>
+                        </CardHeaderContent>
+                        <CardHeaderActions>
+                            <MudIconButton Icon="@Icons.Material.Filled.Close" Size="Size.Small" OnClick="@(() => _selectedLog = null)" />
+                        </CardHeaderActions>
+                    </MudCardHeader>
+                    <MudCardContent Class="pa-2">
+                        <div style="white-space: pre-wrap; font-family: monospace; font-size: 13px; background: var(--mud-palette-background-grey); padding: 8px; border-radius: 4px; max-height: 150px; overflow-y: auto;">
+                            @_selectedLog.Body
+                        </div>
+                        @if (!_selectedLog.IsSuccess && !string.IsNullOrWhiteSpace(_selectedLog.ErrorMessage))
+                        {
+                            <MudText Color="Color.Error" Typo="Typo.caption" Class="mt-2 d-block">
+                                <b>Error:</b> @_selectedLog.ErrorMessage
+                            </MudText>
+                        }
+                    </MudCardContent>
+                </MudCard>
+            }
+        </MudStack>
+    </DialogContent>
+    <DialogActions>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Close">Close</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public long StaffId { get; set; }
+    [Parameter] public string StaffName { get; set; } = string.Empty;
+
+    private bool _loading = true;
+    private IReadOnlyList<EmailLogDto> _logs = Array.Empty<EmailLogDto>();
+    private EmailLogDto? _selectedLog;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadLogsAsync();
+    }
+
+    private async Task LoadLogsAsync()
+    {
+        _loading = true;
+        try
+        {
+            _logs = await ApiClient.GetEmailLogsByStaffIdAsync(StaffId);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to load logs: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private void ShowMailBody(EmailLogDto log)
+    {
+        _selectedLog = log;
+    }
+
+    private void Close() => MudDialog.Close();
+}

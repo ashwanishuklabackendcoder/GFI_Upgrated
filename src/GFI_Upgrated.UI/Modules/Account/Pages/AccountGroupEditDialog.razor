@@ -7,33 +7,33 @@
 @inject AppSessionState SessionState
 
 <MudDialog>
-    <DialogContent>
-        <MudForm @ref="_form" Model="@Model">
+    <EditForm Model="@Model" OnValidSubmit="Submit">
+        <DataAnnotationsValidator />
+        <DialogContent>
             <MudStack Spacing="4">
-                <MudTextField @bind-Value="Model.AccountGroupName" Label="Group Name" Required="true" RequiredError="Group name is required" Variant="Variant.Outlined" />
+                <MudTextField @bind-Value="Model.AccountGroupName" For="@(() => Model.AccountGroupName)" Label="Group Name" Variant="Variant.Outlined" />
                 
                 <MudSwitch @bind-Value="Model.IsMainAccountGroup" Label="Is this a Main Group?" Color="Color.Primary" />
 
                 @if (!Model.IsMainAccountGroup)
                 {
-                    <MudAutocomplete Clearable="true"           MaxItems="1000" T="AccountGroupLookupDto" Label="Main Account Group" Value="@(_mainGroups.FirstOrDefault(x => x.AccountGroupID == Model.MainAccountGroupID))" ValueChanged="@((AccountGroupLookupDto val) => { Model.MainAccountGroupID = val?.AccountGroupID; })" SearchFunc="@SearchMainGroups" ToStringFunc="@(x => x?.AccountGroupName ?? "")" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter" Required="true" RequiredError="Parent group is required for sub-groups" />
+                    <MudAutocomplete Clearable="true" MaxItems="1000" T="long?" Label="Main Account Group" Value="@Model.MainAccountGroupID" ValueChanged="@((long? val) => { Model.MainAccountGroupID = val; })" SearchFunc="@SearchMainGroupIds" ToStringFunc="@(val => _mainGroups.FirstOrDefault(x => x.AccountGroupID == val)?.AccountGroupName ?? "")" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter" For="@(() => Model.MainAccountGroupID)" />
                 }
 
                 <MudSwitch @bind-Value="Model.IsActive" Label="Active" Color="Color.Success" />
             </MudStack>
-        </MudForm>
-    </DialogContent>
-    <DialogActions>
-        <MudButton OnClick="Cancel">Cancel</MudButton>
-        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit" Disabled="@(!Model.IsEditable && Model.AccountGroupID > 0)">Save</MudButton>
-    </DialogActions>
+        </DialogContent>
+        <DialogActions>
+            <MudButton OnClick="Cancel">Cancel</MudButton>
+            <MudButton Color="Color.Primary" Variant="Variant.Filled" ButtonType="ButtonType.Submit" Disabled="@(!Model.IsEditable && Model.AccountGroupID > 0)">Save</MudButton>
+        </DialogActions>
+    </EditForm>
 </MudDialog>
 
 @code {
     [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
     [Parameter] public AccountGroupDto Model { get; set; } = new();
 
-    private MudForm _form = default!;
     private IReadOnlyList<AccountGroupLookupDto> _mainGroups = Array.Empty<AccountGroupLookupDto>();
 
     protected override async Task OnInitializedAsync()
@@ -52,34 +52,32 @@
 
     private async Task Submit()
     {
-        await _form.Validate();
-        if (_form.IsValid)
+        try
         {
-            try
+            Model.CreatedBy = SessionState.CurrentUserAuditName ?? "System";
+            var id = await ApiClient.SaveAccountGroupAsync(Model);
+            if (id > 0)
             {
-                Model.CreatedBy = SessionState.CurrentUserAuditName ?? "System";
-                var id = await ApiClient.SaveAccountGroupAsync(Model);
-                if (id > 0)
-                {
-                    Snackbar.Add("Account Group saved successfully.", Severity.Success);
-                    MudDialog.Close(DialogResult.Ok(id));
-                }
-                else
-                {
-                    Snackbar.Add("Failed to save account group.", Severity.Error);
-                }
+                Snackbar.Add("Account Group saved successfully.", Severity.Success);
+                MudDialog.Close(DialogResult.Ok(id));
             }
-            catch (Exception ex)
+            else
             {
-                Snackbar.Add($"Error saving group: {ex.Message}", Severity.Error);
+                Snackbar.Add("Failed to save account group.", Severity.Error);
             }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error saving group: {ex.Message}", Severity.Error);
         }
     }
 
-    private async Task<IEnumerable<AccountGroupLookupDto>> SearchMainGroups(string value, CancellationToken token)
+    private async Task<IEnumerable<long?>> SearchMainGroupIds(string value, CancellationToken token)
     {
-        if (string.IsNullOrEmpty(value) || _mainGroups.Any(x => (x.AccountGroupName ?? "").Equals(value, StringComparison.OrdinalIgnoreCase))) return _mainGroups;
-        return _mainGroups.Where(x => (x.AccountGroupName ?? "").Contains(value, StringComparison.OrdinalIgnoreCase));
+        if (string.IsNullOrEmpty(value) || _mainGroups.Any(x => (x.AccountGroupName ?? "").Equals(value, StringComparison.OrdinalIgnoreCase))) 
+            return _mainGroups.Select(x => (long?)x.AccountGroupID);
+            
+        return _mainGroups.Where(x => (x.AccountGroupName ?? "").Contains(value, StringComparison.OrdinalIgnoreCase)).Select(x => (long?)x.AccountGroupID);
     }
 }
 

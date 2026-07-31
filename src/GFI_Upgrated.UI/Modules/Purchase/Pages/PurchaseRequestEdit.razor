@@ -37,7 +37,7 @@
                                  ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
             </MudItem>
             <MudItem xs="12" md="4">
-                <MudDatePicker Editable="true" DateFormat="dd/MM/yyyy" Placeholder="dd/MM/yyyy"                      Label="Request Date (DD/MM/YYYY)" @bind-Date="_model.CreatedDate" Variant="Variant.Outlined"  />
+                <MudDatePicker Editable="true" DateFormat="dd/MM/yyyy" Placeholder="dd/MM/yyyy"                      Label="Request Date (DD/MM/YYYY)" @bind-Date="_model.CreatedDate" Variant="Variant.Outlined" For="@(() => _model.CreatedDate)" />
             </MudItem>
             
             <MudItem xs="12">

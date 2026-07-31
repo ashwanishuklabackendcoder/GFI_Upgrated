@@ -23,7 +23,7 @@
         <DataAnnotationsValidator />
         <MudGrid>
             <MudItem xs="12" md="6">
-                <MudTextField @bind-Value="_editor.ItemCatName" Label="Category Name" Variant="Variant.Outlined" />
+                <MudTextField @bind-Value="_editor.ItemCatName" Label="Category Name" Variant="Variant.Outlined" For="@(() => _editor.ItemCatName)" />
             </MudItem>
             
             <MudItem xs="12" md="6">
@@ -39,7 +39,7 @@
             <MudItem xs="12" md="4">
                 <MudCheckBox @bind-Value="_editor.IsMainCategory" Label="Is Main Category?" Color="Color.Primary" />
             </MudItem>
-
+            <br />
             <MudItem xs="12" md="4">
                 <MudCheckBox @bind-Value="_editor.IsActive" Label="Active" Color="Color.Success" />
             </MudItem>

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 
 namespace GFI_Upgrated.SharedDto.Store;
 
@@ -39,12 +40,28 @@ public class SemiFinishedProductListRequest
 public class SaveSemiFinishedProductRequest
 {
     public long ItemId { get; set; }
+    [Required(ErrorMessage = "Item Name is required.")]
+    [StringLength(200, ErrorMessage = "Item Name cannot exceed 200 characters.")]
     public string ItemName { get; set; } = string.Empty;
+
     public string ItemCode { get; set; } = string.Empty;
+
+    [Required(ErrorMessage = "Short Name is required.")]
+    [StringLength(100, ErrorMessage = "Short Name cannot exceed 100 characters.")]
     public string ShortName { get; set; } = string.Empty;
+
     public bool IsActive { get; set; } = true;
+
+    [Required(ErrorMessage = "Item Category is required.")]
+    [Range(1, long.MaxValue, ErrorMessage = "Item Category is required.")]
     public long ItemCatId { get; set; }
+
+    [Required(ErrorMessage = "Item Type is required.")]
+    [Range(1, long.MaxValue, ErrorMessage = "Item Type is required.")]
     public long ItemTypeId { get; set; } = 2; // Default to Pre-processed/Semi-finished item type
+
+    [Required(ErrorMessage = "Status is required.")]
+    [Range(1, int.MaxValue, ErrorMessage = "Status is required.")]
     public int StatusId { get; set; } = 1;
     public string? Description { get; set; }
     public string? StorageDetails { get; set; }

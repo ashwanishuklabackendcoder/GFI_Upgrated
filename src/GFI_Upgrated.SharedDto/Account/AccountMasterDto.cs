@@ -1,12 +1,19 @@
 using System;
+using System.ComponentModel.DataAnnotations;
 
 namespace GFI_Upgrated.SharedDto.Account
 {
     public sealed class AccountMasterDto
     {
         public long AccountID { get; set; }
+        
+        [Required(ErrorMessage = "Account Name is required")]
         public string AccountName { get; set; } = string.Empty;
+        
+        [Required(ErrorMessage = "Account Group is required")]
+        [Range(1, long.MaxValue, ErrorMessage = "Please select a valid Account Group")]
         public long AccountGroupID { get; set; }
+        
         public string? AccountGroupName { get; set; }
         public string? Address { get; set; }
         public string? ContactNo { get; set; }

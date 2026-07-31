@@ -47,10 +47,13 @@ public sealed class SaveRoleRequest
 {
     public long RoleId { get; set; }
     public long SchoolId { get; set; }
+    [Required]
     public string RoleName { get; set; } = string.Empty;
     public string? Description { get; set; }
     public bool IsActive { get; set; } = true;
     public bool IsAdmin { get; set; }
+    
+    [Required]
     public long ModuleId { get; set; }
     public string CreatedBy { get; set; } = "System";
     public string UpdatedBy { get; set; } = "System";
@@ -78,13 +81,18 @@ public sealed class SaveUserRequest
 {
     public long LoginId { get; set; }
     public long StaffId { get; set; }
+    [Required]
     public string LoginName { get; set; } = string.Empty;
+    
+    [Required]
     public string Password { get; set; } = string.Empty;
     public string? ForgotEmail { get; set; }
     public bool IsActive { get; set; } = true;
     public string CreatedBy { get; set; } = "System";
     public string UpdatedBy { get; set; } = "System";
     public string? IpAddress { get; set; }
+    
+    [Required]
     public long RoleId { get; set; }
 }
 
@@ -286,8 +294,10 @@ public sealed class StaffDto
 public sealed class SaveStaffRequest : IValidatableObject
 {
     public long StaffId { get; set; }
+    [Required]
     public int Status { get; set; }
 
+    [Required]
     public string? StaffSalutation { get; set; }
 
     [Required(ErrorMessage = "First Name is required.")]
@@ -302,6 +312,7 @@ public sealed class SaveStaffRequest : IValidatableObject
 
     public DateTime? DOB { get; set; }
 
+    [Required]
     public long Gender { get; set; }
 
     public string? MobileNo { get; set; }

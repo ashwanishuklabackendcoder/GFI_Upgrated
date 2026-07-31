@@ -57,6 +57,9 @@ public interface IAdminSecurityRepository
     Task<long> InsertUserActivityLogAsync(UserActivityLogDto log, CancellationToken cancellationToken = default);
     Task<string?> GetPasswordByEmailAsync(string forgotEmail, CancellationToken cancellationToken = default);
     Task<bool> ResetPasswordAsync(string email, string newPassword, CancellationToken cancellationToken = default);
+    Task LogEmailAsync(EmailLogDto log, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<EmailLogDto>> GetEmailLogsByStaffIdAsync(long staffId, CancellationToken cancellationToken = default);
+    Task<UserDto?> GetUserByStaffIdAsync(long staffId, CancellationToken cancellationToken = default);
 }
 
 public sealed class AdminSecurityRepository : IAdminSecurityRepository
@@ -1664,6 +1667,87 @@ public sealed class AdminSecurityRepository : IAdminSecurityRepository
             return affected > 0;
         }
         return false;
+    }
+
+    public async Task LogEmailAsync(EmailLogDto log, CancellationToken cancellationToken = default)
+    {
+        await using var connection = new SqlConnection(_connectionString);
+        await using var command = new SqlCommand(
+            "INSERT INTO Z_EmailLog (RecipientEmail, Subject, Body, SentDate, IsSuccess, ErrorMessage, StaffId) VALUES (@RecipientEmail, @Subject, @Body, @SentDate, @IsSuccess, @ErrorMessage, @StaffId)",
+            connection);
+
+        command.Parameters.AddWithValue("@RecipientEmail", log.RecipientEmail);
+        command.Parameters.AddWithValue("@Subject", log.Subject);
+        command.Parameters.AddWithValue("@Body", log.Body);
+        command.Parameters.AddWithValue("@SentDate", log.SentDate);
+        command.Parameters.AddWithValue("@IsSuccess", log.IsSuccess);
+        command.Parameters.AddWithValue("@ErrorMessage", (object?)log.ErrorMessage ?? DBNull.Value);
+        command.Parameters.AddWithValue("@StaffId", (object?)log.StaffId ?? DBNull.Value);
+
+        await connection.OpenAsync(cancellationToken);
+        await command.ExecuteNonQueryAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<EmailLogDto>> GetEmailLogsByStaffIdAsync(long staffId, CancellationToken cancellationToken = default)
+    {
+        var logs = new List<EmailLogDto>();
+        await using var connection = new SqlConnection(_connectionString);
+        await using var command = new SqlCommand("SELECT EmailLogID, RecipientEmail, Subject, Body, SentDate, IsSuccess, ErrorMessage, StaffId FROM Z_EmailLog WHERE StaffId = @StaffId ORDER BY SentDate DESC", connection);
+        command.Parameters.AddWithValue("@StaffId", staffId);
+
+        await connection.OpenAsync(cancellationToken);
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            logs.Add(new EmailLogDto
+            {
+                EmailLogID = reader.GetInt64(0),
+                RecipientEmail = reader.GetString(1),
+                Subject = reader.GetString(2),
+                Body = reader.GetString(3),
+                SentDate = reader.GetDateTime(4),
+                IsSuccess = reader.GetBoolean(5),
+                ErrorMessage = reader.IsDBNull(6) ? null : reader.GetString(6),
+                StaffId = reader.IsDBNull(7) ? null : reader.GetInt64(7)
+            });
+        }
+        return logs;
+    }
+
+    public async Task<UserDto?> GetUserByStaffIdAsync(long staffId, CancellationToken cancellationToken = default)
+    {
+        using var connection = new SqlConnection(_connectionString);
+        using var command = new SqlCommand("SELECT LoginID, LoginName, Password, StaffId, IsActive FROM Z_UsersLogins WHERE StaffId = @StaffId", connection);
+        command.Parameters.AddWithValue("@StaffId", staffId);
+
+        await connection.OpenAsync(cancellationToken);
+        using var reader = await command.ExecuteReaderAsync(cancellationToken);
+        if (await reader.ReadAsync(cancellationToken))
+        {
+            var encryptedPassword = reader.IsDBNull(2) ? "" : reader.GetString(2);
+            var decryptedPassword = "";
+            if (!string.IsNullOrEmpty(encryptedPassword))
+            {
+                try
+                {
+                    decryptedPassword = LegacyCrypto.DecryptString(encryptedPassword);
+                }
+                catch
+                {
+                    decryptedPassword = "Encrypted (cannot decrypt)";
+                }
+            }
+
+            return new UserDto
+            {
+                LoginId = reader.GetInt64(0),
+                LoginName = reader.GetString(1),
+                Password = decryptedPassword,
+                StaffId = reader.GetInt64(3),
+                IsActive = reader.GetBoolean(4)
+            };
+        }
+        return null;
     }
 }
 

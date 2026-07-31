@@ -54,6 +54,9 @@ public interface IAdminSecurityService
     Task<long> InsertUserActivityLogAsync(UserActivityLogDto log, CancellationToken cancellationToken = default);
     Task<string?> GetPasswordByEmailAsync(string forgotEmail, CancellationToken cancellationToken = default);
     Task<bool> ResetPasswordAsync(string email, string newPassword, CancellationToken cancellationToken = default);
+    Task LogEmailAsync(EmailLogDto log, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<EmailLogDto>> GetEmailLogsByStaffIdAsync(long staffId, CancellationToken cancellationToken = default);
+    Task<UserDto?> GetUserByStaffIdAsync(long staffId, CancellationToken cancellationToken = default);
 }
 
 public sealed class AdminSecurityService : IAdminSecurityService
@@ -94,12 +97,13 @@ public sealed class AdminSecurityService : IAdminSecurityService
                 var staff = await _repository.GetStaffByIdAsync(request.StaffId, cancellationToken);
                 if (staff != null && !string.IsNullOrEmpty(staff.EmailIDOfficial))
                 {
-                    var subject = "Your GFI Account Login Credentials";
-                    var body = $"<h3>Welcome to GFI</h3>" +
-                               $"<p>A new account has been created for you.</p>" +
+                    var subject = "GFI Portal Login Credentials";
+                    var body = $"<h3>Welcome to GFI Portal</h3>" +
+                               $"<p>A new account has been created on the GFI portal, whose login details are as follows -</p>" +
                                $"<p><strong>Username:</strong> {request.LoginName}</p>" +
                                $"<p><strong>Password:</strong> {request.Password}</p>" +
-                               $"<p>Please log in and update your password if needed.</p>";
+                               $"<p><strong>URL:</strong> https://gfi.ifnoss.us</p>" +
+                               $"<p>GFI Team</p>";
 
                     _ = Task.Run(() => GFI_Upgrated.ServiceApi.Helpers.EmailSender.SendEmailAsync(staff.EmailIDOfficial, subject, body), CancellationToken.None);
                 }
@@ -234,4 +238,13 @@ public sealed class AdminSecurityService : IAdminSecurityService
 
     public Task<bool> ResetPasswordAsync(string email, string newPassword, CancellationToken cancellationToken = default)
         => _repository.ResetPasswordAsync(email, newPassword, cancellationToken);
+
+    public Task LogEmailAsync(EmailLogDto log, CancellationToken cancellationToken = default)
+        => _repository.LogEmailAsync(log, cancellationToken);
+
+    public Task<IReadOnlyList<EmailLogDto>> GetEmailLogsByStaffIdAsync(long staffId, CancellationToken cancellationToken = default)
+        => _repository.GetEmailLogsByStaffIdAsync(staffId, cancellationToken);
+
+    public Task<UserDto?> GetUserByStaffIdAsync(long staffId, CancellationToken cancellationToken = default)
+        => _repository.GetUserByStaffIdAsync(staffId, cancellationToken);
 }

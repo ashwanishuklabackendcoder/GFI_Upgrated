@@ -63,6 +63,7 @@
                             <input id="txtusername"
                                    class="form-control"
                                    autocomplete="username"
+                                   tabindex="1"
                                    @bind="_model.LoginName"
                                    @bind:event="oninput"
                                    @onkeyup="HandleKeyUp" />
@@ -71,23 +72,26 @@
                         <div class="mb-3 form-password-toggle">
                             <div class="d-flex justify-content-between">
                                 <label class="form-label" for="password">@LocalizationState.Text("Login.Password", "Password")</label>
-                                <a href="javascript:void(0)" @onclick="ToggleForgotPasswordMode" class="small text-primary">Forgot Password?</a>
+                                
                             </div>
                             <div class="input-group input-group-merge">
                                 <input id="password"
                                        type="@_passwordType"
                                        class="form-control"
                                        autocomplete="current-password"
+                                       tabindex="2"
                                        @bind="_model.Password"
                                        @bind:event="oninput"
                                        @onkeyup="HandleKeyUp" />
                                 <span class="input-group-text cursor-pointer" @onclick="TogglePasswordVisibility">
                                     <i class="ti @(_showPassword ? "ti-eye" : "ti-eye-off")"></i>
                                 </span>
+
+                                
                             </div>
                         </div>
 
-                        <button type="button" class="btn btn-primary d-grid w-100" disabled="@_busy" @onclick="SubmitAsync">
+                        <button type="button" class="btn btn-primary d-grid w-100" disabled="@_busy" @onclick="SubmitAsync" tabindex="3">
                             @if (_busy)
                             {
                                 <span>@LocalizationState.Text("Login.SigningIn", "Signing in...")</span>
@@ -97,6 +101,7 @@
                                 <span>@LocalizationState.Text("Login.SignIn", "Sign in")</span>
                             }
                         </button>
+                        <a href="javascript:void(0)" @onclick="ToggleForgotPasswordMode" class="small text-primary" tabindex="4">Forgot Password?</a>
                     }
                     else
                     {

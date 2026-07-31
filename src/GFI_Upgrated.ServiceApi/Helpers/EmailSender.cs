@@ -7,11 +7,11 @@ namespace GFI_Upgrated.ServiceApi.Helpers;
 
 public static class EmailSender
 {
-    public static async Task SendEmailAsync(string toEmail, string subject, string body)
+    public static async Task<(bool Success, string? ErrorMessage)> SendEmailAsync(string toEmail, string subject, string body)
     {
         try
         {
-            var fromAddress = new MailAddress("info@creativ-eras.com", "GFI System");
+            var fromAddress = new MailAddress("info@creativ-eras.com", "GFI Portal");
             var toAddress = new MailAddress(toEmail);
 
             using var smtp = new SmtpClient
@@ -32,11 +32,13 @@ public static class EmailSender
             };
 
             await smtp.SendMailAsync(message);
+            return (true, null);
         }
         catch (Exception ex)
         {
             // Log the error locally to stdout/diagnostics
             Console.WriteLine($"[EmailSender Error]: {ex.Message}");
+            return (false, ex.Message);
         }
     }
 }

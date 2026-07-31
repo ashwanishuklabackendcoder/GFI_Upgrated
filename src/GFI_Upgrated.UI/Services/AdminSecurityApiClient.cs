@@ -198,5 +198,19 @@ public sealed class AdminSecurityApiClient : ApiClientBase
     public async Task<long> InsertUserActivityLogAsync(UserActivityLogDto log, CancellationToken cancellationToken = default)
         => await PostEnvelopeAsync<UserActivityLogDto, long>("api/admin/security/user-activity-logs", log, cancellationToken);
 
+    public async Task<bool> SendStaffEmailAsync(SendStaffEmailRequest request, CancellationToken cancellationToken = default)
+    {
+        return await PostEnvelopeAsync<SendStaffEmailRequest, bool>("api/admin/security/staff/send-email", request, cancellationToken);
+    }
 
+    public async Task<IReadOnlyList<EmailLogDto>> GetEmailLogsByStaffIdAsync(long staffId, CancellationToken cancellationToken = default)
+    {
+        var response = await GetEnvelopeAsync<IReadOnlyList<EmailLogDto>>($"api/admin/security/staff/email-logs/{staffId}", cancellationToken);
+        return response ?? Array.Empty<EmailLogDto>();
+    }
+
+    public async Task<bool> ResendStaffLoginAsync(long staffId, CancellationToken cancellationToken = default)
+    {
+        return await PostEnvelopeAsync<object, bool>($"api/admin/security/staff/resend-login/{staffId}", new object(), cancellationToken);
+    }
 }
