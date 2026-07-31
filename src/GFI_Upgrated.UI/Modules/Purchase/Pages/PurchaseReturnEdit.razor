@@ -53,31 +53,16 @@
                     </HeaderContent>
                     <RowTemplate>
                         <MudTd DataLabel="Item">
-                            <MudSelect SearchBox="true" T="PurchaseReturnItemLookupDto" Label="Select Item" Value="rowContext.SelectedItem" ValueChanged="@((v) => OnItemChanged(rowContext, v))" Variant="Variant.Text" Required="true">
-                                @foreach (var item in _availableItems)
-                                {
-                                    <MudSelectItem Value="@item">@item.ItemName (@item.BrandName)</MudSelectItem>
-                                }
-                            </MudSelect>
+                            <SearchableSelect T="PurchaseReturnItemLookupDto" Label="Select Item" Value="rowContext.SelectedItem" ValueChanged="@((v) => OnItemChanged(rowContext, v))" Variant="Variant.Text" Required="true" Items="@GetAvailableItemSelects()" />
                         </MudTd>
                         <MudTd DataLabel="Batch">
-                            <MudSelect SearchBox="true" T="PurchaseReturnBatchLookupDto" Label="Select Batch" @bind-Value="rowContext.SelectedBatch" Variant="Variant.Text" Required="true" Disabled="@(rowContext.SelectedItem == null)">
-                                @foreach (var batch in rowContext.AvailableBatches)
-                                {
-                                    <MudSelectItem Value="@batch">@batch.BatchNo (Max: @batch.Quantity)</MudSelectItem>
-                                }
-                            </MudSelect>
+                            <SearchableSelect T="PurchaseReturnBatchLookupDto" Label="Select Batch" Value="rowContext.SelectedBatch" ValueChanged="@((v) => { rowContext.SelectedBatch = v; })" Variant="Variant.Text" Required="true" Disabled="@(rowContext.SelectedItem == null)" Items="@GetAvailableBatchSelects(rowContext)" />
                         </MudTd>
                         <MudTd DataLabel="Qty to Return">
                             <MudNumericField T="double" Value="rowContext.Quantity" ValueChanged="@((qty) => OnQtyChanged(rowContext, qty))" Variant="Variant.Text" Dense="true" Min="0.001" Required="true" />
                         </MudTd>
                         <MudTd DataLabel="Reason">
-                            <MudAutocomplete Clearable="true"           MaxItems="1000" T="LookupItemDto" Label="Select Reason" Variant="Variant.Text" Required="true"
-                                             Value="@(_reasons.FirstOrDefault(x => x.Value == rowContext.ReasonId))"
-                                             ValueChanged="@((LookupItemDto val) => { rowContext.ReasonId = val?.Value; })"
-                                             SearchFunc="@SearchReasons"
-                                             ToStringFunc="@(x => x?.Text ?? "")"
-                                             ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
+                            <SearchableSelect T="long?" Label="Select Reason" Value="rowContext.ReasonId" ValueChanged="@((long? val) => { rowContext.ReasonId = val; })" Variant="Variant.Text" Required="true" Items="@GetReasonSelects()" />
                         </MudTd>
                         <MudTd Style="text-align: center;">
                             <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => RemoveRow(rowContext))" />
@@ -241,5 +226,32 @@
     }
 
     private void OnBack() => Navigation.NavigateTo("/store/purchase-return");
+
+    private IEnumerable<SearchableSelect<PurchaseReturnItemLookupDto>.SelectItemDto<PurchaseReturnItemLookupDto>> GetAvailableItemSelects()
+    {
+        return _availableItems.Select(x => new SearchableSelect<PurchaseReturnItemLookupDto>.SelectItemDto<PurchaseReturnItemLookupDto>
+        {
+            Value = x,
+            Text = $"{x.ItemName} ({x.BrandName})"
+        });
+    }
+
+    private IEnumerable<SearchableSelect<PurchaseReturnBatchLookupDto>.SelectItemDto<PurchaseReturnBatchLookupDto>> GetAvailableBatchSelects(ReturnRow row)
+    {
+        return row.AvailableBatches.Select(x => new SearchableSelect<PurchaseReturnBatchLookupDto>.SelectItemDto<PurchaseReturnBatchLookupDto>
+        {
+            Value = x,
+            Text = $"{x.BatchNo} (Max: {x.Quantity})"
+        });
+    }
+
+    private IEnumerable<SearchableSelect<long?>.SelectItemDto<long?>> GetReasonSelects()
+    {
+        return _reasons.Select(x => new SearchableSelect<long?>.SelectItemDto<long?>
+        {
+            Value = x.Value,
+            Text = x.Text ?? ""
+        });
+    }
 }
 

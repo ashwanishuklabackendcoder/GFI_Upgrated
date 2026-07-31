@@ -1,4 +1,4 @@
-﻿@page "/acc/customerorderreturnlist"
+@page "/acc/customerorderreturnlist"
 @using GFI_Upgrated.SharedDto.Account
 @using GFI_Upgrated.UI.Services
 @using GFI_Upgrated.UI.State
@@ -83,12 +83,10 @@ else
 
         <MudGrid Class="mb-4">
             <MudItem xs="12" md="6">
-                <MudAutocomplete Clearable="true"           MaxItems="1000" T="AccountLookupDto" Label="Select Customer" SearchFunc="SearchCustomers"
-                                 Value="_selectedCustomer" ValueChanged="OnCustomerChanged"
-                                 ToStringFunc="@(c => c?.AccountName ?? "")" Required="true" Variant="Variant.Outlined" />
+                <SearchableSelect T="AccountLookupDto" Label="Select Customer" Value="@_selectedCustomer" ValueChanged="OnCustomerChanged" Required="true" Variant="Variant.Outlined" Items="@GetCustomerSelects()" />
             </MudItem>
             <MudItem xs="12" md="6">
-                <MudAutocomplete Clearable="true"           MaxItems="1000" T="CustomerOrderDto" Label="Select Customer Order" Value="_selectedOrder" ValueChanged="OnOrderChanged" SearchFunc="SearchOrders" ToStringFunc="@(x => x?.OrderNo ?? "")" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" Required="true" Variant="Variant.Outlined" Disabled="@(_selectedCustomer == null)" />
+                <SearchableSelect T="CustomerOrderDto" Label="Select Customer Order" Value="@_selectedOrder" ValueChanged="OnOrderChanged" Required="true" Variant="Variant.Outlined" Disabled="@(_selectedCustomer == null)" Items="@GetOrderSelects()" />
             </MudItem>
             <MudItem xs="12" md="6">
                 <MudTextField Label="Order Date" Value="@(_selectedOrder?.OrderDate?.ToString("dd MMM yyyy") ?? "")" ReadOnly="true" Variant="Variant.Outlined" />
@@ -256,11 +254,22 @@ else
         _isAdding = false;
     }
 
-    private async Task<IEnumerable<AccountLookupDto>> SearchCustomers(string text, CancellationToken token)
+    private IEnumerable<SearchableSelect<AccountLookupDto>.SelectItemDto<AccountLookupDto>> GetCustomerSelects()
     {
-        if (string.IsNullOrEmpty(text))
-            return _customers;
-        return _customers.Where(c => c.AccountName.Contains(text, StringComparison.OrdinalIgnoreCase));
+        return _customers.Select(x => new SearchableSelect<AccountLookupDto>.SelectItemDto<AccountLookupDto>
+        {
+            Value = x,
+            Text = x.AccountName ?? ""
+        });
+    }
+
+    private IEnumerable<SearchableSelect<CustomerOrderDto>.SelectItemDto<CustomerOrderDto>> GetOrderSelects()
+    {
+        return _customerOrders.Select(x => new SearchableSelect<CustomerOrderDto>.SelectItemDto<CustomerOrderDto>
+        {
+            Value = x,
+            Text = x.OrderNo ?? ""
+        });
     }
 
     private async Task OnCustomerChanged(AccountLookupDto customer)
@@ -386,11 +395,6 @@ else
         }
     }
 
-    private async Task<IEnumerable<CustomerOrderDto>> SearchOrders(string text, CancellationToken token)
-    {
-        if (string.IsNullOrEmpty(text))
-            return _customerOrders;
-        return _customerOrders.Where(x => (x.OrderNo ?? "").Contains(text, StringComparison.OrdinalIgnoreCase));
-    }
+
 }
 

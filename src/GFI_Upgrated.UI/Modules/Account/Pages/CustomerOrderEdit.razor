@@ -29,7 +29,7 @@
                 <MudTextField @bind-Value="_order.OrderNo" Label="Order Number" Required="true" Variant="Variant.Outlined" For="@(() => _order.OrderNo)" />
             </MudItem>
             <MudItem xs="12" md="4">
-                <MudAutocomplete Clearable="true" MaxItems="1000" T="long" Label="Customer" Value="@_order.CustomerID" ValueChanged="@((long val) => { _order.CustomerID = val; })" SearchFunc="@SearchCustomerIds" ToStringFunc="@(val => _customers.FirstOrDefault(x => x.AccountId == val)?.AccountName ?? "")" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter" For="@(() => _order.CustomerID)" />
+                <SearchableSelect T="long?" Label="Customer" Value="@((long?)_order.CustomerID)" ValueChanged="@((long? val) => { _order.CustomerID = val ?? 0; })" Variant="Variant.Outlined" Required="true" Items="@GetCustomerSelects()" />
             </MudItem>
             <MudItem xs="12" md="4">
                 <MudDatePicker DateFormat="dd/MM/yyyy" Placeholder="dd/MM/yyyy" Editable="true" @bind-Date="_order.OrderDate" Label="Order Date (DD/MM/YYYY)" Variant="Variant.Outlined" For="@(() => _order.OrderDate)" />
@@ -60,7 +60,7 @@
                     </HeaderContent>
                     <RowTemplate Context="row">
                         <MudTd DataLabel="Item (SKU)">
-                            <MudAutocomplete Clearable="true"           MaxItems="1000" T="RawMaterialDto" Value="@(_items.FirstOrDefault(x => x.ItemId == row.ItemId))" ValueChanged="@((RawMaterialDto val) => OnItemChanged(row, val?.ItemId ?? 0))" SearchFunc="@SearchItems" ToStringFunc="@(x => x?.ItemName ?? "")" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" Variant="Variant.Outlined" Dense="true" Margin="Margin.Dense" AnchorOrigin="Origin.BottomCenter" />
+                            <SearchableSelect T="RawMaterialDto" Value="@(GetItemById(row.ItemId))" ValueChanged="@((RawMaterialDto val) => OnItemChanged(row, val?.ItemId ?? 0))" Variant="Variant.Outlined" Dense="true" Items="@GetItemSelects()" />
                         </MudTd>
                         <MudTd DataLabel="Quantity" Style="text-align: center;">
                             <MudNumericField @bind-Value="row.Qty" Variant="Variant.Outlined" Dense="true" Margin="Margin.Dense" Min="1" Style="text-align: center;" />
@@ -293,18 +293,24 @@
         }
     }
 
-    private async Task<IEnumerable<long>> SearchCustomerIds(string value, CancellationToken token)
+    private IEnumerable<SearchableSelect<long?>.SelectItemDto<long?>> GetCustomerSelects()
     {
-        if (string.IsNullOrEmpty(value) || _customers.Any(x => (x.AccountName ?? "").Equals(value, StringComparison.OrdinalIgnoreCase))) 
-            return _customers.Select(x => (long)x.AccountId);
-            
-        return _customers.Where(x => (x.AccountName ?? "").Contains(value, StringComparison.OrdinalIgnoreCase)).Select(x => (long)x.AccountId);
+        return _customers.Select(x => new SearchableSelect<long?>.SelectItemDto<long?>
+        {
+            Value = (long?)x.AccountId,
+            Text = x.AccountName ?? ""
+        });
     }
 
-    private async Task<IEnumerable<RawMaterialDto>> SearchItems(string value, CancellationToken token)
+    private IEnumerable<SearchableSelect<RawMaterialDto>.SelectItemDto<RawMaterialDto>> GetItemSelects()
     {
-        if (string.IsNullOrEmpty(value) || _items.Any(x => (x.ItemName ?? "").Equals(value, StringComparison.OrdinalIgnoreCase))) return _items;
-        return _items.Where(x => (x.ItemName ?? "").Contains(value, StringComparison.OrdinalIgnoreCase));
+        return _items.Select(x => new SearchableSelect<RawMaterialDto>.SelectItemDto<RawMaterialDto>
+        {
+            Value = x,
+            Text = x.ItemName ?? ""
+        });
     }
+
+    private RawMaterialDto? GetItemById(long id) => _items.FirstOrDefault(x => x.ItemId == id);
 }
 

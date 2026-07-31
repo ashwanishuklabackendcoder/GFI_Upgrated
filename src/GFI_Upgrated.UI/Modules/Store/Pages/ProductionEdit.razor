@@ -28,14 +28,14 @@
         <MudGrid>
             <!-- BOM Details -->
             <MudItem xs="12" md="4">
-                <MudAutocomplete Clearable="true"           MaxItems="1000" T="BomLookupDto" Label="Select BOM" Value="@(_boms.FirstOrDefault(x => x.BomId == _editor.BomId))" ValueChanged="@OnBomChanged" SearchFunc="@SearchBoms" ToStringFunc="@(x => x?.BomName ?? "")" Variant="Variant.Outlined" Required="true" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
+                <SearchableSelect T="long" Label="Select BOM" Value="@_editor.BomId" ValueChanged="OnBomIdChanged" Variant="Variant.Outlined" Required="true" Items="@GetBomSelects()" />
                 <ValidationMessage For="@(() => _editor.BomId)" />
             </MudItem>
             <MudItem xs="12" md="4">
                 <MudNumericField @bind-Value="_editor.BomQty" Label="BOM Quantity" Variant="Variant.Outlined" Min="1" For="@(() => _editor.BomQty)" />
             </MudItem>
             <MudItem xs="12" md="4">
-                <MudAutocomplete Clearable="true"           MaxItems="1000" T="SkuLookupDto" Label="SKU packaging" Value="@(_skus.FirstOrDefault(x => x.SkuId == _editor.SkuId))" ValueChanged="@((SkuLookupDto val) => { _editor.SkuId = val?.SkuId ?? 0; })" SearchFunc="@SearchSkus" ToStringFunc="@(x => x?.SkuName ?? "")" Variant="Variant.Outlined" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
+                <SearchableSelect T="long" Label="SKU packaging" Value="@_editor.SkuId" ValueChanged="@((long val) => { _editor.SkuId = val; })" Variant="Variant.Outlined" Items="@GetSkuSelects()" />
             </MudItem>
 
             <!-- Dates -->
@@ -51,12 +51,7 @@
 
             <!-- Kettle Details -->
             <MudItem xs="12" md="6">
-                <MudSelect SearchBox="true" T="string" Label="Kettles" MultiSelection="true" @bind-SelectedValues="_selectedKettles" MultiSelectionTextFunc="@(x => string.Join(", ", x.Select(idStr => _kettles.FirstOrDefault(k => k.KettleId.ToString() == idStr)?.KettleNumber ?? idStr)))" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter">
-                    @foreach (var kettle in _kettles)
-                    {
-                        <MudSelectItem Value="@kettle.KettleId.ToString()">@kettle.KettleNumber</MudSelectItem>
-                    }
-                </MudSelect>
+                <SearchableSelect T="string" Label="Kettles" MultiSelection="true" SelectedValues="@_selectedKettles" SelectedValuesChanged="@((vals) => { _selectedKettles = vals; })" MultiSelectionTextFunc="@(x => string.Join(", ", x.Select(idStr => _kettles.FirstOrDefault(k => k.KettleId.ToString() == idStr)?.KettleNumber ?? idStr)))" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter" Items="@GetKettleSelects()" />
             </MudItem>
             <MudItem xs="12" md="6">
                 <MudNumericField @bind-Value="_editor.KettleRun" Label="Kettle Run" Variant="Variant.Outlined" Min="0" />
@@ -70,28 +65,23 @@
                 <MudNumericField @bind-Value="_editor.FillingBottles" Label="Filling Bottles" Variant="Variant.Outlined" Min="0" />
             </MudItem>
             <MudItem xs="12" md="4">
-                <MudAutocomplete Clearable="true"           MaxItems="1000" T="UnitLookupDto" Label="Filling Per Bottle Unit" Value="@(_units.FirstOrDefault(x => x.UnitId == _editor.FillingPerBottleUnit))" ValueChanged="@((UnitLookupDto val) => { _editor.FillingPerBottleUnit = val?.UnitId ?? 0; })" SearchFunc="@SearchUnits" ToStringFunc="@(x => x?.UnitName ?? "")" Variant="Variant.Outlined" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
+                <SearchableSelect T="long" Label="Filling Per Bottle Unit" Value="@_editor.FillingPerBottleUnit" ValueChanged="@((long val) => { _editor.FillingPerBottleUnit = val; })" Variant="Variant.Outlined" Items="@GetUnitSelects()" />
             </MudItem>
 
             <MudItem xs="12" md="4">
                 <MudNumericField @bind-Value="_editor.ExtraBottles" Label="Extra Bottles" Variant="Variant.Outlined" Min="0.0" Step="0.1" />
             </MudItem>
             <MudItem xs="12" md="4">
-                <MudAutocomplete Clearable="true"           MaxItems="1000" T="CountryLookupDto" Label="Packed Country" Value="@(_countries.FirstOrDefault(x => x.CountryId.ToString() == _editor.PackedCountry))" ValueChanged="@((CountryLookupDto val) => { _editor.PackedCountry = val?.CountryId.ToString(); })" SearchFunc="@SearchCountries" ToStringFunc="@(x => x?.CountryName ?? "")" Variant="Variant.Outlined" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
+                <SearchableSelect T="string" Label="Packed Country" Value="@_editor.PackedCountry" ValueChanged="@((string val) => { _editor.PackedCountry = val; })" Variant="Variant.Outlined" Items="@GetCountrySelects()" />
             </MudItem>
             <MudItem xs="12" md="4">
-                <MudAutocomplete Clearable="true"           MaxItems="1000" T="WarehouseLookupDto" Label="Output Warehouse" Value="@(_warehouses.FirstOrDefault(x => x.WarehouseId == _editor.WarehouseId))" ValueChanged="@((WarehouseLookupDto val) => { _editor.WarehouseId = val?.WarehouseId ?? 0; })" SearchFunc="@SearchWarehouses" ToStringFunc="@(x => x?.WarehouseName ?? "")" Variant="Variant.Outlined" Required="true" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
+                <SearchableSelect T="long" Label="Output Warehouse" Value="@_editor.WarehouseId" ValueChanged="@((long val) => { _editor.WarehouseId = val; })" Variant="Variant.Outlined" Required="true" Items="@GetWarehouseSelects()" />
                 <ValidationMessage For="@(() => _editor.WarehouseId)" />
             </MudItem>
 
             <!-- Employees Multi-Select -->
             <MudItem xs="12" md="6">
-                <MudSelect SearchBox="true" T="string" Label="Process Employees" MultiSelection="true" @bind-SelectedValues="_selectedEmployees" MultiSelectionTextFunc="@(x => string.Join(", ", x.Select(idStr => _staffList.FirstOrDefault(s => s.StaffId.ToString() == idStr)?.StaffName ?? idStr)))" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter">
-                    @foreach (var staff in _staffList)
-                    {
-                        <MudSelectItem Value="@staff.StaffId.ToString()">@staff.StaffName</MudSelectItem>
-                    }
-                </MudSelect>
+                <SearchableSelect T="string" Label="Process Employees" MultiSelection="true" SelectedValues="@_selectedEmployees" SelectedValuesChanged="@((vals) => { _selectedEmployees = vals; })" MultiSelectionTextFunc="@(x => string.Join(", ", x.Select(idStr => _staffList.FirstOrDefault(s => s.StaffId.ToString() == idStr)?.StaffName ?? idStr)))" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter" Items="@GetEmployeeSelects()" />
             </MudItem>
             <MudItem xs="12" md="6">
                 <MudTextField @bind-Value="_editor.Colli" Label="Colli" Variant="Variant.Outlined" />
@@ -306,6 +296,93 @@
     {
         if (string.IsNullOrEmpty(value) || _warehouses.Any(x => (x.WarehouseName ?? "").Equals(value, StringComparison.OrdinalIgnoreCase))) return _warehouses;
         return _warehouses.Where(x => (x.WarehouseName ?? "").Contains(value, StringComparison.OrdinalIgnoreCase));
+    }
+    private async Task OnBomIdChanged(long bomId)
+    {
+        var val = _boms.FirstOrDefault(x => x.BomId == bomId);
+        _editor.BomId = bomId;
+        if (val != null)
+        {
+            var bomDetails = await ApiClient.GetBomByIdAsync(val.BomId);
+            if (bomDetails != null)
+            {
+                _selectedBomUnitId = bomDetails.UnitId;
+                _editor.FillingPerBottleUnit = bomDetails.UnitId;
+            }
+        }
+        else
+        {
+            _selectedBomUnitId = null;
+            _editor.FillingPerBottleUnit = 0;
+        }
+    }
+
+    private IEnumerable<SearchableSelect<long>.SelectItemDto<long>> GetBomSelects()
+    {
+        return _boms.Select(x => new SearchableSelect<long>.SelectItemDto<long>
+        {
+            Value = x.BomId,
+            Text = x.BomName ?? ""
+        });
+    }
+
+    private IEnumerable<SearchableSelect<long>.SelectItemDto<long>> GetSkuSelects()
+    {
+        return _skus.Select(x => new SearchableSelect<long>.SelectItemDto<long>
+        {
+            Value = x.SkuId,
+            Text = x.SkuName ?? ""
+        });
+    }
+
+    private IEnumerable<SearchableSelect<string>.SelectItemDto<string>> GetKettleSelects()
+    {
+        return _kettles.Select(x => new SearchableSelect<string>.SelectItemDto<string>
+        {
+            Value = x.KettleId.ToString(),
+            Text = x.KettleNumber ?? ""
+        });
+    }
+
+    private IEnumerable<SearchableSelect<long>.SelectItemDto<long>> GetUnitSelects()
+    {
+        var baseList = _units.AsEnumerable();
+        if (_selectedBomUnitId != null && _selectedBomUnitId > 0)
+        {
+            baseList = _units.Where(x => x.UnitId == _selectedBomUnitId || x.BaseUnit == _selectedBomUnitId);
+        }
+        return baseList.Select(x => new SearchableSelect<long>.SelectItemDto<long>
+        {
+            Value = x.UnitId,
+            Text = x.UnitName ?? ""
+        });
+    }
+
+    private IEnumerable<SearchableSelect<string>.SelectItemDto<string>> GetCountrySelects()
+    {
+        return _countries.Select(x => new SearchableSelect<string>.SelectItemDto<string>
+        {
+            Value = x.CountryId.ToString(),
+            Text = x.CountryName ?? ""
+        });
+    }
+
+    private IEnumerable<SearchableSelect<long>.SelectItemDto<long>> GetWarehouseSelects()
+    {
+        return _warehouses.Select(x => new SearchableSelect<long>.SelectItemDto<long>
+        {
+            Value = x.WarehouseId,
+            Text = x.WarehouseName ?? ""
+        });
+    }
+
+    private IEnumerable<SearchableSelect<string>.SelectItemDto<string>> GetEmployeeSelects()
+    {
+        return _staffList.Select(x => new SearchableSelect<string>.SelectItemDto<string>
+        {
+            Value = x.StaffId.ToString(),
+            Text = x.StaffName ?? ""
+        });
     }
 }
 

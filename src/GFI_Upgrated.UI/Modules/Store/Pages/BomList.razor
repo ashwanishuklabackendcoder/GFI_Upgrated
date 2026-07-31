@@ -26,11 +26,7 @@
             <MudTextField T="string" Value="@_search" ValueChanged="@OnSearchTextChanged" Placeholder="Search by Recipe name or Product..." Variant="Variant.Outlined" Immediate="true" Clearable="true" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" OnClearButtonClick="OnSearch" />
         </MudItem>
         <MudItem xs="12" md="3">
-            <MudSelect SearchBox="true" T="int?" Value="@_itemTypeId" ValueChanged="OnItemTypeFilterChanged" Label="Product Type" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter" Clearable="true">
-                <MudSelectItem T="int?" Value="null">All Types</MudSelectItem>
-                <MudSelectItem T="int?" Value="1">Finished Products</MudSelectItem>
-                <MudSelectItem T="int?" Value="2">Semi-Finished</MudSelectItem>
-            </MudSelect>
+            <SearchableSelect T="int?" Value="@_itemTypeId" ValueChanged="OnItemTypeFilterChanged" Label="Product Type" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter" Clearable="true" Items="_productTypes" />
         </MudItem>
         <MudItem xs="12" md="3" Class="d-flex align-center">
             
@@ -87,6 +83,13 @@
 
     private MudTable<BomDto>? _table;
     private string _search = "";
+    private static readonly List<SearchableSelect<int?>.SelectItemDto<int?>> _productTypes = new()
+    {
+        new() { Value = null, Text = "All Types" },
+        new() { Value = 1, Text = "Finished Products" },
+        new() { Value = 2, Text = "Semi-Finished" }
+    };
+
     private int? _itemTypeId;
     private bool _loading;
     private bool _canInsert;

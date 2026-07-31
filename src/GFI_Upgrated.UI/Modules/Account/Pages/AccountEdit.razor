@@ -1,0 +1,176 @@
+@page "/acc/customer-supplier/new"
+@page "/acc/customer-supplier/edit/{Id:long}"
+@using GFI_Upgrated.SharedDto.Account
+@using GFI_Upgrated.SharedDto.AdminSecurity
+@using GFI_Upgrated.UI.Services
+@using GFI_Upgrated.UI.State
+@using MudBlazor
+@inject AccountApiClient ApiClient
+@inject AdminSecurityApiClient SecurityApiClient
+@inject ISnackbar Snackbar
+@inject AppSessionState SessionState
+@inject NavigationManager Navigation
+
+<PageTitle>@(Id == 0 ? "Add Customer / Supplier" : "Edit Customer / Supplier")</PageTitle>
+
+<MudPaper Class="pa-4">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-6">
+        <MudStack Spacing="0">
+            <MudText Typo="Typo.h5">@(Id == 0 ? "Add Customer / Supplier" : "Edit Customer / Supplier")</MudText>
+        </MudStack>
+        <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.ArrowBack" OnClick="OnBack">Back to List</MudButton>
+    </MudStack>
+
+    <EditForm Model="@Model" OnValidSubmit="Submit">
+        <DataAnnotationsValidator />
+        <MudGrid>
+            <MudItem xs="12" md="6">
+                <MudStack Spacing="4">
+                    <MudTextField @bind-Value="Model.AccountName" For="@(() => Model.AccountName)" Label="Account Name" Variant="Variant.Outlined" />
+                    
+                    <SearchableSelect T="long?" Label="Account Group" Value="@((long?)Model.AccountGroupID)" ValueChanged="@((long? val) => Model.AccountGroupID = val ?? 0)" Variant="Variant.Outlined" Required="true" Items="@GetGroupSelects()" />
+
+                    <SearchableSelect T="long?" Label="Currency" Value="@Model.CurrencyID" ValueChanged="@((long? val) => { Model.CurrencyID = val; })" Variant="Variant.Outlined" Items="@GetCurrencySelects()" />
+
+                    <SearchableSelect T="string" Label="Stakeholder Type" Value="@Model.StakeholderType" ValueChanged="@((string val) => { Model.StakeholderType = val; })" Variant="Variant.Outlined" Items="@GetStakeholderTypeSelects()" />
+
+                    <SearchableSelect T="string" Label="Stakeholder Group" Value="@Model.StakeholderGroup" ValueChanged="@((string val) => { Model.StakeholderGroup = val; })" Variant="Variant.Outlined" Items="@GetStakeholderGroupSelects()" />
+
+                    <MudTextField @bind-Value="Model.Remark" Label="Remark" Variant="Variant.Outlined" Lines="2" />
+                </MudStack>
+            </MudItem>
+
+            <MudItem xs="12" md="6">
+                <MudStack Spacing="4">
+                    <MudTextField @bind-Value="Model.ContactPerson" Label="Contact Person Name" Variant="Variant.Outlined" />
+                    <MudTextField @bind-Value="Model.MobileNo" Label="Mobile Number" Variant="Variant.Outlined" />
+                    <MudTextField @bind-Value="Model.EmailID" Label="Email Address" Variant="Variant.Outlined" InputType="InputType.Email" />
+                    <MudTextField @bind-Value="Model.Website" Label="Website" Variant="Variant.Outlined" Placeholder="https://example.com" />
+                    <SearchableSelect T="long?" Label="Country" Value="@Model.CountryID" ValueChanged="@((long? val) => { Model.CountryID = val; })" Variant="Variant.Outlined" Items="@GetCountrySelects()" />
+                    <MudTextField @bind-Value="Model.Address" Label="Address" Variant="Variant.Outlined" Lines="2" />
+                </MudStack>
+            </MudItem>
+
+            <MudItem xs="12" Class="d-flex justify-end gap-2 mt-6">
+                <MudButton Variant="Variant.Outlined" OnClick="OnBack">Cancel</MudButton>
+                <MudButton Color="Color.Primary" Variant="Variant.Filled" ButtonType="ButtonType.Submit">Save Account</MudButton>
+            </MudItem>
+        </MudGrid>
+    </EditForm>
+</MudPaper>
+
+@code {
+    [Parameter] public long Id { get; set; }
+    public AccountMasterDto Model { get; set; } = new();
+
+    private IReadOnlyList<AccountGroupLookupDto> _groups = Array.Empty<AccountGroupLookupDto>();
+    private List<CurrencyDto> _currencies = new();
+    private IReadOnlyList<LookupItemDto> _stakeholderTypes = Array.Empty<LookupItemDto>();
+    private IReadOnlyList<LookupItemDto> _stakeholderGroups = Array.Empty<LookupItemDto>();
+    private IReadOnlyList<LookupItemDto> _countries = Array.Empty<LookupItemDto>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _groups = await ApiClient.GetAccountGroupsLookupAsync();
+            var currResult = await ApiClient.GetCurrenciesAsync();
+            _currencies = currResult.Items.ToList();
+            
+            _stakeholderTypes = await SecurityApiClient.GetMasterDropdownAsync(6);
+            _stakeholderGroups = await SecurityApiClient.GetMasterDropdownAsync(5);
+            _countries = await SecurityApiClient.GetCountriesAsync();
+            
+            if (Id > 0)
+            {
+                var result = await ApiClient.GetAccountsAsync(page: 1, pageSize: 100000);
+                var matched = result.Items.FirstOrDefault(x => x.AccountID == Id);
+                if (matched != null)
+                {
+                    Model = matched;
+                }
+            }
+            else
+            {
+                Model.OpeningBalanceDate = DateTime.Today;
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error loading lookups: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private void OnBack() => Navigation.NavigateTo("/acc/accountmaster");
+
+    private async Task Submit()
+    {
+        try
+        {
+            Model.CreatedBy = SessionState.CurrentUserAuditName ?? "System";
+            var id = await ApiClient.SaveAccountAsync(Model);
+            if (id > 0)
+            {
+                Snackbar.Add("Account saved successfully.", Severity.Success);
+                OnBack();
+            }
+            else if (id == -1 || id == -2)
+            {
+                Snackbar.Add("An account with this name already exists.", Severity.Warning);
+            }
+            else
+            {
+                Snackbar.Add("Failed to save account.", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error saving account: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private IEnumerable<SearchableSelect<long?>.SelectItemDto<long?>> GetGroupSelects()
+    {
+        return (_groups ?? Array.Empty<AccountGroupLookupDto>()).Select(x => new SearchableSelect<long?>.SelectItemDto<long?>
+        {
+            Value = (long?)x.AccountGroupID,
+            Text = x.AccountGroupName ?? ""
+        });
+    }
+
+    private IEnumerable<SearchableSelect<long?>.SelectItemDto<long?>> GetCurrencySelects()
+    {
+        return (_currencies ?? new List<CurrencyDto>()).Select(x => new SearchableSelect<long?>.SelectItemDto<long?>
+        {
+            Value = (long?)x.CurrencyID,
+            Text = $"{x.CurrencySymbol} ({x.CurrencyString})"
+        });
+    }
+
+    private IEnumerable<SearchableSelect<string>.SelectItemDto<string>> GetStakeholderTypeSelects()
+    {
+        return (_stakeholderTypes ?? Array.Empty<LookupItemDto>()).Select(x => new SearchableSelect<string>.SelectItemDto<string>
+        {
+            Value = x.Value.ToString(),
+            Text = x.Text ?? ""
+        });
+    }
+
+    private IEnumerable<SearchableSelect<string>.SelectItemDto<string>> GetStakeholderGroupSelects()
+    {
+        return (_stakeholderGroups ?? Array.Empty<LookupItemDto>()).Select(x => new SearchableSelect<string>.SelectItemDto<string>
+        {
+            Value = x.Value.ToString(),
+            Text = x.Text ?? ""
+        });
+    }
+
+    private IEnumerable<SearchableSelect<long?>.SelectItemDto<long?>> GetCountrySelects()
+    {
+        return (_countries ?? Array.Empty<LookupItemDto>()).Select(x => new SearchableSelect<long?>.SelectItemDto<long?>
+        {
+            Value = (long?)x.Value,
+            Text = x.Text ?? ""
+        });
+    }
+}

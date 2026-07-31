@@ -28,7 +28,7 @@
                 <MudTextField @bind-Value="_invoice.InvoiceNumber" Label="Invoice Number" Required="true" Variant="Variant.Outlined" For="@(() => _invoice.InvoiceNumber)" />
             </MudItem>
             <MudItem xs="12" md="4">
-                <MudAutocomplete Clearable="true" MaxItems="1000" T="long" Label="Customer" Value="@_invoice.AccountID" ValueChanged="@((long val) => OnCustomerChanged(val))" SearchFunc="@SearchCustomerIds" ToStringFunc="@(val => _customers.FirstOrDefault(x => x.AccountId == val)?.AccountName ?? "")" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter" For="@(() => _invoice.AccountID)" />
+                <SearchableSelect T="long?" Label="Customer" Value="@((long?)_invoice.AccountID)" ValueChanged="@((long? val) => OnCustomerChanged(val ?? 0))" Variant="Variant.Outlined" Required="true" Items="@GetCustomerSelects()" />
             </MudItem>
             <MudItem xs="12" md="4">
                 <MudCheckBox T="bool?" @bind-Value="_invoice.IsPaid" Label="Mark as Paid" Color="Color.Success" />
@@ -41,16 +41,11 @@
                 <MudDatePicker DateFormat="dd/MM/yyyy" Placeholder="dd/MM/yyyy" Editable="true" @bind-Date="_invoice.DueDate" Label="Due Date (DD/MM/YYYY)" Variant="Variant.Outlined" For="@(() => _invoice.DueDate)" />
             </MudItem>
             <MudItem xs="12" md="4">
-                <MudSelect SearchBox="true" T="string" Label="Status" @bind-Value="_invoice.InvoiceStatus" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter">
-                    <MudSelectItem Value="@("Draft")">Draft</MudSelectItem>
-                    <MudSelectItem Value="@("Sent")">Sent</MudSelectItem>
-                    <MudSelectItem Value="@("Paid")">Paid</MudSelectItem>
-                    <MudSelectItem Value="@("Overdue")">Overdue</MudSelectItem>
-                </MudSelect>
+                <SearchableSelect T="string" Label="Status" Value="@_invoice.InvoiceStatus" ValueChanged="@((string val) => { _invoice.InvoiceStatus = val; })" Variant="Variant.Outlined" Items="@GetStatusSelects()" />
             </MudItem>
 
             <MudItem xs="12" md="4">
-                <MudAutocomplete Clearable="true"           MaxItems="1000" T="CurrencyDto" Label="Currency" Value="@(_currencies.FirstOrDefault(x => x.CurrencyID == _invoice.CurrencyID))" ValueChanged="@((CurrencyDto val) => OnCurrencyChanged(val?.CurrencyID))" SearchFunc="@SearchCurrencies" ToStringFunc="@(x => x == null ? "" : $"{x.CurrencySymbol} ({x.CurrencyString})")" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter" />
+                <SearchableSelect T="long?" Label="Currency" Value="@_invoice.CurrencyID" ValueChanged="OnCurrencyChanged" Variant="Variant.Outlined" Items="@GetCurrencySelects()" />
             </MudItem>
             <MudItem xs="12" md="4">
                 <MudNumericField @bind-Value="_invoice.CurrencyConversion" Label="Exchange Rate (to Base)" HideSpinButtons="true" Variant="Variant.Outlined" />
@@ -86,10 +81,10 @@
                     </HeaderContent>
                     <RowTemplate Context="row">
                         <MudTd DataLabel="Item (SKU)">
-                            <MudAutocomplete Clearable="true"           MaxItems="1000" T="RawMaterialDto" Value="@(_items.FirstOrDefault(x => x.ItemId == row.ItemId))" ValueChanged="@((RawMaterialDto val) => OnItemChanged(row, val?.ItemId ?? 0))" SearchFunc="@SearchItems" ToStringFunc="@(x => x?.ItemName ?? "")" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" Variant="Variant.Outlined" Dense="true" Margin="Margin.Dense" AnchorOrigin="Origin.BottomCenter" />
+                            <SearchableSelect T="RawMaterialDto" Value="@(GetItemById(row.ItemId))" ValueChanged="@((RawMaterialDto val) => OnItemChanged(row, val?.ItemId ?? 0))" Variant="Variant.Outlined" Dense="true" Items="@GetItemSelects()" />
                         </MudTd>
                         <MudTd DataLabel="Related Order">
-                            <MudAutocomplete Clearable="true"           MaxItems="1000" T="CustomerOrderDto" Value="@(_orders.FirstOrDefault(x => x.OrderID == row.OrderID))" ValueChanged="@((CustomerOrderDto val) => OnOrderChanged(row, val?.OrderID ?? 0))" SearchFunc="@SearchOrders" ToStringFunc="@(x => x?.OrderNo ?? "")" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" Variant="Variant.Outlined" Dense="true" Margin="Margin.Dense" AnchorOrigin="Origin.BottomCenter" />
+                            <SearchableSelect T="long?" Value="@row.OrderID" ValueChanged="@((long? val) => OnOrderChanged(row, val ?? 0))" Variant="Variant.Outlined" Dense="true" Items="@GetOrderSelects()" />
                         </MudTd>
                         <MudTd DataLabel="Qty" Style="text-align: center;">
                             <MudNumericField @bind-Value="row.Quantity" Variant="Variant.Outlined" Dense="true" Margin="Margin.Dense" Min="1" Style="text-align: center;" />
@@ -422,30 +417,51 @@
         }
     }
 
-    private async Task<IEnumerable<long>> SearchCustomerIds(string value, CancellationToken token)
+    private IEnumerable<SearchableSelect<long?>.SelectItemDto<long?>> GetCustomerSelects()
     {
-        if (string.IsNullOrEmpty(value) || _customers.Any(x => (x.AccountName ?? "").Equals(value, StringComparison.OrdinalIgnoreCase))) 
-            return _customers.Select(x => (long)x.AccountId);
-            
-        return _customers.Where(x => (x.AccountName ?? "").Contains(value, StringComparison.OrdinalIgnoreCase)).Select(x => (long)x.AccountId);
+        return _customers.Select(x => new SearchableSelect<long?>.SelectItemDto<long?>
+        {
+            Value = (long?)x.AccountId,
+            Text = x.AccountName ?? ""
+        });
     }
 
-    private async Task<IEnumerable<CurrencyDto>> SearchCurrencies(string value, CancellationToken token)
+    private IEnumerable<SearchableSelect<string>.SelectItemDto<string>> GetStatusSelects()
     {
-        if (string.IsNullOrEmpty(value)) return _currencies;
-        return _currencies.Where(x => ((x.CurrencySymbol ?? "") + (x.CurrencyString ?? "")).Contains(value, StringComparison.OrdinalIgnoreCase));
+        return new[] { "Draft", "Sent", "Paid", "Overdue" }.Select(x => new SearchableSelect<string>.SelectItemDto<string>
+        {
+            Value = x,
+            Text = x
+        });
     }
 
-    private async Task<IEnumerable<RawMaterialDto>> SearchItems(string value, CancellationToken token)
+    private IEnumerable<SearchableSelect<long?>.SelectItemDto<long?>> GetCurrencySelects()
     {
-        if (string.IsNullOrEmpty(value) || _items.Any(x => (x.ItemName ?? "").Equals(value, StringComparison.OrdinalIgnoreCase))) return _items;
-        return _items.Where(x => (x.ItemName ?? "").Contains(value, StringComparison.OrdinalIgnoreCase));
+        return _currencies.Select(x => new SearchableSelect<long?>.SelectItemDto<long?>
+        {
+            Value = (long?)x.CurrencyID,
+            Text = $"{x.CurrencySymbol} ({x.CurrencyString})"
+        });
     }
 
-    private async Task<IEnumerable<CustomerOrderDto>> SearchOrders(string value, CancellationToken token)
+    private IEnumerable<SearchableSelect<RawMaterialDto>.SelectItemDto<RawMaterialDto>> GetItemSelects()
     {
-        if (string.IsNullOrEmpty(value) || _orders.Any(x => (x.OrderNo ?? "").Equals(value, StringComparison.OrdinalIgnoreCase))) return _orders;
-        return _orders.Where(x => (x.OrderNo ?? "").Contains(value, StringComparison.OrdinalIgnoreCase));
+        return _items.Select(x => new SearchableSelect<RawMaterialDto>.SelectItemDto<RawMaterialDto>
+        {
+            Value = x,
+            Text = x.ItemName ?? ""
+        });
     }
+
+    private IEnumerable<SearchableSelect<long?>.SelectItemDto<long?>> GetOrderSelects()
+    {
+        return _orders.Select(x => new SearchableSelect<long?>.SelectItemDto<long?>
+        {
+            Value = (long?)x.OrderID,
+            Text = x.OrderNo ?? ""
+        });
+    }
+
+    private RawMaterialDto? GetItemById(long id) => _items.FirstOrDefault(x => x.ItemId == id);
 }
 

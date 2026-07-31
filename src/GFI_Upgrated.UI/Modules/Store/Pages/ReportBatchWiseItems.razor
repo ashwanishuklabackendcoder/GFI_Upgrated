@@ -1,4 +1,4 @@
-﻿@page "/store/reports/batch-wise-items"
+@page "/store/reports/batch-wise-items"
 @page "/admin/reports/batch-wise-items"
 @page "/store/reportbatchwiseitems"
 @page "/admin/reportbatchwiseitems"
@@ -32,9 +32,7 @@
                           Variant="Variant.Outlined" Placeholder=" " Clearable="true" />
         </MudItem>
         <MudItem xs="12" md="4">
-            <MudAutocomplete Clearable="true"" MaxItems="1000" T="RawMaterialDto" Label="Item" Value="_selectedItem" ValueChanged="OnItemChanged"
-                             SearchFunc="@SearchItems" ToStringFunc="@(i => i?.ItemName ?? "")" Variant="Variant.Outlined" 
-                              Placeholder=" " AdornmentIcon="@Icons.Material.Filled.Search" />
+            <SearchableSelect T="RawMaterialDto" Label="Item" Value="@_selectedItem" ValueChanged="OnItemChanged" Variant="Variant.Outlined" Items="@GetItemSelects()" />
         </MudItem>
         <MudItem xs="12" md="2" Class="d-flex align-end">
             <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="OnSearch" FullWidth="true" Class="py-3">
@@ -135,10 +133,13 @@
         }
     }
 
-    private async Task<IEnumerable<RawMaterialDto>> SearchItems(string value, CancellationToken token)
+    private IEnumerable<SearchableSelect<RawMaterialDto>.SelectItemDto<RawMaterialDto>> GetItemSelects()
     {
-        if (string.IsNullOrEmpty(value)) return _items;
-        return _items.Where(x => x.ItemName?.Contains(value, StringComparison.OrdinalIgnoreCase) == true);
+        return (_items ?? new List<RawMaterialDto>()).Select(x => new SearchableSelect<RawMaterialDto>.SelectItemDto<RawMaterialDto>
+        {
+            Value = x,
+            Text = x.ItemName ?? ""
+        });
     }
 
     private async Task<TableData<BatchWiseItemDto>> LoadServerDataAsync(TableState state, CancellationToken cancellationToken)

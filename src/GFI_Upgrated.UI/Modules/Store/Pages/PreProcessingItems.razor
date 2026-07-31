@@ -31,31 +31,20 @@
 
     <MudTable Items="_rows" Hover="true" Dense="true" Bordered="true" Striped="true" Class="mb-4" Elevation="0">
         <HeaderContent>
-            <MudTh>Ingredient</MudTh>
+            <MudTh style="width: 30%;">Ingredient</MudTh>
             <MudTh Style="width: 250px;">Lot / Batch Number</MudTh>
             <MudTh Style="width: 120px;">Recipe Qty</MudTh>
             <MudTh Style="width: 150px;">Qty Used</MudTh>
+            <MudTh style="width: 150px;">Unit</MudTh>
             <MudTh>Description / Remarks</MudTh>
             <MudTh Style="width: 100px; text-align: center;">Action</MudTh>
         </HeaderContent>
         <RowTemplate>
             <MudTd DataLabel="Ingredient">
-                <MudAutocomplete Clearable="true"           MaxItems="1000" T="RawMaterialDto" 
-                                 Value="@(_allRawMaterials.FirstOrDefault(x => x.ItemId == context.ItemID))" 
-                                 ValueChanged="@(async (RawMaterialDto val) => await OnItemChanged(context, val))"
-                                 SearchFunc="@SearchRawMaterials" ToStringFunc="@(x => x?.ItemName ?? "")"
-                                 Variant="Variant.Outlined" Dense="true" Margin="Margin.Dense"
-                                 ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
+                <SearchableSelect T="RawMaterialDto" Value="@(_allRawMaterials.FirstOrDefault(x => x.ItemId == context.ItemID))" ValueChanged="@(async (RawMaterialDto val) => await OnItemIdChanged(context, val?.ItemId ?? 0))" Variant="Variant.Outlined" Dense="true" Items="@GetIngredientSelects()" />
             </MudTd>
             <MudTd DataLabel="Lot / Batch Number">
-                <MudAutocomplete Clearable="true"           MaxItems="1000" T="AvailableBatchDto" 
-                                 Value="@(context.AvailableBatches.FirstOrDefault(x => x.ItemStockByBatchId == context.ItemStockByBatchId))" 
-                                 ValueChanged="@((AvailableBatchDto val) => OnBatchChanged(context, val))"
-                                 SearchFunc="@((val, token) => SearchBatches(context, val, token))" 
-                                 ToStringFunc="@(x => x != null ? $"{x.BatchNo} (Stock: {x.FinalQuantityLeft})" : "")"
-                                 Variant="Variant.Outlined" Dense="true" Margin="Margin.Dense"
-                                 Disabled="@(context.ItemID == 0)"
-                                 ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
+                <SearchableSelect T="AvailableBatchDto" Value="@(context.AvailableBatches.FirstOrDefault(x => x.ItemStockByBatchId == context.ItemStockByBatchId))" ValueChanged="@((AvailableBatchDto val) => OnBatchChanged(context, val))" Variant="Variant.Outlined" Dense="true" Disabled="@(context.ItemID == 0)" Items="@GetBatchSelects(context)" />
             </MudTd>
             <MudTd DataLabel="Recipe Qty">
                 @if (context.RecipeQty > 0)
@@ -69,6 +58,9 @@
             </MudTd>
             <MudTd DataLabel="Qty Used">
                 <MudNumericField @bind-Value="context.Quantity" Variant="Variant.Outlined" Dense="true" Margin="Margin.Dense" Min="0.0001" Format="0.####" HideSpinButtons="true" />
+            </MudTd>
+            <MudTd DataLabel="Unit">
+                <SearchableSelect T="long" Value="@context.UnitId" ValueChanged="@((long val) => { context.UnitId = val; })" Variant="Variant.Outlined" Dense="true" Disabled="@(context.ItemID == 0)" Items="@GetUnitsForIngredient(context.ItemID)" />
             </MudTd>
             <MudTd DataLabel="Description / Remarks">
                 <MudTextField @bind-Value="context.Description" Variant="Variant.Outlined" Dense="true" Margin="Margin.Dense" />
@@ -124,6 +116,7 @@
         public double Quantity { get; set; }
         public double RecipeQty { get; set; }
         public string? Description { get; set; }
+        public long UnitId { get; set; }
         public List<AvailableBatchDto> AvailableBatches { get; set; } = new();
     }
 
@@ -141,6 +134,9 @@
     {
         try
         {
+            var unitsResult = await ApiClient.GetUnitsAsync(new PagedRequest { CurrentPage = 1, RecordPerPage = 1000 });
+            _units = unitsResult.Items.Where(x => x.IsActive).ToList();
+
             _header = await ApiClient.GetPreProcessingByIdAsync(HeaderId);
             if (_header == null) { Snackbar.Add("Header not found.", Severity.Error); OnBack(); return; }
 
@@ -165,6 +161,12 @@
                         Quantity = saved.Quantity,
                         Description = saved.Description
                     };
+
+                    var raw = _allRawMaterials.FirstOrDefault(x => x.ItemId == saved.ItemID);
+                    if (raw != null)
+                    {
+                        row.UnitId = raw.PurchaseUnit;
+                    }
 
                     // Match matching recipe item if exists to show reference recipe qty
                     var matchRecipe = _bomItems.FirstOrDefault(b => b.ItemID == saved.ItemID);
@@ -203,7 +205,7 @@
                                 allocated = remainingNeeded;
                             }
 
-                            _rows.Add(new ConsumptionRow
+                            var row = new ConsumptionRow
                             {
                                 ItemID = recipe.ItemID,
                                 ItemName = recipe.ItemName,
@@ -212,7 +214,13 @@
                                 Quantity = allocated,
                                 RecipeQty = neededQty,
                                 AvailableBatches = batches
-                            });
+                            };
+                            var raw = _allRawMaterials.FirstOrDefault(x => x.ItemId == recipe.ItemID);
+                            if (raw != null)
+                            {
+                                row.UnitId = raw.PurchaseUnit;
+                            }
+                            _rows.Add(row);
 
                             remainingNeeded -= allocated;
                             if (remainingNeeded <= 0) break;
@@ -221,27 +229,39 @@
                         // If there is still remainder needed, add an extra row with the remainder
                         if (remainingNeeded > 0)
                         {
-                            _rows.Add(new ConsumptionRow
+                            var row = new ConsumptionRow
                             {
                                 ItemID = recipe.ItemID,
                                 ItemName = recipe.ItemName,
                                 Quantity = remainingNeeded,
                                 RecipeQty = neededQty,
                                 AvailableBatches = batches
-                            });
+                            };
+                            var raw = _allRawMaterials.FirstOrDefault(x => x.ItemId == recipe.ItemID);
+                            if (raw != null)
+                            {
+                                row.UnitId = raw.PurchaseUnit;
+                            }
+                            _rows.Add(row);
                         }
                     }
                     else
                     {
                         // No batches available, add a single row with needed qty and empty batch selection
-                        _rows.Add(new ConsumptionRow
+                        var row = new ConsumptionRow
                         {
                             ItemID = recipe.ItemID,
                             ItemName = recipe.ItemName,
                             Quantity = neededQty,
                             RecipeQty = neededQty,
                             AvailableBatches = batches
-                        });
+                        };
+                        var raw = _allRawMaterials.FirstOrDefault(x => x.ItemId == recipe.ItemID);
+                        if (raw != null)
+                        {
+                            row.UnitId = raw.PurchaseUnit;
+                        }
+                        _rows.Add(row);
                     }
                 }
             }
@@ -260,6 +280,7 @@
             row.ItemName = null;
             row.ItemStockByBatchId = 0;
             row.BatchNo = null;
+            row.UnitId = 0;
             row.AvailableBatches.Clear();
             return;
         }
@@ -268,6 +289,7 @@
         row.ItemName = item.ItemName;
         row.ItemStockByBatchId = 0;
         row.BatchNo = null;
+        row.UnitId = item.PurchaseUnit;
         row.AvailableBatches.Clear();
 
         try
@@ -311,6 +333,7 @@
             ItemID = row.ItemID,
             ItemName = row.ItemName,
             RecipeQty = row.RecipeQty,
+            UnitId = row.UnitId,
             AvailableBatches = row.AvailableBatches
         };
 
@@ -381,13 +404,24 @@
             // Save all current rows
             foreach (var row in _rows)
             {
+                double qty = row.Quantity;
+                var rawMaterial = _allRawMaterials.FirstOrDefault(x => x.ItemId == row.ItemID);
+                if (rawMaterial != null && row.UnitId > 0 && row.UnitId != rawMaterial.PurchaseUnit)
+                {
+                    var selectedUnit = _units.FirstOrDefault(u => u.UnitId == row.UnitId);
+                    if (selectedUnit != null && selectedUnit.ConversionValue.HasValue && selectedUnit.ConversionValue.Value > 0)
+                    {
+                        qty = row.Quantity / selectedUnit.ConversionValue.Value;
+                    }
+                }
+
                 var request = new SavePreProcessingItemRequest
                 {
                     ItemStockUsedID = 0, // Always insert new rows to overwrite
                     UsedForId = HeaderId,
                     ItemID = row.ItemID,
                     ItemStockByBatchId = row.ItemStockByBatchId,
-                    Quantity = row.Quantity,
+                    Quantity = qty,
                     Description = row.Description,
                     UsedFor = 2, // 2 = Pre-Processing
                     UpdatedBy = SessionState.CurrentUserAuditName ?? "System"
@@ -447,15 +481,38 @@
 
     private void OnBack() => Navigation.NavigateTo("/store/preprocessing");
 
-    private async Task<IEnumerable<RawMaterialDto>> SearchRawMaterials(string value, CancellationToken token)
+    private List<UnitDto> _units = new();
+
+    private async Task OnItemIdChanged(ConsumptionRow row, long itemId)
     {
-        if (string.IsNullOrEmpty(value)) return _allRawMaterials;
-        return _allRawMaterials.Where(x => x.ItemName?.Contains(value, StringComparison.OrdinalIgnoreCase) == true);
+        var item = _allRawMaterials.FirstOrDefault(x => x.ItemId == itemId);
+        await OnItemChanged(row, item);
     }
 
-    private async Task<IEnumerable<AvailableBatchDto>> SearchBatches(ConsumptionRow row, string value, CancellationToken token)
+    private IEnumerable<SearchableSelect<RawMaterialDto>.SelectItemDto<RawMaterialDto>> GetIngredientSelects()
     {
-        if (string.IsNullOrEmpty(value)) return row.AvailableBatches;
-        return row.AvailableBatches.Where(x => x.BatchNo?.Contains(value, StringComparison.OrdinalIgnoreCase) == true);
+        return _allRawMaterials.Select(x => new SearchableSelect<RawMaterialDto>.SelectItemDto<RawMaterialDto>
+        {
+            Value = x,
+            Text = x.ItemName ?? ""
+        });
+    }
+
+    private IEnumerable<SearchableSelect<AvailableBatchDto>.SelectItemDto<AvailableBatchDto>> GetBatchSelects(ConsumptionRow row)
+    {
+        return row.AvailableBatches.Select(x => new SearchableSelect<AvailableBatchDto>.SelectItemDto<AvailableBatchDto>
+        {
+            Value = x,
+            Text = $"{x.BatchNo} (Stock: {x.FinalQuantityLeft})"
+        });
+    }
+
+    private IEnumerable<SearchableSelect<long>.SelectItemDto<long>> GetUnitsForIngredient(long itemId)
+    {
+        var item = _allRawMaterials.FirstOrDefault(x => x.ItemId == itemId);
+        if (item == null) return _units.Select(x => new SearchableSelect<long>.SelectItemDto<long> { Value = x.UnitId, Text = x.UnitName ?? "" });
+        var purchaseUnit = item.PurchaseUnit;
+        var filtered = _units.Where(x => x.UnitId == purchaseUnit || x.BaseUnit == purchaseUnit);
+        return filtered.Select(x => new SearchableSelect<long>.SelectItemDto<long> { Value = x.UnitId, Text = x.UnitName ?? "" });
     }
 }

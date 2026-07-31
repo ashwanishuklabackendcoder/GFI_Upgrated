@@ -25,9 +25,7 @@
         <DataAnnotationsValidator />
         <MudGrid>
             <MudItem xs="12" md="6">
-                <MudAutocomplete Clearable="true"           MaxItems="1000" T="WriteOffBatchLookupDto" Label="Item (Batch)" @bind-Value="_selectedBatch" SearchFunc="@SearchBatches"
-                                 ToStringFunc="@(b => b == null ? "" : $"{b.ItemName} - Batch: {b.BatchNo} (Available: {b.FinalQuantityLeft} {b.UnitName})")" 
-                                 Variant="Variant.Outlined" Required="true" />
+                <SearchableSelect T="WriteOffBatchLookupDto" Label="Item (Batch)" Value="@_selectedBatch" ValueChanged="OnBatchChanged" Variant="Variant.Outlined" Required="true" Items="@GetBatchSelects()" />
             </MudItem>
             
             <MudItem xs="12" md="6">
@@ -48,12 +46,7 @@
             </MudItem>
 
             <MudItem xs="12" md="3">
-                <MudAutocomplete Clearable="true"           MaxItems="1000" T="LookupItemDto" Label="Reason" Variant="Variant.Outlined" Required="true"
-                                 Value="@(_reasons.FirstOrDefault(x => x.Value == _model.ReasonFor))"
-                                 ValueChanged="@((LookupItemDto val) => { _model.ReasonFor = val?.Value; })"
-                                 SearchFunc="@SearchReasons"
-                                 ToStringFunc="@(x => x?.Text ?? "")"
-                                 ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
+                <SearchableSelect T="long?" Label="Reason" Value="@_model.ReasonFor" ValueChanged="@((long? val) => { _model.ReasonFor = val; })" Variant="Variant.Outlined" Required="true" Items="@GetReasonSelects()" />
             </MudItem>
 
             <MudItem xs="12">
@@ -147,16 +140,27 @@
         }
     }
 
-    private async Task<IEnumerable<WriteOffBatchLookupDto>> SearchBatches(string value, CancellationToken token)
+    private void OnBatchChanged(WriteOffBatchLookupDto? val)
     {
-        if (string.IsNullOrEmpty(value)) return _batches;
-        return _batches.Where(x => (x.ItemName?.Contains(value, StringComparison.OrdinalIgnoreCase) == true) || (x.BatchNo?.Contains(value, StringComparison.OrdinalIgnoreCase) == true));
+        _selectedBatch = val;
     }
 
-    private async Task<IEnumerable<LookupItemDto>> SearchReasons(string value, CancellationToken token)
+    private IEnumerable<SearchableSelect<WriteOffBatchLookupDto>.SelectItemDto<WriteOffBatchLookupDto>> GetBatchSelects()
     {
-        if (string.IsNullOrEmpty(value) || _reasons.Any(x => (x.Text ?? "").Equals(value, StringComparison.OrdinalIgnoreCase))) return _reasons;
-        return _reasons.Where(x => (x.Text ?? "").Contains(value, StringComparison.OrdinalIgnoreCase));
+        return _batches.Select(x => new SearchableSelect<WriteOffBatchLookupDto>.SelectItemDto<WriteOffBatchLookupDto>
+        {
+            Value = x,
+            Text = $"{x.ItemName} - Batch: {x.BatchNo} (Available: {x.FinalQuantityLeft} {x.UnitName})"
+        });
+    }
+
+    private IEnumerable<SearchableSelect<long?>.SelectItemDto<long?>> GetReasonSelects()
+    {
+        return _reasons.Select(x => new SearchableSelect<long?>.SelectItemDto<long?>
+        {
+            Value = (long?)x.Value,
+            Text = x.Text ?? ""
+        });
     }
 
     private string? ValidateQuantity(double qty)

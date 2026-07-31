@@ -28,17 +28,10 @@
 
     <MudGrid Class="mb-4 no-print" Spacing="2">
         <MudItem xs="12" md="3">
-            <MudSelect T="long?" @bind-Value="_selectedStockById" Label="Stock From" Variant="Variant.Outlined" Clearable="true" AnchorOrigin="Origin.BottomCenter">
-                <MudSelectItem Value="@((long?)null)">All Sources</MudSelectItem>
-                <MudSelectItem Value="@((long?)1)">Purchase</MudSelectItem>
-                <MudSelectItem Value="@((long?)2)">Pre-Processing</MudSelectItem>
-                <MudSelectItem Value="@((long?)3)">Opening Stock</MudSelectItem>
-            </MudSelect>
+            <SearchableSelect T="long?" Label="Stock From" Value="@_selectedStockById" ValueChanged="@((long? val) => { _selectedStockById = val; })" Variant="Variant.Outlined" Items="@GetStockFromSelects()" />
         </MudItem>
         <MudItem xs="12" md="4">
-            <MudAutocomplete Clearable="true"           MaxItems="1000" T="RawMaterialDto" Label="Select Item" @bind-Value="_selectedItem" SearchFunc="@SearchItems"
-                             ToStringFunc="@(i => i?.ItemName ?? "")" Variant="Variant.Outlined"  
-                             Placeholder="Search items..." AdornmentIcon="@Icons.Material.Filled.Search" />
+            <SearchableSelect T="RawMaterialDto" Label="Select Item" Value="@_selectedItem" ValueChanged="@((RawMaterialDto val) => { _selectedItem = val; })" Variant="Variant.Outlined" Items="@GetItemSelects()" />
         </MudItem>
         <MudItem xs="12" md="3">
             <MudTextField T="string" ValueChanged="OnSearchTextChanged" Label="Search Keyword" Variant="Variant.Outlined" Placeholder="Search by keywords" Clearable="true" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" />
@@ -136,10 +129,24 @@
         }
     }
 
-    private async Task<IEnumerable<RawMaterialDto>> SearchItems(string value, CancellationToken token)
+    private IEnumerable<SearchableSelect<long?>.SelectItemDto<long?>> GetStockFromSelects()
     {
-        if (string.IsNullOrEmpty(value)) return _items;
-        return _items.Where(x => x.ItemName?.Contains(value, StringComparison.OrdinalIgnoreCase) == true);
+        return new List<SearchableSelect<long?>.SelectItemDto<long?>>
+        {
+            new() { Value = null, Text = "All Sources" },
+            new() { Value = 1, Text = "Purchase" },
+            new() { Value = 2, Text = "Pre-Processing" },
+            new() { Value = 3, Text = "Opening Stock" }
+        };
+    }
+
+    private IEnumerable<SearchableSelect<RawMaterialDto>.SelectItemDto<RawMaterialDto>> GetItemSelects()
+    {
+        return (_items ?? new List<RawMaterialDto>()).Select(x => new SearchableSelect<RawMaterialDto>.SelectItemDto<RawMaterialDto>
+        {
+            Value = x,
+            Text = x.ItemName ?? ""
+        });
     }
 
     private async Task<TableData<ItemStockByBatchReportDto>> LoadServerDataAsync(TableState state, CancellationToken cancellationToken)

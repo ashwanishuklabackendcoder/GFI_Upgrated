@@ -1,4 +1,4 @@
-﻿@page "/acc/accountmaster"
+@page "/acc/accountmaster"
 @using GFI_Upgrated.SharedDto.Account
 @using GFI_Upgrated.UI.Services
 @using MudBlazor
@@ -6,6 +6,7 @@
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
 @inject IJSRuntime JS
+@inject NavigationManager Navigation
 
 <PageTitle>Account Master</PageTitle>
 
@@ -118,27 +119,14 @@
         if (_table is not null) await _table.ReloadServerData();
     }
 
-    private async Task OnAddAccount()
+    private void OnAddAccount()
     {
-        await ShowEditDialog(new AccountMasterDto());
+        Navigation.NavigateTo("/acc/customer-supplier/new");
     }
 
-    private async Task OnEditAccount(AccountMasterDto account)
+    private void OnEditAccount(AccountMasterDto account)
     {
-        await ShowEditDialog(account);
-    }
-
-    private async Task ShowEditDialog(AccountMasterDto account)
-    {
-        var parameters = new DialogParameters { ["Model"] = account };
-        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Medium, FullWidth = true };
-        var dialog = await DialogService.ShowAsync<AccountEditDialog>(account.AccountID == 0 ? "Add Account" : "Edit Account", parameters, options);
-        var result = await dialog.Result;
-
-        if (!result.Canceled)
-        {
-            if (_table is not null) await _table.ReloadServerData();
-        }
+        Navigation.NavigateTo($"/acc/customer-supplier/edit/{account.AccountID}");
     }
 
     private async Task OnDeleteAccount(AccountMasterDto account)

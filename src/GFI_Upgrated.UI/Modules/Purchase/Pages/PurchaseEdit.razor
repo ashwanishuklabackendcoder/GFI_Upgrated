@@ -29,8 +29,7 @@
                 <MudTextField @bind-Value="_model.VoucherNumber" Label="Voucher Number" Variant="Variant.Outlined" Required="true" For="@(() => _model.VoucherNumber)" />
             </MudItem>
             <MudItem xs="12" md="3">
-                <MudAutocomplete Clearable="true"  MaxItems="1000" T="AccountLookupDto" Label="Supplier" @bind-Value="_selectedVendor" SearchFunc="@SearchVendors"
-                                 ToStringFunc="@(a => a?.AccountName ?? "")" Variant="Variant.Outlined" Required="true" />
+                <SearchableSelect T="AccountLookupDto" Label="Supplier" Value="@_selectedVendor" ValueChanged="OnVendorChanged" Variant="Variant.Outlined" Required="true" Items="@GetVendorSelects()" />
             </MudItem>
            
             <MudItem xs="12" md="3">
@@ -44,8 +43,7 @@
             </MudItem>
 
              <MudItem xs="12" md="3">
-                <MudAutocomplete Clearable="true"          MaxItems="1000" T="PurchaseOrderDto" Label="Link PO" @bind-Value="_selectedPO" SearchFunc="@SearchPOs"
-                                 ToStringFunc="@(p => p?.VoucherNumber ?? "")" Variant="Variant.Outlined" />
+                <SearchableSelect T="PurchaseOrderDto" Label="Link PO" Value="@_selectedPO" ValueChanged="OnPoChanged" Variant="Variant.Outlined" Items="@GetPoSelects()" />
             </MudItem>
 
            
@@ -74,21 +72,13 @@
                     </HeaderContent>
                     <RowTemplate>
                         <MudTd DataLabel="Item">
-                            <MudAutocomplete Clearable="true"          MaxItems="1000" T="RawMaterialDto" Value="@(GetItemById(itemContext.ItemID))" ValueChanged="@((v) => OnItemChanged(itemContext, v))"
-                                             SearchFunc="@SearchItems" ToStringFunc="@(i => i?.ItemName ?? "")" 
-                                             Variant="Variant.Text" Dense="true" Required="true"
-                                             ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" AdornmentIcon="@Icons.Material.Filled.ArrowDropDown" />
+                            <SearchableSelect T="RawMaterialDto" Value="@(GetItemById(itemContext.ItemID))" ValueChanged="@((RawMaterialDto val) => OnItemChanged(itemContext, val))" Variant="Variant.Text" Dense="true" Required="true" Items="@GetItemSelects()" />
                         </MudTd>
                         <MudTd DataLabel="Qty">
                             <MudNumericField @bind-Value="itemContext.Quantity" Variant="Variant.Text" Dense="true" Min="1" />
                         </MudTd>
                         <MudTd DataLabel="Unit">
-                            <MudAutocomplete Clearable="true"          MaxItems="1000" T="UnitLookupDto" 
-                                             Value="@(_units.FirstOrDefault(x => x.UnitId == itemContext.UnitId))"
-                                             ValueChanged="@((UnitLookupDto val) => { itemContext.UnitId = val?.UnitId ?? 0L; })"
-                                             SearchFunc="@SearchUnits" ToStringFunc="@(u => u?.UnitName ?? "")"
-                                             Variant="Variant.Text" Dense="true" Required="true"
-                                             ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" AdornmentIcon="@Icons.Material.Filled.ArrowDropDown" />
+                            <SearchableSelect T="long?" Value="@itemContext.UnitId" ValueChanged="@((long? val) => { itemContext.UnitId = val; })" Variant="Variant.Text" Dense="true" Required="true" Items="@GetUnitSelects()" />
                         </MudTd>
                         <MudTd DataLabel="Price">
                             <MudNumericField @bind-Value="itemContext.UnitPrice" Variant="Variant.Text" Dense="true" Format="N2" />
@@ -100,13 +90,7 @@
                             <MudDatePicker Editable="true" DateFormat="dd/MM/yyyy" Placeholder="dd/MM/yyyy"                      @bind-Date="itemContext.ExpiryDate" Variant="Variant.Text" Dense="true" />
                         </MudTd>
                         <MudTd DataLabel="Warehouse">
-                            <MudAutocomplete Clearable="true"          MaxItems="1000" T="WarehouseLookupDto" 
-                                             Value="@(_warehouses.FirstOrDefault(x => x.WarehouseId == itemContext.WarehouseId))"
-                                             ValueChanged="@((WarehouseLookupDto val) => { itemContext.WarehouseId = val?.WarehouseId; })"
-                                             Variant="Variant.Text" Dense="true"
-                                             SearchFunc="@SearchWarehouses"
-                                             ToStringFunc="@(x => x?.WarehouseName ?? "")"
-                                             ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
+                            <SearchableSelect T="long?" Value="@itemContext.WarehouseId" ValueChanged="@((long? val) => { itemContext.WarehouseId = val; })" Variant="Variant.Text" Dense="true" Items="@GetWarehouseSelects()" />
                         </MudTd>
                         <MudTd Style="text-align: center;">
                             <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => RemoveRow(itemContext))" />
@@ -242,37 +226,62 @@
         }
     }
 
-    private async Task<IEnumerable<AccountLookupDto>> SearchVendors(string value, CancellationToken token)
+    private void OnVendorChanged(AccountLookupDto? val)
     {
-        if (string.IsNullOrEmpty(value)) return _vendors;
-        return _vendors.Where(x => x.AccountName?.Contains(value, StringComparison.OrdinalIgnoreCase) == true);
+        _selectedVendor = val;
     }
 
-    private async Task<IEnumerable<PurchaseOrderDto>> SearchPOs(string value, CancellationToken token)
+    private void OnPoChanged(PurchaseOrderDto? val)
     {
-        if (string.IsNullOrEmpty(value)) return _pendingPOs;
-        return _pendingPOs.Where(x => x.VoucherNumber?.Contains(value, StringComparison.OrdinalIgnoreCase) == true);
+        _selectedPO = val;
     }
 
-    private async Task<IEnumerable<RawMaterialDto>> SearchItems(string value, CancellationToken token)
+    private IEnumerable<SearchableSelect<AccountLookupDto>.SelectItemDto<AccountLookupDto>> GetVendorSelects()
     {
-        if (string.IsNullOrEmpty(value)) return _allItems;
-        return _allItems.Where(x => x.ItemName?.Contains(value, StringComparison.OrdinalIgnoreCase) == true);
+        return _vendors.Select(x => new SearchableSelect<AccountLookupDto>.SelectItemDto<AccountLookupDto>
+        {
+            Value = x,
+            Text = x.AccountName ?? ""
+        });
     }
 
-    private async Task<IEnumerable<UnitLookupDto>> SearchUnits(string value, CancellationToken token)
+    private IEnumerable<SearchableSelect<PurchaseOrderDto>.SelectItemDto<PurchaseOrderDto>> GetPoSelects()
     {
-        if (string.IsNullOrEmpty(value)) return _units;
-        return _units.Where(x => x.UnitName?.Contains(value, StringComparison.OrdinalIgnoreCase) == true);
+        return _pendingPOs.Select(x => new SearchableSelect<PurchaseOrderDto>.SelectItemDto<PurchaseOrderDto>
+        {
+            Value = x,
+            Text = x.VoucherNumber ?? ""
+        });
     }
 
-    private async Task<IEnumerable<WarehouseLookupDto>> SearchWarehouses(string value, CancellationToken token)
+    private IEnumerable<SearchableSelect<RawMaterialDto>.SelectItemDto<RawMaterialDto>> GetItemSelects()
     {
-        if (string.IsNullOrEmpty(value)) return _warehouses;
-        return _warehouses.Where(x => x.WarehouseName?.Contains(value, StringComparison.OrdinalIgnoreCase) == true);
+        return _allItems.Select(x => new SearchableSelect<RawMaterialDto>.SelectItemDto<RawMaterialDto>
+        {
+            Value = x,
+            Text = x.ItemName ?? ""
+        });
     }
 
-    private RawMaterialDto? GetItemById(long id) => _allItems.FirstOrDefault(x => x.ItemId == id);
+    private IEnumerable<SearchableSelect<long?>.SelectItemDto<long?>> GetUnitSelects()
+    {
+        return _units.Select(x => new SearchableSelect<long?>.SelectItemDto<long?>
+        {
+            Value = (long?)x.UnitId,
+            Text = x.UnitName ?? ""
+        });
+    }
+
+    private IEnumerable<SearchableSelect<long?>.SelectItemDto<long?>> GetWarehouseSelects()
+    {
+        return _warehouses.Select(x => new SearchableSelect<long?>.SelectItemDto<long?>
+        {
+            Value = (long?)x.WarehouseId,
+            Text = x.WarehouseName ?? ""
+        });
+    }
+
+    private RawMaterialDto? GetItemById(long? id) => id.HasValue ? _allItems.FirstOrDefault(x => x.ItemId == id.Value) : null;
 
     private void OnItemChanged(PurchaseItemDto row, RawMaterialDto? item)
     {
