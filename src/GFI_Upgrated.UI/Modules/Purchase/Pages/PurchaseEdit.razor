@@ -16,8 +16,8 @@
 <MudPaper Class="pa-4">
     <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
         <MudStack Spacing="0">
-            <MudText Typo="Typo.h5">@(Id == 0 ? "New Goods Receipt" : "Edit Goods Receipt")</MudText>
-            <MudText Typo="Typo.body2" Color="Color.Secondary">Record incoming goods and update inventory.</MudText>
+            <MudText Typo="Typo.h5">@(Id == 0 ? "Add Purchase" : "Edit Purchase")</MudText>
+            @* <MudText Typo="Typo.body2" Color="Color.Secondary">Record incoming goods and update inventory.</MudText> *@
         </MudStack>
         <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.ArrowBack" OnClick="OnBack">Back to List</MudButton>
     </MudStack>
@@ -29,25 +29,28 @@
                 <MudTextField @bind-Value="_model.VoucherNumber" Label="Voucher Number" Variant="Variant.Outlined" Required="true" For="@(() => _model.VoucherNumber)" />
             </MudItem>
             <MudItem xs="12" md="3">
-                <MudAutocomplete Clearable="true"          MaxItems="1000" T="AccountLookupDto" Label="Supplier" @bind-Value="_selectedVendor" SearchFunc="@SearchVendors"
+                <MudAutocomplete Clearable="true"  MaxItems="1000" T="AccountLookupDto" Label="Supplier" @bind-Value="_selectedVendor" SearchFunc="@SearchVendors"
                                  ToStringFunc="@(a => a?.AccountName ?? "")" Variant="Variant.Outlined" Required="true" />
             </MudItem>
-            <MudItem xs="12" md="3">
-                <MudAutocomplete Clearable="true"          MaxItems="1000" T="PurchaseOrderDto" Label="Link PO" @bind-Value="_selectedPO" SearchFunc="@SearchPOs"
-                                 ToStringFunc="@(p => p?.VoucherNumber ?? "")" Variant="Variant.Outlined" />
-            </MudItem>
+           
             <MudItem xs="12" md="3">
                 <MudDatePicker Editable="true" DateFormat="dd/MM/yyyy" Placeholder="dd/MM/yyyy"                      Label="Received Date (DD/MM/YYYY)" @bind-Date="_model.GoodsRecievedDate" Variant="Variant.Outlined" For="@(() => _model.GoodsRecievedDate)" />
             </MudItem>
-
+            <MudItem xs="12" md="3">
+                <MudDatePicker Editable="true" DateFormat="dd/MM/yyyy" Placeholder="dd/MM/yyyy" Label="Invoice Date (DD/MM/YYYY)" @bind-Date="_model.InvoiceDate" Variant="Variant.Outlined" />
+            </MudItem>
             <MudItem xs="12" md="3">
                 <MudTextField @bind-Value="_model.InvoiceNo" Label="Invoice Number" Variant="Variant.Outlined" />
             </MudItem>
-            <MudItem xs="12" md="3">
-                <MudDatePicker Editable="true" DateFormat="dd/MM/yyyy" Placeholder="dd/MM/yyyy"                      Label="Invoice Date (DD/MM/YYYY)" @bind-Date="_model.InvoiceDate" Variant="Variant.Outlined"  />
+
+             <MudItem xs="12" md="3">
+                <MudAutocomplete Clearable="true"          MaxItems="1000" T="PurchaseOrderDto" Label="Link PO" @bind-Value="_selectedPO" SearchFunc="@SearchPOs"
+                                 ToStringFunc="@(p => p?.VoucherNumber ?? "")" Variant="Variant.Outlined" />
             </MudItem>
+
+           
             <MudItem xs="12" md="6">
-                <MudTextField @bind-Value="_model.Narration" Label="Narration / Remarks" Variant="Variant.Outlined" />
+                <MudTextField @bind-Value="_model.Narration" Label="Remarks" Variant="Variant.Outlined" />
             </MudItem>
 
             <!-- Items Section -->
@@ -64,8 +67,8 @@
                         <MudTh Style="width: 100px;">Qty</MudTh>
                         <MudTh Style="width: 120px;">Unit</MudTh>
                         <MudTh Style="width: 120px;">Price</MudTh>
-                        <MudTh>Batch #</MudTh>
-                        <MudTh>Expiry</MudTh>
+                        <MudTh>Batch No.</MudTh>
+                        <MudTh>Expiry Date</MudTh>
                         <MudTh>Warehouse</MudTh>
                         <MudTh Style="text-align: center; width: 60px;">Action</MudTh>
                     </HeaderContent>

@@ -12,7 +12,7 @@
 
 <MudPaper Class="pa-4">
     <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
-        <MudText Typo="Typo.h5">Goods Receipts (Purchase)</MudText>
+        <MudText Typo="Typo.h5">Goods Purchased</MudText>
         <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OnAddNew" Disabled="!_canInsert">
             Record New Receipt
         </MudButton>
@@ -25,18 +25,22 @@
 
     <MudTable RowsPerPage="25" T="PurchaseDto" @ref="_table" ServerData="LoadServerDataAsync" Hover="true" Dense="true" Striped="true" Bordered="true" Loading="_loading">
         <HeaderContent>
+            <MudTh>Supplier</MudTh>
+            <MudTh><MudTableSortLabel SortLabel="GoodsRecievedDate" T="PurchaseDto">Received Date</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel SortLabel="VoucherNumber" T="PurchaseDto">Voucher #</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel SortLabel="InvoiceNo" T="PurchaseDto">Invoice #</MudTableSortLabel></MudTh>
-            <MudTh><MudTableSortLabel SortLabel="GoodsRecievedDate" T="PurchaseDto">Received Date</MudTableSortLabel></MudTh>
-            <MudTh>Vendor</MudTh>
+           
+          
             <MudTh>Total Amount</MudTh>
             <MudTh Style="text-align: center; width: 120px;">Action</MudTh>
         </HeaderContent>
         <RowTemplate>
+            <MudTd DataLabel="Supplier">@context.VendorName</MudTd>
+            <MudTd DataLabel="Received Date">@context.GoodsRecievedDate?.ToString("dd/MM/yyyy")</MudTd>
             <MudTd DataLabel="Voucher #">@context.VoucherNumber</MudTd>
             <MudTd DataLabel="Invoice #">@context.InvoiceNo</MudTd>
-            <MudTd DataLabel="Received Date">@context.GoodsRecievedDate?.ToString("dd/MM/yyyy")</MudTd>
-            <MudTd DataLabel="Vendor">@context.VendorName</MudTd>
+           
+           
             <MudTd DataLabel="Total Amount">@context.TotalAmount.ToString("N2")</MudTd>
             <MudTd DataLabel="Action" Style="text-align: center;">
                 <MudStack Row="true" Justify="Justify.Center" Spacing="1">
