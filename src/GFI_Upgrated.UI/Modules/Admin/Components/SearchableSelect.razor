@@ -1,0 +1,156 @@
+@typeparam T
+
+<MudMenu AnchorOrigin="@AnchorOrigin" TransformOrigin="Origin.TopCenter" LockScroll="true" Dense="true" Style="width: 100%; display: block;" Class="w-full">
+    <ActivatorContent>
+        <div @onclick="@context.ToggleAsync" style="cursor: pointer; display: block; width: 100%;">
+            <MudTextField T="string"
+                          Label="@Label"
+                          Value="@GetSelectedText()"
+                          Variant="@Variant"
+                          ReadOnly="true"
+                          Disabled="@Disabled"
+                          Required="@Required"
+                          Clearable="@Clearable"
+                          OnClearButtonClick="OnClear"
+                          Adornment="Adornment.End"
+                          AdornmentIcon="@Icons.Material.Filled.ArrowDropDown"
+                          Style="pointer-events: none;"
+                          Margin="@(Dense ? Margin.Dense : Margin.None)"
+                          Class="w-full" />
+        </div>
+    </ActivatorContent>
+    <ChildContent>
+        <div style="width: 300px; max-height: 450px; display: flex; flex-direction: column;">
+            <div class="px-4 py-2 sticky-top bg-white" style="position: sticky; top: 0; z-index: 1000; background: white;">
+                <MudTextField T="string"
+                              Placeholder="Search..."
+                              Value="@_searchString"
+                              ValueChanged="OnSearchChanged"
+                              Immediate="true"
+                              Clearable="true"
+                              Adornment="Adornment.Start"
+                              AdornmentIcon="@Icons.Material.Filled.Search" />
+            </div>
+            <div style="overflow-y: auto; max-height: 350px;">
+                @if (MultiSelection)
+                {
+                    @foreach (var item in GetFilteredItems())
+                    {
+                        <div class="px-4 py-1 hover:bg-gray-100 d-flex align-center cursor-pointer" @onclick="@(() => ToggleMultiSelect(item.Value))">
+                            <MudCheckBox T="bool"
+                                         Value="@IsItemSelected(item.Value)"
+                                         ValueChanged="@((bool val) => ToggleMultiSelect(item.Value))"
+                                         Label="@item.Text"
+                                         Color="Color.Primary"
+                                         Class="m-0 pointer-events-none" />
+                        </div>
+                    }
+                }
+                else
+                {
+                    @foreach (var item in GetFilteredItems())
+                    {
+                        <MudMenuItem OnClick="@(() => SelectItem(item))">
+                            @item.Text
+                        </MudMenuItem>
+                    }
+                }
+            </div>
+        </div>
+    </ChildContent>
+</MudMenu>
+
+@code {
+    [Parameter] public string? Label { get; set; }
+    [Parameter] public T? Value { get; set; }
+    [Parameter] public EventCallback<T> ValueChanged { get; set; }
+    [Parameter] public Variant Variant { get; set; } = Variant.Outlined;
+    [Parameter] public Origin AnchorOrigin { get; set; } = Origin.BottomCenter;
+    [Parameter] public bool Required { get; set; }
+    [Parameter] public bool Disabled { get; set; }
+    [Parameter] public bool Dense { get; set; }
+    [Parameter] public bool MultiSelection { get; set; }
+    [Parameter] public IReadOnlyCollection<T>? SelectedValues { get; set; }
+    [Parameter] public EventCallback<IReadOnlyCollection<T>> SelectedValuesChanged { get; set; }
+    [Parameter] public Func<System.Collections.Generic.IEnumerable<string>, string>? MultiSelectionTextFunc { get; set; }
+    [Parameter] public bool Clearable { get; set; }
+
+    [Parameter] public IEnumerable<SelectItemDto<T>> Items { get; set; } = Array.Empty<SelectItemDto<T>>();
+
+    private string _searchString = "";
+
+    private void OnSearchChanged(string search)
+    {
+        _searchString = search;
+    }
+
+    private IEnumerable<SelectItemDto<T>> GetFilteredItems()
+    {
+        if (string.IsNullOrWhiteSpace(_searchString)) return Items;
+        return Items.Where(x => (x.Text ?? "").Contains(_searchString, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private string GetSelectedText()
+    {
+        if (MultiSelection)
+        {
+            if (SelectedValues == null || !SelectedValues.Any()) return "";
+            var texts = Items.Where(x => SelectedValues.Contains(x.Value)).Select(x => x.Text);
+            if (MultiSelectionTextFunc != null)
+            {
+                return MultiSelectionTextFunc(texts);
+            }
+            return string.Join(", ", texts);
+        }
+
+        var selectedItem = Items.FirstOrDefault(x => EqualityComparer<T>.Default.Equals(x.Value, Value));
+        return selectedItem?.Text ?? "";
+    }
+
+    private async Task SelectItem(SelectItemDto<T> item)
+    {
+        Value = item.Value;
+        await ValueChanged.InvokeAsync(item.Value);
+    }
+
+    private bool IsItemSelected(T? val)
+    {
+        if (SelectedValues == null) return false;
+        return SelectedValues.Contains(val);
+    }
+
+    private async Task ToggleMultiSelect(T? val)
+    {
+        var current = SelectedValues != null ? new List<T>(SelectedValues) : new List<T>();
+        if (current.Contains(val!))
+        {
+            current.Remove(val!);
+        }
+        else
+        {
+            current.Add(val!);
+        }
+        SelectedValues = current.AsReadOnly();
+        await SelectedValuesChanged.InvokeAsync(SelectedValues);
+    }
+
+    private async Task OnClear()
+    {
+        if (MultiSelection)
+        {
+            SelectedValues = Array.Empty<T>();
+            await SelectedValuesChanged.InvokeAsync(SelectedValues);
+        }
+        else
+        {
+            Value = default;
+            await ValueChanged.InvokeAsync(default);
+        }
+    }
+
+    public class SelectItemDto<TItem>
+    {
+        public TItem? Value { get; set; }
+        public string Text { get; set; } = string.Empty;
+    }
+}

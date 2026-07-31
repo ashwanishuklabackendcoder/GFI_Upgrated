@@ -28,22 +28,15 @@
 
     <MudGrid Class="mb-4 no-print" Spacing="2">
         <MudItem xs="12" md="3">
-            <MudSelect T="long?" @bind-Value="_selectedStockById" Label="Stock From" Variant="Variant.Outlined" Clearable="true" AnchorOrigin="Origin.BottomCenter">
-                <MudSelectItem Value="@((long?)null)">All Sources</MudSelectItem>
-                <MudSelectItem Value="@((long?)1)">Purchase</MudSelectItem>
-                <MudSelectItem Value="@((long?)2)">Pre-Processing</MudSelectItem>
-                <MudSelectItem Value="@((long?)3)">Opening Stock</MudSelectItem>
-            </MudSelect>
+            <SearchableSelect T="long?" Label="Stock From" Value="@_selectedStockById" ValueChanged="@((long? val) => { _selectedStockById = val; })" Variant="Variant.Outlined" Items="@GetStockFromSelects()" />
+        </MudItem>
+        <MudItem xs="12" md="4">
+            <SearchableSelect T="RawMaterialDto" Label="Select Item" Value="@_selectedItem" ValueChanged="@((RawMaterialDto val) => { _selectedItem = val; })" Variant="Variant.Outlined" Items="@GetItemSelects()" />
         </MudItem>
         <MudItem xs="12" md="3">
-            <MudAutocomplete Clearable="true"           MaxItems="1000" T="RawMaterialDto" Label="Select Item" @bind-Value="_selectedItem" SearchFunc="@SearchItems"
-                             ToStringFunc="@(i => i?.ItemName ?? "")" Variant="Variant.Outlined"  
-                             Placeholder="Search items..." AdornmentIcon="@Icons.Material.Filled.Search" />
+            <MudTextField T="string" ValueChanged="OnSearchTextChanged" Label="Search Keyword" Variant="Variant.Outlined" Placeholder="Search by keywords" Clearable="true" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" />
         </MudItem>
-        <MudItem xs="12" md="3">
-            <MudTextField T="string" ValueChanged="OnSearchTextChanged" Label="Search Keyword" Variant="Variant.Outlined" Placeholder="Search all columns..." Clearable="true" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" />
-        </MudItem>
-        <MudItem xs="12" md="3" Class="d-flex align-end">
+        <MudItem xs="12" md="2" Class="d-flex align-end">
             <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="OnSearch" FullWidth="true" Class="py-3">
                 Search
             </MudButton>
@@ -67,26 +60,27 @@
         <HeaderContent>
             <MudTh><MudTableSortLabel SortLabel="ItemStockByBatchId" T="ItemStockByBatchReportDto">ID</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel SortLabel="ItemName" T="ItemStockByBatchReportDto">Item Name</MudTableSortLabel></MudTh>
-            <MudTh Style="text-align: right;"><MudTableSortLabel SortLabel="Quantity" T="ItemStockByBatchReportDto">Quantity</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel SortLabel="BatchNo" T="ItemStockByBatchReportDto">Batch No.</MudTableSortLabel></MudTh>
-            <MudTh><MudTableSortLabel SortLabel="WarehouseName" T="ItemStockByBatchReportDto">Warehouse</MudTableSortLabel></MudTh>
+            <MudTh Style="text-align: right;"><MudTableSortLabel SortLabel="Quantity" T="ItemStockByBatchReportDto">Quantity</MudTableSortLabel></MudTh>
             <MudTh Style="text-align: right;"><MudTableSortLabel SortLabel="FinalQuantityLeft" T="ItemStockByBatchReportDto">Final Quantity</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel SortLabel="ExpiryDate" T="ItemStockByBatchReportDto">Expiry Date</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel SortLabel="StockById" T="ItemStockByBatchReportDto">Stock From</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel SortLabel="WarehouseName" T="ItemStockByBatchReportDto">Warehouse</MudTableSortLabel></MudTh>
         </HeaderContent>
+
         <RowTemplate>
             <MudTd DataLabel="ID">@context.ItemStockByBatchId</MudTd>
             <MudTd DataLabel="Item Name">@context.ItemName</MudTd>
-            <MudTd DataLabel="Quantity" Style="text-align: right;">@context.Quantity.ToString("N2") @context.UnitName</MudTd>
             <MudTd DataLabel="Batch No.">@context.BatchNo</MudTd>
-            <MudTd DataLabel="Warehouse">@context.WarehouseName</MudTd>
-            <MudTd DataLabel="Final Quantity" Style="text-align: right;">@context.FinalQuantityLeft.ToString("N2")</MudTd>
+            <MudTd DataLabel="Quantity" Style="text-align: right;">@context.Quantity.ToString("N2") @context.UnitName</MudTd>         
+            <MudTd DataLabel="Quantity Left" Style="text-align: right;">@context.FinalQuantityLeft.ToString("N2")</MudTd>
             <MudTd DataLabel="Expiry Date">@context.ExpiryDate</MudTd>
             <MudTd DataLabel="Stock From">
                 <MudChip T="string" Color="@(context.StockById == 1 ? Color.Info : context.StockById == 2 ? Color.Warning : Color.Success)" Size="Size.Small">
                     @(context.StockById == 1 ? "Purchase" : context.StockById == 2 ? "PreProcessing" : context.StockById == 3 ? "Opening Stock" : "Unknown")
                 </MudChip>
             </MudTd>
+            <MudTd DataLabel="Warehouse">@context.WarehouseName</MudTd>
         </RowTemplate>
         <PagerContent>
             <MudTablePager Class="no-print" />
@@ -135,10 +129,24 @@
         }
     }
 
-    private async Task<IEnumerable<RawMaterialDto>> SearchItems(string value, CancellationToken token)
+    private IEnumerable<SearchableSelect<long?>.SelectItemDto<long?>> GetStockFromSelects()
     {
-        if (string.IsNullOrEmpty(value)) return _items;
-        return _items.Where(x => x.ItemName?.Contains(value, StringComparison.OrdinalIgnoreCase) == true);
+        return new List<SearchableSelect<long?>.SelectItemDto<long?>>
+        {
+            new() { Value = null, Text = "All Sources" },
+            new() { Value = 1, Text = "Purchase" },
+            new() { Value = 2, Text = "Pre-Processing" },
+            new() { Value = 3, Text = "Opening Stock" }
+        };
+    }
+
+    private IEnumerable<SearchableSelect<RawMaterialDto>.SelectItemDto<RawMaterialDto>> GetItemSelects()
+    {
+        return (_items ?? new List<RawMaterialDto>()).Select(x => new SearchableSelect<RawMaterialDto>.SelectItemDto<RawMaterialDto>
+        {
+            Value = x,
+            Text = x.ItemName ?? ""
+        });
     }
 
     private async Task<TableData<ItemStockByBatchReportDto>> LoadServerDataAsync(TableState state, CancellationToken cancellationToken)

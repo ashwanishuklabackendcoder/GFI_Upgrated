@@ -25,23 +25,18 @@
         </MudMenu>
     </MudStack>
 
-    <MudGrid Class="mb-4 no-print" Spacing="2" Style="max-width: 900px;">
+    <MudGrid Class="mb-4 no-print" Spacing="2">
         <MudItem xs="12" md="3">
-            <MudAutocomplete Clearable="true"      MaxItems="1000" T="RawMaterialDto" Label="Select Item" @bind-Value="_selectedItem" SearchFunc="@SearchItems"
-                             ToStringFunc="@(i => i?.ItemName ?? "")" Variant="Variant.Outlined"  
-                             Placeholder="Search items..." AdornmentIcon="@Icons.Material.Filled.Search" />
+            <SearchableSelect T="int?" Label="Item Type" Value="@_selectedItemTypeId" ValueChanged="@((int? val) => { _selectedItemTypeId = val; })" Variant="Variant.Outlined" Items="@GetItemTypeSelects()" />
+        </MudItem>
+        <MudItem xs="12" md="4">
+            <SearchableSelect T="RawMaterialDto" Label="Select Item" Value="@_selectedItem" ValueChanged="@((RawMaterialDto val) => { _selectedItem = val; })" Variant="Variant.Outlined" Items="@GetItemSelects()" />
         </MudItem>
         <MudItem xs="12" md="3">
-            <MudAutocomplete Clearable="true"      MaxItems="1000" T="WarehouseDto" Label="Warehouse" Value="@(_warehouses.FirstOrDefault(x => x.WarehouseId == _selectedWarehouseId))" ValueChanged="@((WarehouseDto val) => { _selectedWarehouseId = val?.WarehouseId; })" SearchFunc="@SearchWarehouses" ToStringFunc="@(x => x?.WarehouseName ?? "")" Variant="Variant.Outlined"  ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
+            <SearchableSelect T="long?" Label="Warehouse" Value="@_selectedWarehouseId" ValueChanged="@((long? val) => { _selectedWarehouseId = val; })" Variant="Variant.Outlined" Items="@GetWarehouseSelects()" />
         </MudItem>
-        <MudItem xs="12" md="3">
-            <MudSelect T="int?" Label="Item Type" @bind-Value="_selectedItemTypeId" Variant="Variant.Outlined" Clearable="true">
-                <MudSelectItem T="int?" Value="@((int)MasterItemType.RawMaterial)">Raw Material</MudSelectItem>
-                <MudSelectItem T="int?" Value="@((int)MasterItemType.SemiFinished)">Semi-Finished Product</MudSelectItem>
-                <MudSelectItem T="int?" Value="@((int)MasterItemType.FinishedProduct)">Finished Product</MudSelectItem>
-            </MudSelect>
-        </MudItem>
-        <MudItem xs="12" md="3" Class="d-flex align-end">
+      
+        <MudItem xs="12" md="2" Class="d-flex align-end">
             <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="OnSearch" FullWidth="true" Class="py-3">
                 Search
             </MudButton>
@@ -64,26 +59,26 @@
 
     <MudTable RowsPerPage="25" T="ItemStockReportDto" @ref="_table" ServerData="LoadServerDataAsync" Hover="true" Dense="true" Striped="true" Bordered="true" Loading="_loading">
         <HeaderContent>
-            <MudTh><MudTableSortLabel SortLabel="StockID" T="ItemStockReportDto">Stock ID</MudTableSortLabel></MudTh>
+            <MudTh Style="display:none;"><MudTableSortLabel SortLabel="StockID" T="ItemStockReportDto">Stock ID</MudTableSortLabel></MudTh>
             <MudTh>Item Name</MudTh>
             <MudTh>Warehouse Name</MudTh>
-            <MudTh Style="text-align: right;">Opening Qty</MudTh>
-            <MudTh Style="text-align: right;">Purchased Qty</MudTh>
-            <MudTh Style="text-align: right;">Issued Qty</MudTh>
-            <MudTh Style="text-align: right;">Removed Qty</MudTh>
+            <MudTh Style="text-align: right;">Opening Qty.</MudTh>
+            <MudTh Style="text-align: right;">Purchased Qty.</MudTh>
+            <MudTh Style="text-align: right;">Issued Qty.</MudTh>
+            <MudTh Style="text-align: right;">Removed Qty.</MudTh>
             <MudTh Style="text-align: right;">Final Stock</MudTh>
-            <MudTh Style="text-align: right;">Stock Value</MudTh>
+            <MudTh Style="text-align: right;">SRD</MudTh>
         </HeaderContent>
         <RowTemplate>
-            <MudTd DataLabel="Stock ID">@context.StockID</MudTd>
-            <MudTd DataLabel="Item Name">@context.ItemName</MudTd>
-            <MudTd DataLabel="Warehouse Name">@context.WarehouseName</MudTd>
+            <MudTd DataLabel="Stock ID" Style="display:none;">@context.StockID</MudTd>
+            <MudTd DataLabel="Item">@context.ItemName</MudTd>
+            <MudTd DataLabel="Warehouse">@context.WarehouseName</MudTd>
             <MudTd DataLabel="Opening Qty" Style="text-align: right;">@FormatQty(context.OpeningQuantity, context.UnitId)</MudTd>
             <MudTd DataLabel="Purchased Qty" Style="text-align: right;">@FormatQty(context.PurchasedQuantity, context.UnitId)</MudTd>
             <MudTd DataLabel="Issued Qty" Style="text-align: right;">@FormatQty(context.IssuedQuantity, context.UnitId)</MudTd>
             <MudTd DataLabel="Removed Qty" Style="text-align: right;">@FormatQty(context.RemovedQuantity, context.UnitId)</MudTd>
             <MudTd DataLabel="Final Stock" Style="text-align: right; font-weight: bold;">@FormatQty(context.FinalStock, context.UnitId)</MudTd>
-            <MudTd DataLabel="Stock Value" Style="text-align: right; font-weight: bold;">@FormatAmount(context.TotalValue) SRD</MudTd>
+            <MudTd DataLabel="Stock Value" Style="text-align: right; font-weight: bold;">@FormatAmount(context.TotalValue)</MudTd>
         </RowTemplate>
         <PagerContent>
             <MudTablePager Class="no-print" />
@@ -160,10 +155,23 @@
         }
     }
 
-    private async Task<IEnumerable<RawMaterialDto>> SearchItems(string value, CancellationToken token)
+    private IEnumerable<SearchableSelect<int?>.SelectItemDto<int?>> GetItemTypeSelects()
     {
-        if (string.IsNullOrEmpty(value)) return _items;
-        return _items.Where(x => x.ItemName?.Contains(value, StringComparison.OrdinalIgnoreCase) == true);
+        return new List<SearchableSelect<int?>.SelectItemDto<int?>>
+        {
+            new() { Value = (int)MasterItemType.RawMaterial, Text = "Raw Material" },
+            new() { Value = (int)MasterItemType.SemiFinished, Text = "Semi-Finished Product" },
+            new() { Value = (int)MasterItemType.FinishedProduct, Text = "Finished Product" }
+        };
+    }
+
+    private IEnumerable<SearchableSelect<RawMaterialDto>.SelectItemDto<RawMaterialDto>> GetItemSelects()
+    {
+        return (_items ?? new List<RawMaterialDto>()).Select(x => new SearchableSelect<RawMaterialDto>.SelectItemDto<RawMaterialDto>
+        {
+            Value = x,
+            Text = x.ItemName ?? ""
+        });
     }
 
     private async Task<TableData<ItemStockReportDto>> LoadServerDataAsync(TableState state, CancellationToken cancellationToken)
@@ -284,15 +292,13 @@
         await JS.InvokeVoidAsync("window.print");
     }
 
-    private async Task<IEnumerable<WarehouseDto>> SearchWarehouses(string value, CancellationToken token)
+    private IEnumerable<SearchableSelect<long?>.SelectItemDto<long?>> GetWarehouseSelects()
     {
-        if (string.IsNullOrEmpty(value) || _warehouses.Any(x => (x.WarehouseName ?? "").Equals(value, StringComparison.OrdinalIgnoreCase))) return _warehouses;
-        return _warehouses.Where(x => (x.WarehouseName ?? "").Contains(value, StringComparison.OrdinalIgnoreCase));
-    }
-    private async Task<IEnumerable<UnitDto>> SearchUnits(string value, CancellationToken token)
-    {
-        if (string.IsNullOrEmpty(value) || _units.Any(x => (x.UnitName ?? "").Equals(value, StringComparison.OrdinalIgnoreCase))) return _units;
-        return _units.Where(x => (x.UnitName ?? "").Contains(value, StringComparison.OrdinalIgnoreCase));
+        return (_warehouses ?? new List<WarehouseDto>()).Select(x => new SearchableSelect<long?>.SelectItemDto<long?>
+        {
+            Value = (long?)x.WarehouseId,
+            Text = x.WarehouseName ?? ""
+        });
     }
 }
 

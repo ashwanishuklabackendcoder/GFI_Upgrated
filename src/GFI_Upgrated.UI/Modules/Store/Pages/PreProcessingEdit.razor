@@ -25,12 +25,7 @@
         <DataAnnotationsValidator />
         <MudGrid>
             <MudItem xs="12" md="6">
-                <MudAutocomplete Clearable="true"           MaxItems="1000" T="BomLookupDto" Label="Select BOM" 
-                                 Value="@(_boms.FirstOrDefault(x => x.BomId == _editor.BomId))" 
-                                 ValueChanged="@OnBomChanged" 
-                                 SearchFunc="@SearchBoms" ToStringFunc="@(x => x?.BomName ?? "")"
-                                 Variant="Variant.Outlined" Required="true" 
-                                 ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
+                <SearchableSelect T="long" Label="Select BOM" Value="@_editor.BomId" ValueChanged="OnBomIdChanged" Variant="Variant.Outlined" Required="true" Items="@GetBomSelects()" />
             </MudItem>
             <MudItem xs="12" md="6">
                 <MudNumericField @bind-Value="_editor.BomQty" Label="BOM Quantity" Variant="Variant.Outlined" Min="1" />
@@ -43,12 +38,7 @@
                 <MudNumericField @bind-Value="_editor.QuantityMade" Label="Actual Quantity Made" Min="1" Variant="Variant.Outlined" />
             </MudItem>
             <MudItem xs="12" md="4">
-                <MudAutocomplete Clearable="true"           MaxItems="1000" T="UnitLookupDto" Label="Unit" 
-                                 Value="@(_units.FirstOrDefault(x => x.UnitId == _editor.UnitMade))" 
-                                 ValueChanged="@((UnitLookupDto val) => { _editor.UnitMade = val?.UnitId ?? 0; })" 
-                                 SearchFunc="@SearchUnits" ToStringFunc="@(x => x?.UnitName ?? "")"
-                                 Variant="Variant.Outlined" 
-                                 ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
+                <SearchableSelect T="long" Label="Unit" Value="@_editor.UnitMade" ValueChanged="@((long val) => { _editor.UnitMade = val; })" Variant="Variant.Outlined" Items="@GetUnitSelects()" />
             </MudItem>
 
             <MudItem xs="12" md="6">
@@ -59,12 +49,7 @@
             </MudItem>
 
             <MudItem xs="12" md="6">
-                <MudAutocomplete Clearable="true"           MaxItems="1000" T="WarehouseLookupDto" Label="Storage Warehouse" 
-                                 Value="@(_warehouses.FirstOrDefault(x => x.WarehouseId == _editor.WarehouseId))" 
-                                 ValueChanged="@((WarehouseLookupDto val) => { _editor.WarehouseId = val?.WarehouseId ?? 0; })" 
-                                 SearchFunc="@SearchWarehouses" ToStringFunc="@(x => x?.WarehouseName ?? "")"
-                                 Variant="Variant.Outlined" Required="true" 
-                                 ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
+                <SearchableSelect T="long" Label="Storage Warehouse" Value="@_editor.WarehouseId" ValueChanged="@((long val) => { _editor.WarehouseId = val; })" Variant="Variant.Outlined" Required="true" Items="@GetWarehouseSelects()" />
             </MudItem>
             <MudItem xs="12" md="6">
                 <MudTextField @bind-Value="_editor.ProcessEmployees" Label="Process Employees (CSV)" Variant="Variant.Outlined" />
@@ -235,10 +220,56 @@
         return filtered.Where(x => x.UnitName?.Contains(value, StringComparison.OrdinalIgnoreCase) == true);
     }
 
-    private async Task<IEnumerable<WarehouseLookupDto>> SearchWarehouses(string value, CancellationToken token)
+    private async Task OnBomIdChanged(long bomId)
     {
-        if (string.IsNullOrEmpty(value)) return _warehouses;
-        return _warehouses.Where(x => x.WarehouseName?.Contains(value, StringComparison.OrdinalIgnoreCase) == true);
+        var val = _boms.FirstOrDefault(x => x.BomId == bomId);
+        _editor.BomId = bomId;
+        if (val != null)
+        {
+            var bomDetails = await ApiClient.GetBomByIdAsync(val.BomId);
+            if (bomDetails != null)
+            {
+                _selectedBomUnitId = bomDetails.UnitId;
+                _editor.UnitMade = bomDetails.UnitId;
+            }
+        }
+        else
+        {
+            _selectedBomUnitId = null;
+            _editor.UnitMade = 0;
+        }
+    }
+
+    private IEnumerable<SearchableSelect<long>.SelectItemDto<long>> GetBomSelects()
+    {
+        return _boms.Select(x => new SearchableSelect<long>.SelectItemDto<long>
+        {
+            Value = x.BomId,
+            Text = x.BomName ?? ""
+        });
+    }
+
+    private IEnumerable<SearchableSelect<long>.SelectItemDto<long>> GetUnitSelects()
+    {
+        var baseList = _units.AsEnumerable();
+        if (_selectedBomUnitId != null && _selectedBomUnitId > 0)
+        {
+            baseList = _units.Where(x => x.UnitId == _selectedBomUnitId || x.BaseUnit == _selectedBomUnitId);
+        }
+        return baseList.Select(x => new SearchableSelect<long>.SelectItemDto<long>
+        {
+            Value = x.UnitId,
+            Text = x.UnitName ?? ""
+        });
+    }
+
+    private IEnumerable<SearchableSelect<long>.SelectItemDto<long>> GetWarehouseSelects()
+    {
+        return _warehouses.Select(x => new SearchableSelect<long>.SelectItemDto<long>
+        {
+            Value = x.WarehouseId,
+            Text = x.WarehouseName ?? ""
+        });
     }
 }
 

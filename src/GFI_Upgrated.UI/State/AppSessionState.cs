@@ -153,7 +153,9 @@ public sealed class AppSessionState
         { "admin/drop-down-editor", "drop-down-editor" },
         { "admin/drop-down-values", "drop-down-editor" },
         { "admin/drop-down", "drop-down-editor" },
-        { "admin/resource-editor", "resource-editor" }
+        { "admin/resource-editor", "resource-editor" },
+        { "acc/accountmaster", "customers-suppliers" },
+        { "acc/customer-supplier", "customers-suppliers" }
     };
 
     private string GetResourceKey(string route)

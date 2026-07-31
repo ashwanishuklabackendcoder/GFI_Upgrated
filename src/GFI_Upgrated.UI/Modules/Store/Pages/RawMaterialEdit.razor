@@ -13,7 +13,7 @@
     <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
         <MudStack Spacing="0">
             <MudText Typo="Typo.h5">@(Id == 0 ? "New Raw Material" : "Edit Raw Material")</MudText>
-            <MudText Typo="Typo.body2" Color="Color.Secondary">Manage master item details and inventory settings.</MudText>
+            @* <MudText Typo="Typo.body2" Color="Color.Secondary">Manage master item details and inventory settings.</MudText> *@
         </MudStack>
         <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.ArrowBack" OnClick="OnBack">Back to List</MudButton>
     </MudStack>
@@ -39,27 +39,51 @@
                         <MudAutocomplete Clearable="true"           MaxItems="1000" T="ItemCategoryDto" Label="Category" Value="@(_categories.FirstOrDefault(x => x.ItemCatId == _model.ItemCatId))" ValueChanged="@((ItemCategoryDto val) => { _model.ItemCatId = val?.ItemCatId ?? 0; })" SearchFunc="@SearchCategories" ToStringFunc="@(x => x?.ItemCatName ?? "")" Variant="Variant.Outlined" Required="true" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
                         <ValidationMessage For="@(() => _model.ItemCatId)" />
                     </MudItem>
-                    <MudItem xs="12" md="4">
-                        <MudAutocomplete Clearable="true"           MaxItems="1000" T="ItemTypeDto" Label="Item Type" Value="@(_types.FirstOrDefault(x => x.ItemTypeId == _model.MasterItemTypeId))" ValueChanged="@((ItemTypeDto val) => { _model.MasterItemTypeId = val?.ItemTypeId; })" SearchFunc="@SearchTypes" ToStringFunc="@(x => x?.ItemTypeName ?? "")" Variant="Variant.Outlined" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
-                    </MudItem>
+                            <MudItem xs="12" md="4">
+                                <MudNumericField @bind-Value="_model.TentativeExpiryDays" Label="Tentative Expiry (Days)" Variant="Variant.Outlined" Min="0" />
+                            </MudItem>
                     <MudItem xs="12" md="4">
                         <MudAutocomplete Clearable="true"           MaxItems="1000" T="UnitDto" Label="Base Unit" Value="@(_units.FirstOrDefault(x => x.UnitId == _model.PurchaseUnit))" ValueChanged="@((UnitDto val) => { _model.PurchaseUnit = val?.UnitId ?? 0; })" SearchFunc="@SearchBaseUnits" ToStringFunc="@(x => x?.UnitName ?? "")" Variant="Variant.Outlined" Required="true" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
                     </MudItem>
 
-                    <MudItem xs="12" md="4">
+                   @*  <MudItem xs="12" md="4">
                         <MudAutocomplete Clearable="true"           MaxItems="1000" T="BrandDto" Label="Brand" Value="@(_brands.FirstOrDefault(x => x.BrandId == _model.BrandId))" ValueChanged="@((BrandDto val) => { _model.BrandId = val?.BrandId ?? 0; })" SearchFunc="@SearchBrands" ToStringFunc="@(x => x?.BrandName ?? "")" Variant="Variant.Outlined" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
-                    </MudItem>
-                    <MudItem xs="12" md="4">
-                        <MudAutocomplete Clearable="true"           MaxItems="1000" T="StatusDto" Label="Status" Value="@(_statuses.FirstOrDefault(x => x.StatusId == _model.StatusId))" ValueChanged="@((StatusDto val) => { _model.StatusId = (int)(val?.StatusId ?? 0); })" SearchFunc="@SearchStatuses" ToStringFunc="@(x => x?.StatusName ?? "")" Variant="Variant.Outlined" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
-                        <ValidationMessage For="@(() => _model.StatusId)" />
-                    </MudItem>
-                    <MudItem xs="12" md="4">
-                        <MudNumericField @bind-Value="_model.TentativeExpiryDays" Label="Tentative Expiry (Days)" Variant="Variant.Outlined" Min="0" />
+                    </MudItem> *@
+
+
+                      <MudItem xs="12" md="4">
+                        <MudAutocomplete Clearable="true" MaxItems="1000" T="BrandDto" Label="Brand" Value="@(_brands.FirstOrDefault(x => x.BrandId == _model.BrandId))" ValueChanged="@((BrandDto val) => { _model.BrandId = val?.BrandId ?? 0; })" SearchFunc="@SearchBrands" ToStringFunc="@(x => x?.BrandName ?? "")" Variant="Variant.Outlined" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
                     </MudItem>
 
-                    <MudItem xs="12">
+
+                    <MudItem xs="12" md="4">
+                        <MudAutocomplete Clearable="true"   MaxItems="1000" T="StatusDto" Label="Status" Value="@(_statuses.FirstOrDefault(x => x.StatusId == _model.StatusId))" ValueChanged="@((StatusDto val) => { _model.StatusId = (int)(val?.StatusId ?? 0); })" SearchFunc="@SearchStatuses" ToStringFunc="@(x => x?.StatusName ?? "")" Variant="Variant.Outlined" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
+                        <ValidationMessage For="@(() => _model.StatusId)" />
+                    </MudItem>
+                  
+                          @*   <MudItem xs="12" md="4">
+                                <MudAutocomplete Clearable="true" MaxItems="1000" T="ItemTypeDto" Label="Item Type" Value="@(_types.FirstOrDefault(x => x.ItemTypeId == _model.MasterItemTypeId))" ValueChanged="@((ItemTypeDto val) => { _model.MasterItemTypeId = val?.ItemTypeId; })" SearchFunc="@SearchTypes" ToStringFunc="@(x => x?.ItemTypeName ?? "")" Variant="Variant.Outlined" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
+                            </MudItem>
+ *@
+
+                             <MudItem xs="12" md="4">
+                                <MudAutocomplete Clearable="true" MaxItems="1000" T="ItemTypeDto" Label="Item Type"
+                                                 Value="@(_types.FirstOrDefault(x => x.ItemTypeId == _model.MasterItemTypeId))"
+                                                 ValueChanged="@((ItemTypeDto val) => { _model.MasterItemTypeId = val?.ItemTypeId; })"
+                                                 SearchFunc="@SearchTypes" ToStringFunc="@(x => x?.ItemTypeName ?? "")"
+                                                 Variant="Variant.Outlined"
+                                                 ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
+                            </MudItem>
+
+
+                       <MudItem xs="12">
                         <MudTextField @bind-Value="_model.Description" Label="Remarks" Variant="Variant.Outlined" Lines="2" />
                     </MudItem>
+
+                @*     <MudItem xs="12">
+                        <MudTextField @bind-Value="_model.Description" Label="Remarks" Variant="Variant.Outlined" Lines="2" />
+                    </MudItem> *@
+
              @*        <MudItem xs="12">
                         <MudTextField @bind-Value="_model.Tags" Label="Tags (Comma separated)" Variant="Variant.Outlined" />
                     </MudItem> *@
@@ -73,6 +97,10 @@
             <MudStack Spacing="4">
                 <MudPaper Class="pa-4" Outlined="true" Elevation="0">
             <MudGrid>
+                  <MudItem xs="12">
+                    <MudCheckBox @bind-Value="_details.CriticalLevelAlert" Label="Enable Critical Level Alert" Color="Color.Primary" />
+                </MudItem>
+
                 <MudItem xs="12" md="4">
                     <MudNumericField @bind-Value="_details.CurrentQuantity" Label="Current Quantity" Variant="Variant.Outlined" Disabled="true" Min="0" />
                 </MudItem>
@@ -90,9 +118,7 @@
                     <MudNumericField @bind-Value="_details.ReorderLevelDays" Label="Reorder Level (Days)" Variant="Variant.Outlined" Min="0" />
                 </MudItem>
 
-                <MudItem xs="12">
-                    <MudCheckBox @bind-Value="_details.CriticalLevelAlert" Label="Enable Critical Level Alert" Color="Color.Primary" />
-                </MudItem>
+              
 
             </MudGrid>
             </MudPaper>
@@ -190,6 +216,7 @@
                         <MudTh>Amount (SRD)</MudTh>
                         <MudTh>Warehouse</MudTh>
                         <MudTh>Expiry</MudTh>
+                        <MudTh>Source</MudTh>
                         <MudTh Style="text-align: center;">Action</MudTh>
                     </HeaderContent>
                     <RowTemplate>
@@ -198,9 +225,21 @@
                         <MudTd DataLabel="Amount">@context.Amount.ToString("N2") SRD</MudTd>
                         <MudTd DataLabel="Warehouse">@context.WarehouseName</MudTd>
                         <MudTd DataLabel="Expiry">@context.ExpiryDate?.ToShortDateString()</MudTd>
+                        <MudTd DataLabel="Source">
+                            <MudChip T="string" Color="@(context.StockById == 1 ? Color.Info : (context.StockById == 2 || context.StockById == 4) ? Color.Warning : Color.Success)" Size="Size.Small">
+                                @(context.StockById == 1 ? "Purchase" : (context.StockById == 2 || context.StockById == 4) ? "Production / Make Plan" : "Opening Stock")
+                            </MudChip>
+                        </MudTd>
                         <MudTd Style="text-align: center;">
-                            <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Size="Size.Small" OnClick="@(() => EditBatch(context))" />
-                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => DeleteBatch(context))" />
+                            @if (context.StockById == 3 || context.StockById == 0)
+                            {
+                                <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Size="Size.Small" OnClick="@(() => EditBatch(context))" />
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => DeleteBatch(context))" />
+                            }
+                            else
+                            {
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">System Managed</MudText>
+                            }
                         </MudTd>
                     </RowTemplate>
                 </MudTable>

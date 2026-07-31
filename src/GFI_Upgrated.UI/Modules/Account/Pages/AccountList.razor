@@ -1,4 +1,4 @@
-﻿@page "/acc/accountmaster"
+@page "/acc/accountmaster"
 @using GFI_Upgrated.SharedDto.Account
 @using GFI_Upgrated.UI.Services
 @using MudBlazor
@@ -6,14 +6,15 @@
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
 @inject IJSRuntime JS
+@inject NavigationManager Navigation
 
 <PageTitle>Account Master</PageTitle>
 
 <MudPaper Class="pa-4">
     <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
         <MudStack Spacing="0">
-            <MudText Typo="Typo.h5">Account Master</MudText>
-            <MudText Typo="Typo.body2" Color="Color.Secondary">Manage general ledger accounts and stakeholder details</MudText>
+            <MudText Typo="Typo.h5">Customers & Suppliers</MudText>
+            @* <MudText Typo="Typo.body2" Color="Color.Secondary">Manage general ledger accounts and stakeholder details</MudText> *@
         </MudStack>
         <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OnAddAccount">
             Add New
@@ -26,9 +27,11 @@
 
     <MudTable RowsPerPage="25" T="AccountMasterDto" @ref="_table" ServerData="LoadServerDataAsync" Hover="true" Dense="true" Striped="true" Bordered="true" Breakpoint="Breakpoint.Sm">
         <HeaderContent>
-            <MudTh><MudTableSortLabel T="AccountMasterDto" SortLabel="AccountName">Account Name</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel T="AccountMasterDto" SortLabel="AccountGroupName">Group</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel T="AccountMasterDto" SortLabel="StakeholderType">Type</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel T="AccountMasterDto" SortLabel="AccountName">Company Name</MudTableSortLabel></MudTh>
+            
+           
             <MudTh><MudTableSortLabel T="AccountMasterDto" SortLabel="MobileNo">Mobile</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel T="AccountMasterDto" SortLabel="EmailID">Email</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel T="AccountMasterDto" SortLabel="CountryName">Country</MudTableSortLabel></MudTh>
@@ -36,11 +39,13 @@
             <MudTh Style="width: 120px; text-align: center;">Action</MudTh>
         </HeaderContent>
         <RowTemplate>
+            <MudTd DataLabel="Group">@context.AccountGroupName</MudTd>
+            <MudTd DataLabel="Type">@context.StakeholderTypeName</MudTd>
             <MudTd DataLabel="Name">
                 <MudText Typo="Typo.body2" Class="fw-bold">@context.AccountName</MudText>
             </MudTd>
-            <MudTd DataLabel="Group">@context.AccountGroupName</MudTd>
-            <MudTd DataLabel="Type">@context.StakeholderTypeName</MudTd>
+           
+                    
             <MudTd DataLabel="Mobile">@context.MobileNo</MudTd>
             <MudTd DataLabel="Email">@context.EmailID</MudTd>
             <MudTd DataLabel="Country">@context.CountryName</MudTd>
@@ -114,27 +119,14 @@
         if (_table is not null) await _table.ReloadServerData();
     }
 
-    private async Task OnAddAccount()
+    private void OnAddAccount()
     {
-        await ShowEditDialog(new AccountMasterDto());
+        Navigation.NavigateTo("/acc/customer-supplier/new");
     }
 
-    private async Task OnEditAccount(AccountMasterDto account)
+    private void OnEditAccount(AccountMasterDto account)
     {
-        await ShowEditDialog(account);
-    }
-
-    private async Task ShowEditDialog(AccountMasterDto account)
-    {
-        var parameters = new DialogParameters { ["Model"] = account };
-        var options = new DialogOptions { CloseButton = true, MaxWidth = MaxWidth.Medium, FullWidth = true };
-        var dialog = await DialogService.ShowAsync<AccountEditDialog>(account.AccountID == 0 ? "Add Account" : "Edit Account", parameters, options);
-        var result = await dialog.Result;
-
-        if (!result.Canceled)
-        {
-            if (_table is not null) await _table.ReloadServerData();
-        }
+        Navigation.NavigateTo($"/acc/customer-supplier/edit/{account.AccountID}");
     }
 
     private async Task OnDeleteAccount(AccountMasterDto account)

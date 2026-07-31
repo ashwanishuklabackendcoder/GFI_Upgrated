@@ -39,19 +39,6 @@
                              ToStringFunc="@(x => x == null ? "" : FormatUser(x))"
                              ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
         </MudItem>
-        <MudItem xs="12" md="7">
-            <MudPaper Class="pa-4 user-role-summary" Elevation="0">
-                @if (_selectedUser is null)
-                {
-                    <MudText Typo="Typo.body1">Select a login to load the role assignment grid.</MudText>
-                }
-                else
-                {
-                    <MudText Typo="Typo.subtitle1" Class="fw-semibold">@FormatUser(_selectedUser)</MudText>
-
-                }
-            </MudPaper>
-        </MudItem>
     </MudGrid>
 
     <MudTable Items="_roleRows" Dense="true" Hover="true" Bordered="true" Striped="true">
@@ -59,8 +46,6 @@
             <MudTh>Assign</MudTh>
             <MudTh>Default</MudTh>
             <MudTh>Role</MudTh>
-            <MudTh>Module</MudTh>
-
         </HeaderContent>
         <RowTemplate>
             <MudTd DataLabel="Assign">
@@ -79,8 +64,6 @@
                 </MudButton>
             </MudTd>
             <MudTd DataLabel="Role">@context.RoleName</MudTd>
-            <MudTd DataLabel="Module">@context.ModuleName</MudTd>
-
         </RowTemplate>
     </MudTable>
 </MudPaper>
@@ -327,7 +310,10 @@
     }
 
     private static string FormatUser(UserDto user)
-        => string.Join(" ", new[] { user.LoginName, user.FirstName, user.LastName }.Where(value => !string.IsNullOrWhiteSpace(value)));
+    {
+        var fullName = string.Join(" ", new[] { user.FirstName, user.LastName }.Where(value => !string.IsNullOrWhiteSpace(value)));
+        return string.IsNullOrWhiteSpace(fullName) ? user.LoginName : fullName;
+    }
 
     private sealed class RoleRow
     {
