@@ -25,18 +25,18 @@
             <MudMenuItem OnClick="ExportToPdfAsync" Icon="@Icons.Material.Filled.PictureAsPdf">Save as PDF</MudMenuItem>
         </MudMenu>
     </MudStack>
-
-    <MudGrid Class="mb-4 no-print" Spacing="2" Style="max-width: 700px;">
-        <MudItem xs="12" md="5">
-            <MudTextField T="string" Label="Batch Number" Value="_batchNumber" ValueChanged="OnBatchNumberChanged" 
-                          Variant="Variant.Outlined" Placeholder="Enter batch number..." Clearable="true" />
+   
+    <MudGrid Class="mb-4 no-print" Spacing="2">
+        <MudItem xs="12" md="4">
+            <MudTextField T="string" Label="Batch No." Value="_batchNumber" ValueChanged="OnBatchNumberChanged" 
+                          Variant="Variant.Outlined" Placeholder=" " Clearable="true" />
         </MudItem>
-        <MudItem xs="12" md="5">
-            <MudAutocomplete Clearable="true"           MaxItems="1000" T="RawMaterialDto" Label="Select Item" Value="_selectedItem" ValueChanged="OnItemChanged"
+        <MudItem xs="12" md="4">
+            <MudAutocomplete Clearable="true"" MaxItems="1000" T="RawMaterialDto" Label="Item" Value="_selectedItem" ValueChanged="OnItemChanged"
                              SearchFunc="@SearchItems" ToStringFunc="@(i => i?.ItemName ?? "")" Variant="Variant.Outlined" 
-                              Placeholder="Search items..." AdornmentIcon="@Icons.Material.Filled.Search" />
+                              Placeholder=" " AdornmentIcon="@Icons.Material.Filled.Search" />
         </MudItem>
-        <MudItem xs="12" md="4" Class="d-flex align-end">
+        <MudItem xs="12" md="2" Class="d-flex align-end">
             <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="OnSearch" FullWidth="true" Class="py-3">
                 Search
             </MudButton>

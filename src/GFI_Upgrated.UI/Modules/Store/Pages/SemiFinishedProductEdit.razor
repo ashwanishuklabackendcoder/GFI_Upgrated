@@ -12,7 +12,7 @@
 <MudPaper Class="pa-4">
     <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
         <MudStack Spacing="0">
-            <MudText Typo="Typo.h5">@(Id == 0 ? "New Semi-Finished Product" : "Edit Semi Finished Products")</MudText>
+            <MudText Typo="Typo.h5">@(Id == 0 ? "New Semi Finished Product" : "Edit Semi Finished Products")</MudText>
             @* <MudText Typo="Typo.body2" Color="Color.Secondary" Style="display:none;">Manage master item details and inventory settings.</MudText> *@
         </MudStack>
         <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.ArrowBack" OnClick="OnBack">Back to List</MudButton>
@@ -169,18 +169,18 @@
             <MudStack Spacing="4" Class="pt-6">
                 <MudPaper Class="pa-4" Outlined="true" Elevation="0">
                 <MudStack Row="true" Spacing="4" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-3">
-                    <MudText Typo="Typo.h6">Product Recipes</MudText>
+                        <MudText Typo="Typo.h6">Recipes (BOM)</MudText>
                     <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="CreateNewRecipe">
-                        Create New Recipe
+                       Add New
                     </MudButton>
                 </MudStack>
 
                 <MudTable Items="_recipes" Hover="true" Dense="true" Striped="true" Bordered="true" Elevation="0" Loading="_loadingRecipes">
                     <HeaderContent>
                         <MudTh>Recipe Name</MudTh>
-                        <MudTh Style="text-align: right;">Yield Qty</MudTh>
+                        <MudTh Style="text-align: right;">Yield Qty.</MudTh>
                         <MudTh>Unit</MudTh>
-                        <MudTh Style="text-align: right;">Extra Expenses</MudTh>
+                        <MudTh Style="text-align: right;">Extra Expense</MudTh>
                         <MudTh Style="text-align: center;">Status</MudTh>
                         <MudTh Style="text-align: center; width: 140px;">Action</MudTh>
                     </HeaderContent>
