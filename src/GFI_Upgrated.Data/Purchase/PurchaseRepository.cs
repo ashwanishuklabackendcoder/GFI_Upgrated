@@ -338,6 +338,36 @@ namespace GFI_Upgrated.Data.Purchase
 
                 if (purchaseId > 0 && purchase.Items != null)
                 {
+                    // Clean up deleted items
+                    var existingItemIds = new List<long>();
+                    await using (var cmd = new SqlCommand("SELECT PurchaseItemID FROM dbo.W_PurchaseChild WHERE PurchaseID = @PurchaseID", conn, (SqlTransaction)transaction))
+                    {
+                        cmd.Parameters.AddWithValue("@PurchaseID", purchaseId);
+                        await using var reader = await cmd.ExecuteReaderAsync();
+                        while (await reader.ReadAsync())
+                        {
+                            existingItemIds.Add(reader.GetInt64(0));
+                        }
+                    }
+
+                    var currentItemIds = purchase.Items.Where(i => i.PurchaseItemID > 0).Select(i => i.PurchaseItemID).ToList();
+                    var removedItemIds = existingItemIds.Except(currentItemIds).ToList();
+
+                    if (removedItemIds.Any())
+                    {
+                        var idsStr = string.Join(",", removedItemIds);
+                        
+                        await using (var cmd = new SqlCommand($"DELETE FROM dbo.Inv_ItemStockByBatch WHERE IdFrom IN ({idsStr}) AND StockById = 1", conn, (SqlTransaction)transaction))
+                        {
+                            await cmd.ExecuteNonQueryAsync();
+                        }
+                        
+                        await using (var cmd = new SqlCommand($"DELETE FROM dbo.W_PurchaseChild WHERE PurchaseItemID IN ({idsStr})", conn, (SqlTransaction)transaction))
+                        {
+                            await cmd.ExecuteNonQueryAsync();
+                        }
+                    }
+
                     foreach (var item in purchase.Items)
                     {
                         long unitId = item.UnitId ?? 0L;
