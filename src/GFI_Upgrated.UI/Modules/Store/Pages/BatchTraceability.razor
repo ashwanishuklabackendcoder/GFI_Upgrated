@@ -1,0 +1,78 @@
+@page "/store/reports/batch-wise-items/traceability/{BatchNo}"
+@page "/admin/reports/batch-wise-items/traceability/{BatchNo}"
+@using GFI_Upgrated.SharedDto.Store
+@using GFI_Upgrated.UI.Services
+@inject StoreApiClient ApiClient
+@inject ISnackbar Snackbar
+@inject NavigationManager Navigation
+
+<PageTitle>Batch Traceability - @BatchNo</PageTitle>
+
+<MudPaper Class="pa-4 mb-4">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+        <MudStack Spacing="1">
+            <MudText Typo="Typo.h5">Batch Traceability</MudText>
+            <MudText Typo="Typo.subtitle1" Color="Color.Primary"><strong>@BatchNo</strong></MudText>
+        </MudStack>
+        <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.ArrowBack" OnClick="@(() => Navigation.NavigateTo("/store/reportbatchwiseitems"))">
+            Back to Report
+        </MudButton>
+    </MudStack>
+</MudPaper>
+
+<MudPaper Class="pa-4">
+    <MudTable Items="_traceabilityData" Hover="true" Dense="true" Striped="true" Bordered="true" Loading="_loading">
+        <HeaderContent>
+            <MudTh>Date</MudTh>
+            <MudTh>Item Name</MudTh>
+            <MudTh>Transaction Type</MudTh>
+            <MudTh>Reference</MudTh>
+            <MudTh Style="text-align: right;">In Qty</MudTh>
+            <MudTh Style="text-align: right;">Out Qty</MudTh>
+            <MudTh Style="text-align: right;">Value (SRD)</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Date">@(context.TransactionDate?.ToShortDateString() ?? "N/A")</MudTd>
+            <MudTd DataLabel="Item Name">@context.ItemName</MudTd>
+            <MudTd DataLabel="Transaction Type">@context.TransactionType</MudTd>
+            <MudTd DataLabel="Reference">@context.Reference</MudTd>
+            <MudTd DataLabel="In Qty" Style="text-align: right;">@(context.InQty > 0 ? $"{context.InQty} {context.UnitName}" : "-")</MudTd>
+            <MudTd DataLabel="Out Qty" Style="text-align: right;">@(context.OutQty > 0 ? $"{context.OutQty} {context.UnitName}" : "-")</MudTd>
+            <MudTd DataLabel="Value" Style="text-align: right; font-weight: bold;">@context.TotalValue.ToString("N2")</MudTd>
+        </RowTemplate>
+        <NoRecordsContent>
+            <MudText Class="pa-4">No traceability records found for this batch.</MudText>
+        </NoRecordsContent>
+    </MudTable>
+</MudPaper>
+
+@code {
+    [Parameter]
+    public string BatchNo { get; set; } = string.Empty;
+
+    private List<ItemStockTraceabilityDto> _traceabilityData = new();
+    private bool _loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (string.IsNullOrWhiteSpace(BatchNo))
+        {
+            _loading = false;
+            return;
+        }
+
+        try
+        {
+            var data = await ApiClient.GetBatchTraceabilityAsync(Uri.UnescapeDataString(BatchNo));
+            _traceabilityData = data.ToList();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error loading batch traceability: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+}

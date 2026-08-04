@@ -63,7 +63,12 @@
             <MudTh>Expiry Date</MudTh>
         </HeaderContent>
         <RowTemplate>
-            <MudTd DataLabel="Batch No.">@context.BatchNo</MudTd>
+            <MudTd DataLabel="Batch No.">
+                <MudStack Row="true" AlignItems="AlignItems.Center">
+                    @context.BatchNo
+                    <MudIconButton Icon="@Icons.Material.Filled.Visibility" Size="Size.Small" Color="Color.Info" Title="View Traceability" OnClick="@(() => Navigation.NavigateTo($"/store/reports/batch-wise-items/traceability/{Uri.EscapeDataString(context.BatchNo ?? string.Empty)}"))" />
+                </MudStack>
+            </MudTd>
             <MudTd DataLabel="Item Name">@context.ItemName</MudTd>
             <MudTd DataLabel="Account Name">@context.AccountName</MudTd>
             <MudTd DataLabel="Processing Date">@context.ProcessingDate</MudTd>

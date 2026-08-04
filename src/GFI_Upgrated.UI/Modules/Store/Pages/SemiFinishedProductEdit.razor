@@ -138,7 +138,7 @@
                     </MudGrid>
                 </MudPaper>
 
-                <MudTable Items="_batches" Hover="true" Dense="true" Striped="true" Bordered="true" Elevation="0">
+                <MudTable Items="_batches.Where(b => b.StockById == 3 || b.StockById == 0)" Hover="true" Dense="true" Striped="true" Bordered="true" Elevation="0">
                     <HeaderContent>
                         <MudTh>Batch No</MudTh>
                         <MudTh>Quantity</MudTh>
@@ -171,6 +171,32 @@
                             }
                         </MudTd>
                     </RowTemplate>
+                </MudTable>
+            </MudStack>
+        </MudTabPanel>
+
+        <MudTabPanel Text="Stock History" Icon="@Icons.Material.Filled.History" Disabled="Id == 0">
+            <MudStack Spacing="4">
+                <MudTable Items="_stockReports" Hover="true" Dense="true" Striped="true" Bordered="true" Elevation="0">
+                    <HeaderContent>
+                        <MudTh>Batch No</MudTh>
+                        <MudTh>Transaction Type</MudTh>
+                        <MudTh>Reference</MudTh>
+                        <MudTh Style="text-align: right;">In Qty.</MudTh>
+                        <MudTh Style="text-align: right;">Out Qty.</MudTh>
+                        <MudTh Style="text-align: right;">Value (SRD)</MudTh>
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd DataLabel="Batch No">@context.BatchNo</MudTd>
+                        <MudTd DataLabel="Transaction Type">@context.TransactionType</MudTd>
+                        <MudTd DataLabel="Reference">@context.Reference</MudTd>
+                        <MudTd DataLabel="In Qty" Style="text-align: right;">@(context.InQty > 0 ? $"{context.InQty} {context.UnitName}" : "-")</MudTd>
+                        <MudTd DataLabel="Out Qty" Style="text-align: right;">@(context.OutQty > 0 ? $"{context.OutQty} {context.UnitName}" : "-")</MudTd>
+                        <MudTd DataLabel="Value" Style="text-align: right; font-weight: bold;">@context.TotalValue.ToString("N2")</MudTd>
+                    </RowTemplate>
+                    <NoRecordsContent>
+                        <MudText Class="pa-4">No stock history available.</MudText>
+                    </NoRecordsContent>
                 </MudTable>
             </MudStack>
         </MudTabPanel>
@@ -252,6 +278,7 @@
     private List<SemiFinishedProductBatchDto> _batches = new();
     private List<BomDto> _recipes = new();
     private bool _loadingRecipes;
+    private List<ItemStockTraceabilityDto> _stockReports = new();
     private List<ItemTypeDto> _types = new();
 
     private bool _savingGeneral;
@@ -347,6 +374,10 @@
             if (details != null) _details = details;
 
             _batches = (await ApiClient.GetSemiFinishedProductBatchesAsync(Id)).ToList();
+            
+            var traceabilityResult = await ApiClient.GetItemStockTraceabilityAsync(Id);
+            _stockReports = traceabilityResult.ToList();
+            
             await LoadRecipesAsync();
         }
         catch (Exception ex)

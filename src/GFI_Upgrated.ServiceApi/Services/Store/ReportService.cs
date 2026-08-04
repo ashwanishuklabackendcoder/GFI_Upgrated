@@ -7,6 +7,8 @@ namespace GFI_Upgrated.ServiceApi.Services.Store;
 public interface IReportService
 {
     Task<PagedResult<ItemStockReportDto>> GetItemStockReportAsync(ItemStockReportRequest request, CancellationToken cancellationToken = default);
+    Task<IEnumerable<ItemStockTraceabilityDto>> GetItemStockTraceabilityAsync(long itemId, CancellationToken cancellationToken = default);
+    Task<IEnumerable<ItemStockTraceabilityDto>> GetBatchTraceabilityAsync(string batchNo, CancellationToken cancellationToken = default);
     Task<PagedResult<BatchWiseItemDto>> GetBatchWiseItemsByBatchNoAsync(string batchNo, int page, int size, string sortType, CancellationToken cancellationToken = default);
     Task<PagedResult<BatchWiseItemDto>> GetBatchWiseItemsByItemAsync(long itemId, int page, int size, string sortType, CancellationToken cancellationToken = default);
     Task<PagedResult<ItemStockByBatchReportDto>> GetItemStockByBatchReportAsync(long? itemStockByBatchId, long? stockById, long? itemId, int page, int size, string sortCol, string sortOrd, CancellationToken cancellationToken = default);
@@ -23,6 +25,12 @@ public sealed class ReportService : IReportService
 
     public Task<PagedResult<ItemStockReportDto>> GetItemStockReportAsync(ItemStockReportRequest request, CancellationToken cancellationToken = default)
         => _repository.GetItemStockReportAsync(request, cancellationToken);
+
+    public Task<IEnumerable<ItemStockTraceabilityDto>> GetItemStockTraceabilityAsync(long itemId, CancellationToken cancellationToken = default)
+        => _repository.GetItemStockTraceabilityAsync(itemId, cancellationToken);
+
+    public Task<IEnumerable<ItemStockTraceabilityDto>> GetBatchTraceabilityAsync(string batchNo, CancellationToken cancellationToken = default)
+        => _repository.GetBatchTraceabilityAsync(batchNo, cancellationToken);
 
     public Task<PagedResult<BatchWiseItemDto>> GetBatchWiseItemsByBatchNoAsync(string batchNo, int page, int size, string sortType, CancellationToken cancellationToken = default)
         => _repository.GetBatchWiseItemsByBatchNoAsync(batchNo, page, size, sortType, cancellationToken);
