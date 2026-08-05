@@ -1,4 +1,4 @@
-﻿@page "/store/w_masteritemprelist"
+@page "/store/w_masteritemprelist"
 @page "/store/preprocessing"
 @page "/admin/w_masteritemprelist"
 @page "/admin/preprocessing"
@@ -34,7 +34,7 @@
 
     <MudTable RowsPerPage="25" T="PreProcessingDto" @ref="_table" ServerData="LoadServerDataAsync" Hover="true" Dense="true" Striped="true" Bordered="true" Breakpoint="Breakpoint.Sm">
         <HeaderContent>
-            <MudTh><MudTableSortLabel T="PreProcessingDto" SortLabel="PreProcessingId">ID</MudTableSortLabel></MudTh>
+            <MudTh Style="display:none;"><MudTableSortLabel T="PreProcessingDto" SortLabel="PreProcessingId">ID</MudTableSortLabel></MudTh>
             <MudTh>Item Made</MudTh>
             <MudTh>BOM</MudTh>
             <MudTh><MudTableSortLabel T="PreProcessingDto" SortLabel="ProcessingDate">Date</MudTableSortLabel></MudTh>
@@ -44,7 +44,7 @@
             <MudTh Style="width: 150px; text-align: center;">Action</MudTh>
         </HeaderContent>
         <RowTemplate>
-            <MudTd DataLabel="ID">@context.PreProcessingId</MudTd>
+            <MudTd DataLabel="ID" Style="display:none;">@context.PreProcessingId</MudTd>
             <MudTd DataLabel="Item Made">@context.ItemName</MudTd>
             <MudTd DataLabel="BOM">@context.BomName (@context.BomQty)</MudTd>
             <MudTd DataLabel="Date">@context.ProcessingDate</MudTd>

@@ -13,5 +13,7 @@ namespace GFI_Upgrated.SharedDto.Store
         public double TotalValue { get; set; }
         public string UnitName { get; set; } = string.Empty;
         public string ItemName { get; set; } = string.Empty;
+        public int RefUsedFor { get; set; }
+        public long RefUsedForId { get; set; }
     }
 }

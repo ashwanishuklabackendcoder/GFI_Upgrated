@@ -5,6 +5,7 @@
 @inject StoreApiClient ApiClient
 @inject ISnackbar Snackbar
 @inject NavigationManager Navigation
+@inject IJSRuntime JS
 
 <PageTitle>Batch Traceability - @BatchNo</PageTitle>
 
@@ -14,7 +15,7 @@
             <MudText Typo="Typo.h5">Batch Traceability</MudText>
             <MudText Typo="Typo.subtitle1" Color="Color.Primary"><strong>@BatchNo</strong></MudText>
         </MudStack>
-        <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.ArrowBack" OnClick="@(() => Navigation.NavigateTo("/store/reportbatchwiseitems"))">
+        <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.ArrowBack" OnClick="@(() => JS.InvokeVoidAsync("history.back"))">
             Back to Report
         </MudButton>
     </MudStack>
@@ -23,19 +24,36 @@
 <MudPaper Class="pa-4">
     <MudTable Items="_traceabilityData" Hover="true" Dense="true" Striped="true" Bordered="true" Loading="_loading">
         <HeaderContent>
+            <MudTh>Reference</MudTh>
             <MudTh>Date</MudTh>
             <MudTh>Item Name</MudTh>
             <MudTh>Transaction Type</MudTh>
-            <MudTh>Reference</MudTh>
             <MudTh Style="text-align: right;">In Qty</MudTh>
             <MudTh Style="text-align: right;">Out Qty</MudTh>
             <MudTh Style="text-align: right;">Value (SRD)</MudTh>
         </HeaderContent>
         <RowTemplate>
+            <MudTd DataLabel="Reference">
+                @if (context.RefUsedFor == 2 && context.RefUsedForId > 0)
+                {
+                    <a href="@($"/store/preprocessing/view/{context.RefUsedForId}")" style="color:var(--mud-palette-primary); text-decoration:underline;">@context.Reference</a>
+                }
+                else if (context.RefUsedFor == 3 && context.RefUsedForId > 0)
+                {
+                    <a href="@($"/store/production/view/{context.RefUsedForId}")" style="color:var(--mud-palette-primary); text-decoration:underline;">@context.Reference</a>
+                }
+                else if (context.RefUsedFor == -1 && context.RefUsedForId > 0)
+                {
+                    <a href="@($"/admin/purchase/view/{context.RefUsedForId}")" style="color:var(--mud-palette-primary); text-decoration:underline;">@context.Reference</a>
+                }
+                else
+                {
+                    @context.Reference
+                }
+            </MudTd>
             <MudTd DataLabel="Date">@(context.TransactionDate?.ToShortDateString() ?? "N/A")</MudTd>
             <MudTd DataLabel="Item Name">@context.ItemName</MudTd>
             <MudTd DataLabel="Transaction Type">@context.TransactionType</MudTd>
-            <MudTd DataLabel="Reference">@context.Reference</MudTd>
             <MudTd DataLabel="In Qty" Style="text-align: right;">@(context.InQty > 0 ? $"{context.InQty} {context.UnitName}" : "-")</MudTd>
             <MudTd DataLabel="Out Qty" Style="text-align: right;">@(context.OutQty > 0 ? $"{context.OutQty} {context.UnitName}" : "-")</MudTd>
             <MudTd DataLabel="Value" Style="text-align: right; font-weight: bold;">@context.TotalValue.ToString("N2")</MudTd>

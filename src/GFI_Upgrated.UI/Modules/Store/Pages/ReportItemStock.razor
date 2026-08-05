@@ -33,7 +33,10 @@
             <SearchableSelect T="RawMaterialDto" Label="Select Item" Value="@_selectedItem" ValueChanged="@((RawMaterialDto val) => { _selectedItem = val; })" Variant="Variant.Outlined" Items="@GetItemSelects()" />
         </MudItem>
         <MudItem xs="12" md="3">
-            <SearchableSelect T="long?" Label="Warehouse" Value="@_selectedWarehouseId" ValueChanged="@((long? val) => { _selectedWarehouseId = val; })" Variant="Variant.Outlined" Items="@GetWarehouseSelects()" />
+            <MudDatePicker Label="From Date" @bind-Date="_fromDate" Variant="Variant.Outlined" Clearable="true" />
+        </MudItem>
+        <MudItem xs="12" md="3">
+            <MudDatePicker Label="To Date" @bind-Date="_toDate" Variant="Variant.Outlined" Clearable="true" />
         </MudItem>
       
         <MudItem xs="12" md="2" Class="d-flex align-end">
@@ -52,7 +55,7 @@
         <div style="font-size: 14px; margin-bottom: 16px;">
             <strong>Filters Applied:</strong><br />
             Item: @(_selectedItem?.ItemName ?? "All Items") | 
-            Warehouse: @(_warehouses.FirstOrDefault(w => w.WarehouseId == _selectedWarehouseId)?.WarehouseName ?? "All Warehouses") | 
+            From: @(_fromDate?.ToString("d") ?? "Start") | To: @(_toDate?.ToString("d") ?? "End") | 
             Item Type: @(_selectedItemTypeId == 3 ? "Raw Material" : _selectedItemTypeId == 2 ? "Semi-Finished" : _selectedItemTypeId == 1 ? "Finished Product" : "All Types")
         </div>
     </div>
@@ -61,7 +64,6 @@
         <HeaderContent>
             <MudTh Style="display:none;"><MudTableSortLabel SortLabel="StockID" T="ItemStockReportDto">Stock ID</MudTableSortLabel></MudTh>
             <MudTh>Item Name</MudTh>
-            <MudTh>Warehouse Name</MudTh>
             <MudTh Style="text-align: right;">Opening Qty.</MudTh>
             <MudTh Style="text-align: right;">Purchased Qty.</MudTh>
             <MudTh Style="text-align: right;">Issued Qty.</MudTh>
@@ -71,8 +73,9 @@
         </HeaderContent>
         <RowTemplate>
             <MudTd DataLabel="Stock ID" Style="display:none;">@context.StockID</MudTd>
-            <MudTd DataLabel="Item">@context.ItemName</MudTd>
-            <MudTd DataLabel="Warehouse">@context.WarehouseName</MudTd>
+            <MudTd DataLabel="Item">
+                <a href="@($"/store/reportbatchwiseitems?itemId={context.ItemID}")" style="color:var(--mud-palette-primary); text-decoration:none;">@context.ItemName</a>
+            </MudTd>
             <MudTd DataLabel="Opening Qty" Style="text-align: right;">@FormatQty(context.OpeningQuantity, context.UnitId)</MudTd>
             <MudTd DataLabel="Purchased Qty" Style="text-align: right;">@FormatQty(context.PurchasedQuantity, context.UnitId)</MudTd>
             <MudTd DataLabel="Issued Qty" Style="text-align: right;">@FormatQty(context.IssuedQuantity, context.UnitId)</MudTd>
@@ -102,6 +105,7 @@
 
     private string FormatQty(double qty, long unitId)
     {
+        if (qty == 0) return "0";
         var unitName = _units.FirstOrDefault(u => u.UnitId == unitId)?.UnitName ?? "";
         string formattedVal = (qty % 1 == 0) ? qty.ToString("0") : qty.ToString("0.##");
         return string.IsNullOrWhiteSpace(unitName) ? formattedVal : $"{formattedVal} {unitName}";
@@ -114,15 +118,15 @@
 
     private MudTable<ItemStockReportDto>? _table;
     private RawMaterialDto? _selectedItem;
-    private long? _selectedWarehouseId;
     private int? _selectedItemTypeId;
+    private DateTime? _fromDate;
+    private DateTime? _toDate;
     private bool _loading;
     
     private string _currentSortLabel = "StockID";
     private string _currentSortDirection = "ASC";
 
     private List<RawMaterialDto> _items = new();
-    private List<WarehouseDto> _warehouses = new();
     private List<UnitDto> _units = new();
 
     protected override async Task OnInitializedAsync()
@@ -142,9 +146,6 @@
         {
             var itemResult = await ApiClient.GetItemsForBomLookupAsync(null);
             _items = itemResult.OrderBy(x => x.ItemName).ToList();
-
-            var whResult = await ApiClient.GetWarehousesAsync(new PagedRequest { CurrentPage = 1, RecordPerPage = 1000 });
-            _warehouses = whResult.Items.ToList();
 
             var unitResult = await ApiClient.GetUnitsAsync(new PagedRequest { CurrentPage = 1, RecordPerPage = 1000 });
             _units = unitResult.Items.ToList();
@@ -185,8 +186,9 @@
             var request = new ItemStockReportRequest
             {
                 ItemID = _selectedItem?.ItemId,
-                WarehouseID = _selectedWarehouseId,
                 ItemTypeId = _selectedItemTypeId,
+                FromDate = _fromDate,
+                ToDate = _toDate,
                 CurrentPage = state.Page + 1,
                 RecordPerPage = state.PageSize,
                 SortColumn = _currentSortLabel,
@@ -229,8 +231,9 @@
             var request = new ItemStockReportRequest
             {
                 ItemID = _selectedItem?.ItemId,
-                WarehouseID = _selectedWarehouseId,
                 ItemTypeId = _selectedItemTypeId,
+                FromDate = _fromDate,
+                ToDate = _toDate,
                 CurrentPage = 1,
                 RecordPerPage = 1000000,
                 SortColumn = _currentSortLabel,
@@ -250,10 +253,10 @@
     {
         var data = await GetAllDataAsync();
         var sb = new StringBuilder();
-        sb.AppendLine("StockID\tItem Name\tWarehouse\tOpening Qty\tPurchased Qty\tIssued Qty\tRemoved Qty\tFinal Stock\tStock Value");
+        sb.AppendLine("StockID\tItem Name\tOpening Qty\tPurchased Qty\tIssued Qty\tRemoved Qty\tFinal Stock\tStock Value");
         foreach (var item in data)
         {
-            sb.AppendLine($"${item.StockID}\t${item.ItemName}\t${item.WarehouseName}\t${FormatQty(item.OpeningQuantity, item.UnitId)}\t${FormatQty(item.PurchasedQuantity, item.UnitId)}\t${FormatQty(item.IssuedQuantity, item.UnitId)}\t${FormatQty(item.RemovedQuantity, item.UnitId)}\t${FormatQty(item.FinalStock, item.UnitId)}\t${FormatAmount(item.TotalValue)} SRD");
+            sb.AppendLine($"${item.StockID}\t${item.ItemName}\t${FormatQty(item.OpeningQuantity, item.UnitId)}\t${FormatQty(item.PurchasedQuantity, item.UnitId)}\t${FormatQty(item.IssuedQuantity, item.UnitId)}\t${FormatQty(item.RemovedQuantity, item.UnitId)}\t${FormatQty(item.FinalStock, item.UnitId)}\t${FormatAmount(item.TotalValue)} SRD");
         }
         var success = await JS.InvokeAsync<bool>("gfiCopyToClipboard", sb.ToString());
         if (success)
@@ -270,12 +273,11 @@
     {
         var data = await GetAllDataAsync();
         var sb = new StringBuilder();
-        sb.AppendLine("StockID,Item Name,Warehouse,Opening Qty,Purchased Qty,Issued Qty,Removed Qty,Final Stock,Stock Value");
+        sb.AppendLine("StockID,Item Name,Opening Qty,Purchased Qty,Issued Qty,Removed Qty,Final Stock,Stock Value");
         foreach (var item in data)
         {
             var name = (item.ItemName ?? "").Replace("\"", "\"\"");
-            var whName = (item.WarehouseName ?? "").Replace("\"", "\"\"");
-            sb.AppendLine($"{item.StockID},\"{name}\",\"{whName}\",{FormatQty(item.OpeningQuantity, item.UnitId)},{FormatQty(item.PurchasedQuantity, item.UnitId)},{FormatQty(item.IssuedQuantity, item.UnitId)},{FormatQty(item.RemovedQuantity, item.UnitId)},{FormatQty(item.FinalStock, item.UnitId)},{FormatAmount(item.TotalValue)} SRD");
+            sb.AppendLine($"{item.StockID},\"{name}\",{FormatQty(item.OpeningQuantity, item.UnitId)},{FormatQty(item.PurchasedQuantity, item.UnitId)},{FormatQty(item.IssuedQuantity, item.UnitId)},{FormatQty(item.RemovedQuantity, item.UnitId)},{FormatQty(item.FinalStock, item.UnitId)},{FormatAmount(item.TotalValue)} SRD");
         }
         await JS.InvokeVoidAsync("gfiDownloadTextFile", $"item-stock-report-{DateTime.Now:yyyyMMddHHmmss}.csv", sb.ToString(), "text/csv;charset=utf-8");
         Snackbar.Add("Report data exported as CSV.", Severity.Success);
@@ -292,13 +294,6 @@
         await JS.InvokeVoidAsync("window.print");
     }
 
-    private IEnumerable<SearchableSelect<long?>.SelectItemDto<long?>> GetWarehouseSelects()
-    {
-        return (_warehouses ?? new List<WarehouseDto>()).Select(x => new SearchableSelect<long?>.SelectItemDto<long?>
-        {
-            Value = (long?)x.WarehouseId,
-            Text = x.WarehouseName ?? ""
-        });
-    }
+    // end of methods
 }
 

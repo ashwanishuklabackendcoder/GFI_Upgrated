@@ -27,7 +27,9 @@ public sealed class ReportRepository : IReportRepository
             new("@SortColumn", SqlDbType.VarChar, 20) { Value = request.SortColumn ?? "StockID" },
             new("@ItemID", SqlDbType.BigInt) { Value = request.ItemID ?? 0 },
             new("@WarehouseID", SqlDbType.BigInt) { Value = request.WarehouseID ?? 0 },
-            new("@ItemTypeId", SqlDbType.Int) { Value = request.ItemTypeId ?? 0 }
+            new("@ItemTypeId", SqlDbType.Int) { Value = request.ItemTypeId ?? 0 },
+            new("@FromDate", SqlDbType.Date) { Value = (object?)request.FromDate ?? DBNull.Value },
+            new("@ToDate", SqlDbType.Date) { Value = (object?)request.ToDate ?? DBNull.Value }
         };
 
         try
@@ -189,7 +191,9 @@ public sealed class ReportRepository : IReportRepository
         OutQty = row.SafeDouble("OutQty"),
         TotalValue = row.SafeDouble("TotalValue"),
         UnitName = row.SafeString("UnitName"),
-        ItemName = row.SafeString("ItemName")
+        ItemName = row.SafeString("ItemName"),
+        RefUsedFor = row.SafeInt("RefUsedFor"),
+        RefUsedForId = row.SafeLong("RefUsedForId")
     };
 
     private BatchWiseItemDto MapBatchWiseItem(DataRow row) => new()
