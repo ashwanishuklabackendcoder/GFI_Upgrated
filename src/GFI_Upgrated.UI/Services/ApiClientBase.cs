@@ -155,6 +155,7 @@ public abstract class ApiClientBase
 
         if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
         {
+            _sessionState.NotifySessionExpired();
             throw new ApiException("Your session has expired or is unauthorized. Please log in again.");
         }
 
