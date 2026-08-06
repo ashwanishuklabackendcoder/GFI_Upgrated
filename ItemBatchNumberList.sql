@@ -1,0 +1,139 @@
+Text                                                                                                                                                                                                                                                           
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+CREATE PROCEDURE [dbo].[ItemBatchNumberList]                
+                                                                                                                                                                                                 
+    @ItemID int=0,    
+                                                                                                                                                                                                                                       
+    @CurrentPage INT = 1 OUTPUT,    
+                                                                                                                                                                                                                         
+    @RecordPerPage INT = 10,    
+                                                                                                                                                                                                                             
+    @TotalRecord INT = 0 OUTPUT,    
+                                                                                                                                                                                                                         
+    @SortOrd VARCHAR(5) = 'DESC'    
+                                                                                                                                                                                                                         
+AS                
+                                                                                                                                                                                                                                           
+BEGIN                
+                                                                                                                                                                                                                                        
+    SET NOCOUNT ON;                     
+                                                                                                                                                                                                                     
+
+                                                                                                                                                                                                                                                             
+    DECLARE @Query AS VARCHAR(1000)                    
+                                                                                                                                                                                                      
+    DECLARE @RecQuery AS NVARCHAR(2500)                    
+                                                                                                                                                                                                  
+    SET @Query = ''                 
+                                                                                                                                                                                                                         
+       
+                                                                                                                                                                                                                                                      
+    -- Counting total records grouped by BatchNo
+                                                                                                                                                                                                             
+    SET @RecQuery = 'SELECT @TotalRecord = COUNT(DISTINCT BatchNo)
+                                                                                                                                                                                           
+                     FROM Inv_ItemStockByBatch WHERE ItemId = @ItemID';                       
+                                                                                                                                                               
+
+                                                                                                                                                                                                                                                             
+    EXEC dbo.sp_ExecuteSql @RecQuery, N'@ItemID INT, @TotalRecord INT OUTPUT', @ItemID, @TotalRecord OUTPUT;                 
+                                                                                                                                
+
+                                                                                                                                                                                                                                                             
+    DECLARE @MaxPage INT                    
+                                                                                                                                                                                                                 
+    SET @MaxPage = CEILING(ISNULL(@TotalRecord, 0) / (@RecordPerPage * 1.0));                      
+                                                                                                                                                          
+
+                                                                                                                                                                                                                                                             
+    IF @MaxPage < @CurrentPage                    
+                                                                                                                                                                                                           
+    BEGIN                    
+                                                                                                                                                                                                                                
+        IF @MaxPage <= 0                    
+                                                                                                                                                                                                                 
+            SET @CurrentPage = 1;                    
+                                                                                                                                                                                                        
+        ELSE                    
+                                                                                                                                                                                                                             
+            SET @CurrentPage = @MaxPage;                                   
+                                                                                                                                                                                  
+    END;                    
+                                                                                                                                                                                                                                 
+                     
+                                                                                                                                                                                                                                        
+    DECLARE @Top AS INT                    
+                                                                                                                                                                                                                  
+    DECLARE @Bottom AS INT                    
+                                                                                                                                                                                                               
+    SET @Top = ((@CurrentPage - 1) * @RecordPerPage + 1);                    
+                                                                                                                                                                                
+    SET @Bottom = (@CurrentPage * @RecordPerPage);                     
+                                                                                                                                                                                      
+        
+                                                                                                                                                                                                                                                     
+    -- Final query with ItemID filter, grouped by BatchNo
+                                                                                                                                                                                                    
+    SET @RecQuery = 'SELECT * FROM (    
+                                                                                                                                                                                                                     
+                        SELECT ROW_NUMBER() OVER (ORDER BY MAX(t5.ItemStockByBatchId) ' + @SortOrd + ') AS RowNumber,     
+                                                                                                                                   
+                               MAX(t5.ItemStockByBatchId) AS Id, 
+                                                                                                                                                                                            
+                               t5.BatchNo, 
+                                                                                                                                                                                                                  
+                               MAX(t5.ExpiryDate) AS ExpiryDate, 
+                                                                                                                                                                                            
+                               MAX(CASE 
+                                                                                                                                                                                                                     
+                                   WHEN t5.StockById = 1 THEN t2.GoodsRecievedDate
+                                                                                                                                                                           
+                                   WHEN t5.StockById = 2 OR t5.StockById = 4 THEN prod.CookingDate
+                                                                                                                                                           
+                                   WHEN t5.StockById = 3 THEN stock.OpeningStockDate
+                                                                                                                                                                         
+                               END) AS ProcessingDate, 
+                                                                                                                                                                                                      
+                               MAX(t3.ItemName) AS ItemName, 
+                                                                                                                                                                                                
+                               MAX(CASE 
+                                                                                                                                                                                                                     
+                                   WHEN t5.StockById = 1 THEN t4.AccountName
+                                                                                                                                                                                 
+                                   WHEN t5.StockById = 2 OR t5.StockById = 4 THEN ''Production''
+                                                                                                                                                             
+                                   WHEN t5.StockById = 3 THEN ''Opening Stock''
+                                                                                                                                                                              
+                                   ELSE ''Manual Entry''
+                                                                                                                                                                                                     
+                               END) AS AccountName
+                                                                                                                                                                                                           
+                        FROM Inv_ItemStockByBatch t5
+                                                                                                                                                                                                         
+                        LEFT JOIN W_MasterItem t3 ON t5.ItemId = t3.ItemID
+                                                                                                                                                                                   
+                        LEFT JOIN W_PurchaseChild t1 ON t5.IdFrom = t1.PurchaseItemID AND t5.StockById = 1
+                                                                                                                                                   
+                        LEFT JOIN W_PurchaseMaster t2 ON t1.PurchaseID = t2.PurchaseID
+                                                                                                                                                                       
+                        LEFT JOIN A_MasterAccounts t4 ON t4.AccountId = t2.AccountID
+                                                                                                                                                                         
+                        LEFT JOIN W_Production prod ON t5.IdFrom = prod.ProductionId AND (t5.StockById = 2 OR t5.StockById = 4)
+                                                                                                                              
+                        LEFT JOIN W_ItemStock stock ON t5.IdFrom = stock.StockID AND t5.StockById = 3
+                                                                                                                                                        
+                        WHERE t5.ItemID = @ItemID    
+                                                                                                                                                                                                        
+                        GROUP BY t5.BatchNo
+                                                                                                                                                                                                                  
+                    ) AS t1     
+                                                                                                                                                                                                                             
+                    WHERE t1.RowNumber >= ' + CAST(@Top AS VARCHAR) + ' AND t1.RowNumber <= ' + CAST(@Bottom AS VARCHAR);    
+                                                                                                                                
+
+                                                                                                                                                                                                                                                             
+    -- Execute final query    
+                                                                                                                                                                                                                               
+    EXEC dbo.sp_ExecuteSql @RecQuery, N'@ItemID INT', @ItemID;    
+                                                                                                                                                                                           
+END                                                                                                                                                                                                                                                            

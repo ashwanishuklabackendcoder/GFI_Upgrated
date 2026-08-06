@@ -65,6 +65,10 @@
                         @(_processing ? "Saving..." : (_isEdit ? "Update Header" : "Create Header & Add Stock"))
                     </MudButton>
                     <MudButton Variant="Variant.Outlined" OnClick="OnCancel" Disabled="_processing">Cancel</MudButton>
+                    @if (_isEdit)
+                    {
+                        <MudButton Variant="Variant.Outlined" Color="Color.Info" StartIcon="@Icons.Material.Filled.ListAlt" OnClick="@(() => NavigationManager.NavigateTo($"/store/preprocessing/items/{Id}"))">Manage Ingredients</MudButton>
+                    }
                 </MudStack>
             </MudItem>
         </MudGrid>

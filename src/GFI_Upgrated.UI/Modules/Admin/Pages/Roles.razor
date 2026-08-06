@@ -13,11 +13,11 @@
                 <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="NewRole">New Role</MudButton>
             </MudStack>
             <MudTextField @bind-Value="_search" Placeholder="Search role name" Variant="Variant.Outlined" Immediate="true" />
-            <MudTable Items="_roles" Dense="true" Hover="true" Class="mt-4">
+            <MudTable Items="_roles" Dense="true" Hover="true" Class="mt-4" Filter="new Func<RoleDto,bool>(FilterFunc1)">
                 <HeaderContent>
-                    <MudTh>Name</MudTh>
-                    <MudTh>Module</MudTh>
-                    <MudTh>Active</MudTh>
+                    <MudTh><MudTableSortLabel SortLabel="RoleName" T="RoleDto">Name</MudTableSortLabel></MudTh>
+                    <MudTh><MudTableSortLabel SortLabel="ModuleName" T="RoleDto">Module</MudTableSortLabel></MudTh>
+                    <MudTh><MudTableSortLabel SortLabel="IsActive" T="RoleDto">Active</MudTableSortLabel></MudTh>
                     <MudTh></MudTh>
                 </HeaderContent>
                 <RowTemplate>
@@ -54,6 +54,17 @@
 @code {
     private List<RoleDto> _roles = new();
     private string? _search;
+
+    private bool FilterFunc1(RoleDto role)
+    {
+        if (string.IsNullOrWhiteSpace(_search))
+            return true;
+        if (role.RoleName?.Contains(_search, StringComparison.OrdinalIgnoreCase) == true)
+            return true;
+        if (role.ModuleName?.Contains(_search, StringComparison.OrdinalIgnoreCase) == true)
+            return true;
+        return false;
+    }
     private SaveRoleRequest _editor = new();
 
     protected override void OnInitialized()

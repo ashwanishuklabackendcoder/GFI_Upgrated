@@ -1,4 +1,4 @@
-﻿@page "/admin/warehouse"
+@page "/admin/warehouse"
 @page "/store/w_warehouseaddlist"
 @page "/store/warehouse"
 @page "/admin/w_warehouseaddlist"
@@ -35,7 +35,7 @@
     <MudTable RowsPerPage="25" T="WarehouseDto" @ref="_table" ServerData="LoadServerDataAsync" Hover="true" Dense="true" Striped="true" Bordered="true" Breakpoint="Breakpoint.Sm">
         <HeaderContent>
             <MudTh><MudTableSortLabel T="WarehouseDto" SortLabel="WarehouseName">Warehouse Name</MudTableSortLabel></MudTh>
-            <MudTh>Description</MudTh>
+            <MudTh><MudTableSortLabel SortLabel="Description" T="WarehouseDto">Description</MudTableSortLabel></MudTh>
             <MudTh Style="width: 120px; text-align: center;">Action</MudTh>
         </HeaderContent>
         <RowTemplate>

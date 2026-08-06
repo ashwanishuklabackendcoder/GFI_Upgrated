@@ -34,9 +34,9 @@
             <MudTh><MudTableSortLabel SortLabel="DT" T="UserActivityLogDto" InitialDirection="SortDirection.Descending">Timestamp</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel SortLabel="UserName" T="UserActivityLogDto">User Name</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel SortLabel="EventName" T="UserActivityLogDto">Event</MudTableSortLabel></MudTh>
-            <MudTh>Ref Key</MudTh>
-            <MudTh>Remarks</MudTh>
-            <MudTh>URL</MudTh>
+            <MudTh><MudTableSortLabel SortLabel="RefKey" T="UserActivityLogDto">Ref Key</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel SortLabel="Remarks" T="UserActivityLogDto">Remarks</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel SortLabel="Url" T="UserActivityLogDto">URL</MudTableSortLabel></MudTh>
         </HeaderContent>
         <RowTemplate>
             <MudTd DataLabel="Timestamp">@context.DT?.ToString("dd/MM/yyyy HH:mm:ss")</MudTd>

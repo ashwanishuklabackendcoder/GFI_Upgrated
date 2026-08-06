@@ -84,8 +84,8 @@ public sealed class ReportRepository : IReportRepository
             
             return new PagedResult<BatchWiseItemDto>
             {
-                CurrentPage = Convert.ToInt32(parameters[1].Value ?? page),
-                TotalRecord = Convert.ToInt32(parameters[3].Value ?? 0),
+                CurrentPage = parameters[1].Value == DBNull.Value ? page : Convert.ToInt32(parameters[1].Value),
+                TotalRecord = parameters[3].Value == DBNull.Value ? 0 : Convert.ToInt32(parameters[3].Value),
                 Items = table.AsEnumerable().Select(MapBatchWiseItem).ToList()
             };
         }
@@ -112,8 +112,8 @@ public sealed class ReportRepository : IReportRepository
             
             return new PagedResult<BatchWiseItemDto>
             {
-                CurrentPage = Convert.ToInt32(parameters[1].Value ?? page),
-                TotalRecord = Convert.ToInt32(parameters[3].Value ?? 0),
+                CurrentPage = parameters[1].Value == DBNull.Value ? page : Convert.ToInt32(parameters[1].Value),
+                TotalRecord = parameters[3].Value == DBNull.Value ? 0 : Convert.ToInt32(parameters[3].Value),
                 Items = table.AsEnumerable().Select(MapBatchWiseItem).ToList()
             };
         }
