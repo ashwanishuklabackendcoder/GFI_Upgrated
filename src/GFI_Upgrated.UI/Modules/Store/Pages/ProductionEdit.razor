@@ -17,7 +17,7 @@
 <MudPaper Class="pa-4">
     <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
         <MudStack Spacing="0">
-            <MudText Typo="Typo.h5">@(_isEdit ? "Edit Production Run" : "New Production Run")</MudText>
+            <MudText Typo="Typo.h5">@(_isEdit ? "Edit Finished Product Run" : "New Finished Product Run")</MudText>
             @* <MudText Typo="Typo.body2" Color="Color.Secondary">Create a manufacturing declarations header, packaging SKU, and warehouse allocation.</MudText> *@
         </MudStack>
         <MudIconButton Icon="@Icons.Material.Filled.Close" OnClick="OnCancel" />
@@ -35,20 +35,21 @@
                 <MudNumericField @bind-Value="_editor.BomQty" Label="BOM Quantity" Variant="Variant.Outlined" Min="1" For="@(() => _editor.BomQty)" />
             </MudItem>
             <MudItem xs="12" md="4">
-                <SearchableSelect T="long" Label="SKU packaging" Value="@_editor.SkuId" ValueChanged="@((long val) => { _editor.SkuId = val; })" Variant="Variant.Outlined" Items="@GetSkuSelects()" />
+                <MudTextField @bind-Value="_editor.BatchNo" Label="Batch Number" Variant="Variant.Outlined" HelperText="Leave blank for auto-generation" />
             </MudItem>
+           
 
             <!-- Dates -->
             <MudItem xs="12" md="4">
                 <MudDatePicker DateFormat="dd/MM/yyyy" Placeholder="dd/MM/yyyy" Editable="true"                         @bind-Date="_editor.CookingDate" Label="Cooking Date (DD/MM/YYYY)" Variant="Variant.Outlined" Required="true" For="@(() => _editor.CookingDate)" />
             </MudItem>
-            <MudItem xs="12" md="4">
-                <MudDatePicker DateFormat="dd/MM/yyyy" Placeholder="dd/MM/yyyy" Editable="true"                         @bind-Date="_editor.ExpiryDate" Label="Expiry Date (DD/MM/YYYY)" Variant="Variant.Outlined" />
-            </MudItem>
+          
             <MudItem xs="12" md="4">
                 <MudDatePicker DateFormat="dd/MM/yyyy" Placeholder="dd/MM/yyyy" Editable="true"                         @bind-Date="_editor.FilledDate" Label="Filled Date (DD/MM/YYYY)" Variant="Variant.Outlined" />
             </MudItem>
-
+            <MudItem xs="12" md="4">
+                <MudDatePicker DateFormat="dd/MM/yyyy" Placeholder="dd/MM/yyyy" Editable="true" @bind-Date="_editor.ExpiryDate" Label="Expiry Date (DD/MM/YYYY)" Variant="Variant.Outlined" />
+            </MudItem>
             <!-- Kettle Details -->
             <MudItem xs="12" md="6">
                 <SearchableSelect T="string" Label="Kettles" MultiSelection="true" SelectedValues="@_selectedKettles" SelectedValuesChanged="@((vals) => { _selectedKettles = vals; })" MultiSelectionTextFunc="@(x => string.Join(", ", x.Select(idStr => _kettles.FirstOrDefault(k => k.KettleId.ToString() == idStr)?.KettleNumber ?? idStr)))" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter" Items="@GetKettleSelects()" />
@@ -59,29 +60,19 @@
 
             <!-- Filling and Batch Info -->
             <MudItem xs="12" md="4">
-                <MudTextField @bind-Value="_editor.BatchNo" Label="Batch Number" Variant="Variant.Outlined" HelperText="Leave blank for auto-generation" />
+                <SearchableSelect T="long" Label="SKU" Value="@_editor.SkuId" ValueChanged="@((long val) => { _editor.SkuId = val; })" Variant="Variant.Outlined" Items="@GetSkuSelects()" />
             </MudItem>
+
             <MudItem xs="12" md="4">
-                <MudNumericField @bind-Value="_editor.FillingBottles" Label="Filling Bottles" Variant="Variant.Outlined" Min="0" />
+                <MudNumericField @bind-Value="_editor.FillingBottles" Label="Filled Bottles" Variant="Variant.Outlined" Min="0" />
             </MudItem>
-            <MudItem xs="12" md="4">
-                <SearchableSelect T="long" Label="Filling Per Bottle Unit" Value="@_editor.FillingPerBottleUnit" ValueChanged="@((long val) => { _editor.FillingPerBottleUnit = val; })" Variant="Variant.Outlined" Items="@GetUnitSelects()" />
+            
+            <MudItem xs="12" md="4" Style="display:none;">
+                <SearchableSelect T="long" Label="Filling Bottle Unit" Value="@_editor.FillingPerBottleUnit" ValueChanged="@((long val) => { _editor.FillingPerBottleUnit = val; })" Variant="Variant.Outlined" Items="@GetUnitSelects()" />
             </MudItem>
 
             <MudItem xs="12" md="4">
                 <MudNumericField @bind-Value="_editor.ExtraBottles" Label="Extra Bottles" Variant="Variant.Outlined" Min="0.0" Step="0.1" />
-            </MudItem>
-            <MudItem xs="12" md="4">
-                <SearchableSelect T="string" Label="Packed Country" Value="@_editor.PackedCountry" ValueChanged="@((string val) => { _editor.PackedCountry = val; })" Variant="Variant.Outlined" Items="@GetCountrySelects()" />
-            </MudItem>
-            <MudItem xs="12" md="4">
-                <SearchableSelect T="long" Label="Output Warehouse" Value="@_editor.WarehouseId" ValueChanged="@((long val) => { _editor.WarehouseId = val; })" Variant="Variant.Outlined" Required="true" Items="@GetWarehouseSelects()" />
-                <ValidationMessage For="@(() => _editor.WarehouseId)" />
-            </MudItem>
-
-            <!-- Employees Multi-Select -->
-            <MudItem xs="12" md="6">
-                <SearchableSelect T="string" Label="Process Employees" MultiSelection="true" SelectedValues="@_selectedEmployees" SelectedValuesChanged="@((vals) => { _selectedEmployees = vals; })" MultiSelectionTextFunc="@(x => string.Join(", ", x.Select(idStr => _staffList.FirstOrDefault(s => s.StaffId.ToString() == idStr)?.StaffName ?? idStr)))" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter" Items="@GetEmployeeSelects()" />
             </MudItem>
             <MudItem xs="12" md="6">
                 <MudTextField @bind-Value="_editor.Colli" Label="Colli" Variant="Variant.Outlined" />
@@ -91,7 +82,20 @@
                 <MudTextField @bind-Value="_editor.PalletNumber" Label="Pallet Number" Variant="Variant.Outlined" />
             </MudItem>
             <MudItem xs="12" md="6">
-                <MudTextField @bind-Value="_editor.Remarks" Label="Remarks / Notes" Variant="Variant.Outlined" Lines="2" />
+                <SearchableSelect T="string" Label="Packed Country" Value="@_editor.PackedCountry" ValueChanged="@((string val) => { _editor.PackedCountry = val; })" Variant="Variant.Outlined" Items="@GetCountrySelects()" />
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <SearchableSelect T="long" Label="Warehouse" Value="@_editor.WarehouseId" ValueChanged="@((long val) => { _editor.WarehouseId = val; })" Variant="Variant.Outlined" Required="true" Items="@GetWarehouseSelects()" />
+                <ValidationMessage For="@(() => _editor.WarehouseId)" />
+            </MudItem>
+
+            <!-- Employees Multi-Select -->
+            <MudItem xs="12" md="6">
+                <SearchableSelect T="string" Label="Process Employees" MultiSelection="true" SelectedValues="@_selectedEmployees" SelectedValuesChanged="@((vals) => { _selectedEmployees = vals; })" MultiSelectionTextFunc="@(x => string.Join(", ", x.Select(idStr => _staffList.FirstOrDefault(s => s.StaffId.ToString() == idStr)?.StaffName ?? idStr)))" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter" Items="@GetEmployeeSelects()" />
+            </MudItem>
+          
+            <MudItem xs="12" md="6">
+                <MudTextField @bind-Value="_editor.Remarks" Label="Remarks" Variant="Variant.Outlined" Lines="2" />
             </MudItem>
 
             <MudItem xs="12" Class="pt-4">
