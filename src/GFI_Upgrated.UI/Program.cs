@@ -4,12 +4,15 @@ using GFI_Upgrated.UI;
 using GFI_Upgrated.UI.Services;
 using GFI_Upgrated.UI.State;
 using MudBlazor.Services;
+using MudBlazor;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");
 builder.RootComponents.Add<HeadOutlet>("head::after");
 
 builder.Services.AddMudServices();
+builder.Services.AddScoped<SnackbarService>();
+builder.Services.AddScoped<ISnackbar, GfiSnackbar>();
 builder.Services.AddSingleton<AppSessionState>();
 builder.Services.AddSingleton<LocalizationState>();
 builder.Services.AddScoped(sp =>
