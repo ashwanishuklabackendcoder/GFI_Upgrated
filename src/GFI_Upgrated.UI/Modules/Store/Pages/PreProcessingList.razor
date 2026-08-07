@@ -17,12 +17,12 @@
     <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
         <MudStack Spacing="0">
             <MudText Typo="Typo.h5">Pre-Processing</MudText>
-            <MudText Typo="Typo.body2" Color="Color.Secondary">Manage production runs and ingredient consumption.</MudText>
+            @* <MudText Typo="Typo.body2" Color="Color.Secondary">Manage production runs and ingredient consumption.</MudText> *@
         </MudStack>
         @if (_canInsert)
         {
             <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OnAdd">
-                Add New Run
+                Add New
             </MudButton>
         }
     </MudStack>

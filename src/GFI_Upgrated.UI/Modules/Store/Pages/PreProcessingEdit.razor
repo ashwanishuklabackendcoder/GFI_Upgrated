@@ -15,8 +15,8 @@
 <MudPaper Class="pa-4">
     <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
         <MudStack Spacing="0">
-            <MudText Typo="Typo.h5">@(_isEdit ? "Edit Production Run" : "New Production Run")</MudText>
-            <MudText Typo="Typo.body2" Color="Color.Secondary">Declare what was produced and where it is stored.</MudText>
+            <MudText Typo="Typo.h5">@(_isEdit ? "Edit Semi Finished Run" : "New Semi Finished Run")</MudText>
+            @* <MudText Typo="Typo.body2" Color="Color.Secondary">Declare what was produced and where it is stored.</MudText> *@
         </MudStack>
         <MudIconButton Icon="@Icons.Material.Filled.Close" OnClick="OnCancel" />
     </MudStack>
@@ -32,7 +32,7 @@
             </MudItem>
 
             <MudItem xs="12" md="4">
-                <MudDatePicker DateFormat="dd/MM/yyyy" Placeholder="dd/MM/yyyy" Editable="true"                         @bind-Date="_editor.ProcessingDate" Label="Processing Date (DD/MM/YYYY)" Variant="Variant.Outlined" Required="true" />
+                <MudDatePicker DateFormat="dd/MM/yyyy" Placeholder="dd/MM/yyyy" Editable="true" @bind-Date="_editor.ProcessingDate" Label="Processing Date (DD/MM/YYYY)" Variant="Variant.Outlined" Required="true" />
             </MudItem>
             <MudItem xs="12" md="4">
                 <MudNumericField @bind-Value="_editor.QuantityMade" Label="Actual Quantity Made" Min="1" Variant="Variant.Outlined" />
