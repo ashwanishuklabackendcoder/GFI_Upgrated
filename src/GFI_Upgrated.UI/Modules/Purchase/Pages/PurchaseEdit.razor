@@ -330,6 +330,12 @@
             _model.TotalAmount = _totalAmount;
             _model.CreatedBy = SessionState.CurrentUserAuditName ?? "System";
             
+            // Calculate item Amount before saving to prevent DB errors
+            foreach (var item in _model.Items)
+            {
+                item.Amount = item.Quantity * item.UnitPrice;
+            }
+            
             var resultId = await ApiClient.SavePurchaseAsync(_model);
             if (resultId > 0)
             {

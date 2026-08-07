@@ -1,4 +1,4 @@
-﻿@page "/admin/kettle"
+@page "/admin/kettle"
 @page "/store/w_masterkettlelist"
 @page "/store/kettle"
 @page "/admin/w_masterkettlelist"
@@ -36,7 +36,7 @@
     <MudTable RowsPerPage="25" T="KettleDto" @ref="_table" ServerData="LoadServerDataAsync" Hover="true" Dense="true" Striped="true" Bordered="true" Breakpoint="Breakpoint.Sm">
         <HeaderContent>
             <MudTh><MudTableSortLabel T="KettleDto" SortLabel="KettleNumber">Kettle Number</MudTableSortLabel></MudTh>
-            <MudTh>Remarks</MudTh>
+            <MudTh><MudTableSortLabel SortLabel="Remarks" T="KettleDto">Remarks</MudTableSortLabel></MudTh>
             <MudTh Style="width: 120px; text-align: center;">Action</MudTh>
         </HeaderContent>
         <RowTemplate>

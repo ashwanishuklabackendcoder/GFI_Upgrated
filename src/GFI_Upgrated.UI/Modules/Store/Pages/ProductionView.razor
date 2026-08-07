@@ -1,0 +1,122 @@
+@page "/store/production/view/{Id:long}"
+@using GFI_Upgrated.SharedDto.Store
+@using GFI_Upgrated.UI.Services
+@using GFI_Upgrated.UI.State
+@inject StoreApiClient ApiClient
+@inject ISnackbar Snackbar
+@inject NavigationManager NavigationManager
+@inject AppSessionState SessionState
+@inject IJSRuntime JS
+
+<PageTitle>View Production</PageTitle>
+
+<MudPaper Class="pa-4 mb-4">
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+        <MudText Typo="Typo.h5">View Production</MudText>
+        <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.ArrowBack" OnClick="OnBack">Back</MudButton>
+    </MudStack>
+</MudPaper>
+
+@if (_loading)
+{
+    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+}
+else if (_header == null)
+{
+    <MudAlert Severity="Severity.Error">Production record not found.</MudAlert>
+}
+else
+{
+    <MudPaper Class="pa-4 mb-4">
+        <MudGrid>
+            <MudItem xs="12" md="6">
+                <MudTextField T="string" Label="Cooking Date" Value="@_header.CookingDate" ReadOnly="true" />
+                <MudTextField T="string" Label="Batch No" Value="@_header.BatchNo" ReadOnly="true" />
+                <MudTextField T="string" Label="Process Employees" Value="@_header.ProcessEmployees" ReadOnly="true" />
+                <MudTextField T="string" Label="Warehouse" Value="@_warehouseName" ReadOnly="true" />
+                <MudTextField T="string" Label="Kettle" Value="@_kettleName" ReadOnly="true" />
+            </MudItem>
+            <MudItem xs="12" md="6">
+                <MudTextField T="string" Label="BOM / Product Name" Value="@_bomName" ReadOnly="true" />
+                <MudTextField T="double" Label="BOM Quantity" Value="@_header.BomQty" ReadOnly="true" />
+                <MudTextField T="string" Label="Expiry Date" Value="@_header.ExpiryDate" ReadOnly="true" />
+                <MudTextField T="string" Label="Remarks" Value="@_header.Remarks" ReadOnly="true" />
+            </MudItem>
+        </MudGrid>
+    </MudPaper>
+
+    <MudPaper Class="pa-4">
+        <MudText Typo="Typo.h6" Class="mb-4">Ingredients / Stock Used</MudText>
+        <MudTable Items="_items" Hover="true" Dense="true" Striped="true" Bordered="true">
+            <HeaderContent>
+                <MudTh>Date</MudTh>
+                <MudTh>Item Name</MudTh>
+                <MudTh>Batch No</MudTh>
+                <MudTh Style="text-align: right;">Quantity Used</MudTh>
+                <MudTh Style="text-align: right;">Amount (SRD)</MudTh>
+                <MudTh>Description</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Date">@(context.TransactionDate?.ToShortDateString() ?? "N/A")</MudTd>
+                <MudTd DataLabel="Item Name">@context.ItemName</MudTd>
+                <MudTd DataLabel="Batch No">@context.BatchNo</MudTd>
+                <MudTd DataLabel="Quantity Used" Style="text-align: right;">@context.Quantity @context.UnitName</MudTd>
+                <MudTd DataLabel="Amount" Style="text-align: right;">@context.Amount.ToString("N2")</MudTd>
+                <MudTd DataLabel="Description">@context.Description</MudTd>
+            </RowTemplate>
+            <NoRecordsContent>
+                <MudText Class="pa-4">No ingredients recorded.</MudText>
+            </NoRecordsContent>
+        </MudTable>
+    </MudPaper>
+}
+
+@code {
+    [Parameter] public long Id { get; set; }
+    
+    private bool _loading = true;
+    private ProductionDto? _header;
+    private List<PreProcessingItemDto> _items = new();
+    private string _bomName = string.Empty;
+    private string _warehouseName = string.Empty;
+    private string _kettleName = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!SessionState.IsLoggedIn)
+        {
+            NavigationManager.NavigateTo("/login");
+            return;
+        }
+
+        try
+        {
+            _header = await ApiClient.GetProductionByIdAsync(Id);
+            if (_header != null)
+            {
+                var boms = await ApiClient.GetBomsLookupAsync();
+                var whs = await ApiClient.GetWarehousesLookupAsync();
+                
+                _bomName = boms.FirstOrDefault(b => b.BomId == _header.BomId)?.BomName ?? "Unknown";
+                _warehouseName = whs.FirstOrDefault(w => w.WarehouseId == _header.WarehouseId)?.WarehouseName ?? "Unknown";
+                _kettleName = _header.KettleNumber ?? "Unknown";
+
+                var itemsResult = await ApiClient.GetProductionItemsAsync(Id);
+                _items = itemsResult.ToList();
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error loading production data: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task OnBack()
+    {
+        await JS.InvokeVoidAsync("history.back");
+    }
+}

@@ -27,7 +27,9 @@ public sealed class ReportRepository : IReportRepository
             new("@SortColumn", SqlDbType.VarChar, 20) { Value = request.SortColumn ?? "StockID" },
             new("@ItemID", SqlDbType.BigInt) { Value = request.ItemID ?? 0 },
             new("@WarehouseID", SqlDbType.BigInt) { Value = request.WarehouseID ?? 0 },
-            new("@ItemTypeId", SqlDbType.Int) { Value = request.ItemTypeId ?? 0 }
+            new("@ItemTypeId", SqlDbType.Int) { Value = request.ItemTypeId ?? 0 },
+            new("@FromDate", SqlDbType.Date) { Value = (object?)request.FromDate ?? DBNull.Value },
+            new("@ToDate", SqlDbType.Date) { Value = (object?)request.ToDate ?? DBNull.Value }
         };
 
         try
@@ -44,6 +46,24 @@ public sealed class ReportRepository : IReportRepository
         catch (Exception ex)
         {
             throw new Exception($"Error in GetItemStockReportAsync: {ex.Message}", ex);
+        }
+    }
+
+    public async Task<IEnumerable<ItemStockTraceabilityDto>> GetItemStockTraceabilityAsync(long itemId, CancellationToken cancellationToken = default)
+    {
+        var parameters = new List<SqlParameter>
+        {
+            new("@ItemId", SqlDbType.BigInt) { Value = itemId }
+        };
+
+        try
+        {
+            var table = await ExecuteDataTableAsync("Rpt_ItemStockTraceability", parameters, cancellationToken);
+            return table.AsEnumerable().Select(MapItemStockTraceability).ToList();
+        }
+        catch (Exception ex)
+        {
+            throw new Exception($"Error in GetItemStockTraceabilityAsync: {ex.Message}", ex);
         }
     }
 
@@ -64,8 +84,8 @@ public sealed class ReportRepository : IReportRepository
             
             return new PagedResult<BatchWiseItemDto>
             {
-                CurrentPage = Convert.ToInt32(parameters[1].Value ?? page),
-                TotalRecord = Convert.ToInt32(parameters[3].Value ?? 0),
+                CurrentPage = parameters[1].Value == DBNull.Value ? page : Convert.ToInt32(parameters[1].Value),
+                TotalRecord = parameters[3].Value == DBNull.Value ? 0 : Convert.ToInt32(parameters[3].Value),
                 Items = table.AsEnumerable().Select(MapBatchWiseItem).ToList()
             };
         }
@@ -92,8 +112,8 @@ public sealed class ReportRepository : IReportRepository
             
             return new PagedResult<BatchWiseItemDto>
             {
-                CurrentPage = Convert.ToInt32(parameters[1].Value ?? page),
-                TotalRecord = Convert.ToInt32(parameters[3].Value ?? 0),
+                CurrentPage = parameters[1].Value == DBNull.Value ? page : Convert.ToInt32(parameters[1].Value),
+                TotalRecord = parameters[3].Value == DBNull.Value ? 0 : Convert.ToInt32(parameters[3].Value),
                 Items = table.AsEnumerable().Select(MapBatchWiseItem).ToList()
             };
         }
@@ -148,6 +168,32 @@ public sealed class ReportRepository : IReportRepository
         FinalStock = row.SafeDouble("FinalStock"),
         UnitId = row.SafeLong("UnitId"),
         TotalValue = row.SafeDouble("TotalValue")
+    };
+
+    public async Task<IEnumerable<ItemStockTraceabilityDto>> GetBatchTraceabilityAsync(string batchNo, CancellationToken cancellationToken = default)
+    {
+        var parameters = new List<SqlParameter>
+        {
+            new("@BatchNo", SqlDbType.NVarChar, 50) { Value = batchNo }
+        };
+
+        var table = await ExecuteDataTableAsync("Rpt_BatchTraceability", parameters, cancellationToken);
+        return table.AsEnumerable().Select(MapItemStockTraceability).ToList();
+    }
+
+    private ItemStockTraceabilityDto MapItemStockTraceability(DataRow row) => new()
+    {
+        TransactionDate = row.IsNull("TransactionDate") ? null : row.Field<DateTime?>("TransactionDate"),
+        BatchNo = row.SafeString("BatchNo"),
+        TransactionType = row.SafeString("TransactionType"),
+        Reference = row.SafeString("Reference"),
+        InQty = row.SafeDouble("InQty"),
+        OutQty = row.SafeDouble("OutQty"),
+        TotalValue = row.SafeDouble("TotalValue"),
+        UnitName = row.SafeString("UnitName"),
+        ItemName = row.SafeString("ItemName"),
+        RefUsedFor = row.SafeInt("RefUsedFor"),
+        RefUsedForId = row.SafeLong("RefUsedForId")
     };
 
     private BatchWiseItemDto MapBatchWiseItem(DataRow row) => new()

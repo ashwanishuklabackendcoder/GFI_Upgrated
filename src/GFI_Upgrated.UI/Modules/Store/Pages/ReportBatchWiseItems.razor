@@ -63,7 +63,9 @@
             <MudTh>Expiry Date</MudTh>
         </HeaderContent>
         <RowTemplate>
-            <MudTd DataLabel="Batch No.">@context.BatchNo</MudTd>
+              <MudTd DataLabel="Batch No.">
+                  <a href="@($"/store/reports/batch-wise-items/traceability/{Uri.EscapeDataString(context.BatchNo ?? string.Empty)}")" style="color:var(--mud-palette-primary); text-decoration:none;">@context.BatchNo</a>
+              </MudTd>
             <MudTd DataLabel="Item Name">@context.ItemName</MudTd>
             <MudTd DataLabel="Account Name">@context.AccountName</MudTd>
             <MudTd DataLabel="Processing Date">@context.ProcessingDate</MudTd>
@@ -92,6 +94,10 @@
     private MudTable<BatchWiseItemDto>? _table;
     private string _batchNumber = "";
     private RawMaterialDto? _selectedItem;
+
+    [SupplyParameterFromQuery]
+    public long? ItemId { get; set; }
+
     private bool _loading;
     private string _currentSortDirection = "DESC";
     private List<RawMaterialDto> _items = new();
@@ -108,10 +114,27 @@
         {
             var itemResult = await ApiClient.GetItemsForBomLookupAsync(null);
             _items = itemResult.OrderBy(x => x.ItemName).ToList();
+
+            if (ItemId.HasValue && ItemId.Value > 0)
+            {
+                _selectedItem = _items.FirstOrDefault(x => x.ItemId == ItemId.Value);
+                if (_table != null)
+                {
+                    await _table.ReloadServerData();
+                }
+            }
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Error loading items lookup: {ex.Message}", Severity.Error);
+            Snackbar.Add($"Error loading items: {ex.Message}", Severity.Error);
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && ItemId.HasValue && ItemId.Value > 0 && _table != null)
+        {
+            await _table.ReloadServerData();
         }
     }
 

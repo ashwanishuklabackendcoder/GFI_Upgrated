@@ -129,8 +129,15 @@ namespace GFI_Upgrated.ServiceApi.Controllers.Purchase
         [RequirePermission("Purchase", "_Purchase", "insert")]
         public async Task<ActionResult<ApiEnvelope<long>>> SavePurchase([FromBody] PurchaseDto purchase)
         {
-            var id = await _service.SavePurchaseAsync(purchase);
-            return Ok(new ApiEnvelope<long> { Success = id != 0, Data = id, Message = id > 0 ? "Purchase recorded." : (id == -1 ? "Voucher Number already exists." : "Failed to record.") });
+            try
+            {
+                var id = await _service.SavePurchaseAsync(purchase);
+                return Ok(new ApiEnvelope<long> { Success = id != 0, Data = id, Message = id > 0 ? "Purchase recorded." : (id == -1 ? "Voucher Number already exists." : "Failed to record.") });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new ApiEnvelope<long> { Success = false, Message = $"Error: {ex.Message} \n Inner: {ex.InnerException?.Message}" });
+            }
         }
 
         [HttpDelete("grn")]

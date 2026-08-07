@@ -407,7 +407,10 @@ public sealed class PreProcessingRepository : IPreProcessingRepository
         ItemName = row.SafeString("ItemName"),
         BatchNo = row.SafeString("BatchNo"),
         Quantity = row.SafeDouble("Quantity"),
-        Description = row.SafeString("Description")
+        Description = row.SafeString("Description"),
+        TransactionDate = row.IsNull("TransactionDate") ? null : row.Field<DateTime?>("TransactionDate"),
+        UnitName = row.SafeString("UnitName"),
+        Amount = row.SafeDouble("Amount")
     };
 
     private async Task<DataTable> ExecuteDataTableAsync(string storedProcedure, IEnumerable<SqlParameter> parameters, CancellationToken cancellationToken)

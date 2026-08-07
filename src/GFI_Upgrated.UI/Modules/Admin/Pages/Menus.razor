@@ -15,13 +15,14 @@
                 <MudText Typo="Typo.h5">Menus</MudText>
                 <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="NewMenu">New Menu</MudButton>
             </MudStack>
-            <MudTable Items="_menus.OrderBy(m => m.SequenceNo)" Dense="true" Hover="true" Class="mt-4" GroupBy="@_groupDefinition">
+            <MudTextField @bind-Value="_search" Placeholder="Search menu" Variant="Variant.Outlined" Immediate="true" />
+            <MudTable Items="_menus.OrderBy(m => m.SequenceNo)" Dense="true" Hover="true" Class="mt-4" GroupBy="@_groupDefinition" Filter="new Func<MenuDto,bool>(FilterFunc1)">
                 <HeaderContent>
-                    <MudTh>Heading</MudTh>
-                    <MudTh>Path</MudTh>
-                    <MudTh>Module</MudTh>
-                    <MudTh>Show In Menu</MudTh>
-                    <MudTh>Sequence</MudTh>
+                    <MudTh><MudTableSortLabel SortLabel="PageHeading" T="MenuDto">Heading</MudTableSortLabel></MudTh>
+                    <MudTh><MudTableSortLabel SortLabel="PagePath" T="MenuDto">Path</MudTableSortLabel></MudTh>
+                    <MudTh><MudTableSortLabel SortLabel="ModuleId" T="MenuDto">Module</MudTableSortLabel></MudTh>
+                    <MudTh><MudTableSortLabel SortLabel="ShowInMenu" T="MenuDto">Show In Menu</MudTableSortLabel></MudTh>
+                    <MudTh><MudTableSortLabel SortLabel="SequenceNo" T="MenuDto">Sequence</MudTableSortLabel></MudTh>
                     <MudTh Style="width:150px;"></MudTh>
                 </HeaderContent>
                 <GroupHeaderTemplate>
@@ -84,6 +85,18 @@
     private List<MenuDto> _menus = new();
     private SaveMenuRequest _editor = new();
     private bool _busy;
+    private string? _search;
+
+    private bool FilterFunc1(MenuDto menu)
+    {
+        if (string.IsNullOrWhiteSpace(_search))
+            return true;
+        if (menu.PageHeading?.Contains(_search, StringComparison.OrdinalIgnoreCase) == true)
+            return true;
+        if (menu.PagePath?.Contains(_search, StringComparison.OrdinalIgnoreCase) == true)
+            return true;
+        return false;
+    }
     
     private TableGroupDefinition<MenuDto> _groupDefinition = new()
     {

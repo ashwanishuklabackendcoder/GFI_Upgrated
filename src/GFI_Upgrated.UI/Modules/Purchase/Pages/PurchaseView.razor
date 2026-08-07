@@ -1,0 +1,155 @@
+@page "/admin/purchase/view/{Id:long}"
+@using GFI_Upgrated.SharedDto
+@using GFI_Upgrated.UI.Services
+@using GFI_Upgrated.SharedDto.Purchase
+@inject StoreApiClient ApiClient
+@inject ISnackbar Snackbar
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+    <MudPaper Class="pa-4">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-4">
+            <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" OnClick="GoBack" />
+            <MudText Typo="Typo.h5">View Purchase Receipt</MudText>
+        </MudStack>
+
+        @if (_isLoading)
+        {
+            <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+        }
+        else if (_model == null)
+        {
+            <MudAlert Severity="Severity.Error">Purchase receipt not found.</MudAlert>
+        }
+        else
+        {
+            <MudGrid>
+                <MudItem xs="12" sm="6" md="3">
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">Voucher Number</MudText>
+                    <MudText Typo="Typo.body1">@_model.VoucherNumber</MudText>
+                </MudItem>
+                <MudItem xs="12" sm="6" md="3">
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">Received Date</MudText>
+                    <MudText Typo="Typo.body1">@(_model.GoodsRecievedDate?.ToString("dd/MM/yyyy") ?? "-")</MudText>
+                </MudItem>
+                <MudItem xs="12" sm="6" md="3">
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">Vendor</MudText>
+                    <MudText Typo="Typo.body1">@_model.VendorName</MudText>
+                </MudItem>
+                <MudItem xs="12" sm="6" md="3">
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">Invoice No</MudText>
+                    <MudText Typo="Typo.body1">@_model.InvoiceNo</MudText>
+                </MudItem>
+                
+                <MudItem xs="12" sm="6" md="3">
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">Invoice Date</MudText>
+                    <MudText Typo="Typo.body1">@(_model.InvoiceDate?.ToString("dd/MM/yyyy") ?? "-")</MudText>
+                </MudItem>
+                <MudItem xs="12" sm="6" md="3">
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">PO Number</MudText>
+                    <MudText Typo="Typo.body1">@(_model.PONumber ?? "-")</MudText>
+                </MudItem>
+                <MudItem xs="12" sm="6" md="6">
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">Narration</MudText>
+                    <MudText Typo="Typo.body1">@(_model.Narration ?? "-")</MudText>
+                </MudItem>
+            </MudGrid>
+
+            <MudDivider Class="my-6" />
+
+            <MudText Typo="Typo.h6" Class="mb-4">Received Items</MudText>
+            <MudTable Items="@_model.Items" Dense="true" Hover="true" Elevation="0" Class="mb-4">
+                <HeaderContent>
+                    <MudTh>Item Name</MudTh>
+                    <MudTh>Batch No</MudTh>
+                    <MudTh>Expiry Date</MudTh>
+                    <MudTh>Qty</MudTh>
+                    <MudTh>Unit</MudTh>
+                    <MudTh>Unit Price</MudTh>
+                    <MudTh>Amount</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="Item Name">@context.ItemName</MudTd>
+                    <MudTd DataLabel="Batch No">@context.BatchNo</MudTd>
+                    <MudTd DataLabel="Expiry Date">@context.ExpiryDate?.ToString("dd/MM/yyyy")</MudTd>
+                    <MudTd DataLabel="Qty">@context.Quantity.ToString("N2")</MudTd>
+                    <MudTd DataLabel="Unit">@context.UnitName</MudTd>
+                    <MudTd DataLabel="Unit Price">@context.UnitPrice.ToString("N2")</MudTd>
+                    <MudTd DataLabel="Amount">@context.Amount.ToString("N2")</MudTd>
+                </RowTemplate>
+            </MudTable>
+
+            <MudGrid Class="mt-4">
+                <MudItem xs="12" sm="6" md="8"></MudItem>
+                <MudItem xs="12" sm="6" md="4">
+                    <MudPaper Class="pa-4" Elevation="0" Outlined="true">
+                        <MudStack Spacing="2">
+                            <MudStack Row="true" Justify="Justify.SpaceBetween">
+                                <MudText Typo="Typo.body2">Sub Total</MudText>
+                                <MudText Typo="Typo.body2">@(_model.Items.Sum(x => x.Amount).ToString("N2"))</MudText>
+                            </MudStack>
+                            <MudStack Row="true" Justify="Justify.SpaceBetween">
+                                <MudText Typo="Typo.body2">Discount</MudText>
+                                <MudText Typo="Typo.body2">@(_model.Discount?.ToString("N2") ?? "0.00")</MudText>
+                            </MudStack>
+                            <MudStack Row="true" Justify="Justify.SpaceBetween">
+                                <MudText Typo="Typo.body2">Shipping</MudText>
+                                <MudText Typo="Typo.body2">@(_model.Shipping?.ToString("N2") ?? "0.00")</MudText>
+                            </MudStack>
+                            <MudStack Row="true" Justify="Justify.SpaceBetween">
+                                <MudText Typo="Typo.body2">Taxes</MudText>
+                                <MudText Typo="Typo.body2">@(_model.Taxes?.ToString("N2") ?? "0.00")</MudText>
+                            </MudStack>
+                            <MudDivider />
+                            <MudStack Row="true" Justify="Justify.SpaceBetween">
+                                <MudText Typo="Typo.subtitle1"><b>Total Amount</b></MudText>
+                                <MudText Typo="Typo.subtitle1"><b>@_model.TotalAmount.ToString("N2")</b></MudText>
+                            </MudStack>
+                        </MudStack>
+                    </MudPaper>
+                </MudItem>
+            </MudGrid>
+        }
+    </MudPaper>
+</MudContainer>
+
+@code {
+    [Parameter]
+    public long Id { get; set; }
+
+    private PurchaseDto? _model;
+    private bool _isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDataAsync();
+    }
+
+    private async Task LoadDataAsync()
+    {
+        _isLoading = true;
+        try
+        {
+            var result = await ApiClient.GetPurchasesAsync(purchaseId: Id, voucherNumber: null, invoiceNo: null, accountId: null);
+            if (result?.Items != null && result.Items.Any())
+            {
+                _model = result.Items.First();
+                _model.Items = await ApiClient.GetPurchaseItemsAsync(Id);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error loading purchase details: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task GoBack()
+    {
+        await JSRuntime.InvokeVoidAsync("history.back");
+    }
+}

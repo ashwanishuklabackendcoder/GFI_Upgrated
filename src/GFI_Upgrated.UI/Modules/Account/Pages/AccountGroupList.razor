@@ -28,7 +28,7 @@
 
     <MudTable RowsPerPage="25" T="AccountGroupDto" @ref="_table" ServerData="LoadServerDataAsync" Hover="true" Dense="true" Striped="true" Bordered="true" Breakpoint="Breakpoint.Sm">
         <HeaderContent>
-            <MudTh><MudTableSortLabel T="AccountGroupDto" SortLabel="AccountGroupID">ID</MudTableSortLabel></MudTh>
+            <MudTh Style="display:none;"><MudTableSortLabel T="AccountGroupDto" SortLabel="AccountGroupID">ID</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel T="AccountGroupDto" SortLabel="AccountGroupName">Group Name</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel T="AccountGroupDto" SortLabel="IsMainAccountGroup">Type</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel T="AccountGroupDto" SortLabel="IsActive">Status</MudTableSortLabel></MudTh>
@@ -36,7 +36,7 @@
             <MudTh Style="width: 120px; text-align: center;">Action</MudTh>
         </HeaderContent>
         <RowTemplate>
-            <MudTd DataLabel="ID">@context.AccountGroupID</MudTd>
+            <MudTd DataLabel="ID" Style="display:none;">@context.AccountGroupID</MudTd>
             <MudTd DataLabel="Name">
                 <MudText Typo="Typo.body2" Class="fw-bold">@context.AccountGroupName</MudText>
             </MudTd>

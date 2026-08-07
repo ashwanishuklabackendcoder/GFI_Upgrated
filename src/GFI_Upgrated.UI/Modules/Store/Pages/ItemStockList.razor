@@ -58,7 +58,7 @@
 
     <MudTable RowsPerPage="25" T="ItemStockByBatchReportDto" @ref="_table" ServerData="LoadServerDataAsync" Hover="true" Dense="true" Striped="true" Bordered="true" Loading="_loading">
         <HeaderContent>
-            <MudTh><MudTableSortLabel SortLabel="ItemStockByBatchId" T="ItemStockByBatchReportDto">ID</MudTableSortLabel></MudTh>
+            <MudTh Style="display:none;"><MudTableSortLabel SortLabel="ItemStockByBatchId" T="ItemStockByBatchReportDto">ID</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel SortLabel="ItemName" T="ItemStockByBatchReportDto">Item Name</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel SortLabel="BatchNo" T="ItemStockByBatchReportDto">Batch No.</MudTableSortLabel></MudTh>
             <MudTh Style="text-align: right;"><MudTableSortLabel SortLabel="Quantity" T="ItemStockByBatchReportDto">Quantity</MudTableSortLabel></MudTh>
@@ -69,7 +69,7 @@
         </HeaderContent>
 
         <RowTemplate>
-            <MudTd DataLabel="ID">@context.ItemStockByBatchId</MudTd>
+            <MudTd DataLabel="ID" Style="display:none;">@context.ItemStockByBatchId</MudTd>
             <MudTd DataLabel="Item Name">@context.ItemName</MudTd>
             <MudTd DataLabel="Batch No.">@context.BatchNo</MudTd>
             <MudTd DataLabel="Quantity" Style="text-align: right;">@context.Quantity.ToString("N2") @context.UnitName</MudTd>         

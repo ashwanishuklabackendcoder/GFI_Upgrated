@@ -1,4 +1,4 @@
-﻿@page "/admin/almirah"
+@page "/admin/almirah"
 @page "/admin/w_masteralmirahshelfaddlist"
 @page "/store/w_masteralmirahshelfaddlist"
 @page "/store/almirah"
@@ -42,7 +42,7 @@
     <MudTable RowsPerPage="25" T="AlmirahDto" @ref="_table" ServerData="LoadServerDataAsync" Hover="true" Dense="true" Striped="true" Bordered="true" Breakpoint="Breakpoint.Sm">
         <HeaderContent>
             <MudTh><MudTableSortLabel T="AlmirahDto" SortLabel="AlmirahShelfName">Almirah Name</MudTableSortLabel></MudTh>
-            <MudTh>Warehouse</MudTh>
+            <MudTh><MudTableSortLabel SortLabel="WarehouseName" T="AlmirahDto">Warehouse</MudTableSortLabel></MudTh>
             <MudTh>Location</MudTh>
             <MudTh Style="width: 100px; text-align: center;">Shelves</MudTh>
             <MudTh Style="width: 120px; text-align: center;">Action</MudTh>

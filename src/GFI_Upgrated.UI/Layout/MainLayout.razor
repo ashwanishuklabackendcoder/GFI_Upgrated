@@ -151,9 +151,18 @@
     protected override void OnInitialized()
     {
         SessionState.OnChange += StateHasChanged;
+        SessionState.OnSessionExpired += HandleSessionExpired;
         LocalizationState.OnChange += StateHasChanged;
         Navigation.LocationChanged += OnLocationChanged;
         CheckAccess(Navigation.Uri);
+    }
+
+    private void HandleSessionExpired()
+    {
+        InvokeAsync(async () =>
+        {
+            await Logout();
+        });
     }
 
     private void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
@@ -165,8 +174,8 @@
     public void Dispose()
     {
         SessionState.OnChange -= StateHasChanged;
+        SessionState.OnSessionExpired -= HandleSessionExpired;
         LocalizationState.OnChange -= StateHasChanged;
         Navigation.LocationChanged -= OnLocationChanged;
     }
 }
-

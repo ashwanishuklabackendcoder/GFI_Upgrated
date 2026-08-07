@@ -1,4 +1,4 @@
-﻿@page "/store/purchase-return"
+@page "/store/purchase-return"
 
 @using GFI_Upgrated.SharedDto.Purchase
 @using GFI_Upgrated.UI.Services
@@ -22,11 +22,11 @@
     <MudTable RowsPerPage="25" T="PurchaseReturnDto" @ref="_table" ServerData="LoadServerDataAsync" Hover="true" Dense="true" Striped="true" Bordered="true" Loading="_loading">
         <HeaderContent>
             <MudTh><MudTableSortLabel SortLabel="ReturnDate" T="PurchaseReturnDto">Date</MudTableSortLabel></MudTh>
-            <MudTh>Item</MudTh>
-            <MudTh>Batch #</MudTh>
-            <MudTh>Quantity</MudTh>
-            <MudTh>Vendor</MudTh>
-            <MudTh>Reason</MudTh>
+            <MudTh><MudTableSortLabel SortLabel="ItemName" T="PurchaseReturnDto">Item</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel SortLabel="BatchNo" T="PurchaseReturnDto">Batch #</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel SortLabel="Quantity" T="PurchaseReturnDto">Quantity</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel SortLabel="VendorName" T="PurchaseReturnDto">Vendor</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel SortLabel="ReasonName" T="PurchaseReturnDto">Reason</MudTableSortLabel></MudTh>
             <MudTh Style="text-align: center; width: 80px;">Action</MudTh>
         </HeaderContent>
         <RowTemplate>

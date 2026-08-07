@@ -159,7 +159,8 @@ public sealed class BomRepository : IBomRepository
             CreatedDate = row.SafeDateTime("CreatedDate"),
             CreatedBy = row.SafeString("CreatedBy"),
             IsActive = row.SafeBool("IsActive"),
-            ItemTypeId = row.SafeLong("ItemTypeId", "ItemTypeID")
+            ItemTypeId = row.SafeLong("ItemTypeId", "ItemTypeID"),
+            TentativeExpiryDays = row.SafeInt("TentativeExpiryDays")
         };
     }
 

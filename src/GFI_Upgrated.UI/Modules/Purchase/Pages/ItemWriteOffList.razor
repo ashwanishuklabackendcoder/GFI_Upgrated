@@ -1,4 +1,4 @@
-﻿@page "/admin/item-write-off"
+@page "/admin/item-write-off"
 @using GFI_Upgrated.SharedDto.Purchase
 @using GFI_Upgrated.UI.Services
 @using GFI_Upgrated.UI.State
@@ -24,11 +24,11 @@
     <MudTable RowsPerPage="25" T="ItemWriteOffDto" @ref="_table" ServerData="LoadServerDataAsync" Hover="true" Dense="true" Striped="true" Bordered="true" Loading="_loading">
         <HeaderContent>
             <MudTh><MudTableSortLabel SortLabel="RemovalDate" T="ItemWriteOffDto">Date</MudTableSortLabel></MudTh>
-            <MudTh>Item</MudTh>
-            <MudTh>Batch #</MudTh>
-            <MudTh>Quantity</MudTh>
-            <MudTh>Reason</MudTh>
-            <MudTh>Remarks</MudTh>
+            <MudTh><MudTableSortLabel SortLabel="ItemName" T="ItemWriteOffDto">Item</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel SortLabel="BatchNo" T="ItemWriteOffDto">Batch #</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel SortLabel="Quantity" T="ItemWriteOffDto">Quantity</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel SortLabel="ReasonName" T="ItemWriteOffDto">Reason</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel SortLabel="Remarks" T="ItemWriteOffDto">Remarks</MudTableSortLabel></MudTh>
             <MudTh Style="text-align: center; width: 100px;">Action</MudTh>
         </HeaderContent>
         <RowTemplate>

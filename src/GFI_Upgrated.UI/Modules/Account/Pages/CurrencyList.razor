@@ -1,4 +1,4 @@
-﻿@page "/admin/currency"
+@page "/admin/currency"
 @using GFI_Upgrated.SharedDto.Account
 @using GFI_Upgrated.UI.Services
 @using MudBlazor
@@ -26,7 +26,7 @@
 
     <MudTable RowsPerPage="25" T="CurrencyDto" @ref="_table" ServerData="LoadServerDataAsync" Hover="true" Dense="true" Striped="true" Bordered="true" Breakpoint="Breakpoint.Sm">
         <HeaderContent>
-            <MudTh><MudTableSortLabel T="CurrencyDto" SortLabel="CurrencyID">ID</MudTableSortLabel></MudTh>
+            <MudTh Style="display:none;"><MudTableSortLabel T="CurrencyDto" SortLabel="CurrencyID">ID</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel T="CurrencyDto" SortLabel="CurrencySymbol">Symbol</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel T="CurrencyDto" SortLabel="CurrencyString">String (Code)</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel T="CurrencyDto" SortLabel="CurrencySubString">Sub-String</MudTableSortLabel></MudTh>
@@ -34,7 +34,7 @@
             <MudTh Style="width: 120px; text-align: center;">Action</MudTh>
         </HeaderContent>
         <RowTemplate>
-            <MudTd DataLabel="ID">@context.CurrencyID</MudTd>
+            <MudTd DataLabel="ID" Style="display:none;">@context.CurrencyID</MudTd>
             <MudTd DataLabel="Symbol">
                 <MudChip T="string" Variant="Variant.Text" Color="Color.Primary" Size="Size.Small">@context.CurrencySymbol</MudChip>
             </MudTd>

@@ -111,7 +111,7 @@ public abstract class ApiClientBase
                 var root = doc.RootElement;
 
                 // 1. Standard ApiEnvelope check
-                if (root.TryGetProperty("message", out var msgProp) && !string.IsNullOrWhiteSpace(msgProp.GetString()))
+                if ((root.TryGetProperty("message", out var msgProp) || root.TryGetProperty("Message", out msgProp)) && !string.IsNullOrWhiteSpace(msgProp.GetString()))
                 {
                     throw new ApiException(msgProp.GetString()!);
                 }
@@ -155,6 +155,7 @@ public abstract class ApiClientBase
 
         if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
         {
+            _sessionState.NotifySessionExpired();
             throw new ApiException("Your session has expired or is unauthorized. Please log in again.");
         }
 
