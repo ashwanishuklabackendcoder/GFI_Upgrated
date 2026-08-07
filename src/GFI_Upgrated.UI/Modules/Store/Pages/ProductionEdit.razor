@@ -18,9 +18,14 @@
     <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
         <MudStack Spacing="0">
             <MudText Typo="Typo.h5">@(_isEdit ? "Edit Finished Product Run" : "New Finished Product Run")</MudText>
-            @* <MudText Typo="Typo.body2" Color="Color.Secondary">Create a manufacturing declarations header, packaging SKU, and warehouse allocation.</MudText> *@
         </MudStack>
-        <MudIconButton Icon="@Icons.Material.Filled.Close" OnClick="OnCancel" />
+        <MudStack Row="true" Spacing="2">
+            @if (_isEdit)
+            {
+                <MudButton Variant="Variant.Outlined" Color="Color.Info" StartIcon="@Icons.Material.Filled.ListAlt" OnClick="@(() => NavigationManager.NavigateTo($"/store/production/items/{Id}"))">Manage Ingredients</MudButton>
+            }
+            <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.ArrowBack" OnClick="OnCancel">Back to List</MudButton>
+        </MudStack>
     </MudStack>
 
     <EditForm Model="_editor" OnValidSubmit="SaveAsync">
