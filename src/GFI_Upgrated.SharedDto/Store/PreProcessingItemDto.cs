@@ -16,6 +16,7 @@ public sealed class PreProcessingItemDto
     public DateTime? TransactionDate { get; set; }
     public string? UnitName { get; set; }
     public double Amount { get; set; }
+    public long UnitId { get; set; } // Added UnitId
 }
 
 public sealed class SavePreProcessingItemRequest
@@ -38,6 +39,7 @@ public sealed class SavePreProcessingItemRequest
 
     public string? Description { get; set; }
     public string UpdatedBy { get; set; } = "System";
+    public long? UnitId { get; set; } // Added UnitId
 }
 
 public sealed class BomItemDetailDto

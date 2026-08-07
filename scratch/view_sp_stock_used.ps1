@@ -2,7 +2,7 @@ $connString = "Server=db50414.public.databaseasp.net;Database=db50414;User Id=db
 $connection = New-Object System.Data.SqlClient.SqlConnection($connString)
 $connection.Open()
 $command = $connection.CreateCommand()
-$command.CommandText = "SELECT definition FROM sys.sql_modules WHERE object_id = OBJECT_ID('Inv_ItemStockUsedModify')"
+$command.CommandText = "SELECT definition FROM sys.sql_modules WHERE object_id = OBJECT_ID('Inv_ItemStockPreProcessingAndProductModify')"
 $definition = $command.ExecuteScalar()
 Write-Output $definition
 $connection.Close()

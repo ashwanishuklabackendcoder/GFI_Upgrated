@@ -158,6 +158,7 @@ public sealed class PreProcessingRepository : IPreProcessingRepository
             new SqlParameter("@Description", SqlDbType.NVarChar, 1000) { Value = (object?)request.Description ?? DBNull.Value },
             new SqlParameter("@CreatedBy", SqlDbType.NVarChar, 200) { Value = request.UpdatedBy },
             new SqlParameter("@CreatedDate", SqlDbType.DateTime) { Value = DateTime.UtcNow },
+            new SqlParameter("@UnitId", SqlDbType.BigInt) { Value = (object?)request.UnitId ?? DBNull.Value },
             new SqlParameter("@ReturnVal", SqlDbType.Int) { Direction = ParameterDirection.Output }
         };
 
@@ -261,6 +262,15 @@ public sealed class PreProcessingRepository : IPreProcessingRepository
         };
 
         await ExecuteNonQueryAsync("Inv_ItemStockPreProcessingAndProductModify", parameters, cancellationToken);
+
+        // Explicitly persist IsComplete status to 1 on the pre-processing header
+        var updateQuery = "UPDATE dbo.W_PreProcessing SET IsComplete = 1 WHERE PreProcessingId = @PreProcessingId";
+        await using var connection = new SqlConnection(_connectionString);
+        await using var command = new SqlCommand(updateQuery, connection);
+        command.Parameters.AddWithValue("@PreProcessingId", preProcessingId);
+        await connection.OpenAsync(cancellationToken);
+        await command.ExecuteNonQueryAsync(cancellationToken);
+
         return Convert.ToInt32(parameters[^1].Value ?? 0);
     }
 
@@ -410,7 +420,8 @@ public sealed class PreProcessingRepository : IPreProcessingRepository
         Description = row.SafeString("Description"),
         TransactionDate = row.IsNull("TransactionDate") ? null : row.Field<DateTime?>("TransactionDate"),
         UnitName = row.SafeString("UnitName"),
-        Amount = row.SafeDouble("Amount")
+        Amount = row.SafeDouble("Amount"),
+        UnitId = row.Table.Columns.Contains("UnitId") && row["UnitId"] != DBNull.Value ? Convert.ToInt64(row["UnitId"]) : 0
     };
 
     private async Task<DataTable> ExecuteDataTableAsync(string storedProcedure, IEnumerable<SqlParameter> parameters, CancellationToken cancellationToken)

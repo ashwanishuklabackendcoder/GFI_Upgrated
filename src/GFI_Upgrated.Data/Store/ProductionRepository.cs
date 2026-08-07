@@ -141,6 +141,7 @@ public sealed class ProductionRepository : IProductionRepository
             new SqlParameter("@Description", SqlDbType.NVarChar, 1000) { Value = (object?)request.Description ?? DBNull.Value },
             new SqlParameter("@CreatedBy", SqlDbType.NVarChar, 200) { Value = request.UpdatedBy },
             new SqlParameter("@CreatedDate", SqlDbType.DateTime) { Value = DateTime.UtcNow },
+            new SqlParameter("@UnitId", SqlDbType.BigInt) { Value = (object?)request.UnitId ?? DBNull.Value },
             new SqlParameter("@ReturnVal", SqlDbType.Int) { Direction = ParameterDirection.Output }
         };
 
@@ -358,7 +359,8 @@ public sealed class ProductionRepository : IProductionRepository
         Description = row.SafeString("Description"),
         TransactionDate = row.IsNull("TransactionDate") ? null : row.Field<DateTime?>("TransactionDate"),
         UnitName = row.SafeString("UnitName"),
-        Amount = row.SafeDouble("Amount")
+        Amount = row.SafeDouble("Amount"),
+        UnitId = row.Table.Columns.Contains("UnitId") && row["UnitId"] != DBNull.Value ? Convert.ToInt64(row["UnitId"]) : 0
     };
 
     private async Task<DataTable> ExecuteDataTableAsync(string storedProcedure, IEnumerable<SqlParameter> parameters, CancellationToken cancellationToken)

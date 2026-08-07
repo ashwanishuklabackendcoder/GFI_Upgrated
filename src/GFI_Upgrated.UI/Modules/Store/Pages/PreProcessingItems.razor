@@ -175,6 +175,22 @@
                 // Load previously saved items
                 foreach (var saved in _savedItems)
                 {
+                    double qty = saved.Quantity;
+                    long unitId = 0;
+                    var raw = _allRawMaterials.FirstOrDefault(x => x.ItemId == saved.ItemID);
+                    if (raw != null)
+                    {
+                        unitId = saved.UnitId > 0 ? saved.UnitId : raw.PurchaseUnit;
+                        if (unitId != raw.PurchaseUnit)
+                        {
+                            var selectedUnit = _units.FirstOrDefault(u => u.UnitId == unitId);
+                            if (selectedUnit != null && selectedUnit.ConversionValue.HasValue && selectedUnit.ConversionValue.Value > 0)
+                            {
+                                qty = saved.Quantity * selectedUnit.ConversionValue.Value;
+                            }
+                        }
+                    }
+
                     var row = new ConsumptionRow
                     {
                         ItemStockUsedID = saved.ItemStockUsedID,
@@ -182,15 +198,10 @@
                         ItemName = saved.ItemName,
                         ItemStockByBatchId = saved.ItemStockByBatchId,
                         BatchNo = saved.BatchNo,
-                        Quantity = saved.Quantity,
+                        Quantity = qty,
+                        UnitId = unitId,
                         Description = saved.Description
                     };
-
-                    var raw = _allRawMaterials.FirstOrDefault(x => x.ItemId == saved.ItemID);
-                    if (raw != null)
-                    {
-                        row.UnitId = raw.PurchaseUnit;
-                    }
 
                     // Match matching recipe item if exists to show reference recipe qty
                     var matchRecipe = _bomItems.FirstOrDefault(b => b.ItemID == saved.ItemID);
@@ -450,7 +461,8 @@
                     Quantity = qty,
                     Description = row.Description,
                     UsedFor = 2, // 2 = Pre-Processing
-                    UpdatedBy = SessionState.CurrentUserAuditName ?? "System"
+                    UpdatedBy = SessionState.CurrentUserAuditName ?? "System",
+                    UnitId = row.UnitId
                 };
 
                 var result = await ApiClient.SavePreProcessingItemAsync(request);
