@@ -35,18 +35,18 @@
     <MudTable RowsPerPage="25" T="ProductionDto" @ref="_table" ServerData="LoadServerDataAsync" Hover="true" Dense="true" Striped="true" Bordered="true" Breakpoint="Breakpoint.Sm">
         <HeaderContent>
             <MudTh Style="display:none;"><MudTableSortLabel T="ProductionDto" SortLabel="ProductionId">ID</MudTableSortLabel></MudTh>
-            <MudTh><MudTableSortLabel T="ProductionDto" SortLabel="BomName">Product Name</MudTableSortLabel></MudTh>
-            <MudTh><MudTableSortLabel T="ProductionDto" SortLabel="SkuName">SKU Name</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel T="ProductionDto" SortLabel="BomName">Product</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel T="ProductionDto" SortLabel="SkuName">SKU</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel T="ProductionDto" SortLabel="CookingDate">Cooking Date</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel T="ProductionDto" SortLabel="ExpiryDate">Expiry Date</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel T="ProductionDto" SortLabel="PackedCountryName">Country</MudTableSortLabel></MudTh>
-            <MudTh><MudTableSortLabel T="ProductionDto" SortLabel="BatchNo">Batch Number</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel T="ProductionDto" SortLabel="BatchNo">Batch No.</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel T="ProductionDto" SortLabel="WarehouseName">Warehouse</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel T="ProductionDto" SortLabel="IsComplete">Status</MudTableSortLabel></MudTh>
             <MudTh Style="width: 150px; text-align: center;">Action</MudTh>
         </HeaderContent>
         <RowTemplate>
-            <MudTd DataLabel="ID">@context.ProductionId</MudTd>
+            <MudTd DataLabel="ID" Style="display:none;">@context.ProductionId</MudTd>
             <MudTd DataLabel="Product">@context.BomName</MudTd>
             <MudTd DataLabel="SKU">@context.SkuName</MudTd>
             <MudTd DataLabel="Cooking Date">@context.CookingDate</MudTd>
