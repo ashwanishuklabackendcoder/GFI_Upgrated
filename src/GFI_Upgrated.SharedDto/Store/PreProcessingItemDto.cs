@@ -72,4 +72,6 @@ public sealed class AvailableBatchDto
     public double FinalQuantityLeft { get; set; }
     public string? ExpiryDate { get; set; }
     public string? WarehouseName { get; set; }
+    public long UnitId { get; set; }
+    public string? UnitName { get; set; }
 }

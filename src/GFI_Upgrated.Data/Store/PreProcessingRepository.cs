@@ -376,7 +376,9 @@ public sealed class PreProcessingRepository : IPreProcessingRepository
                     BatchNo = r.SafeString("BatchNo"),
                     FinalQuantityLeft = r.SafeDouble("FinalQuantityLeft"),
                     ExpiryDate = r.SafeString("ExpiryDate"),
-                    WarehouseName = r.SafeString("WarehouseName")
+                    WarehouseName = r.SafeString("WarehouseName"),
+                    UnitId = r.Table.Columns.Contains("Unit") && r["Unit"] != DBNull.Value ? Convert.ToInt64(r["Unit"]) : 0,
+                    UnitName = r.Table.Columns.Contains("UnitName") ? r.SafeString("UnitName") : null
                 }).ToList();
         }
         catch (Exception ex)
