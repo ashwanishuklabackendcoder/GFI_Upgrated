@@ -1,4 +1,4 @@
-﻿@page "/admin/production"
+@page "/admin/production"
 @page "/store/production"
 @page "/store/w_productionlist"
 @page "/admin/w_productionlist"
@@ -34,7 +34,7 @@
 
     <MudTable RowsPerPage="25" T="ProductionDto" @ref="_table" ServerData="LoadServerDataAsync" Hover="true" Dense="true" Striped="true" Bordered="true" Breakpoint="Breakpoint.Sm">
         <HeaderContent>
-            <MudTh><MudTableSortLabel T="ProductionDto" SortLabel="ProductionId">ID</MudTableSortLabel></MudTh>
+            <MudTh Style="display:none;"><MudTableSortLabel T="ProductionDto" SortLabel="ProductionId">ID</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel T="ProductionDto" SortLabel="BomName">Product Name</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel T="ProductionDto" SortLabel="SkuName">SKU Name</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel T="ProductionDto" SortLabel="CookingDate">Cooking Date</MudTableSortLabel></MudTh>

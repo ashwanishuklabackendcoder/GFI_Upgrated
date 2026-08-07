@@ -1,4 +1,4 @@
-﻿@page "/admin/loginslog"
+@page "/admin/loginslog"
 @using GFI_Upgrated.SharedDto.AdminSecurity
 @using GFI_Upgrated.SharedDto.Common
 @using GFI_Upgrated.UI.Services
@@ -34,7 +34,7 @@
 <MudPaper Class="pa-4">
     <MudTable RowsPerPage="25" T="LoginLogDto" @ref="_table" ServerData="LoadServerDataAsync" Hover="true" Dense="true" Striped="true" Bordered="true" Loading="_loading">
         <HeaderContent>
-            <MudTh><MudTableSortLabel SortLabel="Z_UsersLoginsLog.LoginLogID" T="LoginLogDto" InitialDirection="SortDirection.Descending">Log ID</MudTableSortLabel></MudTh>
+            <MudTh Style="display:none;"><MudTableSortLabel SortLabel="Z_UsersLoginsLog.LoginLogID" T="LoginLogDto" InitialDirection="SortDirection.Descending">Log ID</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel SortLabel="MasterName" T="LoginLogDto">User Name</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel SortLabel="LoginName" T="LoginLogDto">Login Name</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel SortLabel="IpAddress" T="LoginLogDto">IP Address</MudTableSortLabel></MudTh>
@@ -45,7 +45,7 @@
             <MudTh><MudTableSortLabel SortLabel="LogoutDateTime" T="LoginLogDto">Logout At</MudTableSortLabel></MudTh>
         </HeaderContent>
         <RowTemplate>
-            <MudTd DataLabel="Log ID">@context.LoginLogID</MudTd>
+            <MudTd DataLabel="Log ID" Style="display:none;">@context.LoginLogID</MudTd>
             <MudTd DataLabel="User Name">@context.MasterName</MudTd>
             <MudTd DataLabel="Login Name">@context.LoginName</MudTd>
             <MudTd DataLabel="IP Address">@context.IpAddress</MudTd>

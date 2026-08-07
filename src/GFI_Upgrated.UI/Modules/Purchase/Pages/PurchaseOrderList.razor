@@ -1,4 +1,4 @@
-﻿@page "/admin/purchase-order"
+@page "/admin/purchase-order"
 @using GFI_Upgrated.SharedDto.Purchase
 @using GFI_Upgrated.UI.Services
 @using GFI_Upgrated.UI.State
@@ -27,8 +27,8 @@
         <HeaderContent>
             <MudTh><MudTableSortLabel SortLabel="VoucherNumber" T="PurchaseOrderDto">Order #</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel SortLabel="OrderDate" T="PurchaseOrderDto">Date</MudTableSortLabel></MudTh>
-            <MudTh>Vendor</MudTh>
-            <MudTh>Total Amount</MudTh>
+            <MudTh><MudTableSortLabel SortLabel="VendorName" T="PurchaseOrderDto">Vendor</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel SortLabel="TotalAmount" T="PurchaseOrderDto">Total Amount</MudTableSortLabel></MudTh>
             <MudTh>Status</MudTh>
             <MudTh Style="text-align: center; width: 120px;">Action</MudTh>
         </HeaderContent>

@@ -18,6 +18,7 @@ public class BomDto
     public string? CreatedBy { get; set; }
     public bool IsActive { get; set; }
     public long ItemTypeId { get; set; }
+    public int TentativeExpiryDays { get; set; }
 }
 
 public class BomItemDto

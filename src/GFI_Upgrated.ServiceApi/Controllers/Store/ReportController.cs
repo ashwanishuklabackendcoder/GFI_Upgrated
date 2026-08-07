@@ -41,6 +41,52 @@ public sealed class ReportController : ControllerBase
         }
     }
 
+    [HttpGet("item-stock-traceability")]
+    public async Task<ActionResult<ApiEnvelope<IEnumerable<ItemStockTraceabilityDto>>>> GetItemStockTraceability([FromQuery] long itemId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await _service.GetItemStockTraceabilityAsync(itemId, cancellationToken);
+            return Ok(new ApiEnvelope<IEnumerable<ItemStockTraceabilityDto>>
+            {
+                Success = true,
+                Message = "Item stock traceability loaded successfully.",
+                Data = result
+            });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new ApiEnvelope<IEnumerable<ItemStockTraceabilityDto>>
+            {
+                Success = false,
+                Message = $"Error loading item stock traceability: {ex.Message}"
+            });
+        }
+    }
+
+    [HttpGet("batch-traceability")]
+    public async Task<ActionResult<ApiEnvelope<IEnumerable<ItemStockTraceabilityDto>>>> GetBatchTraceability([FromQuery] string batchNo, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await _service.GetBatchTraceabilityAsync(batchNo, cancellationToken);
+            return Ok(new ApiEnvelope<IEnumerable<ItemStockTraceabilityDto>>
+            {
+                Success = true,
+                Message = "Batch traceability loaded successfully.",
+                Data = result
+            });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new ApiEnvelope<IEnumerable<ItemStockTraceabilityDto>>
+            {
+                Success = false,
+                Message = $"Error loading batch traceability: {ex.Message}"
+            });
+        }
+    }
+
     [HttpGet("batch-wise/by-number")]
     public async Task<ActionResult<ApiEnvelope<PagedResult<BatchWiseItemDto>>>> GetBatchWiseItemsByBatchNo([FromQuery] string batchNo, [FromQuery] int page, [FromQuery] int size, [FromQuery] string sortType, CancellationToken cancellationToken)
     {

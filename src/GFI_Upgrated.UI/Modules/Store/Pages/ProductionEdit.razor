@@ -275,6 +275,10 @@
             {
                 _selectedBomUnitId = bomDetails.UnitId;
                 _editor.FillingPerBottleUnit = bomDetails.UnitId;
+                if (bomDetails.TentativeExpiryDays > 0)
+                {
+                    _editor.ExpiryDate = (_editor.CookingDate ?? DateTime.Today).AddDays(bomDetails.TentativeExpiryDays);
+                }
             }
         }
         else
@@ -312,6 +316,10 @@
             {
                 _selectedBomUnitId = bomDetails.UnitId;
                 _editor.FillingPerBottleUnit = bomDetails.UnitId;
+                if (bomDetails.TentativeExpiryDays > 0)
+                {
+                    _editor.ExpiryDate = (_editor.CookingDate ?? DateTime.Today).AddDays(bomDetails.TentativeExpiryDays);
+                }
             }
         }
         else

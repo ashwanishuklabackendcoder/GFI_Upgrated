@@ -1,4 +1,4 @@
-﻿@page "/store/w_masterbrandsaddlist"
+@page "/store/w_masterbrandsaddlist"
 @page "/store/brands"
 @page "/admin/w_masterbrandsaddlist"
 @page "/admin/brands"
@@ -36,7 +36,7 @@
         <HeaderContent>
             <MudTh><MudTableSortLabel T="GFI_Upgrated.SharedDto.Store.BrandDto" SortLabel="BrandName">@LocalizationState.Text("Store.Brands.List.BrandName", "Brand Name")</MudTableSortLabel></MudTh>
             <MudTh Style="text-align: center;"><MudTableSortLabel T="GFI_Upgrated.SharedDto.Store.BrandDto" SortLabel="IsActive">@LocalizationState.Text("Store.Brands.List.Status", "Status")</MudTableSortLabel></MudTh>
-            <MudTh>@LocalizationState.Text("Store.Brands.List.Remarks", "Remarks")</MudTh>
+            <MudTh><MudTableSortLabel T="GFI_Upgrated.SharedDto.Store.BrandDto" SortLabel="Remarks">@LocalizationState.Text("Store.Brands.List.Remarks", "Remarks")</MudTableSortLabel></MudTh>
             <MudTh Style="width: 120px; text-align: center;">@LocalizationState.Text("Store.Brands.List.Action", "Action")</MudTh>
         </HeaderContent>
         <RowTemplate>

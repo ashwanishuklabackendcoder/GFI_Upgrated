@@ -17,11 +17,11 @@
                 </AuthorizeAction>
             </MudStack>
             <MudTextField @bind-Value="_search" Placeholder="Search" Variant="Variant.Outlined" Immediate="true" />
-            <MudTable Items="_users" Dense="true" Hover="true" Class="mt-4">
+            <MudTable Items="_users" Dense="true" Hover="true" Class="mt-4" Filter="new Func<UserDto,bool>(FilterFunc1)">
                 <HeaderContent>
-                    <MudTh>Login</MudTh>
-                    <MudTh>Name</MudTh>
-                    <MudTh>Active</MudTh>
+                    <MudTh><MudTableSortLabel SortLabel="LoginName" T="UserDto">Login</MudTableSortLabel></MudTh>
+                    <MudTh><MudTableSortLabel SortLabel="FirstName" T="UserDto">Name</MudTableSortLabel></MudTh>
+                    <MudTh><MudTableSortLabel SortLabel="IsActive" T="UserDto">Active</MudTableSortLabel></MudTh>
                     <MudTh></MudTh>
                 </HeaderContent>
                 <RowTemplate>
@@ -81,6 +81,17 @@
     private List<RoleDto> _roles = new();
     private string? _search;
     private SaveUserRequest _editor = new();
+
+    private bool FilterFunc1(UserDto user)
+    {
+        if (string.IsNullOrWhiteSpace(_search))
+            return true;
+        if (user.LoginName?.Contains(_search, StringComparison.OrdinalIgnoreCase) == true)
+            return true;
+        if ($"{user.FirstName} {user.LastName}".Contains(_search, StringComparison.OrdinalIgnoreCase) == true)
+            return true;
+        return false;
+    }
 
     private async Task<IEnumerable<StaffLookupDto>> SearchStaff(string value, CancellationToken token)
     {

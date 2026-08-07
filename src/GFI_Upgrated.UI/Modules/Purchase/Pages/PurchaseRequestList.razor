@@ -1,4 +1,4 @@
-﻿@page "/store/purchase-request"
+@page "/store/purchase-request"
 @using GFI_Upgrated.SharedDto.Purchase
 @using GFI_Upgrated.UI.Services
 @using GFI_Upgrated.UI.State
@@ -27,8 +27,8 @@
         <HeaderContent>
             <MudTh><MudTableSortLabel SortLabel="RequestNumber" T="PurchaseRequestDto">Request #</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel SortLabel="CreatedDate" T="PurchaseRequestDto">Date</MudTableSortLabel></MudTh>
-            <MudTh>Requested By</MudTh>
-            <MudTh>Description</MudTh>
+            <MudTh><MudTableSortLabel SortLabel="RequestedByName" T="PurchaseRequestDto">Requested By</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel SortLabel="Description" T="PurchaseRequestDto">Description</MudTableSortLabel></MudTh>
             <MudTh>Status</MudTh>
             <MudTh Style="text-align: center; width: 120px;">Action</MudTh>
         </HeaderContent>

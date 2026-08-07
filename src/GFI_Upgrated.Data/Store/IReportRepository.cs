@@ -7,6 +7,9 @@ public interface IReportRepository
 {
     Task<PagedResult<ItemStockReportDto>> GetItemStockReportAsync(ItemStockReportRequest request, CancellationToken cancellationToken = default);
     
+    Task<IEnumerable<ItemStockTraceabilityDto>> GetItemStockTraceabilityAsync(long itemId, CancellationToken cancellationToken = default);
+    Task<IEnumerable<ItemStockTraceabilityDto>> GetBatchTraceabilityAsync(string batchNo, CancellationToken cancellationToken = default);
+    
     Task<PagedResult<BatchWiseItemDto>> GetBatchWiseItemsByBatchNoAsync(string batchNo, int page, int size, string sortType, CancellationToken cancellationToken = default);
     
     Task<PagedResult<BatchWiseItemDto>> GetBatchWiseItemsByItemAsync(long itemId, int page, int size, string sortType, CancellationToken cancellationToken = default);

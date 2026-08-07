@@ -7,6 +7,8 @@ public sealed class ItemStockReportRequest
     public long? ItemID { get; set; }
     public long? WarehouseID { get; set; }
     public int? ItemTypeId { get; set; }
+    public DateTime? FromDate { get; set; }
+    public DateTime? ToDate { get; set; }
     
     public int CurrentPage { get; set; } = 1;
     public int RecordPerPage { get; set; } = 25;

@@ -569,9 +569,17 @@ public sealed class StoreApiClient : ApiClientBase
         if (request.ItemTypeId.HasValue) query.Add($"ItemTypeId={request.ItemTypeId}");
         if (!string.IsNullOrWhiteSpace(request.CreatedBy)) query.Add($"CreatedBy={Uri.EscapeDataString(request.CreatedBy)}");
 
-        return await GetEnvelopeAsync<PagedResult<ItemStockReportDto>>($"api/store/reports/item-stock?{string.Join('&', query)}", cancellationToken)
+        return await GetEnvelopeAsync<PagedResult<ItemStockReportDto>>($"api/store/reports/item-stock?{string.Join("&", query)}", cancellationToken)
                ?? new PagedResult<ItemStockReportDto>();
     }
+
+    public async Task<IEnumerable<ItemStockTraceabilityDto>> GetItemStockTraceabilityAsync(long itemId, CancellationToken cancellationToken = default)
+        => await GetEnvelopeAsync<IEnumerable<ItemStockTraceabilityDto>>($"api/store/reports/item-stock-traceability?itemId={itemId}", cancellationToken)
+           ?? Array.Empty<ItemStockTraceabilityDto>();
+
+    public async Task<IEnumerable<ItemStockTraceabilityDto>> GetBatchTraceabilityAsync(string batchNo, CancellationToken cancellationToken = default)
+        => await GetEnvelopeAsync<IEnumerable<ItemStockTraceabilityDto>>($"api/store/reports/batch-traceability?batchNo={Uri.EscapeDataString(batchNo)}", cancellationToken)
+           ?? Array.Empty<ItemStockTraceabilityDto>();
 
     public async Task<PagedResult<BatchWiseItemDto>> GetBatchWiseItemsByBatchNoAsync(string batchNo, int page, int size, string sortType, CancellationToken cancellationToken = default)
     {

@@ -15,6 +15,12 @@ public sealed class AppSessionState
 
     public bool IsDarkMode { get; private set; }
     public event Action? OnChange;
+    public event Action? OnSessionExpired;
+
+    public void NotifySessionExpired()
+    {
+        OnSessionExpired?.Invoke();
+    }
 
     public bool IsLoggedIn => CurrentUser is not null;
 

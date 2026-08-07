@@ -1,4 +1,4 @@
-﻿@page "/acc/customerorderlist"
+@page "/acc/customerorderlist"
 @page "/admin/customer-orders"
 @using GFI_Upgrated.SharedDto.Account
 @using GFI_Upgrated.UI.Services
@@ -36,7 +36,7 @@
             <MudTh><MudTableSortLabel T="CustomerOrderDto" SortLabel="CustomerName">Customer / Account</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel T="CustomerOrderDto" SortLabel="OrderDate">Order Date</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel T="CustomerOrderDto" SortLabel="SentDate">Sent Date</MudTableSortLabel></MudTh>
-            <MudTh>Remarks</MudTh>
+            <MudTh><MudTableSortLabel T="CustomerOrderDto" SortLabel="Remarks">Remarks</MudTableSortLabel></MudTh>
             <MudTh Style="width: 120px; text-align: center;">Action</MudTh>
         </HeaderContent>
         <RowTemplate>
