@@ -32,12 +32,14 @@
     <MudTable Items="_rows" Hover="true" Dense="true" Bordered="true" Striped="true" Class="mb-4" Elevation="0">
         <HeaderContent>
             <MudTh style="width: 30%;">Ingredient</MudTh>
-            <MudTh Style="width: 250px;">Lot / Batch Number</MudTh>
+            <MudTh Style="width: 380px;">Lot / Batch Number</MudTh>
             <MudTh Style="width: 120px;">Recipe Qty</MudTh>
             <MudTh Style="width: 150px;">Qty Used</MudTh>
-            <MudTh style="width: 150px;">Unit</MudTh>
             <MudTh>Description / Remarks</MudTh>
-            <MudTh Style="width: 100px; text-align: center;">Action</MudTh>
+            @if (_header?.IsComplete == 0)
+            {
+                <MudTh Style="width: 100px; text-align: center;">Action</MudTh>
+            }
         </HeaderContent>
         <RowTemplate>
             <MudTd DataLabel="Ingredient">
@@ -59,37 +61,47 @@
             <MudTd DataLabel="Qty Used">
                 <MudNumericField @bind-Value="context.Quantity" Variant="Variant.Outlined" Dense="true" Margin="Margin.Dense" Min="0.0001" Format="0.####" HideSpinButtons="true" />
             </MudTd>
-            <MudTd DataLabel="Unit">
-                <SearchableSelect T="long" Value="@context.UnitId" ValueChanged="@((long val) => { context.UnitId = val; })" Variant="Variant.Outlined" Dense="true" Disabled="@(context.ItemID == 0)" Items="@GetUnitsForIngredient(context.ItemID)" />
-            </MudTd>
             <MudTd DataLabel="Description / Remarks">
                 <MudTextField @bind-Value="context.Description" Variant="Variant.Outlined" Dense="true" Margin="Margin.Dense" />
             </MudTd>
-            <MudTd Style="text-align: center;">
-                <MudStack Row="true" Spacing="1" Justify="Justify.Center">
-                    <MudTooltip Text="Split Line">
-                        <MudIconButton Icon="@Icons.Material.Filled.CallSplit" Color="Color.Info" Size="Size.Small" OnClick="@(() => OnSplitLine(context))" Disabled="@(context.ItemID == 0 || _saving)" />
-                    </MudTooltip>
-                    <MudTooltip Text="Delete">
-                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => OnDeleteRow(context))" Disabled="_saving" />
-                    </MudTooltip>
-                </MudStack>
-            </MudTd>
+            @if (_header?.IsComplete == 0)
+            {
+                <MudTd Style="text-align: center;">
+                    <MudStack Row="true" Spacing="1" Justify="Justify.Center">
+                        <MudTooltip Text="Split Line">
+                            <MudIconButton Icon="@Icons.Material.Filled.CallSplit" Color="Color.Info" Size="Size.Small" OnClick="@(() => OnSplitLine(context))" Disabled="@(context.ItemID == 0 || _saving)" />
+                        </MudTooltip>
+                        <MudTooltip Text="Delete">
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => OnDeleteRow(context))" Disabled="_saving" />
+                        </MudTooltip>
+                    </MudStack>
+                </MudTd>
+            }
         </RowTemplate>
     </MudTable>
 
     <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mt-4">
-        <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OnAddCustomLine" Disabled="_saving">
-            Add Custom Ingredient
-        </MudButton>
+        @if (_header?.IsComplete == 0)
+        {
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OnAddCustomLine" Disabled="_saving">
+                Add Custom Ingredient
+            </MudButton>
+        }
+        else
+        {
+            <div></div>
+        }
 
         <MudStack Row="true" Spacing="2">
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveConsumptionAsync" Disabled="_saving" StartIcon="@Icons.Material.Filled.Save">
-                @(_saving ? "Saving..." : "Save Consumption")
-            </MudButton>
-            <MudButton Variant="Variant.Filled" Color="Color.Success" OnClick="OnFinalizeAsync" Disabled="@(_rows.Count == 0 || _saving || _finalizing)" StartIcon="@Icons.Material.Filled.DoneAll">
-                @(_finalizing ? "Finalizing..." : "Finalize & Update Stock")
-            </MudButton>
+            @if (_header?.IsComplete == 0)
+            {
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveConsumptionAsync" Disabled="_saving" StartIcon="@Icons.Material.Filled.Save">
+                    @(_saving ? "Saving..." : "Save Consumption")
+                </MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Success" OnClick="OnFinalizeAsync" Disabled="@(_rows.Count == 0 || _saving || _finalizing)" StartIcon="@Icons.Material.Filled.DoneAll">
+                    @(_finalizing ? "Finalizing..." : "Finalize & Update Stock")
+                </MudButton>
+            }
         </MudStack>
     </MudStack>
 </MudPaper>
@@ -151,6 +163,22 @@
                 // Load previously saved items
                 foreach (var saved in _savedItems)
                 {
+                    double qty = saved.Quantity;
+                    long unitId = 0;
+                    var raw = _allRawMaterials.FirstOrDefault(x => x.ItemId == saved.ItemID);
+                    if (raw != null)
+                    {
+                        unitId = saved.UnitId > 0 ? saved.UnitId : raw.PurchaseUnit;
+                        if (unitId != raw.PurchaseUnit)
+                        {
+                            var selectedUnit = _units.FirstOrDefault(u => u.UnitId == unitId);
+                            if (selectedUnit != null && selectedUnit.ConversionValue.HasValue && selectedUnit.ConversionValue.Value > 0)
+                            {
+                                qty = saved.Quantity * selectedUnit.ConversionValue.Value;
+                            }
+                        }
+                    }
+
                     var row = new ConsumptionRow
                     {
                         ItemStockUsedID = saved.ItemStockUsedID,
@@ -158,15 +186,10 @@
                         ItemName = saved.ItemName,
                         ItemStockByBatchId = saved.ItemStockByBatchId,
                         BatchNo = saved.BatchNo,
-                        Quantity = saved.Quantity,
+                        Quantity = qty,
+                        UnitId = unitId,
                         Description = saved.Description
                     };
-
-                    var raw = _allRawMaterials.FirstOrDefault(x => x.ItemId == saved.ItemID);
-                    if (raw != null)
-                    {
-                        row.UnitId = raw.PurchaseUnit;
-                    }
 
                     // Match matching recipe item if exists to show reference recipe qty
                     var matchRecipe = _bomItems.FirstOrDefault(b => b.ItemID == saved.ItemID);
@@ -324,6 +347,12 @@
         }
         row.ItemStockByBatchId = batch.ItemStockByBatchId;
         row.BatchNo = batch.BatchNo;
+
+        var item = _allRawMaterials.FirstOrDefault(x => x.ItemId == row.ItemID);
+        if (item != null)
+        {
+            row.UnitId = batch.UnitId > 0 ? batch.UnitId : item.PurchaseUnit;
+        }
     }
 
     private void OnSplitLine(ConsumptionRow row)
@@ -424,7 +453,8 @@
                     Quantity = qty,
                     Description = row.Description,
                     UsedFor = 3, // 3 = Production
-                    UpdatedBy = SessionState.CurrentUserAuditName ?? "System"
+                    UpdatedBy = SessionState.CurrentUserAuditName ?? "System",
+                    UnitId = row.UnitId
                 };
 
                 var result = await ApiClient.SaveProductionItemAsync(request);
@@ -503,7 +533,7 @@
         return row.AvailableBatches.Select(x => new SearchableSelect<AvailableBatchDto>.SelectItemDto<AvailableBatchDto>
         {
             Value = x,
-            Text = $"{x.BatchNo} (Stock: {x.FinalQuantityLeft})"
+            Text = $"{x.BatchNo} (Stock: {x.FinalQuantityLeft} {x.UnitName})"
         });
     }
 

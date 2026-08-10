@@ -16,43 +16,43 @@
 <MudPaper Class="pa-4">
     <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
         <MudStack Spacing="0">
-            <MudText Typo="Typo.h5">Production</MudText>
-            <MudText Typo="Typo.body2" Color="Color.Secondary">Manage manufacturing runs, batch packing, and ingredient consumption.</MudText>
+            <MudText Typo="Typo.h5">Finished Product - Run</MudText>
+            @* <MudText Typo="Typo.body2" Color="Color.Secondary">Manage manufacturing runs, batch packing, and ingredient consumption.</MudText> *@
         </MudStack>
         @if (_canInsert)
         {
             <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OnAdd">
-                Add New Production
+                Add New
             </MudButton>
         }
     </MudStack>
 
     <MudStack Row="true" AlignItems="AlignItems.End" Spacing="2" Class="mb-4" Style="max-width: 500px;">
-        <MudTextField T="string" Value="@_searchRemarks" ValueChanged="@OnSearchTextChanged" Label="Remarks / Notes" Variant="Variant.Outlined" Immediate="true" Clearable="true" OnClearButtonClick="SearchAsync" Class="flex-grow-1" />
+        <MudTextField T="string" Value="@_searchRemarks" ValueChanged="@OnSearchTextChanged" Label="Search" Variant="Variant.Outlined" Immediate="true" Clearable="true" OnClearButtonClick="SearchAsync" Class="flex-grow-1" />
         
     </MudStack>
 
     <MudTable RowsPerPage="25" T="ProductionDto" @ref="_table" ServerData="LoadServerDataAsync" Hover="true" Dense="true" Striped="true" Bordered="true" Breakpoint="Breakpoint.Sm">
         <HeaderContent>
             <MudTh Style="display:none;"><MudTableSortLabel T="ProductionDto" SortLabel="ProductionId">ID</MudTableSortLabel></MudTh>
-            <MudTh><MudTableSortLabel T="ProductionDto" SortLabel="BomName">Product Name</MudTableSortLabel></MudTh>
-            <MudTh><MudTableSortLabel T="ProductionDto" SortLabel="SkuName">SKU Name</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel T="ProductionDto" SortLabel="BomName">Product</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel T="ProductionDto" SortLabel="SkuName">SKU</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel T="ProductionDto" SortLabel="CookingDate">Cooking Date</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel T="ProductionDto" SortLabel="ExpiryDate">Expiry Date</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel T="ProductionDto" SortLabel="PackedCountryName">Country</MudTableSortLabel></MudTh>
-            <MudTh><MudTableSortLabel T="ProductionDto" SortLabel="BatchNo">Batch Number</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel T="ProductionDto" SortLabel="BatchNo">Batch No.</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel T="ProductionDto" SortLabel="WarehouseName">Warehouse</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel T="ProductionDto" SortLabel="IsComplete">Status</MudTableSortLabel></MudTh>
             <MudTh Style="width: 150px; text-align: center;">Action</MudTh>
         </HeaderContent>
         <RowTemplate>
             <MudTd DataLabel="ID" Style="display:none;">@context.ProductionId</MudTd>
-            <MudTd DataLabel="Product Name">@context.BomName</MudTd>
-            <MudTd DataLabel="SKU Name">@context.SkuName</MudTd>
+            <MudTd DataLabel="Product">@context.BomName</MudTd>
+            <MudTd DataLabel="SKU">@context.SkuName</MudTd>
             <MudTd DataLabel="Cooking Date">@context.CookingDate</MudTd>
             <MudTd DataLabel="Expiry Date">@context.ExpiryDate</MudTd>
             <MudTd DataLabel="Country">@context.PackedCountryName</MudTd>
-            <MudTd DataLabel="Batch Number">@context.BatchNo</MudTd>
+            <MudTd DataLabel="Batch No.">@context.BatchNo</MudTd>
             <MudTd DataLabel="Warehouse">@context.WarehouseName</MudTd>
             <MudTd DataLabel="Status">
                 @if (context.IsComplete == 1)

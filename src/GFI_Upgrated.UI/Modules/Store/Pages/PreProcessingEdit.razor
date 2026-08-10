@@ -6,6 +6,7 @@
 @using GFI_Upgrated.UI.Services
 @using GFI_Upgrated.UI.State
 @inject StoreApiClient ApiClient
+@inject AdminSecurityApiClient SecurityApiClient
 @inject ISnackbar Snackbar
 @inject NavigationManager NavigationManager
 @inject AppSessionState SessionState
@@ -15,10 +16,15 @@
 <MudPaper Class="pa-4">
     <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
         <MudStack Spacing="0">
-            <MudText Typo="Typo.h5">@(_isEdit ? "Edit Production Run" : "New Production Run")</MudText>
-            <MudText Typo="Typo.body2" Color="Color.Secondary">Declare what was produced and where it is stored.</MudText>
+            <MudText Typo="Typo.h5">@(_isEdit ? "Edit Semi Finished Run" : "New Semi Finished Run")</MudText>
         </MudStack>
-        <MudIconButton Icon="@Icons.Material.Filled.Close" OnClick="OnCancel" />
+        <MudStack Row="true" Spacing="2">
+            @if (_isEdit)
+            {
+                <MudButton Variant="Variant.Outlined" Color="Color.Info" StartIcon="@Icons.Material.Filled.ListAlt" OnClick="@(() => NavigationManager.NavigateTo($"/store/preprocessing/items/{Id}"))">Manage Ingredients</MudButton>
+            }
+            <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.ArrowBack" OnClick="OnCancel">Back to List</MudButton>
+        </MudStack>
     </MudStack>
 
     <EditForm Model="_editor" OnValidSubmit="SaveAsync">
@@ -32,7 +38,7 @@
             </MudItem>
 
             <MudItem xs="12" md="4">
-                <MudDatePicker DateFormat="dd/MM/yyyy" Placeholder="dd/MM/yyyy" Editable="true"                         @bind-Date="_editor.ProcessingDate" Label="Processing Date (DD/MM/YYYY)" Variant="Variant.Outlined" Required="true" />
+                <MudDatePicker DateFormat="dd/MM/yyyy" Placeholder="dd/MM/yyyy" Editable="true" @bind-Date="_editor.ProcessingDate" Label="Processing Date (DD/MM/YYYY)" Variant="Variant.Outlined" Required="true" />
             </MudItem>
             <MudItem xs="12" md="4">
                 <MudNumericField @bind-Value="_editor.QuantityMade" Label="Actual Quantity Made" Min="1" Variant="Variant.Outlined" />
@@ -52,7 +58,7 @@
                 <SearchableSelect T="long" Label="Storage Warehouse" Value="@_editor.WarehouseId" ValueChanged="@((long val) => { _editor.WarehouseId = val; })" Variant="Variant.Outlined" Required="true" Items="@GetWarehouseSelects()" />
             </MudItem>
             <MudItem xs="12" md="6">
-                <MudTextField @bind-Value="_editor.ProcessEmployees" Label="Process Employees (CSV)" Variant="Variant.Outlined" />
+                <SearchableSelect T="string" Label="Process Employees" MultiSelection="true" SelectedValues="@_selectedEmployees" SelectedValuesChanged="@((vals) => { _selectedEmployees = vals; })" MultiSelectionTextFunc="@(x => string.Join(", ", x.Select(idStr => _staffList.FirstOrDefault(s => s.StaffId.ToString() == idStr)?.StaffName ?? idStr)))" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter" Items="@GetEmployeeSelects()" />
             </MudItem>
 
             <MudItem xs="12">
@@ -65,10 +71,6 @@
                         @(_processing ? "Saving..." : (_isEdit ? "Update Header" : "Create Header & Add Stock"))
                     </MudButton>
                     <MudButton Variant="Variant.Outlined" OnClick="OnCancel" Disabled="_processing">Cancel</MudButton>
-                    @if (_isEdit)
-                    {
-                        <MudButton Variant="Variant.Outlined" Color="Color.Info" StartIcon="@Icons.Material.Filled.ListAlt" OnClick="@(() => NavigationManager.NavigateTo($"/store/preprocessing/items/{Id}"))">Manage Ingredients</MudButton>
-                    }
                 </MudStack>
             </MudItem>
         </MudGrid>
@@ -82,6 +84,8 @@
     private List<BomLookupDto> _boms = new();
     private List<WarehouseLookupDto> _warehouses = new();
     private List<UnitLookupDto> _units = new();
+    private List<StaffLookupDto> _staffList = new();
+    private IReadOnlyCollection<string> _selectedEmployees { get; set; } = new HashSet<string>();
     private bool _processing;
 
     protected override async Task OnInitializedAsync()
@@ -108,6 +112,10 @@
                 _editor.BatchNumberMade = selected.BatchNumberMade;
                 _editor.ExpiryDate = DateTime.TryParse(selected.ExpiryDate, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var ed) ? ed : DateTime.Today.AddYears(1);
                 _editor.ProcessEmployees = selected.ProcessEmployees;
+                if (!string.IsNullOrWhiteSpace(selected.ProcessEmployees))
+                {
+                    _selectedEmployees = selected.ProcessEmployees.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList();
+                }
                 _editor.Remarks = selected.Remarks;
                 _editor.DocumentUpload = selected.DocumentUpload;
                 _editor.WarehouseId = selected.WarehouseId;
@@ -122,8 +130,9 @@
             var bomsTask = ApiClient.GetBomsLookupAsync();
             var whTask = ApiClient.GetWarehousesLookupAsync();
             var unitsTask = ApiClient.GetUnitsLookupAsync();
+            var staffTask = SecurityApiClient.GetActiveStaffAsync();
 
-            await Task.WhenAll(bomsTask, whTask, unitsTask);
+            await Task.WhenAll(bomsTask, whTask, unitsTask, staffTask);
 
             _boms = (await bomsTask).ToList();
             if (_editor.BomId > 0)
@@ -136,6 +145,7 @@
             }
             _warehouses = (await whTask).ToList();
             _units = (await unitsTask).ToList();
+            _staffList = (await staffTask).ToList();
         }
         catch (Exception ex)
         {
@@ -157,6 +167,7 @@
         _processing = true;
         try
         {
+            _editor.ProcessEmployees = string.Join(",", _selectedEmployees);
             _editor.UpdatedBy = SessionState.CurrentUserAuditName ?? "System";
             var result = await ApiClient.SavePreProcessingAsync(_editor);
             if (result > 0)
@@ -281,6 +292,15 @@
         {
             Value = x.WarehouseId,
             Text = x.WarehouseName ?? ""
+        });
+    }
+
+    private IEnumerable<SearchableSelect<string>.SelectItemDto<string>> GetEmployeeSelects()
+    {
+        return _staffList.Select(x => new SearchableSelect<string>.SelectItemDto<string>
+        {
+            Value = x.StaffId.ToString(),
+            Text = x.StaffName ?? ""
         });
     }
 }
