@@ -628,7 +628,7 @@ namespace GFI_Upgrated.Data.Account
             {
                 new SqlParameter("@InvoiceChildID", item.InvoiceChildID),
                 new SqlParameter("@InvoiceID", item.InvoiceID),
-                new SqlParameter("@OrderID", item.OrderID),
+                new SqlParameter("@OrderID", item.OrderID == 0 ? (object)DBNull.Value : item.OrderID),
                 new SqlParameter("@ItemId", item.ItemId),
                 new SqlParameter("@Quantity", item.Quantity),
                 new SqlParameter("@Description", item.Description ?? ""),
@@ -639,7 +639,24 @@ namespace GFI_Upgrated.Data.Account
             };
 
             await ExecuteNonQueryAsync("A_InvoicesChildModify", parameters);
-            return Convert.ToInt64(parameters[^1].Value ?? 0);
+            long newChildId = Convert.ToInt64(parameters[^1].Value ?? 0);
+            
+            // Deduct stock if this is a new item and a batch was selected
+            if (item.InvoiceChildID == 0 && item.ItemStockByBatchId.HasValue && item.ItemStockByBatchId.Value > 0)
+            {
+                var stockDto = new ItemStockUsedDto
+                {
+                    ItemStockByBatchId = item.ItemStockByBatchId.Value,
+                    UsedFor = 1, // 1 represents Invoice Sales Dispatch
+                    UsedForId = item.InvoiceID,
+                    Quantity = item.Quantity,
+                    Description = "Invoice Dispatch",
+                    CreatedBy = "System"
+                };
+                await SaveItemStockUsedAsync(stockDto);
+            }
+            
+            return newChildId;
         }
 
         public async Task<bool> DeleteInvoiceAsync(string ids)
@@ -777,6 +794,28 @@ namespace GFI_Upgrated.Data.Account
             return list;
         }
 
+        public async Task<IReadOnlyList<ItemStockByBatchForBOMDto>> GetItemStockByItemIDBatchListAsync(long itemId)
+        {
+            var parameters = new[]
+            {
+                new SqlParameter("@ItemID", itemId)
+            };
+
+            var dt = await ExecuteStoredProcedureAsync("Inv_ItemStockByBatchList", parameters);
+            var list = new List<ItemStockByBatchForBOMDto>();
+            foreach (DataRow row in dt.Rows)
+            {
+                list.Add(new ItemStockByBatchForBOMDto
+                {
+                    ItemStockByBatchID = Convert.ToInt64(row["ItemStockByBatchId"]),
+                    BatchNo = row["BatchNo"]?.ToString(),
+                    FinalQuantityLeft = Convert.ToDouble(row["FinalQuantityLeft"] != DBNull.Value ? row["FinalQuantityLeft"] : 0.0),
+                    ExpiryDateBOM = row.Table.Columns.Contains("ExpiryDate") ? row["ExpiryDate"]?.ToString() : null
+                });
+            }
+            return list;
+        }
+
         public async Task<IReadOnlyList<ItemStockUsedForBOMDto>> GetItemStockUsedForBOMByOrderDetailIdAsync(long orderDetailsId)
         {
             var parameters = new[]
@@ -801,6 +840,23 @@ namespace GFI_Upgrated.Data.Account
             return list;
         }
 
+        public async Task<double?> GetBatchCostPriceAsync(long itemStockByBatchId)
+        {
+            using var connection = new SqlConnection(_connectionString);
+            await connection.OpenAsync();
+            using var command = connection.CreateCommand();
+            command.CommandText = "SELECT Amount, Quantity FROM Inv_ItemStockByBatch WHERE ItemStockByBatchId = @Id";
+            command.Parameters.AddWithValue("@Id", itemStockByBatchId);
+            using var reader = await command.ExecuteReaderAsync();
+            if (await reader.ReadAsync())
+            {
+                double amount = reader["Amount"] != DBNull.Value ? Convert.ToDouble(reader["Amount"]) : 0;
+                double qty = reader["Quantity"] != DBNull.Value ? Convert.ToDouble(reader["Quantity"]) : 0;
+                if (qty > 0) return amount / qty;
+            }
+            return null;
+        }
+
         public async Task<long> SaveItemStockUsedForBOMAsync(ItemStockUsedForBOMDto dto)
         {
             var parameters = new[]
@@ -818,6 +874,26 @@ namespace GFI_Upgrated.Data.Account
             };
 
             await ExecuteNonQueryAsync("Inv_ItemStockUsedForBOMModify", parameters);
+            return Convert.ToInt64(parameters[^1].Value ?? 0);
+        }
+
+        public async Task<long> SaveItemStockUsedAsync(ItemStockUsedDto dto)
+        {
+            var parameters = new[]
+            {
+                new SqlParameter("@ItemStockUsedID", dto.ItemStockUsedID),
+                new SqlParameter("@ItemStockByBatchId", dto.ItemStockByBatchId),
+                new SqlParameter("@UsedFor", dto.UsedFor),
+                new SqlParameter("@UsedForId", dto.UsedForId),
+                new SqlParameter("@Quantity", dto.Quantity),
+                new SqlParameter("@Description", (object?)dto.Description ?? DBNull.Value),
+                new SqlParameter("@CreatedBy", (object?)dto.CreatedBy ?? DBNull.Value),
+                new SqlParameter("@CreatedDate", DateTime.UtcNow),
+                new SqlParameter("@UnitId", (object?)dto.UnitId ?? DBNull.Value),
+                new SqlParameter("@ReturnVal", SqlDbType.Int) { Direction = ParameterDirection.Output }
+            };
+
+            await ExecuteNonQueryAsync("Inv_ItemStockUsedModify", parameters);
             return Convert.ToInt64(parameters[^1].Value ?? 0);
         }
 

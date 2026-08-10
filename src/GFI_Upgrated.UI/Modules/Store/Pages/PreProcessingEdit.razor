@@ -38,7 +38,7 @@
             </MudItem>
 
             <MudItem xs="12" md="4">
-                <MudDatePicker DateFormat="dd/MM/yyyy" Placeholder="dd/MM/yyyy" Editable="true" @bind-Date="_editor.ProcessingDate" Label="Processing Date (DD/MM/YYYY)" Variant="Variant.Outlined" Required="true" />
+                <MudDatePicker DateFormat="dd/MM/yyyy" Placeholder="dd/MM/yyyy" Editable="true" Date="_editor.ProcessingDate" DateChanged="OnProcessingDateChanged" Label="Processing Date (DD/MM/YYYY)" Variant="Variant.Outlined" Required="true" />
             </MudItem>
             <MudItem xs="12" md="4">
                 <MudNumericField @bind-Value="_editor.QuantityMade" Label="Actual Quantity Made" Min="1" Variant="Variant.Outlined" />
@@ -260,6 +260,19 @@
         {
             _selectedBomUnitId = null;
             _editor.UnitMade = 0;
+        }
+    }
+
+    private async Task OnProcessingDateChanged(DateTime? newDate)
+    {
+        _editor.ProcessingDate = newDate;
+        if (_editor.BomId > 0)
+        {
+            var bomDetails = await ApiClient.GetBomByIdAsync(_editor.BomId);
+            if (bomDetails != null && bomDetails.TentativeExpiryDays > 0)
+            {
+                _editor.ExpiryDate = (newDate ?? DateTime.Today).AddDays(bomDetails.TentativeExpiryDays);
+            }
         }
     }
 

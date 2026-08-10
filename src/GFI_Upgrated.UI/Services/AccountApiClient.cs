@@ -132,6 +132,9 @@ public sealed class AccountApiClient : ApiClientBase
     public async Task<bool> DeleteInvoiceItemAsync(string ids, CancellationToken cancellationToken = default)
         => await DeleteEnvelopeAsync<bool>($"api/account/invoices/item?ids={ids}", cancellationToken);
 
+    public async Task<double?> GetBatchCostPriceAsync(long batchId, CancellationToken cancellationToken = default)
+        => await GetEnvelopeAsync<double?>($"api/account/invoices/batch-cost?batchId={batchId}", cancellationToken);
+
     #endregion
 
     #region Customer Order Return
@@ -153,6 +156,9 @@ public sealed class AccountApiClient : ApiClientBase
 
     public async Task<IReadOnlyList<ItemStockByBatchForBOMDto>> GetItemStockByItemIDBatchForBOMListAsync(long itemId, CancellationToken cancellationToken = default)
         => await GetEnvelopeAsync<IReadOnlyList<ItemStockByBatchForBOMDto>>($"api/account/order-returns/item-stock?itemId={itemId}", cancellationToken) ?? Array.Empty<ItemStockByBatchForBOMDto>();
+
+    public async Task<IReadOnlyList<ItemStockByBatchForBOMDto>> GetItemStockByItemIDBatchListAsync(long itemId, CancellationToken cancellationToken = default)
+        => await GetEnvelopeAsync<IReadOnlyList<ItemStockByBatchForBOMDto>>($"api/account/order-returns/item-stock-purchase?itemId={itemId}", cancellationToken) ?? Array.Empty<ItemStockByBatchForBOMDto>();
 
     public async Task<IReadOnlyList<ItemStockUsedForBOMDto>> GetItemStockUsedForBOMByOrderDetailIdAsync(long orderDetailsId, CancellationToken cancellationToken = default)
         => await GetEnvelopeAsync<IReadOnlyList<ItemStockUsedForBOMDto>>($"api/account/order-returns/item-stock-used?orderDetailsId={orderDetailsId}", cancellationToken) ?? Array.Empty<ItemStockUsedForBOMDto>();

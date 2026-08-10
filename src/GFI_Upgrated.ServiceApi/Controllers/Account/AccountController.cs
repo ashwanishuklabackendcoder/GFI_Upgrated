@@ -353,6 +353,14 @@ namespace GFI_Upgrated.ServiceApi.Controllers.Account
             return Ok(new ApiEnvelope<IReadOnlyList<ItemStockByBatchForBOMDto>> { Success = true, Data = result });
         }
 
+        [HttpGet("order-returns/item-stock-purchase")]
+        [RequirePermission("Accounts", "_OrderReturn", "view")]
+        public async Task<ActionResult<ApiEnvelope<IReadOnlyList<ItemStockByBatchForBOMDto>>>> GetItemStockByItemIDBatchList([FromQuery] long itemId)
+        {
+            var result = await _service.GetItemStockByItemIDBatchListAsync(itemId);
+            return Ok(new ApiEnvelope<IReadOnlyList<ItemStockByBatchForBOMDto>> { Success = true, Data = result });
+        }
+
         [HttpGet("order-returns/item-stock-used")]
         [RequirePermission("Accounts", "_OrderReturn", "view")]
         public async Task<ActionResult<ApiEnvelope<IReadOnlyList<ItemStockUsedForBOMDto>>>> GetItemStockUsedForBOMByOrderDetailId([FromQuery] long orderDetailsId)
@@ -367,6 +375,14 @@ namespace GFI_Upgrated.ServiceApi.Controllers.Account
         {
             var id = await _service.SaveItemStockUsedForBOMAsync(dto);
             return Ok(new ApiEnvelope<long> { Success = id > 0, Data = id, Message = id > 0 ? "Item dispatched successfully." : "Failed to dispatch item." });
+        }
+
+        [HttpGet("invoices/batch-cost")]
+        [RequirePermission("Accounts", "_Invoice", "view")]
+        public async Task<ActionResult<ApiEnvelope<double?>>> GetBatchCostPrice([FromQuery] long batchId)
+        {
+            var result = await _service.GetBatchCostPriceAsync(batchId);
+            return Ok(new ApiEnvelope<double?> { Success = true, Data = result });
         }
 
         #endregion

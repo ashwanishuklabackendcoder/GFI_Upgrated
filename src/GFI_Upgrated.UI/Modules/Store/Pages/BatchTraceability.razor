@@ -42,6 +42,10 @@
                 {
                     <a href="@($"/store/production/view/{context.RefUsedForId}")" style="color:var(--mud-palette-primary); text-decoration:underline;">@context.Reference</a>
                 }
+                else if (context.RefUsedFor == 1 && context.RefUsedForId > 0)
+                {
+                    <a href="@($"/admin/invoice/edit/{context.RefUsedForId}")" style="color:var(--mud-palette-primary); text-decoration:underline;">@context.Reference</a>
+                }
                 else if (context.RefUsedFor == -1 && context.RefUsedForId > 0)
                 {
                     <a href="@($"/admin/purchase/view/{context.RefUsedForId}")" style="color:var(--mud-palette-primary); text-decoration:underline;">@context.Reference</a>
