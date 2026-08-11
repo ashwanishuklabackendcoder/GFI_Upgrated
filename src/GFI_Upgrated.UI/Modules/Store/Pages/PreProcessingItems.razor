@@ -55,10 +55,10 @@
         </HeaderContent>
         <RowTemplate>
             <MudTd DataLabel="Ingredient">
-                <SearchableSelect T="RawMaterialDto" Value="@(_allRawMaterials.FirstOrDefault(x => x.ItemId == context.ItemID))" ValueChanged="@(async (RawMaterialDto val) => await OnItemIdChanged(context, val?.ItemId ?? 0))" Variant="Variant.Outlined" Dense="true" Items="@GetIngredientSelects()" />
+                <SearchableSelect T="RawMaterialDto" Value="@(_allRawMaterials.FirstOrDefault(x => x.ItemId == context.ItemID))" ValueChanged="@(async (RawMaterialDto val) => await OnItemIdChanged(context, val?.ItemId ?? 0))" Variant="Variant.Outlined" Dense="true" Disabled="@(_header?.IsComplete != 0)" Items="@GetIngredientSelects()" />
             </MudTd>
             <MudTd DataLabel="Lot / Batch Number">
-                <SearchableSelect T="AvailableBatchDto" Value="@(context.AvailableBatches.FirstOrDefault(x => x.ItemStockByBatchId == context.ItemStockByBatchId))" ValueChanged="@((AvailableBatchDto val) => OnBatchChanged(context, val))" Variant="Variant.Outlined" Dense="true" Disabled="@(context.ItemID == 0)" Items="@GetBatchSelects(context)" />
+                <SearchableSelect T="AvailableBatchDto" Value="@(context.AvailableBatches.FirstOrDefault(x => x.ItemStockByBatchId == context.ItemStockByBatchId))" ValueChanged="@((AvailableBatchDto val) => OnBatchChanged(context, val))" Variant="Variant.Outlined" Dense="true" Disabled="@(context.ItemID == 0 || _header?.IsComplete != 0)" Items="@GetBatchSelects(context)" />
             </MudTd>
             <MudTd DataLabel="Recipe Qty">
                 @if (context.RecipeQty > 0)
@@ -71,10 +71,10 @@
                 }
             </MudTd>
             <MudTd DataLabel="Qty Used">
-                <MudNumericField @bind-Value="context.Quantity" Variant="Variant.Outlined" Dense="true" Margin="Margin.Dense" Min="0.0001" Format="0.####" HideSpinButtons="true" />
+                <MudNumericField @bind-Value="context.Quantity" Variant="Variant.Outlined" Dense="true" Margin="Margin.Dense" Min="0.0001" Format="0.####" HideSpinButtons="true" Disabled="@(_header?.IsComplete != 0)" />
             </MudTd>
             <MudTd DataLabel="Description / Remarks">
-                <MudTextField @bind-Value="context.Description" Variant="Variant.Outlined" Dense="true" Margin="Margin.Dense" />
+                <MudTextField @bind-Value="context.Description" Variant="Variant.Outlined" Dense="true" Margin="Margin.Dense" Disabled="@(_header?.IsComplete != 0)" />
             </MudTd>
             @if (_header?.IsComplete == 0)
             {

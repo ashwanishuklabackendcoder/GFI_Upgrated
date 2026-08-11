@@ -36,12 +36,12 @@
         </HeaderContent>
         <RowTemplate>
             <MudTd DataLabel="Supplier">@context.VendorName</MudTd>
-            <MudTd DataLabel="Received Date">@context.GoodsRecievedDate?.ToString("dd/MM/yyyy")</MudTd>
+            <MudTd DataLabel="Received Date">@SessionState.FormatDate(context.GoodsRecievedDate)</MudTd>
             <MudTd DataLabel="Voucher #">@context.VoucherNumber</MudTd>
             <MudTd DataLabel="Invoice #">@context.InvoiceNo</MudTd>
            
            
-            <MudTd DataLabel="Total Amount">@context.TotalAmount.ToString("N2")</MudTd>
+            <MudTd DataLabel="Total Amount">@SessionState.FormatCurrency(context.TotalAmount)</MudTd>
             <MudTd DataLabel="Action" Style="text-align: center;">
                 <MudStack Row="true" Justify="Justify.Center" Spacing="1">
                     <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Size="Size.Small" OnClick="@(() => OnEdit(context.PurchaseID))" Disabled="!_canUpdate" />
@@ -154,7 +154,8 @@
             if (success)
             {
                 Snackbar.Add("Goods Receipt deleted successfully.", Severity.Success);
-                if (_table is not null) await _table.ReloadServerData();
+                _cachedItems = null;
+                    if (_table is not null) await _table.ReloadServerData();
             }
             else
             {

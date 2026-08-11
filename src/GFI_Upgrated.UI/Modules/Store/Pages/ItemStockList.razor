@@ -74,7 +74,7 @@
             <MudTd DataLabel="Batch No.">@context.BatchNo</MudTd>
             <MudTd DataLabel="Quantity" Style="text-align: right;">@context.Quantity.ToString("N2") @context.UnitName</MudTd>         
             <MudTd DataLabel="Quantity Left" Style="text-align: right;">@context.FinalQuantityLeft.ToString("N2")</MudTd>
-            <MudTd DataLabel="Expiry Date">@context.ExpiryDate</MudTd>
+            <MudTd DataLabel="Expiry Date">@SessionState.FormatDate(context.ExpiryDate)</MudTd>
             <MudTd DataLabel="Stock From">
                 <MudChip T="string" Color="@(context.StockById == 1 ? Color.Info : context.StockById == 2 ? Color.Warning : Color.Success)" Size="Size.Small">
                     @(context.StockById == 1 ? "Purchase" : context.StockById == 2 ? "PreProcessing" : context.StockById == 3 ? "Opening Stock" : "Unknown")

@@ -168,7 +168,8 @@
             if (result > 0)
             {
                 Snackbar.Add("Almirah deleted successfully.", Severity.Success);
-                if (_table is not null) await _table.ReloadServerData();
+                _cachedItems = null;
+                    if (_table is not null) await _table.ReloadServerData();
             }
             else
             {

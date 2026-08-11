@@ -47,7 +47,7 @@
             <MudTd DataLabel="ID" Style="display:none;">@context.PreProcessingId</MudTd>
             <MudTd DataLabel="Item Made">@context.ItemName</MudTd>
             <MudTd DataLabel="BOM">@context.BomName (@context.BomQty)</MudTd>
-            <MudTd DataLabel="Date">@context.ProcessingDate</MudTd>
+            <MudTd DataLabel="Date">@SessionState.FormatDate(context.ProcessingDate)</MudTd>
             <MudTd DataLabel="Qty Made">@context.QuantityMade @context.UnitName</MudTd>
             <MudTd DataLabel="Batch Number">
                 <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
@@ -200,6 +200,7 @@
             if (result > 0)
             {
                 Snackbar.Add("Pre-Processing record deleted successfully.", Severity.Success);
+                _cachedItems = null;
                 if (_table is not null) await _table.ReloadServerData();
             }
             else
@@ -241,7 +242,8 @@
             if (result > 0)
             {
                 Snackbar.Add("Batch number updated successfully.", Severity.Success);
-                if (_table is not null) await _table.ReloadServerData();
+                _cachedItems = null;
+                    if (_table is not null) await _table.ReloadServerData();
             }
             else
             {

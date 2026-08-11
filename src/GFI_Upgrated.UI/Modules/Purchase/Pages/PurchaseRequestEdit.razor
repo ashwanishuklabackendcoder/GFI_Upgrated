@@ -32,7 +32,7 @@
                 <SearchableSelect T="long?" Label="Requested By" Value="@_model.RequestedBy" ValueChanged="@((long? val) => { _model.RequestedBy = val; })" Variant="Variant.Outlined" Required="true" Items="@GetStaffSelects()" />
             </MudItem>
             <MudItem xs="12" md="4">
-                <MudDatePicker Editable="true" DateFormat="dd/MM/yyyy" Placeholder="dd/MM/yyyy"                      Label="Request Date (DD/MM/YYYY)" @bind-Date="_model.CreatedDate" Variant="Variant.Outlined" For="@(() => _model.CreatedDate)" />
+                <MudDatePicker Editable="true" DateFormat="@SessionState.DatePickerFormat" Placeholder="@SessionState.DatePickerFormat"                      Label="@($"Request Date ({SessionState.DateFormat})")" @bind-Date="_model.CreatedDate" Variant="Variant.Outlined" For="@(() => _model.CreatedDate)" />
             </MudItem>
             
             <MudItem xs="12">

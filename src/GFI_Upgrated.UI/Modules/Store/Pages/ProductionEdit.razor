@@ -46,14 +46,14 @@
 
             <!-- Dates -->
             <MudItem xs="12" md="4">
-                <MudDatePicker DateFormat="dd/MM/yyyy" Placeholder="dd/MM/yyyy" Editable="true" Date="_editor.CookingDate" DateChanged="OnCookingDateChanged" Label="Cooking Date (DD/MM/YYYY)" Variant="Variant.Outlined" Required="true" For="@(() => _editor.CookingDate)" />
+                <MudDatePicker DateFormat="@SessionState.DatePickerFormat" Placeholder="@SessionState.DatePickerFormat" Editable="true" Date="_editor.CookingDate" DateChanged="OnCookingDateChanged" Label="@($"Cooking Date ({SessionState.DateFormat})*")" Variant="Variant.Outlined" Required="true" For="@(() => _editor.CookingDate)" />
             </MudItem>
           
             <MudItem xs="12" md="4">
-                <MudDatePicker DateFormat="dd/MM/yyyy" Placeholder="dd/MM/yyyy" Editable="true"                         @bind-Date="_editor.FilledDate" Label="Filled Date (DD/MM/YYYY)" Variant="Variant.Outlined" />
+                <MudDatePicker DateFormat="@SessionState.DatePickerFormat" Placeholder="@SessionState.DatePickerFormat" Editable="true"                         @bind-Date="_editor.FilledDate" Label="@($"Filled Date ({SessionState.DateFormat})")" Variant="Variant.Outlined" />
             </MudItem>
             <MudItem xs="12" md="4">
-                <MudDatePicker DateFormat="dd/MM/yyyy" Placeholder="dd/MM/yyyy" Editable="true" @bind-Date="_editor.ExpiryDate" Label="Expiry Date (DD/MM/YYYY)" Variant="Variant.Outlined" />
+                <MudDatePicker DateFormat="@SessionState.DatePickerFormat" Placeholder="@SessionState.DatePickerFormat" Editable="true" @bind-Date="_editor.ExpiryDate" Label="@($"Expiry Date ({SessionState.DateFormat})")" Variant="Variant.Outlined" />
             </MudItem>
             <!-- Kettle Details -->
             <MudItem xs="12" md="6">
@@ -284,12 +284,17 @@
                 {
                     _editor.ExpiryDate = (_editor.CookingDate ?? DateTime.Today).AddDays(bomDetails.TentativeExpiryDays);
                 }
+                else
+                {
+                    _editor.ExpiryDate = null;
+                }
             }
         }
         else
         {
             _selectedBomUnitId = null;
             _editor.FillingPerBottleUnit = 0;
+            _editor.ExpiryDate = null;
         }
     }
 
@@ -325,12 +330,17 @@
                 {
                     _editor.ExpiryDate = (_editor.CookingDate ?? DateTime.Today).AddDays(bomDetails.TentativeExpiryDays);
                 }
+                else
+                {
+                    _editor.ExpiryDate = null;
+                }
             }
         }
         else
         {
             _selectedBomUnitId = null;
             _editor.FillingPerBottleUnit = 0;
+            _editor.ExpiryDate = null;
         }
     }
 

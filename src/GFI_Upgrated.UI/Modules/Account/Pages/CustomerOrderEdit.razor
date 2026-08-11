@@ -32,11 +32,11 @@
                 <SearchableSelect T="long?" Label="Customer" Value="@((long?)_order.CustomerID)" ValueChanged="@((long? val) => { _order.CustomerID = val ?? 0; })" Variant="Variant.Outlined" Required="true" Items="@GetCustomerSelects()" />
             </MudItem>
             <MudItem xs="12" md="4">
-                <MudDatePicker DateFormat="dd/MM/yyyy" Placeholder="dd/MM/yyyy" Editable="true" @bind-Date="_order.OrderDate" Label="Order Date (DD/MM/YYYY)" Variant="Variant.Outlined" For="@(() => _order.OrderDate)" />
+                <MudDatePicker DateFormat="@SessionState.DatePickerFormat" Placeholder="@SessionState.DatePickerFormat" Editable="true" @bind-Date="_order.OrderDate" Label="@($"Order Date ({SessionState.DateFormat})")" Variant="Variant.Outlined" For="@(() => _order.OrderDate)" />
             </MudItem>
             
             <MudItem xs="12" md="4">
-                <MudDatePicker DateFormat="dd/MM/yyyy" Placeholder="dd/MM/yyyy" Editable="true"                         @bind-Date="_order.SentDate" Label="Sent Date (Nullable) (DD/MM/YYYY)" Variant="Variant.Outlined" />
+                <MudDatePicker DateFormat="@SessionState.DatePickerFormat" Placeholder="@SessionState.DatePickerFormat" Editable="true"                         @bind-Date="_order.SentDate" Label="@($"Sent Date (Nullable) ({SessionState.DateFormat})")" Variant="Variant.Outlined" />
             </MudItem>
             <MudItem xs="12" md="8">
                 <MudTextField @bind-Value="_order.Remarks" Label="Remarks / Delivery Instructions" Variant="Variant.Outlined" />
@@ -82,8 +82,8 @@
                             <MudStack Row="true" Spacing="1" Justify="Justify.Center">
                                 @if (Id > 0 && row.OrderItemId > 0 && row.IsComplete != true)
                                 {
-                                    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small" StartIcon="@Icons.Material.Filled.Check" OnClick="@(() => MarkItemComplete(row))">
-                                        Mark Complete
+                                    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small" StartIcon="@Icons.Material.Filled.Settings" OnClick="@(() => OpenFulfillDialog(row))">
+                                        Process
                                     </MudButton>
                                 }
                                 <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => RemoveOrderItem(row))" />
@@ -133,7 +133,7 @@
         {
             // Load lookups
             var custResult = await StoreApiClient.GetAccountsLookupAsync();
-            _customers = custResult.ToList();
+            _customers = custResult.Where(x => x.AccountGroupId == 5).ToList();
 
             var itemResult = await StoreApiClient.GetItemsForBomLookupAsync(null);
             _items = itemResult.ToList();
@@ -263,10 +263,34 @@
         Navigation.NavigateTo("/acc/customerorderlist");
     }
 
-    private void MarkItemComplete(CustomerOrderItemDto row)
+    private async Task OpenFulfillDialog(CustomerOrderItemDto row)
     {
-        row.IsComplete = true;
-        StateHasChanged();
+        // Must save order and item first to get OrderItemId
+        if (Id <= 0 || row.OrderItemId <= 0)
+        {
+            Snackbar.Add("Please save the order first before fulfilling items.", Severity.Warning);
+            return;
+        }
+
+        var availableBatches = await ApiClient.GetItemStockByItemIDBatchForBOMListAsync(row.ItemId);
+
+        var parameters = new DialogParameters
+        {
+            { "Item", row },
+            { "AvailableBatches", availableBatches },
+            { "OrderID", Id },
+            { "ApiClient", ApiClient }
+        };
+
+        var options = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true, CloseButton = true };
+        var dialog = await DialogService.ShowAsync<OrderFulfillDialog>("Process Item", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled)
+        {
+            row.IsComplete = true;
+            StateHasChanged();
+        }
     }
 
     private IEnumerable<SearchableSelect<long?>.SelectItemDto<long?>> GetCustomerSelects()

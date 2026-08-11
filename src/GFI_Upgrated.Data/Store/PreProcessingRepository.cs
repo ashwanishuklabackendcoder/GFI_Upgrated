@@ -179,9 +179,11 @@ public sealed class PreProcessingRepository : IPreProcessingRepository
                 long batchId = 0;
                 double quantity = 0;
                 long itemId = 0;
+                int usedFor = 0;
+                long usedForId = 0;
                 
                 var querySelect = @"
-                    SELECT u.ItemStockByBatchId, u.Quantity, b.ItemId 
+                    SELECT u.ItemStockByBatchId, u.Quantity, b.ItemId, u.UsedFor, u.UsedForId 
                     FROM dbo.Inv_ItemStockUsed u
                     INNER JOIN dbo.Inv_ItemStockByBatch b ON u.ItemStockByBatchId = b.ItemStockByBatchId
                     WHERE u.ItemStockUsedID = @ItemStockUsedID";
@@ -196,11 +198,28 @@ public sealed class PreProcessingRepository : IPreProcessingRepository
                             batchId = Convert.ToInt64(reader["ItemStockByBatchId"]);
                             quantity = Convert.ToDouble(reader["Quantity"]);
                             itemId = Convert.ToInt64(reader["ItemId"]);
+                            usedFor = Convert.ToInt32(reader["UsedFor"]);
+                            usedForId = Convert.ToInt64(reader["UsedForId"]);
                         }
                     }
                 }
                 
-                if (batchId > 0 && quantity > 0 && itemId > 0)
+                bool shouldUpdateStock = true;
+                if (usedFor == 2)
+                {
+                    var checkQuery = "SELECT ISNULL(IsComplete, 0) FROM dbo.W_PreProcessing WHERE PreProcessingId = @UsedForId";
+                    await using (var cmdCheck = new SqlCommand(checkQuery, connection, (SqlTransaction)transaction))
+                    {
+                        cmdCheck.Parameters.Add(new SqlParameter("@UsedForId", SqlDbType.BigInt) { Value = usedForId });
+                        var isComplete = Convert.ToInt32(await cmdCheck.ExecuteScalarAsync(cancellationToken) ?? 0);
+                        if (isComplete == 0)
+                        {
+                            shouldUpdateStock = false;
+                        }
+                    }
+                }
+                
+                if (batchId > 0 && quantity > 0 && itemId > 0 && shouldUpdateStock)
                 {
                     var updateBatch = @"
                         UPDATE dbo.Inv_ItemStockByBatch 

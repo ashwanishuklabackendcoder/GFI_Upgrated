@@ -168,6 +168,7 @@
             if (success)
             {
                 Snackbar.Add("Finished product deleted successfully.", Severity.Success);
+                _cachedItems = null;
                 await OnSearch();
             }
             else

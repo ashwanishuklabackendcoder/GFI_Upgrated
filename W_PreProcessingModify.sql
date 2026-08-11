@@ -102,9 +102,9 @@ declare @Batch nvarchar(100)
                                                                                                                             
 
                                                                                                                                                                                                                                                              
-insert into W_PreProcessing(BomId,BomQty,ProcessingDate,QuantityMade,UnitMade,BatchNumberMade,ExpiryDate,ProcessEmployees,Remarks,DocumentUpload,WarehouseId,CreatedBy)
-                                                                                      
-values (@BomId,@BomQty,@ProcessingDate,@QuantityMade,@UnitMade,@Batch,@Expiry,@ProcessEmployees,@Remarks,@DocumentUpload,@WarehouseId,@CreatedBy)       
+insert into W_PreProcessing(BomId,BomQty,ProcessingDate,QuantityMade,UnitMade,BatchNumberMade,ExpiryDate,ProcessEmployees,Remarks,DocumentUpload,WarehouseId,CreatedBy,ItemId)
+                                                                                       
+values (@BomId,@BomQty,@ProcessingDate,@QuantityMade,@UnitMade,@Batch,@Expiry,@ProcessEmployees,@Remarks,@DocumentUpload,@WarehouseId,@CreatedBy,@ItemID)       
                                                                                                      
 set @ReturnVal=scope_Identity()         
                                                                                                                                                                                                                      
@@ -136,6 +136,11 @@ if  exists(select 1 from dbo.W_PreProcessing where  PreProcessingId = @PreProces
                                                                                                                                                         
 Begin              
                                                                                                                                                                                                                                           
+declare @ShortName2 nvarchar(10),@ItemID2 INT
+select @ShortName2=b.ShortName,@ItemID2 =b.ItemID 
+from W_MasterBom a inner join W_MasterItem b on a.ItemId=b.ItemID 
+where BomId=@BomId
+
 update W_PreProcessing 
                                                                                                                                                                                                                                       
 set BomId=@BomId,BomQty=@BomQty,ProcessingDate=@ProcessingDate,QuantityMade=@QuantityMade,
@@ -144,7 +149,7 @@ UnitMade=@UnitMade,ExpiryDate=@ExpiryDate,
                                                                                                                                                                                                                    
 ProcessEmployees=@ProcessEmployees,Remarks=@Remarks,DocumentUpload=@DocumentUpload,
                                                                                                                                                                           
-WarehouseId=@WarehouseId where PreProcessingId=@PreProcessingId
+WarehouseId=@WarehouseId, ItemId=@ItemID2 where PreProcessingId=@PreProcessingId
                                                                                                                                                                                               
 set @ReturnVal =@PreProcessingId              
                                                                                                                                                                                                                

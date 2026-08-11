@@ -29,7 +29,7 @@
                                  ToStringFunc="@(a => a?.AccountName ?? "")" Variant="Variant.Outlined" Required="true" />
             </MudItem>
             <MudItem xs="12" md="4">
-                <MudDatePicker DateFormat="dd/MM/yyyy" Placeholder="dd/MM/yyyy" Editable="true"                         Label="Return Date (DD/MM/YYYY)" @bind-Date="_meta.ReturnDate" Variant="Variant.Outlined"  Required="true" For="@(() => _meta.ReturnDate)" />
+                <MudDatePicker DateFormat="@SessionState.DatePickerFormat" Placeholder="@SessionState.DatePickerFormat" Editable="true"                         Label="@($"Return Date ({SessionState.DateFormat})")" @bind-Date="_meta.ReturnDate" Variant="Variant.Outlined"  Required="true" For="@(() => _meta.ReturnDate)" />
             </MudItem>
             <MudItem xs="12" md="4">
                 <MudTextField @bind-Value="_meta.Description" Label="Narration / Remarks" Variant="Variant.Outlined" />

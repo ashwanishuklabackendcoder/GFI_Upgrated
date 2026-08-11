@@ -112,7 +112,15 @@
 
     private void ToggleGroup(string groupId)
     {
-        if (!_expandedGroups.Add(groupId)) _expandedGroups.Remove(groupId);
+        if (_expandedGroups.Contains(groupId))
+        {
+            _expandedGroups.Remove(groupId);
+        }
+        else
+        {
+            _expandedGroups.Clear();
+            _expandedGroups.Add(groupId);
+        }
     }
 
     private bool IsExpanded(string groupId) => _expandedGroups.Contains(groupId);

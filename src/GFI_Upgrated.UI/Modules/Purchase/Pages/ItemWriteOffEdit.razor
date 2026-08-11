@@ -42,7 +42,7 @@
             </MudItem>
 
             <MudItem xs="12" md="3">
-                <MudDatePicker DateFormat="dd/MM/yyyy" Placeholder="dd/MM/yyyy" Editable="true"                         Label="Removal Date (DD/MM/YYYY)" @bind-Date="_model.RemovalDate" Variant="Variant.Outlined"  Required="true" />
+                <MudDatePicker DateFormat="@SessionState.DatePickerFormat" Placeholder="@SessionState.DatePickerFormat" Editable="true"                         Label="@($"Removal Date ({SessionState.DateFormat})")" @bind-Date="_model.RemovalDate" Variant="Variant.Outlined"  Required="true" />
             </MudItem>
 
             <MudItem xs="12" md="3">

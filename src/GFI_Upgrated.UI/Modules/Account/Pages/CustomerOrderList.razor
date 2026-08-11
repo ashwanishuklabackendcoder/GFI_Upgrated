@@ -42,8 +42,8 @@
         <RowTemplate>
             <MudTd DataLabel="Order Number">@context.OrderNo</MudTd>
             <MudTd DataLabel="Customer / Account">@context.CustomerName</MudTd>
-            <MudTd DataLabel="Order Date">@context.OrderDate?.ToString("dd MMM yyyy")</MudTd>
-            <MudTd DataLabel="Sent Date">@context.SentDate?.ToString("dd MMM yyyy")</MudTd>
+            <MudTd DataLabel="Order Date">@SessionState.FormatDate(context.OrderDate)</MudTd>
+            <MudTd DataLabel="Sent Date">@SessionState.FormatDate(context.SentDate)</MudTd>
             <MudTd DataLabel="Remarks">@context.Remarks</MudTd>
             <MudTd DataLabel="Action" Style="text-align: center;">
                 <MudStack Row="true" Spacing="1" Justify="Justify.Center" AlignItems="AlignItems.Center">
@@ -166,7 +166,8 @@
             if (success)
             {
                 Snackbar.Add("Order deleted successfully.", Severity.Success);
-                if (_table is not null) await _table.ReloadServerData();
+                _cachedItems = null;
+                    if (_table is not null) await _table.ReloadServerData();
             }
             else
             {

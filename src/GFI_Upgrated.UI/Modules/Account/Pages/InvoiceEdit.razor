@@ -35,10 +35,10 @@
             </MudItem>
 
             <MudItem xs="12" md="4">
-                <MudDatePicker DateFormat="dd/MM/yyyy" Placeholder="dd/MM/yyyy" Editable="true" @bind-Date="_invoice.InvoiceDate" Label="Invoice Date (DD/MM/YYYY)" Variant="Variant.Outlined" For="@(() => _invoice.InvoiceDate)" />
+                <MudDatePicker DateFormat="@SessionState.DatePickerFormat" Placeholder="@SessionState.DatePickerFormat" Editable="true" @bind-Date="_invoice.InvoiceDate" Label="@($"Invoice Date ({SessionState.DateFormat})")" Variant="Variant.Outlined" For="@(() => _invoice.InvoiceDate)" />
             </MudItem>
             <MudItem xs="12" md="4">
-                <MudDatePicker DateFormat="dd/MM/yyyy" Placeholder="dd/MM/yyyy" Editable="true" @bind-Date="_invoice.DueDate" Label="Due Date (DD/MM/YYYY)" Variant="Variant.Outlined" For="@(() => _invoice.DueDate)" />
+                <MudDatePicker DateFormat="@SessionState.DatePickerFormat" Placeholder="@SessionState.DatePickerFormat" Editable="true" @bind-Date="_invoice.DueDate" Label="@($"Due Date ({SessionState.DateFormat})")" Variant="Variant.Outlined" For="@(() => _invoice.DueDate)" />
             </MudItem>
             <MudItem xs="12" md="4">
                 <SearchableSelect T="string" Label="Status" Value="@_invoice.InvoiceStatus" ValueChanged="@((string val) => { _invoice.InvoiceStatus = val; })" Variant="Variant.Outlined" Items="@GetStatusSelects()" />
@@ -159,7 +159,7 @@
         {
             // Load lookups
             var custResult = await StoreApiClient.GetAccountsLookupAsync();
-            _customers = custResult.ToList();
+            _customers = custResult.Where(x => x.AccountGroupId == 5).ToList();
 
             var currResult = await ApiClient.GetCurrenciesAsync(pageSize: 1000);
             _currencies = currResult.Items.ToList();
@@ -172,12 +172,12 @@
 
             if (Id > 0)
             {
-                _customers = custResult.ToList();
+                _customers = custResult.Where(x => x.AccountGroupId == 5).ToList();
             }
             else
             {
                 // Show all customers instead of filtering by completed orders
-                _customers = custResult.ToList();
+                _customers = custResult.Where(x => x.AccountGroupId == 5).ToList();
             }
 
             if (Id > 0)

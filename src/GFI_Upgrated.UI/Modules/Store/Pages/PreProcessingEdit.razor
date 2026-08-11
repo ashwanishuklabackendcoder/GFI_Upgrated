@@ -38,7 +38,7 @@
             </MudItem>
 
             <MudItem xs="12" md="4">
-                <MudDatePicker DateFormat="dd/MM/yyyy" Placeholder="dd/MM/yyyy" Editable="true" Date="_editor.ProcessingDate" DateChanged="OnProcessingDateChanged" Label="Processing Date (DD/MM/YYYY)" Variant="Variant.Outlined" Required="true" />
+                <MudDatePicker DateFormat="@SessionState.DatePickerFormat" Placeholder="@SessionState.DatePickerFormat" Editable="true" Date="_editor.ProcessingDate" DateChanged="OnProcessingDateChanged" Label="@($"Processing Date ({SessionState.DateFormat})")" Variant="Variant.Outlined" Required="true" />
             </MudItem>
             <MudItem xs="12" md="4">
                 <MudNumericField @bind-Value="_editor.QuantityMade" Label="Actual Quantity Made" Min="1" Variant="Variant.Outlined" />
@@ -51,7 +51,7 @@
                 <MudTextField @bind-Value="_editor.BatchNumberMade" Label="Batch Number" Variant="Variant.Outlined" HelperText="Leave blank for auto-generation" />
             </MudItem>
             <MudItem xs="12" md="6">
-                <MudDatePicker DateFormat="dd/MM/yyyy" Placeholder="dd/MM/yyyy" Editable="true"                         @bind-Date="_editor.ExpiryDate" Label="Expiry Date (DD/MM/YYYY)" Variant="Variant.Outlined" />
+                <MudDatePicker DateFormat="@SessionState.DatePickerFormat" Placeholder="@SessionState.DatePickerFormat" Editable="true"                         @bind-Date="_editor.ExpiryDate" Label="@($"Expiry Date ({SessionState.DateFormat})")" Variant="Variant.Outlined" />
             </MudItem>
 
             <MudItem xs="12" md="6">
@@ -222,12 +222,17 @@
                 {
                     _editor.ExpiryDate = (_editor.ProcessingDate ?? DateTime.Today).AddDays(bomDetails.TentativeExpiryDays);
                 }
+                else
+                {
+                    _editor.ExpiryDate = null;
+                }
             }
         }
         else
         {
             _selectedBomUnitId = null;
             _editor.UnitMade = 0;
+            _editor.ExpiryDate = null;
         }
     }
 
@@ -254,12 +259,17 @@
                 {
                     _editor.ExpiryDate = (_editor.ProcessingDate ?? DateTime.Today).AddDays(bomDetails.TentativeExpiryDays);
                 }
+                else
+                {
+                    _editor.ExpiryDate = null;
+                }
             }
         }
         else
         {
             _selectedBomUnitId = null;
             _editor.UnitMade = 0;
+            _editor.ExpiryDate = null;
         }
     }
 

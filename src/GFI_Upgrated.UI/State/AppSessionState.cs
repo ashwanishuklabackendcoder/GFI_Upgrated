@@ -8,10 +8,54 @@ public sealed class AppSessionState
 {
     public LoginResultDto? CurrentUser { get; private set; }
 
+    public string DateFormat { get; private set; } = "MM/DD/YYYY";
+    public string DatePickerFormat => DateFormat.ToLower() == "mm/dd/yyyy" ? "MM/dd/yyyy" : "dd/MM/yyyy";
+    public string DefaultCurrency { get; private set; } = "SRD";
+    public string NameFormat { get; private set; } = "FN_LN";
+
     public string CurrentUserAuditName => 
         CurrentUser != null && !string.IsNullOrWhiteSpace(CurrentUser.FullName) 
             ? CurrentUser.FullName 
             : (CurrentUser?.LoginName ?? "System");
+
+    public string FormatDate(DateTime? date)
+    {
+        if (date == null) return string.Empty;
+        return FormatDate(date.Value);
+    }
+
+    public string FormatDate(DateTime date)
+    {
+        if (DateFormat == "MM/DD/YYYY")
+        {
+            return date.ToString("MM/dd/yyyy");
+        }
+        return date.ToString("MM/dd/yyyy"); // default/fallback to USA format
+    }
+
+    public string FormatDate(string? dateStr)
+    {
+        if (string.IsNullOrWhiteSpace(dateStr)) return string.Empty;
+        if (DateTime.TryParse(dateStr, out var date))
+        {
+            return FormatDate(date);
+        }
+        return dateStr;
+    }
+
+    public string FormatCurrency(double amount) => $"{DefaultCurrency} {amount:N2}";
+    public string FormatCurrency(decimal amount) => $"{DefaultCurrency} {amount:N2}";
+
+    public string FormatName(string? firstName, string? lastName)
+    {
+        firstName = (firstName ?? "").Trim();
+        lastName = (lastName ?? "").Trim();
+        if (NameFormat == "LN_FN")
+        {
+            return $"{lastName} {firstName}".Trim();
+        }
+        return $"{firstName} {lastName}".Trim();
+    }
 
     public bool IsDarkMode { get; private set; }
     public event Action? OnChange;
@@ -297,6 +341,16 @@ public sealed class AppSessionState
             {
                 CurrentUser = JsonSerializer.Deserialize<LoginResultDto>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
             }
+
+            var dateFormat = await jsRuntime.InvokeAsync<string?>("localStorage.getItem", "DateFormat");
+            if (!string.IsNullOrWhiteSpace(dateFormat)) DateFormat = dateFormat;
+
+            var defaultCurrency = await jsRuntime.InvokeAsync<string?>("localStorage.getItem", "DefaultCurrency");
+            if (!string.IsNullOrWhiteSpace(defaultCurrency)) DefaultCurrency = defaultCurrency;
+
+            var nameFormat = await jsRuntime.InvokeAsync<string?>("localStorage.getItem", "NameFormat");
+            if (!string.IsNullOrWhiteSpace(nameFormat)) NameFormat = nameFormat;
+
             var isDarkStr = await jsRuntime.InvokeAsync<string?>("localStorage.getItem", "isDarkMode");
             if (bool.TryParse(isDarkStr, out var dark))
             {
