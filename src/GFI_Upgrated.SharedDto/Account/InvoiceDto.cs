@@ -52,5 +52,9 @@ namespace GFI_Upgrated.SharedDto.Account
         // Joined UI fields
         public string? ItemName { get; set; }
         public string? OrderNo { get; set; }
+        
+        // Batch Selection UI
+        public long? ItemStockByBatchId { get; set; }
+        public double? CostPrice { get; set; }
     }
 }

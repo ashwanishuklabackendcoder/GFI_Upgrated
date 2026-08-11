@@ -629,7 +629,8 @@
         _batchModel = new SemiFinishedProductBatchDto
         {
             UnitId = _model.PurchaseUnit > 0 ? (int)_model.PurchaseUnit : (int)(_units.FirstOrDefault()?.UnitId ?? 0),
-            Amount = 0
+            Amount = 0,
+            ExpiryDate = _model.TentativeExpiryDays > 0 ? DateTime.Today.AddDays(_model.TentativeExpiryDays) : (DateTime?)null
         };
     }
 

@@ -81,13 +81,13 @@
                     </HeaderContent>
                     <RowTemplate Context="row">
                         <MudTd DataLabel="Item (SKU)">
-                            <SearchableSelect T="RawMaterialDto" Value="@(GetItemById(row.ItemId))" ValueChanged="@((RawMaterialDto val) => OnItemChanged(row, val?.ItemId ?? 0))" Variant="Variant.Outlined" Dense="true" Items="@GetItemSelects()" />
+                            <SearchableSelect T="RawMaterialDto" Value="@(GetItemById(row.ItemId))" ValueChanged="@(async (RawMaterialDto val) => await OnItemChanged(row, val?.ItemId ?? 0))" Variant="Variant.Outlined" Dense="true" Items="@GetItemSelects()" />
                         </MudTd>
                         <MudTd DataLabel="Related Order">
                             <SearchableSelect T="long?" Value="@row.OrderID" ValueChanged="@((long? val) => OnOrderChanged(row, val ?? 0))" Variant="Variant.Outlined" Dense="true" Items="@GetOrderSelects()" />
                         </MudTd>
                         <MudTd DataLabel="Qty" Style="text-align: center;">
-                            <MudNumericField @bind-Value="row.Quantity" Variant="Variant.Outlined" Dense="true" Margin="Margin.Dense" Min="1" Style="text-align: center;" />
+                            <MudNumericField T="double" @bind-Value="row.Quantity" Variant="Variant.Outlined" Dense="true" Margin="Margin.Dense" Min="1.0" Max="@(GetMaxQuantity(row) ?? double.MaxValue)" Style="text-align: center;" />
                         </MudTd>
                         <MudTd DataLabel="Unit Price" Style="text-align: right;">
                             <MudNumericField @bind-Value="row.UnitPrice" Variant="Variant.Outlined" Dense="true" Margin="Margin.Dense" Min="0.0" HideSpinButtons="true" Style="text-align: right;" />
@@ -99,7 +99,10 @@
                             <MudTextField @bind-Value="row.PrintHeading" Variant="Variant.Outlined" Dense="true" Margin="Margin.Dense" />
                         </MudTd>
                         <MudTd DataLabel="Batch No.">
-                            <MudTextField @bind-Value="row.BatchNumber" Variant="Variant.Outlined" Dense="true" Margin="Margin.Dense" />
+                            <SearchableSelect T="ItemStockByBatchForBOMDto" Value="@(GetBatchById(row.ItemId, row.ItemStockByBatchId))" ValueChanged="@(async (ItemStockByBatchForBOMDto val) => await OnBatchChanged(row, val))" Variant="Variant.Outlined" Dense="true" Items="@GetBatchSelects(row.ItemId)" />
+                            @if(row.CostPrice.HasValue) {
+                                <MudText Typo="Typo.caption" Color="Color.Success">Cost: @(_selectedCurrencySymbol ?? "$") @(row.CostPrice.Value.ToString("N2"))</MudText>
+                            }
                         </MudTd>
                         <MudTd DataLabel="Action" Style="text-align: center;">
                             <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => RemoveInvoiceItem(row))" />
@@ -135,6 +138,7 @@
     private List<CurrencyDto> _currencies = new();
     private List<RawMaterialDto> _items = new();
     private List<CustomerOrderDto> _orders = new();
+    private Dictionary<long, List<ItemStockByBatchForBOMDto>> _itemBatches = new();
     private List<long> _deletedItemIds = new();
     private string? _selectedCurrencySymbol = "$";
     private bool _busy;
@@ -172,12 +176,8 @@
             }
             else
             {
-                var completedCustomerIds = _orders
-                    .Where(o => o.SentDate.HasValue)
-                    .Select(o => o.CustomerID)
-                    .Distinct()
-                    .ToList();
-                _customers = custResult.Where(c => completedCustomerIds.Contains(c.AccountId)).ToList();
+                // Show all customers instead of filtering by completed orders
+                _customers = custResult.ToList();
             }
 
             if (Id > 0)
@@ -189,6 +189,26 @@
                     _invoice = fetched;
                     var c = _currencies.FirstOrDefault(curr => curr.CurrencyID == _invoice.CurrencyID);
                     _selectedCurrencySymbol = c?.CurrencySymbol ?? "$";
+
+                    // Preload batches for existing items so the dropdown populates
+                    foreach (var item in _invoice.Items)
+                    {
+                        if (item.ItemId > 0 && !_itemBatches.ContainsKey(item.ItemId))
+                        {
+                            var batches = await ApiClient.GetItemStockByItemIDBatchListAsync(item.ItemId);
+                            _itemBatches[item.ItemId] = batches.ToList();
+                            
+                            // Attempt to auto-select the batch if we have a BatchNumber matching
+                            if (!string.IsNullOrEmpty(item.BatchNumber) && item.ItemStockByBatchId == null)
+                            {
+                                var matchingBatch = _itemBatches[item.ItemId].FirstOrDefault(b => b.BatchNo == item.BatchNumber);
+                                if (matchingBatch != null)
+                                {
+                                    item.ItemStockByBatchId = matchingBatch.ItemStockByBatchID;
+                                }
+                            }
+                        }
+                    }
                 }
                 else
                 {
@@ -233,14 +253,58 @@
         _invoice.Items.Remove(item);
     }
 
-    private void OnItemChanged(InvoiceItemDto row, long val)
+    private async Task OnItemChanged(InvoiceItemDto row, long val)
     {
         row.ItemId = val;
         var item = _items.FirstOrDefault(i => i.ItemId == val);
         if (item != null)
         {
             row.ItemName = item.ItemName;
+            
+            if (!_itemBatches.ContainsKey(val))
+            {
+                var batches = await ApiClient.GetItemStockByItemIDBatchListAsync(val);
+                _itemBatches[val] = batches.ToList();
+            }
         }
+    }
+
+    private async Task OnBatchChanged(InvoiceItemDto row, ItemStockByBatchForBOMDto val)
+    {
+        if (val != null)
+        {
+            row.ItemStockByBatchId = val.ItemStockByBatchID;
+            row.BatchNumber = val.BatchNo;
+            
+            // Fetch the cost price for this batch
+            row.CostPrice = await ApiClient.GetBatchCostPriceAsync(val.ItemStockByBatchID);
+
+            // Automatically adjust quantity if it exceeds the new batch's max
+            if (row.Quantity > val.FinalQuantityLeft)
+            {
+                row.Quantity = val.FinalQuantityLeft;
+            }
+        }
+        else
+        {
+            row.ItemStockByBatchId = null;
+            row.BatchNumber = null;
+            row.CostPrice = null;
+        }
+        StateHasChanged();
+    }
+
+    private double? GetMaxQuantity(InvoiceItemDto row)
+    {
+        if (row.ItemStockByBatchId.HasValue && row.ItemStockByBatchId.Value > 0)
+        {
+            var batch = GetBatchById(row.ItemId, row.ItemStockByBatchId);
+            if (batch != null)
+            {
+                return batch.FinalQuantityLeft;
+            }
+        }
+        return null; // No limit if no batch is selected
     }
 
     private void OnOrderChanged(InvoiceItemDto row, long val)
@@ -290,6 +354,16 @@
         {
             Snackbar.Add("All selected products must be valid items.", Severity.Warning);
             return;
+        }
+
+        foreach (var item in _invoice.Items)
+        {
+            var maxQty = GetMaxQuantity(item);
+            if (maxQty.HasValue && item.Quantity > maxQty.Value)
+            {
+                Snackbar.Add($"Quantity for item {item.ItemName} exceeds available batch stock ({maxQty.Value}).", Severity.Warning);
+                return;
+            }
         }
 
         _busy = true;
@@ -361,60 +435,7 @@
     {
         _invoice.AccountID = customerId;
         
-        if (Id == 0 && customerId > 0)
-        {
-            _invoice.Items.Clear();
-            
-            // Get all completed orders of this customer
-            var customerOrders = _orders
-                .Where(o => o.CustomerID == customerId && o.SentDate.HasValue)
-                .ToList();
-                
-            foreach (var order in customerOrders)
-            {
-                // Fetch the full order details including items
-                var fullOrder = await ApiClient.GetCustomerOrderByIdAsync(order.OrderID);
-                if (fullOrder != null && fullOrder.Items != null)
-                {
-                    foreach (var orderItem in fullOrder.Items)
-                    {
-                        double unitPrice = 0.0;
-                        
-                        // Fetch dispatched stock batches for this order item
-                        string batchNumbersStr = "";
-                        try
-                        {
-                            var stockUsedList = await ApiClient.GetItemStockUsedForBOMByOrderDetailIdAsync(orderItem.OrderItemId);
-                            if (stockUsedList != null)
-                            {
-                                batchNumbersStr = string.Join(", ", stockUsedList
-                                    .Where(su => !string.IsNullOrEmpty(su.BatchNo))
-                                    .Select(su => su.BatchNo)
-                                    .Distinct());
-                            }
-                        }
-                        catch (Exception)
-                        {
-                            // Fallback silently if stock fetch fails
-                        }
-
-                        _invoice.Items.Add(new InvoiceItemDto
-                        {
-                            ItemId = orderItem.ItemId,
-                            ItemName = orderItem.ItemName,
-                            Quantity = orderItem.Qty,
-                            OrderID = order.OrderID,
-                            OrderNo = order.OrderNo,
-                            UnitPrice = unitPrice,
-                            Amount = orderItem.Qty * unitPrice,
-                            BatchNumber = batchNumbersStr
-                        });
-                    }
-                }
-            }
-            
-            StateHasChanged();
-        }
+        // Remove auto-filling of orders when customer is selected to allow manual batch selection
     }
 
     private IEnumerable<SearchableSelect<long?>.SelectItemDto<long?>> GetCustomerSelects()
@@ -460,6 +481,28 @@
             Value = (long?)x.OrderID,
             Text = x.OrderNo ?? ""
         });
+    }
+
+    private IEnumerable<SearchableSelect<ItemStockByBatchForBOMDto>.SelectItemDto<ItemStockByBatchForBOMDto>> GetBatchSelects(long itemId)
+    {
+        if (_itemBatches.TryGetValue(itemId, out var batches))
+        {
+            return batches.Select(x => new SearchableSelect<ItemStockByBatchForBOMDto>.SelectItemDto<ItemStockByBatchForBOMDto>
+            {
+                Value = x,
+                Text = $"{x.BatchNo} (Avail: {x.FinalQuantityLeft})"
+            });
+        }
+        return Array.Empty<SearchableSelect<ItemStockByBatchForBOMDto>.SelectItemDto<ItemStockByBatchForBOMDto>>();
+    }
+
+    private ItemStockByBatchForBOMDto? GetBatchById(long itemId, long? batchId)
+    {
+        if (batchId.HasValue && _itemBatches.TryGetValue(itemId, out var batches))
+        {
+            return batches.FirstOrDefault(x => x.ItemStockByBatchID == batchId.Value);
+        }
+        return null;
     }
 
     private RawMaterialDto? GetItemById(long id) => _items.FirstOrDefault(x => x.ItemId == id);

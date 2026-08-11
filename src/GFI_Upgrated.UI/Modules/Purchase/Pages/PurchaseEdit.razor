@@ -33,7 +33,7 @@
             </MudItem>
            
             <MudItem xs="12" md="3">
-                <MudDatePicker Editable="true" DateFormat="dd/MM/yyyy" Placeholder="dd/MM/yyyy"                      Label="Received Date (DD/MM/YYYY)" @bind-Date="_model.GoodsRecievedDate" Variant="Variant.Outlined" For="@(() => _model.GoodsRecievedDate)" />
+                <MudDatePicker Editable="true" DateFormat="dd/MM/yyyy" Placeholder="dd/MM/yyyy"                      Label="Received Date (DD/MM/YYYY)" Date="_model.GoodsRecievedDate" DateChanged="OnGoodsReceivedDateChanged" Variant="Variant.Outlined" For="@(() => _model.GoodsRecievedDate)" />
             </MudItem>
             <MudItem xs="12" md="3">
                 <MudDatePicker Editable="true" DateFormat="dd/MM/yyyy" Placeholder="dd/MM/yyyy" Label="Invoice Date (DD/MM/YYYY)" @bind-Date="_model.InvoiceDate" Variant="Variant.Outlined" />
@@ -292,7 +292,7 @@
             row.UnitId = item.PurchaseUnit;
             if (item.TentativeExpiryDays > 0)
             {
-                row.ExpiryDate = DateTime.Today.AddDays(item.TentativeExpiryDays);
+                row.ExpiryDate = (_model.GoodsRecievedDate ?? DateTime.Today).AddDays(item.TentativeExpiryDays);
             }
         }
     }
@@ -300,6 +300,22 @@
     private void AddRow()
     {
         _model.Items.Add(new PurchaseItemDto { Quantity = 1, WarehouseId = _warehouses.FirstOrDefault()?.WarehouseId });
+    }
+
+    private void OnGoodsReceivedDateChanged(DateTime? newDate)
+    {
+        _model.GoodsRecievedDate = newDate;
+        foreach (var item in _model.Items)
+        {
+            if (item.ItemID > 0)
+            {
+                var rawMaterial = _allItems.FirstOrDefault(x => x.ItemId == item.ItemID);
+                if (rawMaterial != null && rawMaterial.TentativeExpiryDays > 0)
+                {
+                    item.ExpiryDate = (newDate ?? DateTime.Today).AddDays(rawMaterial.TentativeExpiryDays);
+                }
+            }
+        }
     }
 
     private void RemoveRow(PurchaseItemDto row)

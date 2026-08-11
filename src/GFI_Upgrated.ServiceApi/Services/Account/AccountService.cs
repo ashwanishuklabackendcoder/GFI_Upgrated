@@ -110,11 +110,17 @@ namespace GFI_Upgrated.ServiceApi.Services.Account
         public async Task<IReadOnlyList<ItemStockByBatchForBOMDto>> GetItemStockByItemIDBatchForBOMListAsync(long itemId)
             => await _repository.GetItemStockByItemIDBatchForBOMListAsync(itemId);
 
+        public async Task<IReadOnlyList<ItemStockByBatchForBOMDto>> GetItemStockByItemIDBatchListAsync(long itemId)
+            => await _repository.GetItemStockByItemIDBatchListAsync(itemId);
+
         public async Task<IReadOnlyList<ItemStockUsedForBOMDto>> GetItemStockUsedForBOMByOrderDetailIdAsync(long orderDetailsId)
             => await _repository.GetItemStockUsedForBOMByOrderDetailIdAsync(orderDetailsId);
 
         public async Task<long> SaveItemStockUsedForBOMAsync(ItemStockUsedForBOMDto dto)
             => await _repository.SaveItemStockUsedForBOMAsync(dto);
+
+        public Task<double?> GetBatchCostPriceAsync(long itemStockByBatchId)
+            => _repository.GetBatchCostPriceAsync(itemStockByBatchId);
         #endregion
     }
 }

@@ -823,7 +823,10 @@
 
     private async Task ResetBatchForm()
     {
-        _batchModel = new FinishedProductBatchDto();
+        _batchModel = new FinishedProductBatchDto
+        {
+            ExpiryDate = _model.TentativeExpiryDays > 0 ? DateTime.Today.AddDays(_model.TentativeExpiryDays) : (DateTime?)null
+        };
     }
 
     private void OnBack() => Navigation.NavigateTo("/store/finished-products");

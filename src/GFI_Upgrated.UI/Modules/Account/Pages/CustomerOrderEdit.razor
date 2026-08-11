@@ -82,8 +82,8 @@
                             <MudStack Row="true" Spacing="1" Justify="Justify.Center">
                                 @if (Id > 0 && row.OrderItemId > 0 && row.IsComplete != true)
                                 {
-                                    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small" StartIcon="@Icons.Material.Filled.Settings" OnClick="@(() => OpenFulfillDialog(row))">
-                                        Process
+                                    <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small" StartIcon="@Icons.Material.Filled.Check" OnClick="@(() => MarkItemComplete(row))">
+                                        Mark Complete
                                     </MudButton>
                                 }
                                 <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => RemoveOrderItem(row))" />
@@ -263,34 +263,10 @@
         Navigation.NavigateTo("/acc/customerorderlist");
     }
 
-    private async Task OpenFulfillDialog(CustomerOrderItemDto row)
+    private void MarkItemComplete(CustomerOrderItemDto row)
     {
-        // Must save order and item first to get OrderItemId
-        if (Id <= 0 || row.OrderItemId <= 0)
-        {
-            Snackbar.Add("Please save the order first before fulfilling items.", Severity.Warning);
-            return;
-        }
-
-        var availableBatches = await ApiClient.GetItemStockByItemIDBatchForBOMListAsync(row.ItemId);
-
-        var parameters = new DialogParameters
-        {
-            { "Item", row },
-            { "AvailableBatches", availableBatches },
-            { "OrderID", Id },
-            { "ApiClient", ApiClient }
-        };
-
-        var options = new DialogOptions { MaxWidth = MaxWidth.Medium, FullWidth = true, CloseButton = true };
-        var dialog = await DialogService.ShowAsync<OrderFulfillDialog>("Process Item", parameters, options);
-        var result = await dialog.Result;
-
-        if (!result.Canceled)
-        {
-            row.IsComplete = true;
-            StateHasChanged();
-        }
+        row.IsComplete = true;
+        StateHasChanged();
     }
 
     private IEnumerable<SearchableSelect<long?>.SelectItemDto<long?>> GetCustomerSelects()

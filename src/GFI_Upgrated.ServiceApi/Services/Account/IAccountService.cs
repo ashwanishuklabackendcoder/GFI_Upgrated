@@ -51,7 +51,9 @@ namespace GFI_Upgrated.ServiceApi.Services.Account
         Task<long> SaveCustomerOrderReturnAsync(CustomerOrderReturnDto returnDto);
         Task<bool> DeleteCustomerOrderReturnAsync(string ids);
         Task<IReadOnlyList<ItemStockByBatchForBOMDto>> GetItemStockByItemIDBatchForBOMListAsync(long itemId);
+        Task<IReadOnlyList<ItemStockByBatchForBOMDto>> GetItemStockByItemIDBatchListAsync(long itemId);
         Task<IReadOnlyList<ItemStockUsedForBOMDto>> GetItemStockUsedForBOMByOrderDetailIdAsync(long orderDetailsId);
+        Task<double?> GetBatchCostPriceAsync(long itemStockByBatchId);
         Task<long> SaveItemStockUsedForBOMAsync(ItemStockUsedForBOMDto dto);
         #endregion
     }

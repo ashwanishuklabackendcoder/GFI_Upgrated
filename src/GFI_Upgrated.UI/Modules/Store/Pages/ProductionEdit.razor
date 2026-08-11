@@ -46,7 +46,7 @@
 
             <!-- Dates -->
             <MudItem xs="12" md="4">
-                <MudDatePicker DateFormat="dd/MM/yyyy" Placeholder="dd/MM/yyyy" Editable="true"                         @bind-Date="_editor.CookingDate" Label="Cooking Date (DD/MM/YYYY)" Variant="Variant.Outlined" Required="true" For="@(() => _editor.CookingDate)" />
+                <MudDatePicker DateFormat="dd/MM/yyyy" Placeholder="dd/MM/yyyy" Editable="true" Date="_editor.CookingDate" DateChanged="OnCookingDateChanged" Label="Cooking Date (DD/MM/YYYY)" Variant="Variant.Outlined" Required="true" For="@(() => _editor.CookingDate)" />
             </MudItem>
           
             <MudItem xs="12" md="4">
@@ -331,6 +331,19 @@
         {
             _selectedBomUnitId = null;
             _editor.FillingPerBottleUnit = 0;
+        }
+    }
+
+    private async Task OnCookingDateChanged(DateTime? newDate)
+    {
+        _editor.CookingDate = newDate;
+        if (_editor.BomId > 0)
+        {
+            var bomDetails = await ApiClient.GetBomByIdAsync(_editor.BomId);
+            if (bomDetails != null && bomDetails.TentativeExpiryDays > 0)
+            {
+                _editor.ExpiryDate = (newDate ?? DateTime.Today).AddDays(bomDetails.TentativeExpiryDays);
+            }
         }
     }
 
