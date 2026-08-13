@@ -180,6 +180,7 @@ OnClearButtonClick="OnSearch" Adornment="Adornment.Start" AdornmentIcon="@Icons.
                 if (success > 0)
                 {
                     Snackbar.Add("SKU deleted successfully.", Severity.Success);
+                    _cachedItems = null;
                     await _table.ReloadServerData();
                 }
                 else

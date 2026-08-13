@@ -205,6 +205,22 @@ end
         
     
     -- =======================================================
+    -- DEDUCT INGREDIENT STOCK ON FINALIZE
+    -- =======================================================
+    UPDATE b
+    SET b.FinalQuantityLeft = b.FinalQuantityLeft - u.Quantity
+    FROM dbo.Inv_ItemStockByBatch b
+    INNER JOIN dbo.Inv_ItemStockUsed u ON b.ItemStockByBatchId = u.ItemStockByBatchId
+    WHERE u.UsedFor = @UsedFor AND u.UsedForId = @UsedForId;
+
+    UPDATE s
+    SET s.IssuedQuantity = ISNULL(s.IssuedQuantity, 0) + u.Quantity
+    FROM dbo.W_ItemStock s
+    INNER JOIN dbo.Inv_ItemStockByBatch b ON s.ItemID = b.ItemID
+    INNER JOIN dbo.Inv_ItemStockUsed u ON b.ItemStockByBatchId = u.ItemStockByBatchId
+    WHERE u.UsedFor = @UsedFor AND u.UsedForId = @UsedForId;
+
+    -- =======================================================
     -- CALCULATE AND APPLY TOTAL MANUFACTURING COST
     -- =======================================================
     DECLARE @TotalCost FLOAT;

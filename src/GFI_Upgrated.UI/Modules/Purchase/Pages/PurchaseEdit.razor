@@ -33,10 +33,10 @@
             </MudItem>
            
             <MudItem xs="12" md="3">
-                <MudDatePicker Editable="true" DateFormat="dd/MM/yyyy" Placeholder="dd/MM/yyyy"                      Label="Received Date (DD/MM/YYYY)" Date="_model.GoodsRecievedDate" DateChanged="OnGoodsReceivedDateChanged" Variant="Variant.Outlined" For="@(() => _model.GoodsRecievedDate)" />
+                <MudDatePicker Editable="true" DateFormat="@SessionState.DatePickerFormat" Placeholder="@SessionState.DatePickerFormat"                      Label="@($"Received Date ({SessionState.DateFormat})")" Date="_model.GoodsRecievedDate" DateChanged="OnGoodsReceivedDateChanged" Variant="Variant.Outlined" For="@(() => _model.GoodsRecievedDate)" />
             </MudItem>
             <MudItem xs="12" md="3">
-                <MudDatePicker Editable="true" DateFormat="dd/MM/yyyy" Placeholder="dd/MM/yyyy" Label="Invoice Date (DD/MM/YYYY)" @bind-Date="_model.InvoiceDate" Variant="Variant.Outlined" />
+                <MudDatePicker Editable="true" DateFormat="@SessionState.DatePickerFormat" Placeholder="@SessionState.DatePickerFormat" Label="@($"Invoice Date ({SessionState.DateFormat})")" @bind-Date="_model.InvoiceDate" Variant="Variant.Outlined" />
             </MudItem>
             <MudItem xs="12" md="3">
                 <MudTextField @bind-Value="_model.InvoiceNo" Label="Invoice Number" Variant="Variant.Outlined" />
@@ -87,7 +87,7 @@
                             <MudTextField @bind-Value="itemContext.BatchNo" Variant="Variant.Text" Dense="true" Placeholder="AUTO" />
                         </MudTd>
                         <MudTd DataLabel="Expiry">
-                            <MudDatePicker Editable="true" DateFormat="dd/MM/yyyy" Placeholder="dd/MM/yyyy"                      @bind-Date="itemContext.ExpiryDate" Variant="Variant.Text" Dense="true" />
+                            <MudDatePicker Editable="true" DateFormat="@SessionState.DatePickerFormat" Placeholder="@SessionState.DatePickerFormat"                      @bind-Date="itemContext.ExpiryDate" Variant="Variant.Text" Dense="true" />
                         </MudTd>
                         <MudTd DataLabel="Warehouse">
                             <SearchableSelect T="long?" Value="@itemContext.WarehouseId" ValueChanged="@((long? val) => { itemContext.WarehouseId = val; })" Variant="Variant.Text" Dense="true" Items="@GetWarehouseSelects()" />
@@ -293,6 +293,10 @@
             if (item.TentativeExpiryDays > 0)
             {
                 row.ExpiryDate = (_model.GoodsRecievedDate ?? DateTime.Today).AddDays(item.TentativeExpiryDays);
+            }
+            else
+            {
+                row.ExpiryDate = null;
             }
         }
     }

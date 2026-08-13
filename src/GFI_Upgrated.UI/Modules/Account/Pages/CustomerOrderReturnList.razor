@@ -44,7 +44,7 @@
                 <MudTh Style="width: 80px; text-align: center;">Action</MudTh>
             </HeaderContent>
             <RowTemplate>
-                <MudTd DataLabel="Return Date">@context.ReturnDate?.ToString("dd MMM yyyy")</MudTd>
+                <MudTd DataLabel="Return Date">@SessionState.FormatDate(context.ReturnDate)</MudTd>
                 <MudTd DataLabel="Customer / Account">@context.AccountName</MudTd>
                 <MudTd DataLabel="Item Name">@context.ItemName</MudTd>
                 <MudTd DataLabel="Batch Number">@context.BatchNo</MudTd>
@@ -89,13 +89,13 @@ else
                 <SearchableSelect T="CustomerOrderDto" Label="Select Customer Order" Value="@_selectedOrder" ValueChanged="OnOrderChanged" Required="true" Variant="Variant.Outlined" Disabled="@(_selectedCustomer == null)" Items="@GetOrderSelects()" />
             </MudItem>
             <MudItem xs="12" md="6">
-                <MudTextField Label="Order Date" Value="@(_selectedOrder?.OrderDate?.ToString("dd MMM yyyy") ?? "")" ReadOnly="true" Variant="Variant.Outlined" />
+                <MudTextField Label="Order Date" Value="@(SessionState.FormatDate(_selectedOrder?.OrderDate))" ReadOnly="true" Variant="Variant.Outlined" />
             </MudItem>
             <MudItem xs="12" md="6">
-                <MudTextField Label="Sent Date" Value="@(_selectedOrder?.SentDate?.ToString("dd MMM yyyy") ?? "")" ReadOnly="true" Variant="Variant.Outlined" />
+                <MudTextField Label="Sent Date" Value="@(SessionState.FormatDate(_selectedOrder?.SentDate))" ReadOnly="true" Variant="Variant.Outlined" />
             </MudItem>
             <MudItem xs="12" md="6">
-                <MudDatePicker DateFormat="dd/MM/yyyy" Placeholder="dd/MM/yyyy" Editable="true"                         Label="Return Date (DD/MM/YYYY)" @bind-Date="_returnDate" Required="true" Variant="Variant.Outlined" />
+                <MudDatePicker DateFormat="@SessionState.DatePickerFormat" Placeholder="@SessionState.DatePickerFormat" Editable="true"                         Label="@($"Return Date ({SessionState.DateFormat})")" @bind-Date="_returnDate" Required="true" Variant="Variant.Outlined" />
             </MudItem>
             <MudItem xs="12" md="6">
                 <MudTextField Label="Return Reason" @bind-Value="_returnReason" Lines="2" Required="true" Variant="Variant.Outlined" />
@@ -382,7 +382,8 @@ else
             if (success)
             {
                 Snackbar.Add("Return record deleted and inventory restored successfully.", Severity.Success);
-                if (_table is not null) await _table.ReloadServerData();
+                _cachedItems = null;
+                    if (_table is not null) await _table.ReloadServerData();
             }
             else
             {

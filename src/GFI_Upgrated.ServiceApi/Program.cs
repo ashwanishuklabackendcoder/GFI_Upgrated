@@ -204,6 +204,14 @@ builder.Services.AddScoped<GFI_Upgrated.Data.Store.IReportRepository>(sp =>
         ?? throw new InvalidOperationException("Missing connection string 'DefaultConnection'.");
     return new GFI_Upgrated.Data.Store.ReportRepository(connectionString);
 });
+builder.Services.AddScoped<GFI_Upgrated.Data.Store.IDashboardRepository>(sp =>
+{
+    var configuration = sp.GetRequiredService<IConfiguration>();
+    var connectionString = configuration.GetConnectionString("DefaultConnection")
+        ?? throw new InvalidOperationException("Missing connection string 'DefaultConnection'.");
+    return new GFI_Upgrated.Data.Store.DashboardRepository(connectionString);
+});
+
 builder.Services.AddScoped<GFI_Upgrated.Data.Purchase.IPurchaseRepository>(sp =>
 {
     var configuration = sp.GetRequiredService<IConfiguration>();

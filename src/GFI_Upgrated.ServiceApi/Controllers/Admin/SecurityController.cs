@@ -871,7 +871,7 @@ public sealed class SecurityController : ControllerBase
         var tokenDescriptor = new SecurityTokenDescriptor
         {
             Subject = new ClaimsIdentity(claims),
-            Expires = DateTime.UtcNow.AddMinutes(30),
+            Expires = DateTime.UtcNow.AddHours(1),
             Issuer = jwtSettings["Issuer"] ?? "GFI_Upgrated",
             Audience = jwtSettings["Audience"] ?? "GFI_Upgrated_UI",
             SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)

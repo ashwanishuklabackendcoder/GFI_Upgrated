@@ -37,7 +37,7 @@
                 <ValidationMessage For="@(() => _editor.BomId)" />
             </MudItem>
             <MudItem xs="12" md="4">
-                <MudNumericField @bind-Value="_editor.BomQty" Label="BOM Quantity" Variant="Variant.Outlined" Min="1" For="@(() => _editor.BomQty)" />
+                <MudNumericField T="double" Value="_editor.BomQty" ValueChanged="@((double val) => OnBomQtyChanged(val))" Label="BOM Quantity" Variant="Variant.Outlined" Min="1" For="@(() => _editor.BomQty)" />
             </MudItem>
             <MudItem xs="12" md="4">
                 <MudTextField @bind-Value="_editor.BatchNo" Label="Batch Number" Variant="Variant.Outlined" HelperText="Leave blank for auto-generation" />
@@ -46,14 +46,14 @@
 
             <!-- Dates -->
             <MudItem xs="12" md="4">
-                <MudDatePicker DateFormat="dd/MM/yyyy" Placeholder="dd/MM/yyyy" Editable="true" Date="_editor.CookingDate" DateChanged="OnCookingDateChanged" Label="Cooking Date (DD/MM/YYYY)" Variant="Variant.Outlined" Required="true" For="@(() => _editor.CookingDate)" />
+                <MudDatePicker DateFormat="@SessionState.DatePickerFormat" Placeholder="@SessionState.DatePickerFormat" Editable="true" Date="_editor.CookingDate" DateChanged="OnCookingDateChanged" Label="@($"Cooking Date ({SessionState.DateFormat})*")" Variant="Variant.Outlined" Required="true" For="@(() => _editor.CookingDate)" />
             </MudItem>
           
             <MudItem xs="12" md="4">
-                <MudDatePicker DateFormat="dd/MM/yyyy" Placeholder="dd/MM/yyyy" Editable="true"                         @bind-Date="_editor.FilledDate" Label="Filled Date (DD/MM/YYYY)" Variant="Variant.Outlined" />
+                <MudDatePicker DateFormat="@SessionState.DatePickerFormat" Placeholder="@SessionState.DatePickerFormat" Editable="true"                         @bind-Date="_editor.FilledDate" Label="@($"Filled Date ({SessionState.DateFormat})")" Variant="Variant.Outlined" />
             </MudItem>
             <MudItem xs="12" md="4">
-                <MudDatePicker DateFormat="dd/MM/yyyy" Placeholder="dd/MM/yyyy" Editable="true" @bind-Date="_editor.ExpiryDate" Label="Expiry Date (DD/MM/YYYY)" Variant="Variant.Outlined" />
+                <MudDatePicker DateFormat="@SessionState.DatePickerFormat" Placeholder="@SessionState.DatePickerFormat" Editable="true" @bind-Date="_editor.ExpiryDate" Label="@($"Expiry Date ({SessionState.DateFormat})")" Variant="Variant.Outlined" />
             </MudItem>
             <!-- Kettle Details -->
             <MudItem xs="12" md="6">
@@ -132,6 +132,8 @@
     private IReadOnlyCollection<string> _selectedKettles { get; set; } = new HashSet<string>();
     private bool _processing;
     private long? _selectedBomUnitId;
+    private double _selectedBomYield = 1.0;
+
 
     protected override async Task OnInitializedAsync()
     {
@@ -172,6 +174,13 @@
                 _editor.WarehouseId = selected.WarehouseId;
                 _editor.Remarks = selected.Remarks;
                 _editor.ProcessEmployees = selected.ProcessEmployees;
+
+                var bomDetails = await ApiClient.GetBomByIdAsync(selected.BomId);
+                if (bomDetails != null)
+                {
+                    _selectedBomUnitId = bomDetails.UnitId;
+                    _selectedBomYield = bomDetails.Quantity;
+                }
 
                 if (!string.IsNullOrWhiteSpace(selected.ProcessEmployees))
                 {
@@ -280,9 +289,15 @@
             {
                 _selectedBomUnitId = bomDetails.UnitId;
                 _editor.FillingPerBottleUnit = bomDetails.UnitId;
+                _selectedBomYield = bomDetails.Quantity;
+                RecalculateQtyMade();
                 if (bomDetails.TentativeExpiryDays > 0)
                 {
                     _editor.ExpiryDate = (_editor.CookingDate ?? DateTime.Today).AddDays(bomDetails.TentativeExpiryDays);
+                }
+                else
+                {
+                    _editor.ExpiryDate = null;
                 }
             }
         }
@@ -290,8 +305,11 @@
         {
             _selectedBomUnitId = null;
             _editor.FillingPerBottleUnit = 0;
+            _editor.ExpiryDate = null;
+            _selectedBomYield = 1.0;
         }
     }
+
 
     private async Task<IEnumerable<UnitLookupDto>> SearchUnits(string value, CancellationToken token)
     {
@@ -321,9 +339,15 @@
             {
                 _selectedBomUnitId = bomDetails.UnitId;
                 _editor.FillingPerBottleUnit = bomDetails.UnitId;
+                _selectedBomYield = bomDetails.Quantity;
+                RecalculateQtyMade();
                 if (bomDetails.TentativeExpiryDays > 0)
                 {
                     _editor.ExpiryDate = (_editor.CookingDate ?? DateTime.Today).AddDays(bomDetails.TentativeExpiryDays);
+                }
+                else
+                {
+                    _editor.ExpiryDate = null;
                 }
             }
         }
@@ -331,8 +355,22 @@
         {
             _selectedBomUnitId = null;
             _editor.FillingPerBottleUnit = 0;
+            _editor.ExpiryDate = null;
+            _selectedBomYield = 1.0;
         }
     }
+
+    private void OnBomQtyChanged(double val)
+    {
+        _editor.BomQty = val;
+        RecalculateQtyMade();
+    }
+
+    private void RecalculateQtyMade()
+    {
+        _editor.FillingBottles = (int)(_editor.BomQty * _selectedBomYield);
+    }
+
 
     private async Task OnCookingDateChanged(DateTime? newDate)
     {

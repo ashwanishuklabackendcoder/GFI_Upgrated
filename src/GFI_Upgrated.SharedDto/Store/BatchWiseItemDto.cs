@@ -8,4 +8,7 @@ public sealed class BatchWiseItemDto
     public string? ExpiryDate { get; set; }
     public string? ItemName { get; set; }
     public string? AccountName { get; set; }
+    public double AvailableQty { get; set; }
+    public string? UnitName { get; set; }
+
 }

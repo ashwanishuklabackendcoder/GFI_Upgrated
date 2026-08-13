@@ -1,4 +1,4 @@
-﻿@page "/admin/invoice"
+@page "/admin/invoice"
 @page "/admin/invoices"
 @using GFI_Upgrated.SharedDto.Account
 @using GFI_Upgrated.UI.Services
@@ -43,10 +43,10 @@
         <RowTemplate>
             <MudTd DataLabel="Invoice Number">@context.InvoiceNumber</MudTd>
             <MudTd DataLabel="Customer / Account">@context.AccountName</MudTd>
-            <MudTd DataLabel="Invoice Date">@context.InvoiceDate?.ToString("dd MMM yyyy")</MudTd>
-            <MudTd DataLabel="Due Date">@context.DueDate?.ToString("dd MMM yyyy")</MudTd>
+            <MudTd DataLabel="Invoice Date">@SessionState.FormatDate(context.InvoiceDate)</MudTd>
+            <MudTd DataLabel="Due Date">@SessionState.FormatDate(context.DueDate)</MudTd>
             <MudTd DataLabel="Total Amount" Style="text-align: right; font-weight: bold;">
-                @context.CurrencySymbol @(context.TotalAmount.ToString("N2"))
+                @SessionState.FormatCurrency(context.TotalAmount)
             </MudTd>
             <MudTd DataLabel="Status" Style="text-align: center;">
                 <MudChip T="string" Color="@(context.IsPaid == true || context.InvoiceStatus == "Paid" ? Color.Success : Color.Warning)" Size="Size.Small" Variant="Variant.Text">

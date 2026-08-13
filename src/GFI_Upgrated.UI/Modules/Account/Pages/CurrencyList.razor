@@ -6,6 +6,7 @@
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
 @inject IJSRuntime JS
+@inject GFI_Upgrated.UI.State.AppSessionState SessionState
 
 <PageTitle>Currency Master</PageTitle>
 
@@ -40,7 +41,7 @@
             </MudTd>
             <MudTd DataLabel="String">@context.CurrencyString</MudTd>
             <MudTd DataLabel="Sub-String">@context.CurrencySubString</MudTd>
-            <MudTd DataLabel="Created Date">@context.CreatedDate.ToString("dd MMM yyyy")</MudTd>
+            <MudTd DataLabel="Created Date">@SessionState.FormatDate(context.CreatedDate)</MudTd>
             <MudTd DataLabel="Action" Style="text-align: center;">
                 <MudStack Row="true" Spacing="1" Justify="Justify.Center" AlignItems="AlignItems.Center">
                     <MudTooltip Text="Edit">
@@ -144,6 +145,7 @@
                 if (success)
                 {
                     Snackbar.Add("Currency deleted successfully.", Severity.Success);
+                    _cachedItems = null;
                     if (_table is not null) await _table.ReloadServerData();
                 }
             }

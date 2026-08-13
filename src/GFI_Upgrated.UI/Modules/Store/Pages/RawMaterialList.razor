@@ -169,6 +169,7 @@
             if (success)
             {
                 Snackbar.Add("Raw material deleted successfully.", Severity.Success);
+                _cachedItems = null;
                 await OnSearch();
             }
             else

@@ -412,14 +412,28 @@ public sealed class StoreApiClient : ApiClientBase
 
     // BOM Methods
     public async Task<PagedResult<BomDto>> GetBomsAsync(BomListRequest request, CancellationToken cancellationToken = default)
-        => await GetEnvelopeAsync<PagedResult<BomDto>>(BuildQuery("api/store/bom", new PagedRequest
+    {
+        var queryParams = new List<string>
         {
-            CurrentPage = request.PageNumber,
-            RecordPerPage = request.PageSize,
-            SortColumn = request.SortColumn,
-            SortType = request.SortType
-        }, ("searchTerm", request.SearchTerm), ("itemTypeId", request.ItemTypeId?.ToString()), ("itemId", request.ItemId?.ToString())), cancellationToken)
-           ?? new PagedResult<BomDto>();
+            $"PageNumber={request.PageNumber}",
+            $"PageSize={request.PageSize}"
+        };
+        if (!string.IsNullOrWhiteSpace(request.SortColumn))
+            queryParams.Add($"SortColumn={Uri.EscapeDataString(request.SortColumn)}");
+        if (!string.IsNullOrWhiteSpace(request.SortType))
+            queryParams.Add($"SortType={Uri.EscapeDataString(request.SortType)}");
+        if (!string.IsNullOrWhiteSpace(request.SearchTerm))
+            queryParams.Add($"SearchTerm={Uri.EscapeDataString(request.SearchTerm)}");
+        if (request.ItemTypeId.HasValue)
+            queryParams.Add($"ItemTypeId={request.ItemTypeId}");
+        if (request.ItemId.HasValue)
+            queryParams.Add($"ItemId={request.ItemId}");
+
+        var url = $"api/store/bom?{string.Join("&", queryParams)}";
+        return await GetEnvelopeAsync<PagedResult<BomDto>>(url, cancellationToken)
+               ?? new PagedResult<BomDto>();
+    }
+
 
     public async Task<BomDto?> GetBomByIdAsync(long id, CancellationToken cancellationToken = default)
         => await GetEnvelopeAsync<BomDto>($"api/store/bom/{id}", cancellationToken);
@@ -568,9 +582,12 @@ public sealed class StoreApiClient : ApiClientBase
         if (request.WarehouseID.HasValue) query.Add($"WarehouseID={request.WarehouseID}");
         if (request.ItemTypeId.HasValue) query.Add($"ItemTypeId={request.ItemTypeId}");
         if (!string.IsNullOrWhiteSpace(request.CreatedBy)) query.Add($"CreatedBy={Uri.EscapeDataString(request.CreatedBy)}");
+        if (request.FromDate.HasValue) query.Add($"FromDate={request.FromDate.Value.ToString("o")}");
+        if (request.ToDate.HasValue) query.Add($"ToDate={request.ToDate.Value.ToString("o")}");
 
         return await GetEnvelopeAsync<PagedResult<ItemStockReportDto>>($"api/store/reports/item-stock?{string.Join("&", query)}", cancellationToken)
                ?? new PagedResult<ItemStockReportDto>();
+
     }
 
     public async Task<IEnumerable<ItemStockTraceabilityDto>> GetItemStockTraceabilityAsync(long itemId, CancellationToken cancellationToken = default)
@@ -609,4 +626,22 @@ public sealed class StoreApiClient : ApiClientBase
         return await GetEnvelopeAsync<PagedResult<ItemStockByBatchReportDto>>($"api/store/reports/stock-by-batch?{string.Join('&', query)}", cancellationToken)
                ?? new PagedResult<ItemStockByBatchReportDto>();
     }
+
+    // Dashboard Methods
+    public async Task<StockDashboardDto> GetStockDashboardAsync(CancellationToken cancellationToken = default)
+        => await GetEnvelopeAsync<StockDashboardDto>("api/store/dashboard/stock", cancellationToken)
+           ?? new StockDashboardDto();
+
+    public async Task<ProductionDashboardDto> GetProductionDashboardAsync(string? batchNo, CancellationToken cancellationToken = default)
+        => await GetEnvelopeAsync<ProductionDashboardDto>($"api/store/dashboard/production?batchNo={Uri.EscapeDataString(batchNo ?? "")}", cancellationToken)
+           ?? new ProductionDashboardDto();
+
+    public async Task<List<DashboardBatchLookupDto>> GetProductionBatchesAsync(CancellationToken cancellationToken = default)
+        => await GetEnvelopeAsync<List<DashboardBatchLookupDto>>("api/store/dashboard/production/batches", cancellationToken)
+           ?? new List<DashboardBatchLookupDto>();
+
+    public async Task<SalesDashboardDto> GetSalesDashboardAsync(CancellationToken cancellationToken = default)
+        => await GetEnvelopeAsync<SalesDashboardDto>("api/store/dashboard/sales", cancellationToken)
+           ?? new SalesDashboardDto();
 }
+

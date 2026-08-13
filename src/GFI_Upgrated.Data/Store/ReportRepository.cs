@@ -203,8 +203,11 @@ public sealed class ReportRepository : IReportRepository
         ProcessingDate = row.SafeString("ProcessingDate"),
         ExpiryDate = row.SafeString("ExpiryDate"),
         ItemName = row.SafeString("ItemName"),
-        AccountName = row.SafeString("AccountName")
+        AccountName = row.SafeString("AccountName"),
+        AvailableQty = row.SafeDouble("AvailableQty"),
+        UnitName = row.SafeString("UnitName")
     };
+
 
     private ItemStockByBatchReportDto MapItemStockByBatchReport(DataRow row) => new()
     {

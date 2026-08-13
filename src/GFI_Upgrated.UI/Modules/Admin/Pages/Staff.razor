@@ -40,7 +40,7 @@
         <RowTemplate>
             <MudTd DataLabel="Staff Name">@context.StaffName</MudTd>
             <MudTd DataLabel="Staff Number">@context.StaffNumber</MudTd>
-            <MudTd DataLabel="D.O.B">@context.DOB?.ToString("dd MMM yyyy")</MudTd>
+            <MudTd DataLabel="D.O.B">@SessionState.FormatDate(context.DOB)</MudTd>
             <MudTd DataLabel="Mobile No">@context.MobileNo</MudTd>
             <MudTd DataLabel="EmailID Official">@context.EmailIDOfficial</MudTd>
             <MudTd DataLabel="Gender">@context.GenderName</MudTd>

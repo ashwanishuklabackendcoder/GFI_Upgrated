@@ -33,10 +33,10 @@
             <SearchableSelect T="RawMaterialDto" Label="Select Item" Value="@_selectedItem" ValueChanged="@((RawMaterialDto val) => { _selectedItem = val; })" Variant="Variant.Outlined" Items="@GetItemSelects()" />
         </MudItem>
         <MudItem xs="12" md="3">
-            <MudDatePicker Label="From Date" @bind-Date="_fromDate" Variant="Variant.Outlined" Clearable="true" />
+            <MudDatePicker DateFormat="@SessionState.DatePickerFormat" Placeholder="@SessionState.DatePickerFormat" Label="@($"From Date ({SessionState.DateFormat})")" @bind-Date="_fromDate" Variant="Variant.Outlined" Clearable="true" />
         </MudItem>
         <MudItem xs="12" md="3">
-            <MudDatePicker Label="To Date" @bind-Date="_toDate" Variant="Variant.Outlined" Clearable="true" />
+            <MudDatePicker DateFormat="@SessionState.DatePickerFormat" Placeholder="@SessionState.DatePickerFormat" Label="@($"To Date ({SessionState.DateFormat})")" @bind-Date="_toDate" Variant="Variant.Outlined" Clearable="true" />
         </MudItem>
       
         <MudItem xs="12" md="2" Class="d-flex align-end">

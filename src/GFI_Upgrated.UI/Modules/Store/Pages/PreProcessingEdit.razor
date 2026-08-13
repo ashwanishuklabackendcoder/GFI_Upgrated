@@ -34,11 +34,11 @@
                 <SearchableSelect T="long" Label="Select BOM" Value="@_editor.BomId" ValueChanged="OnBomIdChanged" Variant="Variant.Outlined" Required="true" Items="@GetBomSelects()" />
             </MudItem>
             <MudItem xs="12" md="6">
-                <MudNumericField @bind-Value="_editor.BomQty" Label="BOM Quantity" Variant="Variant.Outlined" Min="1" />
+                <MudNumericField T="double" Value="_editor.BomQty" ValueChanged="@((double val) => OnBomQtyChanged(val))" Label="BOM Quantity" Variant="Variant.Outlined" Min="1" />
             </MudItem>
 
             <MudItem xs="12" md="4">
-                <MudDatePicker DateFormat="dd/MM/yyyy" Placeholder="dd/MM/yyyy" Editable="true" Date="_editor.ProcessingDate" DateChanged="OnProcessingDateChanged" Label="Processing Date (DD/MM/YYYY)" Variant="Variant.Outlined" Required="true" />
+                <MudDatePicker DateFormat="@SessionState.DatePickerFormat" Placeholder="@SessionState.DatePickerFormat" Editable="true" Date="_editor.ProcessingDate" DateChanged="OnProcessingDateChanged" Label="@($"Processing Date ({SessionState.DateFormat})")" Variant="Variant.Outlined" Required="true" />
             </MudItem>
             <MudItem xs="12" md="4">
                 <MudNumericField @bind-Value="_editor.QuantityMade" Label="Actual Quantity Made" Min="1" Variant="Variant.Outlined" />
@@ -51,7 +51,7 @@
                 <MudTextField @bind-Value="_editor.BatchNumberMade" Label="Batch Number" Variant="Variant.Outlined" HelperText="Leave blank for auto-generation" />
             </MudItem>
             <MudItem xs="12" md="6">
-                <MudDatePicker DateFormat="dd/MM/yyyy" Placeholder="dd/MM/yyyy" Editable="true"                         @bind-Date="_editor.ExpiryDate" Label="Expiry Date (DD/MM/YYYY)" Variant="Variant.Outlined" />
+                <MudDatePicker DateFormat="@SessionState.DatePickerFormat" Placeholder="@SessionState.DatePickerFormat" Editable="true"                         @bind-Date="_editor.ExpiryDate" Label="@($"Expiry Date ({SessionState.DateFormat})")" Variant="Variant.Outlined" />
             </MudItem>
 
             <MudItem xs="12" md="6">
@@ -87,6 +87,9 @@
     private List<StaffLookupDto> _staffList = new();
     private IReadOnlyCollection<string> _selectedEmployees { get; set; } = new HashSet<string>();
     private bool _processing;
+    private double _selectedBomYield = 1.0;
+
+
 
     protected override async Task OnInitializedAsync()
     {
@@ -119,6 +122,13 @@
                 _editor.Remarks = selected.Remarks;
                 _editor.DocumentUpload = selected.DocumentUpload;
                 _editor.WarehouseId = selected.WarehouseId;
+
+                var bomDetails = await ApiClient.GetBomByIdAsync(selected.BomId);
+                if (bomDetails != null)
+                {
+                    _selectedBomUnitId = bomDetails.UnitId;
+                    _selectedBomYield = bomDetails.Quantity;
+                }
             }
         }
     }
@@ -218,9 +228,15 @@
             {
                 _selectedBomUnitId = bomDetails.UnitId;
                 _editor.UnitMade = bomDetails.UnitId;
+                _selectedBomYield = bomDetails.Quantity;
+                RecalculateQtyMade();
                 if (bomDetails.TentativeExpiryDays > 0)
                 {
                     _editor.ExpiryDate = (_editor.ProcessingDate ?? DateTime.Today).AddDays(bomDetails.TentativeExpiryDays);
+                }
+                else
+                {
+                    _editor.ExpiryDate = null;
                 }
             }
         }
@@ -228,8 +244,11 @@
         {
             _selectedBomUnitId = null;
             _editor.UnitMade = 0;
+            _editor.ExpiryDate = null;
+            _selectedBomYield = 1.0;
         }
     }
+
 
     private async Task<IEnumerable<UnitLookupDto>> SearchUnits(string value, CancellationToken token)
     {
@@ -250,9 +269,15 @@
             {
                 _selectedBomUnitId = bomDetails.UnitId;
                 _editor.UnitMade = bomDetails.UnitId;
+                _selectedBomYield = bomDetails.Quantity;
+                RecalculateQtyMade();
                 if (bomDetails.TentativeExpiryDays > 0)
                 {
                     _editor.ExpiryDate = (_editor.ProcessingDate ?? DateTime.Today).AddDays(bomDetails.TentativeExpiryDays);
+                }
+                else
+                {
+                    _editor.ExpiryDate = null;
                 }
             }
         }
@@ -260,8 +285,22 @@
         {
             _selectedBomUnitId = null;
             _editor.UnitMade = 0;
+            _editor.ExpiryDate = null;
+            _selectedBomYield = 1.0;
         }
     }
+
+    private void OnBomQtyChanged(double val)
+    {
+        _editor.BomQty = val;
+        RecalculateQtyMade();
+    }
+
+    private void RecalculateQtyMade()
+    {
+        _editor.QuantityMade = _editor.BomQty * _selectedBomYield;
+    }
+
 
     private async Task OnProcessingDateChanged(DateTime? newDate)
     {

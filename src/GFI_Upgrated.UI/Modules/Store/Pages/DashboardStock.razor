@@ -1,0 +1,132 @@
+@page "/store/dashboardstock"
+
+@using GFI_Upgrated.SharedDto.Store
+@using GFI_Upgrated.UI.Services
+@using GFI_Upgrated.UI.State
+@inject StoreApiClient ApiClient
+@inject ISnackbar Snackbar
+@inject NavigationManager Navigation
+@inject AppSessionState SessionState
+
+<PageTitle>Stock Dashboard</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+    <MudText Typo="Typo.h4" Class="mb-6 font-weight-bold">Stock Dashboard</MudText>
+
+    @if (_loading)
+    {
+        <div class="d-flex justify-center align-center" style="height: 300px;">
+            <MudProgressCircular Color="Color.Primary" Size="Size.Large" Indeterminate="true" />
+        </div>
+    }
+    else
+    {
+        <MudGrid>
+            <!-- Critical Stock Level Card -->
+            <MudItem xs="12" md="6">
+                <MudCard Elevation="3" Class="rounded-lg border-t-4 border-solid border-red-500">
+                    <MudCardHeader>
+                        <CardHeaderAvatar>
+                            <MudIcon Icon="@Icons.Material.Filled.Warning" Color="Color.Error" />
+                        </CardHeaderAvatar>
+                        <CardHeaderContent>
+                            <MudText Typo="Typo.h6">Critical Stock Level</MudText>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Items below or at critical alert quantity</MudText>
+                        </CardHeaderContent>
+                    </MudCardHeader>
+                    <MudCardContent>
+                        <MudTable Items="_dashboardData.CriticalStockItems" Hover="true" Dense="true" Striped="true" Elevation="0">
+                            <HeaderContent>
+                                <MudTh>Item Name</MudTh>
+                                <MudTh Style="text-align: right;">Remaining Quantity</MudTh>
+                                <MudTh Style="text-align: right;">Alert Quantity</MudTh>
+                            </HeaderContent>
+                            <RowTemplate>
+                                <MudTd DataLabel="Item Name" Class="font-weight-medium">@context.ItemName</MudTd>
+                                <MudTd DataLabel="Remaining Qty" Style="text-align: right;" Class="red-text font-weight-bold">@context.FinalStock</MudTd>
+                                <MudTd DataLabel="Alert Qty" Style="text-align: right;">@context.CriticalLevelQuantity</MudTd>
+                            </RowTemplate>
+                            <NoRecordsContent>
+                                <MudText Class="pa-4 text-center" Color="Color.Success">All stock levels are safe.</MudText>
+                            </NoRecordsContent>
+                        </MudTable>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+
+            <!-- Reorder Stock Level Card -->
+            <MudItem xs="12" md="6">
+                <MudCard Elevation="3" Class="rounded-lg border-t-4 border-solid border-amber-500">
+                    <MudCardHeader>
+                        <CardHeaderAvatar>
+                            <MudIcon Icon="@Icons.Material.Filled.Autorenew" Color="Color.Warning" />
+                        </CardHeaderAvatar>
+                        <CardHeaderContent>
+                            <MudText Typo="Typo.h6">Reorder Stock Level</MudText>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Items that require reordering</MudText>
+                        </CardHeaderContent>
+                    </MudCardHeader>
+                    <MudCardContent>
+                        <MudTable Items="_dashboardData.ReorderStockItems" Hover="true" Dense="true" Striped="true" Elevation="0">
+                            <HeaderContent>
+                                <MudTh>Item Name</MudTh>
+                                <MudTh Style="text-align: right;">Remaining Quantity</MudTh>
+                                <MudTh Style="text-align: right;">Reorder Quantity</MudTh>
+                            </HeaderContent>
+                            <RowTemplate>
+                                <MudTd DataLabel="Item Name" Class="font-weight-medium">@context.ItemName</MudTd>
+                                <MudTd DataLabel="Remaining Qty" Style="text-align: right;" Class="amber-text font-weight-bold">@context.FinalStock</MudTd>
+                                <MudTd DataLabel="Reorder Qty" Style="text-align: right;">@context.ReorderLevelQuantity</MudTd>
+                            </RowTemplate>
+                            <NoRecordsContent>
+                                <MudText Class="pa-4 text-center">No items need reordering.</MudText>
+                            </NoRecordsContent>
+                        </MudTable>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+        </MudGrid>
+    }
+</MudContainer>
+
+<style>
+    .red-text {
+        color: #ef4444;
+    }
+    .amber-text {
+        color: #f59e0b;
+    }
+</style>
+
+@code {
+    private bool _loading = true;
+    private StockDashboardDto _dashboardData = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!SessionState.IsLoggedIn)
+        {
+            Navigation.NavigateTo("/login");
+            return;
+        }
+
+        await LoadDashboardDataAsync();
+    }
+
+    private async Task LoadDashboardDataAsync()
+    {
+        _loading = true;
+        try
+        {
+            _dashboardData = await ApiClient.GetStockDashboardAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error loading Stock Dashboard: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+}

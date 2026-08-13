@@ -49,8 +49,8 @@
             <MudTd DataLabel="ID" Style="display:none;">@context.ProductionId</MudTd>
             <MudTd DataLabel="Product">@context.BomName</MudTd>
             <MudTd DataLabel="SKU">@context.SkuName</MudTd>
-            <MudTd DataLabel="Cooking Date">@context.CookingDate</MudTd>
-            <MudTd DataLabel="Expiry Date">@context.ExpiryDate</MudTd>
+            <MudTd DataLabel="Cooking Date">@SessionState.FormatDate(context.CookingDate)</MudTd>
+            <MudTd DataLabel="Expiry Date">@SessionState.FormatDate(context.ExpiryDate)</MudTd>
             <MudTd DataLabel="Country">@context.PackedCountryName</MudTd>
             <MudTd DataLabel="Batch No.">@context.BatchNo</MudTd>
             <MudTd DataLabel="Warehouse">@context.WarehouseName</MudTd>
@@ -192,6 +192,7 @@
             if (result > 0)
             {
                 Snackbar.Add("Production record deleted successfully.", Severity.Success);
+                _cachedItems = null;
                 if (_table is not null) await _table.ReloadServerData();
             }
             else

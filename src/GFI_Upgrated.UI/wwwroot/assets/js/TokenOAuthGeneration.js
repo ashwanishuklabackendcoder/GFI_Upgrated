@@ -1,4 +1,4 @@
-﻿
+
 var uname = "";
 var upwd = "";
 
@@ -343,17 +343,44 @@ function alretsmg(smstype, msg) {
 }
 
 function SetDateFotmat(datevalue) {
-
     if (datevalue != "" && datevalue != 'null' && datevalue != null && datevalue != undefined) {
         var d = new Date(datevalue);
-        const options = { year: 'numeric', month: 'short', day: '2-digit' };
-        datevalue = d.toLocaleDateString('en-US', options).replace(/,/g, '');
+        if (isNaN(d.getTime())) return "";
+        var dateFormat = localStorage.getItem("DateFormat") || "MM/DD/YYYY";
+        if (dateFormat === "MM/DD/YYYY") {
+            var mm = String(d.getMonth() + 1).padStart(2, '0');
+            var dd = String(d.getDate()).padStart(2, '0');
+            var yyyy = d.getFullYear();
+            return mm + '/' + dd + '/' + yyyy;
+        } else {
+            const options = { year: 'numeric', month: '2-digit', day: '2-digit' };
+            return d.toLocaleDateString('en-US', options);
+        }
     }
-    else {
-        datevalue = ""
-    }
-    return datevalue
+    return "";
+}
 
+const NameFormatEnum = {
+    FN_LN: 'FN_LN', // First Name + Last Name
+    LN_FN: 'LN_FN'  // Last Name + First Name
+};
+
+function FormatName(firstName, lastName) {
+    firstName = firstName || "";
+    lastName = lastName || "";
+    var nameFormat = localStorage.getItem("NameFormat") || NameFormatEnum.FN_LN;
+    if (nameFormat === NameFormatEnum.LN_FN) {
+        return (lastName + " " + firstName).trim();
+    }
+    return (firstName + " " + lastName).trim();
+}
+
+function FormatCurrency(amount) {
+    if (amount === null || amount === undefined || isNaN(amount)) {
+        amount = 0;
+    }
+    var currency = localStorage.getItem("DefaultCurrency") || "SRD";
+    return currency + " " + parseFloat(amount).toFixed(2);
 }
 
 function SetTimeFotmat(datevalue) {

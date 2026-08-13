@@ -1,5 +1,3 @@
-Text                                                                                                                                                                                                                                                           
----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 CREATE PROCEDURE [dbo].[ItemBatchNumberList]                
                                                                                                                                                                                                  
     @ItemID int=0,    
@@ -22,7 +20,7 @@ BEGIN
                                                                                                                                                                                                                                                              
     DECLARE @Query AS VARCHAR(1000)                    
                                                                                                                                                                                                       
-    DECLARE @RecQuery AS NVARCHAR(2500)                    
+    DECLARE @RecQuery AS NVARCHAR(MAX)                    
                                                                                                                                                                                                   
     SET @Query = ''                 
                                                                                                                                                                                                                          
@@ -31,8 +29,23 @@ BEGIN
     -- Counting total records grouped by BatchNo
                                                                                                                                                                                                              
     SET @RecQuery = 'SELECT @TotalRecord = COUNT(DISTINCT BatchNo)
-                                                                                                                                                                                           
-                     FROM Inv_ItemStockByBatch WHERE ItemId = @ItemID';                       
+                     FROM Inv_ItemStockByBatch WHERE ItemId = @ItemID
+                     AND (
+                         StockById NOT IN (2, 4)
+                         OR (StockById = 2 AND EXISTS (SELECT 1 FROM dbo.W_PreProcessing pp WHERE pp.PreProcessingId = IdFrom AND pp.IsComplete = 1))
+                         OR (StockById = 4 AND EXISTS (
+                             SELECT 1 FROM dbo.W_Production p 
+                             WHERE p.ProductionId = IdFrom 
+                             AND NOT EXISTS (
+                                 SELECT 1 FROM dbo.W_MasterBomItems AS Bom 
+                                 WHERE Bom.BomId = p.BomId 
+                                 AND NOT EXISTS (
+                                     SELECT 1 FROM dbo.inv_itemstockused AS StockUsed 
+                                     WHERE StockUsed.UsedFor = 3 AND StockUsed.UsedForId = p.ProductionId
+                                 )
+                             )
+                         ))
+                     )';                       
                                                                                                                                                                
 
                                                                                                                                                                                                                                                              
@@ -123,7 +136,22 @@ BEGIN
                         LEFT JOIN W_ItemStock stock ON t5.IdFrom = stock.StockID AND t5.StockById = 3
                                                                                                                                                         
                         WHERE t5.ItemID = @ItemID    
-                                                                                                                                                                                                        
+                        AND (
+                            t5.StockById NOT IN (2, 4)
+                             OR (t5.StockById = 2 AND EXISTS (SELECT 1 FROM dbo.W_PreProcessing pp WHERE pp.PreProcessingId = t5.IdFrom AND pp.IsComplete = 1))
+                             OR (t5.StockById = 4 AND EXISTS (
+                                 SELECT 1 FROM dbo.W_Production p 
+                                 WHERE p.ProductionId = t5.IdFrom 
+                                 AND NOT EXISTS (
+                                     SELECT 1 FROM dbo.W_MasterBomItems AS Bom 
+                                     WHERE Bom.BomId = p.BomId 
+                                     AND NOT EXISTS (
+                                         SELECT 1 FROM dbo.inv_itemstockused AS StockUsed 
+                                         WHERE StockUsed.UsedFor = 3 AND StockUsed.UsedForId = p.ProductionId
+                                     )
+                                 )
+                             ))
+                          )
                         GROUP BY t5.BatchNo
                                                                                                                                                                                                                   
                     ) AS t1     

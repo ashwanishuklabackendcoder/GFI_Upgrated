@@ -131,7 +131,9 @@
                 PageNumber = state.Page + 1,
                 PageSize = 100000,
                 SortColumn = state.SortLabel,
+                SortType = state.SortDirection == SortDirection.Descending ? "DESC" : "ASC"
             }, cancellationToken);
+
 
             var itemsList = result.Items.ToList();
             if (!string.IsNullOrWhiteSpace(_search))

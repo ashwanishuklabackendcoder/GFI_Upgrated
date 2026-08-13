@@ -366,8 +366,9 @@ public sealed class FinishedProductRepository : IFinishedProductRepository
             new SqlParameter("@UnitId", SqlDbType.BigInt) { Value = request.UnitId },
             new SqlParameter("@BatchNo", SqlDbType.NVarChar, 100) { Value = request.BatchNo },
             new SqlParameter("@ExpiryDate", SqlDbType.DateTime) { Value = (object?)request.ExpiryDate ?? DBNull.Value },
-            new SqlParameter("@StockById", SqlDbType.Int) { Value = 1 },
+            new SqlParameter("@StockById", SqlDbType.Int) { Value = 3 }, // Map as Opening Stock type
             new SqlParameter("@CreatedBy", SqlDbType.NVarChar, 100) { Value = request.CreatedBy },
+
             new SqlParameter("@DeletedBatchIds", SqlDbType.NVarChar, -1) { Value = (object?)deletedBatchIds ?? DBNull.Value },
             new SqlParameter("@ReturnVal", SqlDbType.Int) { Direction = ParameterDirection.Output }
         };
