@@ -1,0 +1,255 @@
+@page "/store/dashboardsales"
+
+@using GFI_Upgrated.SharedDto.Store
+@using GFI_Upgrated.UI.Services
+@using GFI_Upgrated.UI.State
+@inject StoreApiClient ApiClient
+@inject ISnackbar Snackbar
+@inject NavigationManager Navigation
+@inject AppSessionState SessionState
+
+<PageTitle>Sales Dashboard</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+    <MudText Typo="Typo.h4" Class="mb-6 font-weight-bold">Sales Dashboard</MudText>
+
+    @if (_loading)
+    {
+        <div class="d-flex justify-center align-center" style="height: 300px;">
+            <MudProgressCircular Color="Color.Primary" Size="Size.Large" Indeterminate="true" />
+        </div>
+    }
+    else
+    {
+        <!-- KPI Cards -->
+        <MudGrid Class="mb-6">
+            <MudItem xs="12" sm="4">
+                <MudPaper Class="pa-4 rounded-lg d-flex align-center justify-between" Elevation="3" Style="background: linear-gradient(135deg, #3f51b5, #5c6bc0); color: white;">
+                    <div>
+                        <MudText Typo="Typo.subtitle2" Class="opacity-75" Style="color: #ffffff !important;">Total Revenue</MudText>
+                        <MudText Typo="Typo.h4" Class="font-weight-bold mt-1" Style="color: #ffffff !important;">@FormatCurrency(_totalRevenue)</MudText>
+                    </div>
+                    <MudIcon Icon="@Icons.Material.Filled.AttachMoney" Size="Size.Large" Class="opacity-50" />
+                </MudPaper>
+            </MudItem>
+            <MudItem xs="12" sm="4">
+                <MudPaper Class="pa-4 rounded-lg d-flex align-center justify-between" Elevation="3" Style="background: linear-gradient(135deg, #43a047, #66bb6a); color: white;">
+                    <div>
+                        <MudText Typo="Typo.subtitle2" Class="opacity-75" Style="color: #ffffff !important;">Total Items Sold</MudText>
+                        <MudText Typo="Typo.h4" Class="font-weight-bold mt-1" Style="color: #ffffff !important;">@_totalQtySold.ToString("N0")</MudText>
+                    </div>
+                    <MudIcon Icon="@Icons.Material.Filled.TrendingUp" Size="Size.Large" Class="opacity-50" />
+                </MudPaper>
+            </MudItem>
+            <MudItem xs="12" sm="4">
+                <MudPaper Class="pa-4 rounded-lg d-flex align-center justify-between" Elevation="3" Style="background: linear-gradient(135deg, #e65100, #ff9800); color: white;">
+                    <div>
+                        <MudText Typo="Typo.subtitle2" Class="opacity-75" Style="color: #ffffff !important;">Top Customer Group</MudText>
+                        <MudText Typo="Typo.h5" Class="font-weight-bold mt-2" Style="text-overflow: ellipsis; overflow: hidden; white-space: nowrap; color: #ffffff !important;">@_topCustomerGroup</MudText>
+                    </div>
+                    <MudIcon Icon="@Icons.Material.Filled.People" Size="Size.Large" Class="opacity-50" />
+                </MudPaper>
+            </MudItem>
+        </MudGrid>
+
+
+
+        <!-- Charts and Grids -->
+        <MudGrid>
+            <!-- Total Sales Grid -->
+            <MudItem xs="12" md="8">
+                <MudCard Elevation="3" Class="rounded-lg h-100">
+                    <MudCardHeader>
+                        <CardHeaderAvatar>
+                            <MudIcon Icon="@Icons.Material.Filled.ListAlt" Color="Color.Primary" />
+                        </CardHeaderAvatar>
+                        <CardHeaderContent>
+                            <MudText Typo="Typo.h6">Recent Invoice Sales</MudText>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Latest transactions from customer billing</MudText>
+                        </CardHeaderContent>
+                    </MudCardHeader>
+                    <MudCardContent>
+                        <MudTable Items="_dashboardData.TotalSales" Hover="true" Dense="true" Striped="true" Elevation="0" Height="300px">
+                            <HeaderContent>
+                                <MudTh>Item Name</MudTh>
+                                <MudTh Style="text-align: center;">Transaction Date</MudTh>
+                                <MudTh Style="text-align: right;">Quantity</MudTh>
+                                <MudTh Style="text-align: right;">Total Amount</MudTh>
+                            </HeaderContent>
+                            <RowTemplate>
+                                <MudTd DataLabel="Item Name">@context.ItemName</MudTd>
+                                <MudTd DataLabel="Date" Style="text-align: center;">@(context.TransactionDate?.ToString("yyyy-MM-dd") ?? "-")</MudTd>
+                                <MudTd DataLabel="Quantity" Style="text-align: right;">@context.Quantity.ToString("N2")</MudTd>
+                                <MudTd DataLabel="Total Amount" Style="text-align: right;" Class="font-weight-bold">@FormatCurrency(context.TotalAmount)</MudTd>
+                            </RowTemplate>
+                            <NoRecordsContent>
+                                <MudText Class="pa-4 text-center">No sales records found.</MudText>
+                            </NoRecordsContent>
+                        </MudTable>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+
+            <!-- Sales Per Year -->
+            <MudItem xs="12" md="4">
+                <MudCard Elevation="3" Class="rounded-lg h-100">
+                    <MudCardHeader>
+                        <CardHeaderAvatar>
+                            <MudIcon Icon="@Icons.Material.Filled.CalendarToday" Color="Color.Warning" />
+                        </CardHeaderAvatar>
+                        <CardHeaderContent>
+                            <MudText Typo="Typo.h6">Annual Performance</MudText>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Sales revenue aggregated by year</MudText>
+                        </CardHeaderContent>
+                    </MudCardHeader>
+                    <MudCardContent>
+                        <MudTable Items="_dashboardData.SalesPerYear" Hover="true" Dense="true" Striped="true" Elevation="0" Height="300px">
+                            <HeaderContent>
+                                <MudTh>Year</MudTh>
+                                <MudTh Style="text-align: right;">Revenue</MudTh>
+                                <MudTh Style="text-align: right;">Qty Sold</MudTh>
+                            </HeaderContent>
+                            <RowTemplate>
+                                <MudTd DataLabel="Year" Class="font-weight-bold">@context.Year</MudTd>
+                                <MudTd DataLabel="Revenue" Style="text-align: right;">@FormatCurrency(context.SalesAmount)</MudTd>
+                                <MudTd DataLabel="Qty Sold" Style="text-align: right;">@context.QuantitySold.ToString("N2")</MudTd>
+                            </RowTemplate>
+                        </MudTable>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+
+            <!-- Sales Per Customer Group -->
+            <MudItem xs="12" md="6">
+                <MudCard Elevation="3" Class="rounded-lg h-100">
+                    <MudCardHeader>
+                        <CardHeaderAvatar>
+                            <MudIcon Icon="@Icons.Material.Filled.Group" Color="Color.Secondary" />
+                        </CardHeaderAvatar>
+                        <CardHeaderContent>
+                            <MudText Typo="Typo.h6">Sales Per Customer Group</MudText>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Revenue distribution by customer category</MudText>
+                        </CardHeaderContent>
+                    </MudCardHeader>
+                    <MudCardContent>
+                        <MudTable Items="_dashboardData.SalesPerCustomerGroup" Hover="true" Dense="true" Striped="true" Elevation="0" Height="250px">
+                            <HeaderContent>
+                                <MudTh>Customer Group</MudTh>
+                                <MudTh Style="text-align: right;">Total Sales</MudTh>
+                                <MudTh Style="text-align: right;">Qty Sold</MudTh>
+                            </HeaderContent>
+                            <RowTemplate>
+                                <MudTd DataLabel="Customer Group" Class="font-weight-medium">@context.CustomerGroup</MudTd>
+                                <MudTd DataLabel="Total Sales" Style="text-align: right;" Class="font-weight-bold text-success">@FormatCurrency(context.TotalAmount)</MudTd>
+                                <MudTd DataLabel="Qty Sold" Style="text-align: right;">@context.QuantitySold.ToString("N2")</MudTd>
+                            </RowTemplate>
+                        </MudTable>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+
+            <!-- Sales Per Customer -->
+            <MudItem xs="12" md="6">
+                <MudCard Elevation="3" Class="rounded-lg h-100">
+                    <MudCardHeader>
+                        <CardHeaderAvatar>
+                            <MudIcon Icon="@Icons.Material.Filled.Person" Color="Color.Success" />
+                        </CardHeaderAvatar>
+                        <CardHeaderContent>
+                            <MudText Typo="Typo.h6">Top Customers</MudText>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Sales revenue from highest paying clients</MudText>
+                        </CardHeaderContent>
+                    </MudCardHeader>
+                    <MudCardContent>
+                        <MudTable Items="_dashboardData.SalesPerCustomer" Hover="true" Dense="true" Striped="true" Elevation="0" Height="250px">
+                            <HeaderContent>
+                                <MudTh>Customer Name</MudTh>
+                                <MudTh Style="text-align: right;">Total Amount</MudTh>
+                                <MudTh Style="text-align: right;">Qty Sold</MudTh>
+                            </HeaderContent>
+                            <RowTemplate>
+                                <MudTd DataLabel="Customer Name">@context.CustomerName</MudTd>
+                                <MudTd DataLabel="Total Amount" Style="text-align: right;" Class="font-weight-bold text-info">@FormatCurrency(context.TotalAmount)</MudTd>
+                                <MudTd DataLabel="Qty Sold" Style="text-align: right;">@context.QuantitySold.ToString("N2")</MudTd>
+                            </RowTemplate>
+                        </MudTable>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+        </MudGrid>
+    }
+</MudContainer>
+
+<style>
+    .opacity-75 {
+        opacity: 0.75;
+    }
+    .opacity-50 {
+        opacity: 0.5;
+    }
+    .font-weight-bold {
+        font-weight: 700;
+    }
+    .font-weight-medium {
+        font-weight: 500;
+    }
+    .text-success {
+        color: #2e7d32;
+    }
+    .text-info {
+        color: #00838f;
+    }
+</style>
+
+@code {
+    private bool _loading = true;
+    private SalesDashboardDto _dashboardData = new();
+    
+    private decimal _totalRevenue = 0;
+    private decimal _totalQtySold = 0;
+    private string _topCustomerGroup = "None";
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!SessionState.IsLoggedIn)
+        {
+            Navigation.NavigateTo("/login");
+            return;
+        }
+
+        await LoadDashboardDataAsync();
+    }
+
+    private async Task LoadDashboardDataAsync()
+    {
+        _loading = true;
+        try
+        {
+            _dashboardData = await ApiClient.GetSalesDashboardAsync();
+            
+            // Calculate KPIs
+            if (_dashboardData.TotalSales != null)
+            {
+                _totalRevenue = _dashboardData.TotalSales.Sum(x => x.TotalAmount);
+                _totalQtySold = _dashboardData.TotalSales.Sum(x => x.Quantity);
+            }
+            if (_dashboardData.SalesPerCustomerGroup != null && _dashboardData.SalesPerCustomerGroup.Any())
+            {
+                _topCustomerGroup = _dashboardData.SalesPerCustomerGroup.First().CustomerGroup;
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error loading Sales Dashboard: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private string FormatCurrency(decimal val)
+    {
+        return $"${val.ToString("N2")} SRD";
+    }
+}

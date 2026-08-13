@@ -1,0 +1,173 @@
+@page "/store/dashboardproduction"
+
+@using GFI_Upgrated.SharedDto.Store
+@using GFI_Upgrated.UI.Services
+@using GFI_Upgrated.UI.State
+@inject StoreApiClient ApiClient
+@inject ISnackbar Snackbar
+@inject NavigationManager Navigation
+@inject AppSessionState SessionState
+
+<PageTitle>Production Dashboard</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
+    <MudText Typo="Typo.h4" Class="mb-6 font-weight-bold">Production Dashboard</MudText>
+
+    <!-- Filter Card -->
+    <MudCard Class="pa-4 mb-6" Elevation="2">
+        <MudGrid AlignItems="AlignItems.Center">
+            <MudItem xs="12" sm="8" md="6">
+                <SearchableSelect T="string" Label="Batch Number" Value="@_selectedBatchNo" ValueChanged="OnBatchChanged" Variant="Variant.Outlined" Items="@GetBatchSelects()" />
+            </MudItem>
+            <MudItem xs="12" sm="4" md="6" Class="d-flex justify-end">
+                <MudButton StartIcon="@Icons.Material.Filled.Refresh" Variant="Variant.Outlined" Color="Color.Primary" OnClick="ReloadDashboardAsync">Refresh</MudButton>
+            </MudItem>
+        </MudGrid>
+    </MudCard>
+
+
+    @if (_loading)
+    {
+        <div class="d-flex justify-center align-center" style="height: 300px;">
+            <MudProgressCircular Color="Color.Primary" Size="Size.Large" Indeterminate="true" />
+        </div>
+    }
+    else
+    {
+        <MudGrid Spacing="4">
+            <!-- Total Items Sold Card -->
+            <MudItem xs="12" md="6">
+                <MudCard Elevation="3" Class="rounded-lg border-t-4 border-solid border-blue-500">
+                    <MudCardHeader>
+                        <CardHeaderAvatar>
+                            <MudIcon Icon="@Icons.Material.Filled.TrendingUp" Color="Color.Info" />
+                        </CardHeaderAvatar>
+                        <CardHeaderContent>
+                            <MudText Typo="Typo.h6">Total Items Sold</MudText>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Sold products belonging to selected batch</MudText>
+                        </CardHeaderContent>
+                    </MudCardHeader>
+                    <MudCardContent>
+                        <MudTable Items="_dashboardData.TotalSoldItems" Hover="true" Dense="true" Striped="true" Elevation="0">
+                            <HeaderContent>
+                                <MudTh>Item Name</MudTh>
+                                <MudTh Style="text-align: center;">Transaction Date</MudTh>
+                                <MudTh Style="text-align: right;">Quantity</MudTh>
+                            </HeaderContent>
+                            <RowTemplate>
+                                <MudTd DataLabel="Item Name" Class="font-weight-medium">@context.ItemName</MudTd>
+                                <MudTd DataLabel="Transaction Date" Style="text-align: center;">@(context.FilledDate?.ToString("yyyy-MM-dd") ?? "-")</MudTd>
+                                <MudTd DataLabel="Quantity" Style="text-align: right;" Class="font-weight-bold">@context.Quantity</MudTd>
+                            </RowTemplate>
+                            <NoRecordsContent>
+                                <MudText Class="pa-4 text-center">No items sold for this batch.</MudText>
+                            </NoRecordsContent>
+                        </MudTable>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+
+            <!-- Total Items Used Card -->
+            <MudItem xs="12" md="6">
+                <MudCard Elevation="3" Class="rounded-lg border-t-4 border-solid border-green-500">
+                    <MudCardHeader>
+                        <CardHeaderAvatar>
+                            <MudIcon Icon="@Icons.Material.Filled.ShoppingBag" Color="Color.Success" />
+                        </CardHeaderAvatar>
+                        <CardHeaderContent>
+                            <MudText Typo="Typo.h6">Total Items Used</MudText>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Ingredients and products used in the batch</MudText>
+                        </CardHeaderContent>
+                    </MudCardHeader>
+                    <MudCardContent>
+                        <MudTable Items="_dashboardData.TotalUsedItems" Hover="true" Dense="true" Striped="true" Elevation="0">
+                            <HeaderContent>
+                                <MudTh>Product / Ingredient</MudTh>
+                                <MudTh Style="text-align: center;">Used Date</MudTh>
+                                <MudTh Style="text-align: right;">Qty Used</MudTh>
+                            </HeaderContent>
+                            <RowTemplate>
+                                <MudTd DataLabel="Product / Ingredient" Class="font-weight-medium">@context.ItemName</MudTd>
+                                <MudTd DataLabel="Used Date" Style="text-align: center;">@(context.FilledDate?.ToString("yyyy-MM-dd") ?? "-")</MudTd>
+                                <MudTd DataLabel="Qty Used" Style="text-align: right;" Class="font-weight-bold">@context.Quantity</MudTd>
+                            </RowTemplate>
+                            <NoRecordsContent>
+                                <MudText Class="pa-4 text-center">No ingredients used for this batch.</MudText>
+                            </NoRecordsContent>
+                        </MudTable>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+        </MudGrid>
+    }
+</MudContainer>
+
+@code {
+    private bool _loading = true;
+    private string _selectedBatchNo = "";
+    private List<DashboardBatchLookupDto> _batches = new();
+    private ProductionDashboardDto _dashboardData = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!SessionState.IsLoggedIn)
+        {
+            Navigation.NavigateTo("/login");
+            return;
+        }
+
+        await LoadBatchesAsync();
+        await LoadDashboardDataAsync();
+    }
+
+    private async Task LoadBatchesAsync()
+    {
+        try
+        {
+            _batches = await ApiClient.GetProductionBatchesAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error loading batch numbers: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task LoadDashboardDataAsync()
+    {
+        _loading = true;
+        try
+        {
+            _dashboardData = await ApiClient.GetProductionDashboardAsync(_selectedBatchNo);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error loading Production Dashboard: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task OnBatchChanged(string newBatchNo)
+    {
+        _selectedBatchNo = newBatchNo;
+        await LoadDashboardDataAsync();
+    }
+
+    private IEnumerable<SearchableSelect<string>.SelectItemDto<string>> GetBatchSelects()
+    {
+        return (_batches ?? new List<DashboardBatchLookupDto>()).Select(x => new SearchableSelect<string>.SelectItemDto<string>
+        {
+            Value = x.BatchNo,
+            Text = x.BatchNo
+        });
+    }
+
+    private async Task ReloadDashboardAsync()
+    {
+        await LoadBatchesAsync();
+        await LoadDashboardDataAsync();
+    }
+}
+

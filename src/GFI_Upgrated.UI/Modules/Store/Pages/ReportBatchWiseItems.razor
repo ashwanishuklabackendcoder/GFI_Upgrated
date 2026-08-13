@@ -59,6 +59,7 @@
             <MudTh>Batch No.</MudTh>
             <MudTh>Item Name</MudTh>
             <MudTh>Entry From</MudTh>
+            <MudTh Style="text-align: right;">Available Qty.</MudTh>
             <MudTh>Processing Date</MudTh>
             <MudTh>Expiry Date</MudTh>
         </HeaderContent>
@@ -68,8 +69,9 @@
               </MudTd>
             <MudTd DataLabel="Item Name">@context.ItemName</MudTd>
             <MudTd DataLabel="Account Name">@context.AccountName</MudTd>
-            <MudTd DataLabel="Processing Date">@context.ProcessingDate</MudTd>
-            <MudTd DataLabel="Expiry Date">@context.ExpiryDate</MudTd>
+            <MudTd DataLabel="Available Qty." Style="text-align: right; font-weight: bold;">@FormatQty(context.AvailableQty, context.UnitName)</MudTd>
+            <MudTd DataLabel="Processing Date">@SessionState.FormatDate(context.ProcessingDate)</MudTd>
+            <MudTd DataLabel="Expiry Date">@SessionState.FormatDate(context.ExpiryDate)</MudTd>
         </RowTemplate>
         <PagerContent>
             <MudTablePager Class="no-print" />
@@ -90,6 +92,14 @@
         _searchString = text;
         if (_table is not null) await _table.ReloadServerData();
     }
+
+    private string FormatQty(double qty, string? unitName)
+    {
+        if (qty == 0) return "0";
+        string formattedVal = (qty % 1 == 0) ? qty.ToString("0") : qty.ToString("0.##");
+        return string.IsNullOrWhiteSpace(unitName) ? formattedVal : $"{formattedVal} {unitName}";
+    }
+
 
     private MudTable<BatchWiseItemDto>? _table;
     private string _batchNumber = "";
@@ -241,10 +251,10 @@
     {
         var data = await GetAllDataAsync();
         var sb = new StringBuilder();
-        sb.AppendLine("Batch No.\tItem Name\tAccount Name\tProcessing Date\tExpiry Date");
+        sb.AppendLine("Batch No.\tItem Name\tAccount Name\tAvailable Qty.\tProcessing Date\tExpiry Date");
         foreach (var item in data)
         {
-            sb.AppendLine($"{item.BatchNo}\t{item.ItemName}\t{item.AccountName}\t{item.ProcessingDate}\t{item.ExpiryDate}");
+            sb.AppendLine($"{item.BatchNo}\t{item.ItemName}\t{item.AccountName}\t{FormatQty(item.AvailableQty, item.UnitName)}\t{item.ProcessingDate}\t{item.ExpiryDate}");
         }
         var success = await JS.InvokeAsync<bool>("gfiCopyToClipboard", sb.ToString());
         if (success)
@@ -261,12 +271,12 @@
     {
         var data = await GetAllDataAsync();
         var sb = new StringBuilder();
-        sb.AppendLine("Batch No.,Item Name,Account Name,Processing Date,Expiry Date");
+        sb.AppendLine("Batch No.,Item Name,Account Name,Available Qty.,Processing Date,Expiry Date");
         foreach (var item in data)
         {
             var name = (item.ItemName ?? "").Replace("\"", "\"\"");
             var accName = (item.AccountName ?? "").Replace("\"", "\"\"");
-            sb.AppendLine($"\"{item.BatchNo}\",\"{name}\",\"{accName}\",\"{item.ProcessingDate}\",\"{item.ExpiryDate}\"");
+            sb.AppendLine($"\"{item.BatchNo}\",\"{name}\",\"{accName}\",\"{FormatQty(item.AvailableQty, item.UnitName)}\",\"{item.ProcessingDate}\",\"{item.ExpiryDate}\"");
         }
         await JS.InvokeVoidAsync("gfiDownloadTextFile", $"batch-wise-items-report-{DateTime.Now:yyyyMMddHHmmss}.csv", sb.ToString(), "text/csv;charset=utf-8");
         Snackbar.Add("Report data exported as CSV.", Severity.Success);

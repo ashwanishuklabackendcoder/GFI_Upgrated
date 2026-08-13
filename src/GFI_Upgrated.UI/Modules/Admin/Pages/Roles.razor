@@ -16,13 +16,13 @@
             <MudTable Items="_roles" Dense="true" Hover="true" Class="mt-4" Filter="new Func<RoleDto,bool>(FilterFunc1)">
                 <HeaderContent>
                     <MudTh><MudTableSortLabel SortLabel="RoleName" T="RoleDto">Name</MudTableSortLabel></MudTh>
-                    <MudTh><MudTableSortLabel SortLabel="ModuleName" T="RoleDto">Module</MudTableSortLabel></MudTh>
+                    @* <MudTh><MudTableSortLabel SortLabel="ModuleName" T="RoleDto">Module</MudTableSortLabel></MudTh> *@
                     <MudTh><MudTableSortLabel SortLabel="IsActive" T="RoleDto">Active</MudTableSortLabel></MudTh>
-                    <MudTh></MudTh>
+                    <MudTh>Action</MudTh>
                 </HeaderContent>
                 <RowTemplate>
                     <MudTd DataLabel="Name">@context.RoleName</MudTd>
-                    <MudTd DataLabel="Module">@context.ModuleName</MudTd>
+                   @*  <MudTd DataLabel="Module">@context.ModuleName</MudTd> *@
                     <MudTd DataLabel="Active">@context.IsActive</MudTd>
                     <MudTd DataLabel="">
                         <MudButton Size="Size.Small" Variant="Variant.Text" OnClick="@(() => LoadRoleAsync(context.RoleId))">Edit</MudButton>
@@ -39,7 +39,7 @@
                 <MudText Typo="Typo.h5" Class="mb-4">Role Details</MudText>
                 <MudTextField @bind-Value="_editor.RoleName" For="@(() => _editor.RoleName)" Label="Role name" Variant="Variant.Outlined" Class="mb-3" />
                 <MudTextField @bind-Value="_editor.Description" For="@(() => _editor.Description)" Label="Description" Variant="Variant.Outlined" Lines="3" Class="mb-3" />
-                <MudNumericField @bind-Value="_editor.ModuleId" For="@(() => _editor.ModuleId)" Label="Module ID" Variant="Variant.Outlined" Class="mb-3" />
+                @* <MudNumericField @bind-Value="_editor.ModuleId" For="@(() => _editor.ModuleId)" Label="Module ID" Variant="Variant.Outlined" Class="mb-3" /> *@
                 <MudCheckBox T="bool" @bind-Value="_editor.IsAdmin" For="@(() => _editor.IsAdmin)" Label="Is Admin" />
                 <MudCheckBox T="bool" @bind-Value="_editor.IsActive" For="@(() => _editor.IsActive)" Label="Is Active" />
                 <MudStack Row="true" Spacing="2" Class="mt-4">

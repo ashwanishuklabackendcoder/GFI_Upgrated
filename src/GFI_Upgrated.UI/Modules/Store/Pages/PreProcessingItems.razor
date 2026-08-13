@@ -58,7 +58,14 @@
                 <SearchableSelect T="RawMaterialDto" Value="@(_allRawMaterials.FirstOrDefault(x => x.ItemId == context.ItemID))" ValueChanged="@(async (RawMaterialDto val) => await OnItemIdChanged(context, val?.ItemId ?? 0))" Variant="Variant.Outlined" Dense="true" Disabled="@(_header?.IsComplete != 0)" Items="@GetIngredientSelects()" />
             </MudTd>
             <MudTd DataLabel="Lot / Batch Number">
-                <SearchableSelect T="AvailableBatchDto" Value="@(context.AvailableBatches.FirstOrDefault(x => x.ItemStockByBatchId == context.ItemStockByBatchId))" ValueChanged="@((AvailableBatchDto val) => OnBatchChanged(context, val))" Variant="Variant.Outlined" Dense="true" Disabled="@(context.ItemID == 0 || _header?.IsComplete != 0)" Items="@GetBatchSelects(context)" />
+                @if (_header?.IsComplete != 0 || (context.ItemStockUsedID > 0 && !context.AvailableBatches.Any(x => x.ItemStockByBatchId == context.ItemStockByBatchId)))
+                {
+                    <MudText Typo="Typo.body2">@context.BatchNo</MudText>
+                }
+                else
+                {
+                    <SearchableSelect T="AvailableBatchDto" Value="@(context.AvailableBatches.FirstOrDefault(x => x.ItemStockByBatchId == context.ItemStockByBatchId))" ValueChanged="@((AvailableBatchDto val) => OnBatchChanged(context, val))" Variant="Variant.Outlined" Dense="true" Disabled="@(context.ItemID == 0 || _header?.IsComplete != 0)" Items="@GetBatchSelects(context)" />
+                }
             </MudTd>
             <MudTd DataLabel="Recipe Qty">
                 @if (context.RecipeQty > 0)

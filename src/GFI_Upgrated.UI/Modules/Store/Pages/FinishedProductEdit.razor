@@ -254,6 +254,7 @@
                 <MudTable Items="_stockReports" Hover="true" Dense="true" Striped="true" Bordered="true" Elevation="0">
                     <HeaderContent>
                         <MudTh>Batch No</MudTh>
+                        <MudTh>Date</MudTh>
                         <MudTh>Transaction Type</MudTh>
                         <MudTh>Reference</MudTh>
                         <MudTh Style="text-align: right;">In Qty.</MudTh>
@@ -262,12 +263,14 @@
                     </HeaderContent>
                     <RowTemplate>
                         <MudTd DataLabel="Batch No">@context.BatchNo</MudTd>
+                        <MudTd DataLabel="Date">@SessionState.FormatDate(context.TransactionDate)</MudTd>
                         <MudTd DataLabel="Transaction Type">@context.TransactionType</MudTd>
                         <MudTd DataLabel="Reference">@context.Reference</MudTd>
                         <MudTd DataLabel="In Qty" Style="text-align: right;">@(context.InQty > 0 ? $"{context.InQty} {context.UnitName}" : "-")</MudTd>
                         <MudTd DataLabel="Out Qty" Style="text-align: right;">@(context.OutQty > 0 ? $"{context.OutQty} {context.UnitName}" : "-")</MudTd>
                         <MudTd DataLabel="Value" Style="text-align: right; font-weight: bold;">@context.TotalValue.ToString("N2")</MudTd>
                     </RowTemplate>
+
                     <NoRecordsContent>
                         <MudText Class="pa-4">No stock history available.</MudText>
                     </NoRecordsContent>
