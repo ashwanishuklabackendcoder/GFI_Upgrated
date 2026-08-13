@@ -31,6 +31,7 @@ public abstract class ApiClientBase
 
     protected async Task<T?> GetEnvelopeAsync<T>(string url, CancellationToken cancellationToken)
     {
+        await _sessionState.RefreshTokenIfNeededAsync(_httpClient);
         AddAuthHeader();
         var response = await _httpClient.GetAsync(url, cancellationToken);
         
@@ -45,6 +46,7 @@ public abstract class ApiClientBase
 
     protected async Task<TResponse> PostEnvelopeAsync<TRequest, TResponse>(string url, TRequest request, CancellationToken cancellationToken)
     {
+        await _sessionState.RefreshTokenIfNeededAsync(_httpClient);
         AddAuthHeader();
         var response = await _httpClient.PostAsJsonAsync(url, request, cancellationToken);
         
@@ -59,6 +61,7 @@ public abstract class ApiClientBase
 
     protected async Task<TResponse> DeleteEnvelopeAsync<TResponse>(string url, CancellationToken cancellationToken)
     {
+        await _sessionState.RefreshTokenIfNeededAsync(_httpClient);
         AddAuthHeader();
         var response = await _httpClient.DeleteAsync(url, cancellationToken);
         

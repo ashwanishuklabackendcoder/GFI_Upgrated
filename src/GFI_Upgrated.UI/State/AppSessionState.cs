@@ -8,6 +8,16 @@ public sealed class AppSessionState
 {
     public LoginResultDto? CurrentUser { get; private set; }
 
+    private readonly IJSRuntime _jsRuntime;
+    private DateTime _lastRefreshTime = DateTime.MinValue;
+    private bool _isRefreshing = false;
+
+    public AppSessionState(IJSRuntime jsRuntime)
+    {
+        _jsRuntime = jsRuntime;
+    }
+
+
     public string DateFormat { get; private set; } = "MM/DD/YYYY";
     public string DatePickerFormat => DateFormat.ToLower() == "mm/dd/yyyy" ? "MM/dd/yyyy" : "dd/MM/yyyy";
     public string DefaultCurrency { get; private set; } = "SRD";
@@ -325,6 +335,7 @@ public sealed class AppSessionState
     public void SetUser(LoginResultDto? user)
     {
         CurrentUser = user;
+        _lastRefreshTime = DateTime.UtcNow;
     }
 
     public void Clear()
@@ -340,6 +351,7 @@ public sealed class AppSessionState
             if (!string.IsNullOrWhiteSpace(json))
             {
                 CurrentUser = JsonSerializer.Deserialize<LoginResultDto>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                _lastRefreshTime = DateTime.UtcNow;
             }
 
             var dateFormat = await jsRuntime.InvokeAsync<string?>("localStorage.getItem", "DateFormat");
@@ -378,6 +390,7 @@ public sealed class AppSessionState
     public async Task UpdateUserAsync(IJSRuntime jsRuntime, LoginResultDto? user)
     {
         CurrentUser = user;
+        _lastRefreshTime = DateTime.UtcNow;
         if (user is null)
         {
             await jsRuntime.InvokeVoidAsync("localStorage.removeItem", "currentUser");
@@ -429,5 +442,39 @@ public sealed class AppSessionState
         }
 
         OnChange?.Invoke();
+    }
+
+    public async Task RefreshTokenIfNeededAsync(HttpClient httpClient)
+    {
+        if (CurrentUser == null || _isRefreshing) return;
+        if (DateTime.UtcNow - _lastRefreshTime < TimeSpan.FromMinutes(15)) return;
+
+        _isRefreshing = true;
+        try
+        {
+            var url = $"api/admin/security/refresh-session?loginId={CurrentUser.LoginId}&roleId={CurrentUser.RoleId}";
+            var request = new HttpRequestMessage(HttpMethod.Get, url);
+            request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", CurrentUser.Token);
+            
+            var response = await httpClient.SendAsync(request);
+            if (response.IsSuccessStatusCode)
+            {
+                var payload = await response.Content.ReadAsStringAsync();
+                var envelope = JsonSerializer.Deserialize<GFI_Upgrated.SharedDto.Common.ApiEnvelope<LoginResultDto>>(payload, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                if (envelope is { Success: true, Data: not null })
+                 {
+                     await UpdateUserAsync(_jsRuntime, envelope.Data);
+                     _lastRefreshTime = DateTime.UtcNow;
+                 }
+            }
+        }
+        catch
+        {
+            // Ignore token refresh call errors to prevent UI disruption
+        }
+        finally
+        {
+            _isRefreshing = false;
+        }
     }
 }
