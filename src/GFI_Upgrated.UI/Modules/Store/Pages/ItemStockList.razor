@@ -62,8 +62,10 @@
             <MudTh><MudTableSortLabel SortLabel="ItemName" T="ItemStockByBatchReportDto">Item Name</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel SortLabel="BatchNo" T="ItemStockByBatchReportDto">Batch No.</MudTableSortLabel></MudTh>
             <MudTh Style="text-align: right;"><MudTableSortLabel SortLabel="Quantity" T="ItemStockByBatchReportDto">Quantity</MudTableSortLabel></MudTh>
+            <MudTh Style="text-align: right;"><MudTableSortLabel SortLabel="IssuedStock" T="ItemStockByBatchReportDto">Issued Stock</MudTableSortLabel></MudTh>
             <MudTh Style="text-align: right;"><MudTableSortLabel SortLabel="FinalQuantityLeft" T="ItemStockByBatchReportDto">Final Quantity</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel SortLabel="ExpiryDate" T="ItemStockByBatchReportDto">Expiry Date</MudTableSortLabel></MudTh>
+            <MudTh Style="text-align: right;"><MudTableSortLabel SortLabel="StockValue" T="ItemStockByBatchReportDto">Stock Value (SRD)</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel SortLabel="StockById" T="ItemStockByBatchReportDto">Stock From</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel SortLabel="WarehouseName" T="ItemStockByBatchReportDto">Warehouse</MudTableSortLabel></MudTh>
         </HeaderContent>
@@ -73,8 +75,10 @@
             <MudTd DataLabel="Item Name">@context.ItemName</MudTd>
             <MudTd DataLabel="Batch No.">@context.BatchNo</MudTd>
             <MudTd DataLabel="Quantity" Style="text-align: right;">@context.Quantity.ToString("N2") @context.UnitName</MudTd>         
+            <MudTd DataLabel="Issued Stock" Style="text-align: right;">@context.IssuedStock.ToString("N2") @context.UnitName</MudTd>
             <MudTd DataLabel="Quantity Left" Style="text-align: right;">@context.FinalQuantityLeft.ToString("N2")</MudTd>
             <MudTd DataLabel="Expiry Date">@SessionState.FormatDate(context.ExpiryDate)</MudTd>
+            <MudTd DataLabel="Stock Value" Style="text-align: right;">@context.StockValue.ToString("N2")</MudTd>
             <MudTd DataLabel="Stock From">
                 <MudChip T="string" Color="@(context.StockById == 1 ? Color.Info : context.StockById == 2 ? Color.Warning : Color.Success)" Size="Size.Small">
                     @(context.StockById == 1 ? "Purchase" : context.StockById == 2 ? "PreProcessing" : context.StockById == 3 ? "Opening Stock" : "Unknown")
@@ -222,11 +226,11 @@
     {
         var data = await GetAllDataAsync();
         var sb = new StringBuilder();
-        sb.AppendLine("ID\tItem Name\tQuantity\tUnit\tBatch No.\tWarehouse\tFinal Quantity\tExpiry Date\tStock From");
+        sb.AppendLine("ID\tItem Name\tBatch No.\tQuantity\tUnit\tIssued Stock\tFinal Quantity\tExpiry Date\tStock Value\tStock From\tWarehouse");
         foreach (var item in data)
         {
-            var sourceName = item.StockById == 1 ? "Purchase" : item.StockById == 2 ? "PreProcessing" : "Unknown";
-            sb.AppendLine($"{item.ItemStockByBatchId}\t{item.ItemName}\t{item.Quantity}\t{item.UnitName}\t{item.BatchNo}\t{item.WarehouseName}\t{item.FinalQuantityLeft}\t{item.ExpiryDate}\t{sourceName}");
+            var sourceName = item.StockById == 1 ? "Purchase" : item.StockById == 2 ? "PreProcessing" : item.StockById == 3 ? "Opening Stock" : "Unknown";
+            sb.AppendLine($"{item.ItemStockByBatchId}\t{item.ItemName}\t{item.BatchNo}\t{item.Quantity}\t{item.UnitName}\t{item.IssuedStock}\t{item.FinalQuantityLeft}\t{item.ExpiryDate}\t{item.StockValue}\t{sourceName}\t{item.WarehouseName}");
         }
         var success = await JS.InvokeAsync<bool>("gfiCopyToClipboard", sb.ToString());
         if (success)
@@ -242,16 +246,16 @@
     {
         var data = await GetAllDataAsync();
         var sb = new StringBuilder();
-        sb.AppendLine("ID,Item Name,Quantity,Unit,Batch No.,Warehouse,Final Quantity,Expiry Date,Stock From");
+        sb.AppendLine("ID,Item Name,Batch No.,Quantity,Unit,Issued Stock,Final Quantity,Expiry Date,Stock Value,Stock From,Warehouse");
         foreach (var item in data)
         {
-            var sourceName = item.StockById == 1 ? "Purchase" : item.StockById == 2 ? "PreProcessing" : "Unknown";
+            var sourceName = item.StockById == 1 ? "Purchase" : item.StockById == 2 ? "PreProcessing" : item.StockById == 3 ? "Opening Stock" : "Unknown";
             var itemName = (item.ItemName ?? "").Replace("\"", "\"\"");
             var unitName = (item.UnitName ?? "").Replace("\"", "\"\"");
             var batchNo = (item.BatchNo ?? "").Replace("\"", "\"\"");
-            var whName = (item.WarehouseName ?? "").Replace("\"", "\"\"");
             var expDate = (item.ExpiryDate ?? "").Replace("\"", "\"\"");
-            sb.AppendLine($"{item.ItemStockByBatchId},\"{itemName}\",{item.Quantity},\"{unitName}\",\"{batchNo}\",\"{whName}\",{item.FinalQuantityLeft},\"{expDate}\",\"{sourceName}\"");
+            var whName = (item.WarehouseName ?? "").Replace("\"", "\"\"");
+            sb.AppendLine($"{item.ItemStockByBatchId},\"{itemName}\",\"{batchNo}\",{item.Quantity},\"{unitName}\",{item.IssuedStock},{item.FinalQuantityLeft},\"{expDate}\",{item.StockValue},\"{sourceName}\",\"{whName}\"");
         }
         await JS.InvokeVoidAsync("gfiDownloadTextFile", $"item-stock-by-batch-{DateTime.Now:yyyyMMddHHmmss}.csv", sb.ToString(), "text/csv;charset=utf-8");
         Snackbar.Add("Report data exported as CSV.", Severity.Success);

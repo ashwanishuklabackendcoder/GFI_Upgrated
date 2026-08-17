@@ -16,4 +16,7 @@ public sealed class ItemStockByBatchReportDto
     public string? ItemName { get; set; }
     public string? UnitName { get; set; }
     public string? WarehouseName { get; set; }
+    
+    public double IssuedStock { get; set; }
+    public double StockValue { get; set; }
 }
