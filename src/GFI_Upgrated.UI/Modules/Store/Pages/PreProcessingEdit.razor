@@ -34,14 +34,14 @@
                 <SearchableSelect T="long" Label="Select BOM" Value="@_editor.BomId" ValueChanged="OnBomIdChanged" Variant="Variant.Outlined" Required="true" Items="@GetBomSelects()" />
             </MudItem>
             <MudItem xs="12" md="6">
-                <MudNumericField T="double" Value="_editor.BomQty" ValueChanged="@((double val) => OnBomQtyChanged(val))" Label="BOM Quantity" Variant="Variant.Outlined" Min="1" />
+                <MudNumericField T="double" Value="_editor.BomQty" ValueChanged="@((double val) => OnBomQtyChanged(val))" Label="BOM Quantity" Variant="Variant.Outlined" Min="0" />
             </MudItem>
 
             <MudItem xs="12" md="4">
                 <MudDatePicker DateFormat="@SessionState.DatePickerFormat" Placeholder="@SessionState.DatePickerFormat" Editable="true" Date="_editor.ProcessingDate" DateChanged="OnProcessingDateChanged" Label="@($"Processing Date ({SessionState.DateFormat})")" Variant="Variant.Outlined" Required="true" />
             </MudItem>
             <MudItem xs="12" md="4">
-                <MudNumericField @bind-Value="_editor.QuantityMade" Label="Actual Quantity Made" Min="1" Variant="Variant.Outlined" />
+                <MudNumericField @bind-Value="_editor.QuantityMade" Label="Actual Quantity Made" Min="0" Variant="Variant.Outlined" />
             </MudItem>
             <MudItem xs="12" md="4">
                 <SearchableSelect T="long" Label="Unit" Value="@_editor.UnitMade" ValueChanged="@((long val) => { _editor.UnitMade = val; })" Variant="Variant.Outlined" Items="@GetUnitSelects()" />

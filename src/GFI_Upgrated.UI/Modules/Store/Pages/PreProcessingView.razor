@@ -3,6 +3,7 @@
 @using GFI_Upgrated.UI.Services
 @using GFI_Upgrated.UI.State
 @inject StoreApiClient ApiClient
+@inject AdminSecurityApiClient AdminApiClient
 @inject ISnackbar Snackbar
 @inject NavigationManager NavigationManager
 @inject AppSessionState SessionState
@@ -28,24 +29,25 @@ else if (_header == null)
 else
 {
     <MudPaper Class="pa-4 mb-4">
+        <MudText Typo="Typo.h5" Color="Color.Primary" Class="mb-4">@_header.ItemName</MudText>
         <MudGrid>
             <MudItem xs="12" md="6">
-                <MudTextField T="string" Label="Processing Date" Value="@_header.ProcessingDate" ReadOnly="true" />
+                <MudTextField T="string" Label="Processing Date" Value="@FormatDate(_header.ProcessingDate)" ReadOnly="true" />
                 <MudTextField T="string" Label="Batch Number Made" Value="@_header.BatchNumberMade" ReadOnly="true" />
-                <MudTextField T="string" Label="Process Employees" Value="@_header.ProcessEmployees" ReadOnly="true" />
+                <MudTextField T="string" Label="Process Employees" Value="@_employeeNames" ReadOnly="true" />
                 <MudTextField T="string" Label="Warehouse" Value="@_warehouseName" ReadOnly="true" />
             </MudItem>
             <MudItem xs="12" md="6">
                 <MudTextField T="string" Label="BOM / Product Name" Value="@_bomName" ReadOnly="true" />
-                <MudTextField T="double" Label="Quantity Made" Value="@_header.QuantityMade" ReadOnly="true" />
-                <MudTextField T="string" Label="Expiry Date" Value="@_header.ExpiryDate" ReadOnly="true" />
+                <MudTextField T="string" Label="Quantity Made" Value="@($"{_header.QuantityMade} {_header.UnitName}")" ReadOnly="true" />
+                <MudTextField T="string" Label="Expiry Date" Value="@FormatDate(_header.ExpiryDate)" ReadOnly="true" />
                 <MudTextField T="string" Label="Remarks" Value="@_header.Remarks" ReadOnly="true" />
             </MudItem>
         </MudGrid>
     </MudPaper>
 
     <MudPaper Class="pa-4">
-        <MudText Typo="Typo.h6" Class="mb-4">Ingredients / Stock Used</MudText>
+        <MudText Typo="Typo.h6" Class="mb-4">Ingredients / Stock Used as of @FormatDate(_header.ProcessingDate)</MudText>
         <MudTable Items="_items" Hover="true" Dense="true" Striped="true" Bordered="true">
             <HeaderContent>
                 <MudTh>Date</MudTh>
@@ -56,7 +58,7 @@ else
                 <MudTh>Description</MudTh>
             </HeaderContent>
             <RowTemplate>
-                <MudTd DataLabel="Date">@(context.TransactionDate?.ToShortDateString() ?? "N/A")</MudTd>
+                <MudTd DataLabel="Date">@(context.TransactionDate?.ToString("MM/dd/yyyy") ?? "N/A")</MudTd>
                 <MudTd DataLabel="Item Name">@context.ItemName</MudTd>
                 <MudTd DataLabel="Batch No">@context.BatchNo</MudTd>
                 <MudTd DataLabel="Quantity Used" Style="text-align: right;">@context.Quantity @context.UnitName</MudTd>
@@ -78,6 +80,17 @@ else
     private List<PreProcessingItemDto> _items = new();
     private string _bomName = string.Empty;
     private string _warehouseName = string.Empty;
+    private string _employeeNames = string.Empty;
+
+    private string FormatDate(string? dateString)
+    {
+        if (string.IsNullOrWhiteSpace(dateString)) return string.Empty;
+        if (DateTime.TryParse(dateString, out var dt))
+        {
+            return dt.ToString("MM/dd/yyyy");
+        }
+        return dateString;
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -96,6 +109,21 @@ else
                 var whs = await ApiClient.GetWarehousesLookupAsync();
                 _bomName = boms.FirstOrDefault(b => b.BomId == _header.BomId)?.BomName ?? "Unknown";
                 _warehouseName = whs.FirstOrDefault(w => w.WarehouseId == _header.WarehouseId)?.WarehouseName ?? "Unknown";
+                
+                try
+                {
+                    var activeStaff = await AdminApiClient.GetActiveStaffAsync();
+                    if (!string.IsNullOrWhiteSpace(_header.ProcessEmployees))
+                    {
+                        var ids = _header.ProcessEmployees.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(s => s.Trim());
+                        var names = activeStaff.Where(s => ids.Contains(s.StaffId.ToString())).Select(s => s.StaffName);
+                        _employeeNames = names.Any() ? string.Join(", ", names) : _header.ProcessEmployees;
+                    }
+                }
+                catch
+                {
+                    _employeeNames = _header.ProcessEmployees ?? string.Empty;
+                }
                 
                 var itemsResult = await ApiClient.GetPreProcessingItemsAsync(Id);
                 _items = itemsResult.ToList();

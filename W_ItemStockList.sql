@@ -126,7 +126,7 @@ begin
                                                                                                                          
  ' W_ItemStock.StockID, W_ItemStock.OpeningQuantity, W_ItemStock.PurchasedQuantity, W_ItemStock.ItemID, W_ItemStock.WarehouseID, W_ItemStock.UnitId, W_ItemStock.IssuedQuantity, W_ItemStock.CreatedBy, W_ItemStock.OpeningStockDate, W_ItemStock.RemovedQuantity, ' +
                                                                                                                                                                                                                                                       
- ' isnull((select sum(FinalQuantityLeft) from Inv_ItemStockByBatch where ItemId = W_ItemStock.ItemID), 0) as FinalStock, ' +
+ ' isnull((select sum(FinalQuantityLeft) from Inv_ItemStockByBatch b where b.ItemId = W_ItemStock.ItemID AND (b.StockById NOT IN (2, 4) OR (b.StockById = 2 AND EXISTS (SELECT 1 FROM dbo.W_PreProcessing pp WHERE pp.PreProcessingId = b.IdFrom AND pp.IsComplete = 1)) OR (b.StockById = 4 AND EXISTS (SELECT 1 FROM dbo.W_Production p WHERE p.ProductionId = b.IdFrom AND NOT EXISTS (SELECT 1 FROM dbo.W_MasterBomItems AS Bom WHERE Bom.BomId = p.BomId AND NOT EXISTS (SELECT 1 FROM dbo.inv_itemstockused AS StockUsed WHERE StockUsed.UsedFor = 3 AND StockUsed.UsedForId = p.ProductionId)))))), 0) as FinalStock, ' +
                                                                    
  ' ItemName,ItemCode, ' +
                                                                                                                                                                                                                                     

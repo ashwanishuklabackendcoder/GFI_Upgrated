@@ -1,42 +1,33 @@
 @typeparam T
 
-<MudMenu AnchorOrigin="@AnchorOrigin" TransformOrigin="Origin.TopCenter" LockScroll="true" Dense="true" Style="width: 100%; display: block;" Class="w-full">
-    <ActivatorContent>
-        <div @onclick="@context.ToggleAsync" style="cursor: pointer; display: block; width: 100%;">
-            <MudTextField T="string"
-                          Label="@Label"
-                          Value="@GetSelectedText()"
-                          Variant="@Variant"
-                          ReadOnly="true"
-                          Disabled="@Disabled"
-                          Required="@Required"
-                          Clearable="@Clearable"
-                          OnClearButtonClick="OnClear"
-                          Adornment="Adornment.End"
-                          AdornmentIcon="@Icons.Material.Filled.ArrowDropDown"
-                          Style="pointer-events: none;"
-                          Margin="@(Dense ? Margin.Dense : Margin.None)"
-                          Class="w-full" />
-        </div>
-    </ActivatorContent>
-    <ChildContent>
-        <div style="width: 300px; max-height: 450px; display: flex; flex-direction: column;">
-            <div class="px-4 py-2 sticky-top bg-white" style="position: sticky; top: 0; z-index: 1000; background: white;">
-                <MudTextField T="string"
-                              Placeholder="Search..."
-                              Value="@_searchString"
-                              ValueChanged="OnSearchChanged"
-                              Immediate="true"
-                              Clearable="true"
-                              Adornment="Adornment.Start"
-                              AdornmentIcon="@Icons.Material.Filled.Search" />
-            </div>
+<div style="position: relative; width: 100%; display: block;" class="w-full">
+    <MudTextField @ref="_textField"
+                  T="string"
+                  Label="@Label"
+                  Value="@(_isFocused ? _searchString : GetSelectedText())"
+                  ValueChanged="OnSearchChanged"
+                  Immediate="true"
+                  Variant="@Variant"
+                  ReadOnly="false"
+                  Disabled="@Disabled"
+                  Required="@Required"
+                  Clearable="@Clearable"
+                  OnClearButtonClick="OnClear"
+                  Adornment="Adornment.End"
+                  AdornmentIcon="@Icons.Material.Filled.ArrowDropDown"
+                  Margin="@(Dense ? Margin.Dense : Margin.None)"
+                  Class="w-full"
+                  @onfocus="OnFocus"
+                  @onblur="OnBlur" />
+
+    <MudPopover Open="@_isFocused" AnchorOrigin="@AnchorOrigin" TransformOrigin="Origin.TopCenter" MaxHeight="450">
+        <div style="width: 300px; display: flex; flex-direction: column; background: white; border-radius: 4px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);">
             <div style="overflow-y: auto; max-height: 350px;">
                 @if (MultiSelection)
                 {
                     @foreach (var item in GetFilteredItems())
                     {
-                        <div class="px-4 py-1 hover:bg-gray-100 d-flex align-center cursor-pointer" @onclick="@(() => ToggleMultiSelect(item.Value))">
+                        <div class="px-4 py-2 hover:bg-gray-100 d-flex align-center cursor-pointer" @onmousedown="@(() => ToggleMultiSelect(item.Value))">
                             <MudCheckBox T="bool"
                                          Value="@IsItemSelected(item.Value)"
                                          ValueChanged="@((bool val) => ToggleMultiSelect(item.Value))"
@@ -50,15 +41,15 @@
                 {
                     @foreach (var item in GetFilteredItems())
                     {
-                        <MudMenuItem OnClick="@(() => SelectItem(item))">
+                        <div class="px-4 py-3 hover:bg-gray-100 cursor-pointer" style="transition: background-color 0.2s;" @onmousedown="@(() => SelectItem(item))">
                             @item.Text
-                        </MudMenuItem>
+                        </div>
                     }
                 }
             </div>
         </div>
-    </ChildContent>
-</MudMenu>
+    </MudPopover>
+</div>
 
 @code {
     [Parameter] public string? Label { get; set; }
@@ -77,11 +68,30 @@
 
     [Parameter] public IEnumerable<SelectItemDto<T>> Items { get; set; } = Array.Empty<SelectItemDto<T>>();
 
+    private MudTextField<string>? _textField;
     private string _searchString = "";
+    private bool _isFocused = false;
 
     private void OnSearchChanged(string search)
     {
         _searchString = search;
+        StateHasChanged();
+    }
+
+    private void OnFocus()
+    {
+        _isFocused = true;
+        _searchString = ""; // Start fresh search when focused
+        StateHasChanged();
+    }
+
+    private async Task OnBlur()
+    {
+        // Delay slightly to allow click events on menu items to process before we lose focus and change the text back
+        await Task.Delay(200);
+        _isFocused = false;
+        _searchString = "";
+        StateHasChanged();
     }
 
     private IEnumerable<SelectItemDto<T>> GetFilteredItems()
@@ -110,7 +120,16 @@
     private async Task SelectItem(SelectItemDto<T> item)
     {
         Value = item.Value;
+        _isFocused = false;
+        _searchString = "";
         await ValueChanged.InvokeAsync(item.Value);
+        
+        if (_textField != null)
+        {
+            await _textField.BlurAsync();
+        }
+        
+        StateHasChanged();
     }
 
     private bool IsItemSelected(T? val)
@@ -132,6 +151,7 @@
         }
         SelectedValues = current.AsReadOnly();
         await SelectedValuesChanged.InvokeAsync(SelectedValues);
+        StateHasChanged();
     }
 
     private async Task OnClear()
@@ -146,6 +166,8 @@
             Value = default;
             await ValueChanged.InvokeAsync(default);
         }
+        _isFocused = false;
+        _searchString = "";
     }
 
     public class SelectItemDto<TItem>
