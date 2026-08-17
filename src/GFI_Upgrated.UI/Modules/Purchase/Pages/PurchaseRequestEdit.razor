@@ -17,9 +17,9 @@
     <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
         <MudStack Spacing="0">
             <MudText Typo="Typo.h5">@(Id == 0 ? "New Purchase Request" : "Edit Purchase Request")</MudText>
-            <MudText Typo="Typo.body2" Color="Color.Secondary">Create a request for materials or finished goods.</MudText>
+            @* <MudText Typo="Typo.body2" Color="Color.Secondary">Create a request for materials or finished goods.</MudText> *@
         </MudStack>
-        <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.ArrowBack" OnClick="OnBack">Back to List</MudButton>
+        <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.ArrowBack" OnClick="OnBack">Back</MudButton>
     </MudStack>
 
     <EditForm Model="_model" OnValidSubmit="OnSave">
@@ -36,7 +36,7 @@
             </MudItem>
             
             <MudItem xs="12">
-                <MudTextField @bind-Value="_model.Description" Label="General Description" Variant="Variant.Outlined" Lines="2" />
+                <MudTextField @bind-Value="_model.Description" Label="Description" Variant="Variant.Outlined" Lines="2" />
             </MudItem>
 
             <MudItem xs="12" Class="mt-6">
@@ -79,8 +79,9 @@
             </MudItem>
 
             <MudItem xs="12" Class="d-flex justify-end mt-6 gap-2">
+                
+                <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Loading="_saving">Save</MudButton>
                 <MudButton Variant="Variant.Outlined" OnClick="OnBack">Cancel</MudButton>
-                <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Loading="_saving">Save Request</MudButton>
             </MudItem>
         </MudGrid>
     </EditForm>
