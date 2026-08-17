@@ -12,9 +12,9 @@
     <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
         <MudStack Spacing="0">
             <MudText Typo="Typo.h5">@(Id == 0 ? "New Recipe" : "Edit Recipe")</MudText>
-            <MudText Typo="Typo.body2" Color="Color.Secondary">Define the recipe and components for your products.</MudText>
+            @* <MudText Typo="Typo.body2" Color="Color.Secondary">Define the recipe and components for your products.</MudText> *@
         </MudStack>
-        <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.ArrowBack" OnClick="OnBack">Back to List</MudButton>
+        <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.ArrowBack" OnClick="OnBack">Back</MudButton>
     </MudStack>
 
     <EditForm Model="_model" OnValidSubmit="SaveBom">
@@ -103,8 +103,9 @@
             </MudItem>
 
             <MudItem xs="12" Class="d-flex justify-end mt-6 gap-2">
+                
+                <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Loading="_saving">Save</MudButton>
                 <MudButton Variant="Variant.Outlined" OnClick="OnBack">Back to List</MudButton>
-                <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Loading="_saving">Save Recipe</MudButton>
             </MudItem>
         </MudGrid>
     </EditForm>
