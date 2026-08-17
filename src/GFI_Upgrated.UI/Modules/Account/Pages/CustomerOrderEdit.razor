@@ -19,7 +19,7 @@
             <MudText Typo="Typo.h5">@_title</MudText>
             <MudText Typo="Typo.body2" Color="Color.Secondary">Enter customer order details and specify product items below.</MudText>
         </MudStack>
-        <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.ArrowBack" OnClick="BackToList">Back to List</MudButton>
+        <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.ArrowBack" OnClick="BackToList">Back</MudButton>
     </MudStack>
 
     <EditForm Model="_order" OnValidSubmit="SaveOrder">
@@ -95,7 +95,7 @@
 
             <MudItem xs="12" Class="pt-4">
                 <MudStack Row="true" Spacing="2">
-                    <MudButton ButtonType="ButtonType.Submit" Color="Color.Primary" Variant="Variant.Filled" Disabled="_busy">Save Order</MudButton>
+                    <MudButton ButtonType="ButtonType.Submit" Color="Color.Primary" Variant="Variant.Filled" Disabled="_busy">Save</MudButton>
                     <MudButton Variant="Variant.Outlined" OnClick="BackToList" Disabled="_busy">Cancel</MudButton>
                 </MudStack>
             </MudItem>

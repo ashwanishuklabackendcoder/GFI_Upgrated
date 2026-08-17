@@ -18,7 +18,7 @@
         <MudStack Spacing="0">
             <MudText Typo="Typo.h5">@(Id == 0 ? "Add Customer / Supplier" : "Edit Customer / Supplier")</MudText>
         </MudStack>
-        <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.ArrowBack" OnClick="OnBack">Back to List</MudButton>
+        <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.ArrowBack" OnClick="OnBack">Back</MudButton>
     </MudStack>
 
     <EditForm Model="@Model" OnValidSubmit="Submit">
@@ -53,7 +53,7 @@
 
             <MudItem xs="12" Class="d-flex justify-end gap-2 mt-6">
                 <MudButton Variant="Variant.Outlined" OnClick="OnBack">Cancel</MudButton>
-                <MudButton Color="Color.Primary" Variant="Variant.Filled" ButtonType="ButtonType.Submit">Save Account</MudButton>
+                <MudButton Color="Color.Primary" Variant="Variant.Filled" ButtonType="ButtonType.Submit">Save</MudButton>
             </MudItem>
         </MudGrid>
     </EditForm>

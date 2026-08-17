@@ -18,7 +18,7 @@
             <MudText Typo="Typo.h5">@_title</MudText>
             <MudText Typo="Typo.body2" Color="Color.Secondary">Enter sales invoice details, exchange rates, and line items below.</MudText>
         </MudStack>
-        <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.ArrowBack" OnClick="BackToList">Back to List</MudButton>
+        <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.ArrowBack" OnClick="BackToList">Back</MudButton>
     </MudStack>
 
     <EditForm Model="_invoice" OnValidSubmit="SaveInvoice">
@@ -113,7 +113,7 @@
 
             <MudItem xs="12" Class="pt-4">
                 <MudStack Row="true" Spacing="2">
-                    <MudButton ButtonType="ButtonType.Submit" Color="Color.Primary" Variant="Variant.Filled" Disabled="_busy">Save Invoice</MudButton>
+                    <MudButton ButtonType="ButtonType.Submit" Color="Color.Primary" Variant="Variant.Filled" Disabled="_busy">Save</MudButton>
                     @if (Id > 0)
                     {
                         <MudButton Variant="Variant.Filled" Color="Color.Info" StartIcon="@Icons.Material.Filled.Print" OnClick="PrintInvoice" Disabled="_busy">Print Invoice</MudButton>

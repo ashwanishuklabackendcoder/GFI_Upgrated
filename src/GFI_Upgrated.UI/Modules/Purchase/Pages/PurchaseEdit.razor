@@ -19,7 +19,7 @@
             <MudText Typo="Typo.h5">@(Id == 0 ? "Add Purchase" : "Edit Purchase")</MudText>
             @* <MudText Typo="Typo.body2" Color="Color.Secondary">Record incoming goods and update inventory.</MudText> *@
         </MudStack>
-        <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.ArrowBack" OnClick="OnBack">Back to List</MudButton>
+        <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.ArrowBack" OnClick="OnBack">Back</MudButton>
     </MudStack>
 
     <EditForm Model="_model" OnValidSubmit="OnSave">
@@ -130,8 +130,9 @@
             </MudItem>
 
             <MudItem xs="12" Class="d-flex justify-end mt-6 gap-2">
+                
+                <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Loading="_saving" OnClick="OnSubmitClick">Save</MudButton>
                 <MudButton Variant="Variant.Outlined" OnClick="OnBack">Cancel</MudButton>
-                <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Loading="_saving" OnClick="OnSubmitClick">Record Receipt</MudButton>
             </MudItem>
         </MudGrid>
     </EditForm>

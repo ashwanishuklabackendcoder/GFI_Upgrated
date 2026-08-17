@@ -3,11 +3,6 @@
 
 <MudDialog>
     <DialogContent>
-        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-3">
-            <MudText Typo="Typo.h6">@_title</MudText>
-            <MudIconButton Icon="@Icons.Material.Filled.Close" OnClick="Close" />
-        </MudStack>
-
         <MudForm @ref="_form">
             <MudTextField @bind-Value="_editor.DisplayText" Label="Display Text" Variant="Variant.Outlined" Required="true" RequiredError="Display text is required." Class="mb-3" />
             <MudCheckBox T="bool" @bind-Value="_editor.IsActive" Label="Is Active" />

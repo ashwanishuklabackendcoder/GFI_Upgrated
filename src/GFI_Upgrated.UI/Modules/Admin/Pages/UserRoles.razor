@@ -12,14 +12,14 @@
     <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
         <div>
             <MudText Typo="Typo.h5">Assign Roles to Users</MudText>
-            <MudText Typo="Typo.body2" Color="Color.Secondary">
+           @*  <MudText Typo="Typo.body2" Color="Color.Secondary">
                 Pick a login, assign roles, and choose the default role
-            </MudText>
+            </MudText> *@
         </div>
         <MudStack Row="true" Spacing="2">
             <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="ReloadAsync" Disabled="_busy">Reload</MudButton>
             <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveAsync" Disabled="@(_busy || _selectedLoginId == 0)">
-                Save Changes
+                Save
             </MudButton>
         </MudStack>
     </MudStack>

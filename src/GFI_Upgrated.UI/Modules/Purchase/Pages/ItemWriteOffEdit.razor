@@ -18,7 +18,7 @@
             <MudText Typo="Typo.h5">@(Id == 0 ? "New Item Write Off" : "Edit Item Write Off")</MudText>
             <MudText Typo="Typo.body2" Color="Color.Secondary">Record or edit items written off from batch stock.</MudText>
         </MudStack>
-        <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.ArrowBack" OnClick="OnBack">Back to List</MudButton>
+        <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.ArrowBack" OnClick="OnBack">Back</MudButton>
     </MudStack>
 
     <EditForm Model="_model" OnValidSubmit="OnSave">
@@ -59,7 +59,7 @@
 
             <MudItem xs="12" Class="d-flex justify-end mt-6 gap-2">
                 <MudButton Variant="Variant.Outlined" OnClick="OnBack">Cancel</MudButton>
-                <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Loading="_saving">Save Write Off</MudButton>
+                <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Loading="_saving">Save</MudButton>
             </MudItem>
         </MudGrid>
     </EditForm>

@@ -1,4 +1,4 @@
-﻿@page "/admin/drop-down-values/{DropDownMasterId:long}"
+@page "/admin/drop-down-values/{DropDownMasterId:long}"
 @inject AppSessionState SessionState
 @inject NavigationManager Navigation
 @inject AdminSecurityApiClient ApiClient
@@ -115,6 +115,8 @@
         }
     }
 
+    private readonly DialogOptions _dialogOptions = new() { MaxWidth = MaxWidth.Small, FullWidth = true, CloseButton = true };
+
     private async Task AddNewAsync()
     {
         var parameters = new DialogParameters
@@ -123,7 +125,7 @@
             { nameof(DropDownValueDialog.ValueId), 0L }
         };
 
-        var dialog = await DialogService.ShowAsync<DropDownValueDialog>("Add Value", parameters);
+        var dialog = await DialogService.ShowAsync<DropDownValueDialog>("Add Value", parameters, _dialogOptions);
         var result = await dialog.Result;
         if (!result.Canceled && _table is not null)
         {
@@ -139,7 +141,7 @@
             { nameof(DropDownValueDialog.ValueId), valueId }
         };
 
-        var dialog = await DialogService.ShowAsync<DropDownValueDialog>("Edit Value", parameters);
+        var dialog = await DialogService.ShowAsync<DropDownValueDialog>("Edit Value", parameters, _dialogOptions);
         var result = await dialog.Result;
         if (!result.Canceled && _table is not null)
         {
