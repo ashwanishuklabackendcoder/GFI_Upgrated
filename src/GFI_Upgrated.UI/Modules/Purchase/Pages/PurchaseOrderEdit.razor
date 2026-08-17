@@ -19,7 +19,7 @@
             <MudText Typo="Typo.h5">@(Id == 0 ? "New Purchase Order" : "Edit Purchase Order")</MudText>
             @* <MudText Typo="Typo.body2" Color="Color.Secondary">Generate formal orders for supliers.</MudText> *@
         </MudStack>
-        <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.ArrowBack" OnClick="OnBack">Back to List</MudButton>
+        <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.ArrowBack" OnClick="OnBack">Back</MudButton>
     </MudStack>
 
     <EditForm Model="_model" OnValidSubmit="OnSave">
