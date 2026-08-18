@@ -17,6 +17,7 @@ public sealed class PreProcessingItemDto
     public string? UnitName { get; set; }
     public double Amount { get; set; }
     public long UnitId { get; set; } // Added UnitId
+    public string? SupplierName { get; set; }
 }
 
 public sealed class SavePreProcessingItemRequest

@@ -66,6 +66,7 @@
             <MudTh>Item Name</MudTh>
             <MudTh Style="text-align: right;">Opening Qty.</MudTh>
             <MudTh Style="text-align: right;">Purchased Qty.</MudTh>
+            <MudTh Style="text-align: right;">Produced Qty.</MudTh>
             <MudTh Style="text-align: right;">Issued Qty.</MudTh>
             <MudTh Style="text-align: right;">Removed Qty.</MudTh>
             <MudTh Style="text-align: right;">Final Stock</MudTh>
@@ -78,6 +79,7 @@
             </MudTd>
             <MudTd DataLabel="Opening Qty" Style="text-align: right;">@FormatQty(context.OpeningQuantity, context.UnitId)</MudTd>
             <MudTd DataLabel="Purchased Qty" Style="text-align: right;">@FormatQty(context.PurchasedQuantity, context.UnitId)</MudTd>
+            <MudTd DataLabel="Produced Qty" Style="text-align: right;">@FormatQty(context.ProducedQuantity, context.UnitId)</MudTd>
             <MudTd DataLabel="Issued Qty" Style="text-align: right;">@FormatQty(context.IssuedQuantity, context.UnitId)</MudTd>
             <MudTd DataLabel="Removed Qty" Style="text-align: right;">@FormatQty(context.RemovedQuantity, context.UnitId)</MudTd>
             <MudTd DataLabel="Final Stock" Style="text-align: right; font-weight: bold;">@FormatQty(context.FinalStock, context.UnitId)</MudTd>
@@ -253,10 +255,10 @@
     {
         var data = await GetAllDataAsync();
         var sb = new StringBuilder();
-        sb.AppendLine("StockID\tItem Name\tOpening Qty\tPurchased Qty\tIssued Qty\tRemoved Qty\tFinal Stock\tStock Value");
+        sb.AppendLine("StockID\tItem Name\tOpening Qty\tPurchased Qty\tProduced Qty\tIssued Qty\tRemoved Qty\tFinal Stock\tStock Value");
         foreach (var item in data)
         {
-            sb.AppendLine($"${item.StockID}\t${item.ItemName}\t${FormatQty(item.OpeningQuantity, item.UnitId)}\t${FormatQty(item.PurchasedQuantity, item.UnitId)}\t${FormatQty(item.IssuedQuantity, item.UnitId)}\t${FormatQty(item.RemovedQuantity, item.UnitId)}\t${FormatQty(item.FinalStock, item.UnitId)}\t${FormatAmount(item.TotalValue)} SRD");
+            sb.AppendLine($"{item.StockID}\t{item.ItemName}\t{FormatQty(item.OpeningQuantity, item.UnitId)}\t{FormatQty(item.PurchasedQuantity, item.UnitId)}\t{FormatQty(item.ProducedQuantity, item.UnitId)}\t{FormatQty(item.IssuedQuantity, item.UnitId)}\t{FormatQty(item.RemovedQuantity, item.UnitId)}\t{FormatQty(item.FinalStock, item.UnitId)}\t{FormatAmount(item.TotalValue)} SRD");
         }
         var success = await JS.InvokeAsync<bool>("gfiCopyToClipboard", sb.ToString());
         if (success)
@@ -273,11 +275,11 @@
     {
         var data = await GetAllDataAsync();
         var sb = new StringBuilder();
-        sb.AppendLine("StockID,Item Name,Opening Qty,Purchased Qty,Issued Qty,Removed Qty,Final Stock,Stock Value");
+        sb.AppendLine("StockID,Item Name,Opening Qty,Purchased Qty,Produced Qty,Issued Qty,Removed Qty,Final Stock,Stock Value");
         foreach (var item in data)
         {
             var name = (item.ItemName ?? "").Replace("\"", "\"\"");
-            sb.AppendLine($"{item.StockID},\"{name}\",{FormatQty(item.OpeningQuantity, item.UnitId)},{FormatQty(item.PurchasedQuantity, item.UnitId)},{FormatQty(item.IssuedQuantity, item.UnitId)},{FormatQty(item.RemovedQuantity, item.UnitId)},{FormatQty(item.FinalStock, item.UnitId)},{FormatAmount(item.TotalValue)} SRD");
+            sb.AppendLine($"{item.StockID},\"{name}\",{FormatQty(item.OpeningQuantity, item.UnitId)},{FormatQty(item.PurchasedQuantity, item.UnitId)},{FormatQty(item.ProducedQuantity, item.UnitId)},{FormatQty(item.IssuedQuantity, item.UnitId)},{FormatQty(item.RemovedQuantity, item.UnitId)},{FormatQty(item.FinalStock, item.UnitId)},{FormatAmount(item.TotalValue)} SRD");
         }
         await JS.InvokeVoidAsync("gfiDownloadTextFile", $"item-stock-report-{DateTime.Now:yyyyMMddHHmmss}.csv", sb.ToString(), "text/csv;charset=utf-8");
         Snackbar.Add("Report data exported as CSV.", Severity.Success);

@@ -442,7 +442,8 @@ public sealed class PreProcessingRepository : IPreProcessingRepository
         TransactionDate = row.IsNull("TransactionDate") ? null : row.Field<DateTime?>("TransactionDate"),
         UnitName = row.SafeString("UnitName"),
         Amount = row.SafeDouble("Amount"),
-        UnitId = row.Table.Columns.Contains("UnitId") && row["UnitId"] != DBNull.Value ? Convert.ToInt64(row["UnitId"]) : 0
+        UnitId = row.Table.Columns.Contains("UnitId") && row["UnitId"] != DBNull.Value ? Convert.ToInt64(row["UnitId"]) : 0,
+        SupplierName = row.Table.Columns.Contains("SupplierName") ? row.SafeString("SupplierName") : null
     };
 
     private async Task<DataTable> ExecuteDataTableAsync(string storedProcedure, IEnumerable<SqlParameter> parameters, CancellationToken cancellationToken)

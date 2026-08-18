@@ -163,6 +163,7 @@ public sealed class ReportRepository : IReportRepository
         WarehouseName = row.SafeString("WarehouseName"),
         OpeningQuantity = row.SafeDouble("OpeningQuantity"),
         PurchasedQuantity = row.SafeDouble("PurchasedQuantity"),
+        ProducedQuantity = row.SafeDouble("ProducedQuantity"),
         IssuedQuantity = row.SafeDouble("IssuedQuantity"),
         RemovedQuantity = row.SafeDouble("RemovedQuantity"),
         FinalStock = row.SafeDouble("FinalStock"),

@@ -298,7 +298,7 @@
 
     private void RecalculateQtyMade()
     {
-        _editor.QuantityMade = _editor.BomQty * _selectedBomYield;
+        _editor.QuantityMade = Math.Round(_editor.BomQty * _selectedBomYield, 1);
     }
 
 
