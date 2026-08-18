@@ -223,7 +223,9 @@ public sealed class ReportRepository : IReportRepository
         FinalQuantityLeft = row.SafeDouble("FinalQuantityLeft"),
         ItemName = row.SafeString("ItemName"),
         UnitName = row.SafeString("UnitName"),
-        WarehouseName = row.SafeString("WarehouseName")
+        WarehouseName = row.SafeString("WarehouseName"),
+        IssuedStock = row.SafeDouble("IssuedStock"),
+        StockValue = row.SafeDouble("StockValue")
     };
 
     private async Task<DataTable> ExecuteDataTableAsync(string storedProcedure, IEnumerable<SqlParameter> parameters, CancellationToken cancellationToken)

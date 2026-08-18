@@ -37,7 +37,7 @@
                 <ValidationMessage For="@(() => _editor.BomId)" />
             </MudItem>
             <MudItem xs="12" md="4">
-                <MudNumericField T="double" Value="_editor.BomQty" ValueChanged="@((double val) => OnBomQtyChanged(val))" Label="BOM Quantity" Variant="Variant.Outlined" Min="1" For="@(() => _editor.BomQty)" />
+                <MudNumericField T="double" Value="_editor.BomQty" ValueChanged="@((double val) => OnBomQtyChanged(val))" Label="BOM Quantity" Variant="Variant.Outlined" Min="0" For="@(() => _editor.BomQty)" />
             </MudItem>
             <MudItem xs="12" md="4">
                 <MudTextField @bind-Value="_editor.BatchNo" Label="Batch Number" Variant="Variant.Outlined" HelperText="Leave blank for auto-generation" />
