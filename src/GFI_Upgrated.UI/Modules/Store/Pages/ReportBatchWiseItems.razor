@@ -17,7 +17,13 @@
 
 <MudPaper Class="pa-4">
     <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4 no-print">
-        <MudText Typo="Typo.h5">Batch Number Wise Items</MudText>
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+            @if (FromItemStock == true)
+            {
+                <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" Color="Color.Default" OnClick="BackToItemStock" Class="mr-2" />
+            }
+            <MudText Typo="Typo.h5">Batch Number Wise Items</MudText>
+        </MudStack>
         <MudMenu Label="Export" StartIcon="@Icons.Material.Filled.SaveAlt" EndIcon="@Icons.Material.Filled.KeyboardArrowDown" Color="Color.Primary" Variant="Variant.Filled">
             <MudMenuItem OnClick="ExportToCopyAsync" Icon="@Icons.Material.Filled.ContentCopy">Copy to Clipboard</MudMenuItem>
             <MudMenuItem OnClick="ExportToCsvAsync" Icon="@Icons.Material.Filled.InsertDriveFile">Export to CSV</MudMenuItem>
@@ -107,6 +113,14 @@
 
     [SupplyParameterFromQuery]
     public long? ItemId { get; set; }
+
+    [SupplyParameterFromQuery]
+    public bool? FromItemStock { get; set; }
+
+    private void BackToItemStock()
+    {
+        Navigation.NavigateTo($"/store/reportitemstock?itemId={ItemId}");
+    }
 
     private bool _loading;
     private string _currentSortDirection = "DESC";
