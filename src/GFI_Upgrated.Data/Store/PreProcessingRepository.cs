@@ -398,7 +398,8 @@ public sealed class PreProcessingRepository : IPreProcessingRepository
                     WarehouseName = r.SafeString("WarehouseName"),
                     UnitId = r.Table.Columns.Contains("Unit") && r["Unit"] != DBNull.Value ? Convert.ToInt64(r["Unit"]) : 0,
                     UnitName = r.Table.Columns.Contains("UnitName") ? r.SafeString("UnitName") : null
-                }).ToList();
+                }).OrderBy(b => DateTime.TryParse(b.ExpiryDate, out var dt) ? dt : DateTime.MaxValue)
+                .ToList();
         }
         catch (Exception ex)
         {
