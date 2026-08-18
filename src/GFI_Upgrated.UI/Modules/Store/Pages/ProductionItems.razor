@@ -540,7 +540,7 @@
         return row.AvailableBatches.Select(x => new SearchableSelect<AvailableBatchDto>.SelectItemDto<AvailableBatchDto>
         {
             Value = x,
-            Text = $"{x.BatchNo} (Stock: {x.FinalQuantityLeft} {x.UnitName})"
+            Text = $"{x.BatchNo} (Stock: {x.FinalQuantityLeft} {x.UnitName} | Exp: {(DateTime.TryParse(x.ExpiryDate, out var dt) ? dt.ToString(SessionState.DatePickerFormat) : x.ExpiryDate)})"
         });
     }
 

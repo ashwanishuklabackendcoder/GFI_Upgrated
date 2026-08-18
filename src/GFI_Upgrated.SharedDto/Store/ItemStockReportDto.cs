@@ -9,6 +9,7 @@ public sealed class ItemStockReportDto
     public string WarehouseName { get; set; } = string.Empty;
     public double OpeningQuantity { get; set; }
     public double PurchasedQuantity { get; set; }
+    public double ProducedQuantity { get; set; }
     public double IssuedQuantity { get; set; }
     public double RemovedQuantity { get; set; }
     public double FinalStock { get; set; }

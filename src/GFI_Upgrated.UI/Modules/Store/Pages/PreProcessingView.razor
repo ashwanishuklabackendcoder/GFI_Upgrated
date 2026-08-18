@@ -42,6 +42,7 @@ else
                 <MudTextField T="string" Label="Quantity Made" Value="@($"{_header.QuantityMade} {_header.UnitName}")" ReadOnly="true" />
                 <MudTextField T="string" Label="Expiry Date" Value="@FormatDate(_header.ExpiryDate)" ReadOnly="true" />
                 <MudTextField T="string" Label="Remarks" Value="@_header.Remarks" ReadOnly="true" />
+                <MudTextField T="string" Label="Total Ingredient Value" Value="@SessionState.FormatCurrency(_items.Sum(x => x.Amount))" ReadOnly="true" />
             </MudItem>
         </MudGrid>
     </MudPaper>
@@ -53,6 +54,7 @@ else
                 <MudTh>Date</MudTh>
                 <MudTh>Item Name</MudTh>
                 <MudTh>Batch No</MudTh>
+                <MudTh>Supplier</MudTh>
                 <MudTh Style="text-align: right;">Quantity Used</MudTh>
                 <MudTh Style="text-align: right;">Amount (SRD)</MudTh>
                 <MudTh>Description</MudTh>
@@ -61,6 +63,7 @@ else
                 <MudTd DataLabel="Date">@(context.TransactionDate?.ToString("MM/dd/yyyy") ?? "N/A")</MudTd>
                 <MudTd DataLabel="Item Name">@context.ItemName</MudTd>
                 <MudTd DataLabel="Batch No">@context.BatchNo</MudTd>
+                <MudTd DataLabel="Supplier">@context.SupplierName</MudTd>
                 <MudTd DataLabel="Quantity Used" Style="text-align: right;">@context.Quantity @context.UnitName</MudTd>
                 <MudTd DataLabel="Amount" Style="text-align: right;">@context.Amount.ToString("N2")</MudTd>
                 <MudTd DataLabel="Description">@context.Description</MudTd>

@@ -398,7 +398,8 @@ public sealed class PreProcessingRepository : IPreProcessingRepository
                     WarehouseName = r.SafeString("WarehouseName"),
                     UnitId = r.Table.Columns.Contains("Unit") && r["Unit"] != DBNull.Value ? Convert.ToInt64(r["Unit"]) : 0,
                     UnitName = r.Table.Columns.Contains("UnitName") ? r.SafeString("UnitName") : null
-                }).ToList();
+                }).OrderBy(b => DateTime.TryParse(b.ExpiryDate, out var dt) ? dt : DateTime.MaxValue)
+                .ToList();
         }
         catch (Exception ex)
         {
@@ -442,7 +443,8 @@ public sealed class PreProcessingRepository : IPreProcessingRepository
         TransactionDate = row.IsNull("TransactionDate") ? null : row.Field<DateTime?>("TransactionDate"),
         UnitName = row.SafeString("UnitName"),
         Amount = row.SafeDouble("Amount"),
-        UnitId = row.Table.Columns.Contains("UnitId") && row["UnitId"] != DBNull.Value ? Convert.ToInt64(row["UnitId"]) : 0
+        UnitId = row.Table.Columns.Contains("UnitId") && row["UnitId"] != DBNull.Value ? Convert.ToInt64(row["UnitId"]) : 0,
+        SupplierName = row.Table.Columns.Contains("SupplierName") ? row.SafeString("SupplierName") : null
     };
 
     private async Task<DataTable> ExecuteDataTableAsync(string storedProcedure, IEnumerable<SqlParameter> parameters, CancellationToken cancellationToken)

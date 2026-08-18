@@ -24,7 +24,7 @@
                 <MudAutocomplete Clearable="true"           MaxItems="1000" T="AvailableBatchDto" Label="Select Batch" 
                                  Value="@(_availableBatches.FirstOrDefault(x => x.ItemStockByBatchId == _newItem.ItemStockByBatchId))" 
                                  ValueChanged="@((AvailableBatchDto val) => { _newItem.ItemStockByBatchId = val?.ItemStockByBatchId ?? 0; })" 
-                                 SearchFunc="@SearchAvailableBatches" ToStringFunc="@(x => x != null ? $"{x.BatchNo} (Avail: {x.FinalQuantityLeft} | Exp: {x.ExpiryDate})" : "")"
+                                 SearchFunc="@SearchAvailableBatches" ToStringFunc="@(x => x != null ? $"{x.BatchNo} (Avail: {x.FinalQuantityLeft} {x.UnitName} | Exp: {(DateTime.TryParse(x.ExpiryDate, out var dt) ? dt.ToString(SessionState.DatePickerFormat) : x.ExpiryDate)})" : "")"
                                  Variant="Variant.Outlined" Disabled="@(_newItem.ItemID == 0)" Required="true" RequiredError="Batch is required." 
                                  ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
 

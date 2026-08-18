@@ -147,6 +147,11 @@
                 Items = itemsList.Skip(state.Page * state.PageSize).Take(state.PageSize).ToArray()
             };
         }
+        catch (OperationCanceledException)
+        {
+            // Ignore normal Blazor/MudTable request cancellation
+            return new TableData<BomDto> { Items = Array.Empty<BomDto>(), TotalItems = 0 };
+        }
         catch (Exception ex)
         {
             Snackbar.Add($"Error loading Recipes: {ex.Message}", Severity.Error);
