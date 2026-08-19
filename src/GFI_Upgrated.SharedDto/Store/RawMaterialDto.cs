@@ -67,6 +67,8 @@ public class SaveRawMaterialRequest
     public string? StorageDetails { get; set; }
     public string? Tags { get; set; }
     public int TentativeExpiryDays { get; set; }
+    [Required(ErrorMessage = "Base Unit is required.")]
+    [Range(1, long.MaxValue, ErrorMessage = "Base Unit is required.")]
     public long PurchaseUnit { get; set; }
     public long BrandId { get; set; }
     public string? CreatedBy { get; set; }
