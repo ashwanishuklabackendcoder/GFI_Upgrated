@@ -31,47 +31,80 @@ public abstract class ApiClientBase
 
     protected async Task<T?> GetEnvelopeAsync<T>(string url, CancellationToken cancellationToken)
     {
-        await _sessionState.RefreshTokenIfNeededAsync(_httpClient);
-        AddAuthHeader();
-        var response = await _httpClient.GetAsync(url, cancellationToken);
-        
-        await EnsureSuccessAsync(response, cancellationToken);
+        try
+        {
+            await _sessionState.RefreshTokenIfNeededAsync(_httpClient);
+            AddAuthHeader();
+            var response = await _httpClient.GetAsync(url, cancellationToken);
+            
+            await EnsureSuccessAsync(response, cancellationToken);
 
-        var payload = await response.Content.ReadAsStringAsync(cancellationToken);
-        if (string.IsNullOrWhiteSpace(payload)) return default;
+            var payload = await response.Content.ReadAsStringAsync(cancellationToken);
+            if (string.IsNullOrWhiteSpace(payload)) return default;
 
-        var envelope = JsonSerializer.Deserialize<ApiEnvelope<T>>(payload, JsonOptions);
-        return envelope is { Success: true } ? envelope.Data : default;
+            var envelope = JsonSerializer.Deserialize<ApiEnvelope<T>>(payload, JsonOptions);
+            return envelope is { Success: true } ? envelope.Data : default;
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (OperationCanceledException)
+        {
+            throw new ApiException("The request timed out. Please try again.");
+        }
     }
 
     protected async Task<TResponse> PostEnvelopeAsync<TRequest, TResponse>(string url, TRequest request, CancellationToken cancellationToken)
     {
-        await _sessionState.RefreshTokenIfNeededAsync(_httpClient);
-        AddAuthHeader();
-        var response = await _httpClient.PostAsJsonAsync(url, request, cancellationToken);
-        
-        await EnsureSuccessAsync(response, cancellationToken);
+        try
+        {
+            await _sessionState.RefreshTokenIfNeededAsync(_httpClient);
+            AddAuthHeader();
+            var response = await _httpClient.PostAsJsonAsync(url, request, cancellationToken);
+            
+            await EnsureSuccessAsync(response, cancellationToken);
 
-        var payload = await response.Content.ReadAsStringAsync(cancellationToken);
-        if (string.IsNullOrWhiteSpace(payload)) return default!;
+            var payload = await response.Content.ReadAsStringAsync(cancellationToken);
+            if (string.IsNullOrWhiteSpace(payload)) return default!;
 
-        var envelope = JsonSerializer.Deserialize<ApiEnvelope<TResponse>>(payload, JsonOptions);
-        return envelope is { Success: true, Data: not null } ? envelope.Data : default!;
+            var envelope = JsonSerializer.Deserialize<ApiEnvelope<TResponse>>(payload, JsonOptions);
+            return envelope is { Success: true, Data: not null } ? envelope.Data : default!;
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (OperationCanceledException)
+        {
+            throw new ApiException("The request timed out. Please try again.");
+        }
     }
 
     protected async Task<TResponse> DeleteEnvelopeAsync<TResponse>(string url, CancellationToken cancellationToken)
     {
-        await _sessionState.RefreshTokenIfNeededAsync(_httpClient);
-        AddAuthHeader();
-        var response = await _httpClient.DeleteAsync(url, cancellationToken);
-        
-        await EnsureSuccessAsync(response, cancellationToken);
+        try
+        {
+            await _sessionState.RefreshTokenIfNeededAsync(_httpClient);
+            AddAuthHeader();
+            var response = await _httpClient.DeleteAsync(url, cancellationToken);
+            
+            await EnsureSuccessAsync(response, cancellationToken);
 
-        var payload = await response.Content.ReadAsStringAsync(cancellationToken);
-        if (string.IsNullOrWhiteSpace(payload)) return default!;
+            var payload = await response.Content.ReadAsStringAsync(cancellationToken);
+            if (string.IsNullOrWhiteSpace(payload)) return default!;
 
-        var envelope = JsonSerializer.Deserialize<ApiEnvelope<TResponse>>(payload, JsonOptions);
-        return envelope is { Success: true, Data: not null } ? envelope.Data : default!;
+            var envelope = JsonSerializer.Deserialize<ApiEnvelope<TResponse>>(payload, JsonOptions);
+            return envelope is { Success: true, Data: not null } ? envelope.Data : default!;
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (OperationCanceledException)
+        {
+            throw new ApiException("The request timed out. Please try again.");
+        }
     }
 
     protected string BuildQuery(string path, PagedRequest request, params (string key, string? value)[] extraParams)

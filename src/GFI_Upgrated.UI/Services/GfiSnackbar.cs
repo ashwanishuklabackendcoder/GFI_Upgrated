@@ -35,6 +35,14 @@ namespace GFI_Upgrated.UI.Services
             {
                 return true;
             }
+
+            // Suppress operation/task cancellation messages (typically when user navigates away)
+            if (message.Contains("OperationCanceled", StringComparison.OrdinalIgnoreCase) ||
+                message.Contains("operation was canceled", StringComparison.OrdinalIgnoreCase) ||
+                message.Contains("task was canceled", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
             return false;
         }
 
