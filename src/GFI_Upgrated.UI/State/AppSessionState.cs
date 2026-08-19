@@ -54,8 +54,8 @@ public sealed class AppSessionState
             cleanDateStr = cleanDateStr.Split(' ')[0];
         }
 
-        // Try exact parsing matching the API Server's serialization format (dd/MM/yyyy) first
-        string[] formats = { "dd/MM/yyyy", "MM/dd/yyyy", "yyyy-MM-dd", "dd-MM-yyyy", "yyyy/MM/dd", "d/M/yyyy", "M/d/yyyy" };
+        // Try exact parsing matching standardized ISO format (yyyy-MM-dd) first, then try regional formats
+        string[] formats = { "yyyy-MM-dd", "dd/MM/yyyy", "MM/dd/yyyy", "dd-MM-yyyy", "yyyy/MM/dd", "d/M/yyyy", "M/d/yyyy" };
         if (DateTime.TryParseExact(cleanDateStr, formats, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var date))
         {
             return FormatDate(date);
