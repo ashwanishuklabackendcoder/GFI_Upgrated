@@ -52,12 +52,43 @@
                 }
                 else
                 {
-                    @context.Reference
+                    @if (context.TransactionType.Contains("Opening Stock", StringComparison.OrdinalIgnoreCase))
+                    {
+                        <MudChip T="string" Color="Color.Success" Size="Size.Small">Opening Stock</MudChip>
+                    }
+                    else if (context.TransactionType.Contains("Produced", StringComparison.OrdinalIgnoreCase) || context.TransactionType.Contains("Production", StringComparison.OrdinalIgnoreCase))
+                    {
+                        <MudChip T="string" Color="Color.Warning" Size="Size.Small">Production</MudChip>
+                    }
+                    else
+                    {
+                        @context.Reference
+                    }
                 }
             </MudTd>
-            <MudTd DataLabel="Date">@(context.TransactionDate?.ToShortDateString() ?? "N/A")</MudTd>
+            <MudTd DataLabel="Date">@(context.TransactionDate?.ToString("MM/dd/yyyy") ?? "N/A")</MudTd>
             <MudTd DataLabel="Item Name">@context.ItemName</MudTd>
-            <MudTd DataLabel="Transaction Type">@context.TransactionType</MudTd>
+            <MudTd DataLabel="Transaction Type">
+                @if (context.TransactionType.Contains("Opening Stock", StringComparison.OrdinalIgnoreCase))
+                {
+                    <MudChip T="string" Color="Color.Success" Size="Size.Small">@context.TransactionType</MudChip>
+                }
+                else if (context.TransactionType.Contains("Pre-Processing", StringComparison.OrdinalIgnoreCase) || 
+                         context.TransactionType.Contains("Production", StringComparison.OrdinalIgnoreCase) || 
+                         context.TransactionType.Contains("Produced", StringComparison.OrdinalIgnoreCase))
+                {
+                    <MudChip T="string" Color="Color.Warning" Size="Size.Small">@context.TransactionType</MudChip>
+                }
+                else if (context.TransactionType.Contains("Purchased", StringComparison.OrdinalIgnoreCase) || 
+                         context.TransactionType.Contains("Sales", StringComparison.OrdinalIgnoreCase))
+                {
+                    <MudChip T="string" Color="Color.Info" Size="Size.Small">@context.TransactionType</MudChip>
+                }
+                else
+                {
+                    <MudChip T="string" Color="Color.Default" Size="Size.Small">@context.TransactionType</MudChip>
+                }
+            </MudTd>
             <MudTd DataLabel="In Qty" Style="text-align: right;">@(context.InQty > 0 ? $"{context.InQty} {context.UnitName}" : "-")</MudTd>
             <MudTd DataLabel="Out Qty" Style="text-align: right;">@(context.OutQty > 0 ? $"{context.OutQty:F1} {context.UnitName}" : "-")</MudTd>
             <MudTd DataLabel="Value" Style="text-align: right; font-weight: bold;">@context.TotalValue.ToString("N2")</MudTd>

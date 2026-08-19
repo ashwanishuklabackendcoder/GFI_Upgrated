@@ -46,11 +46,28 @@ public sealed class AppSessionState
     public string FormatDate(string? dateStr)
     {
         if (string.IsNullOrWhiteSpace(dateStr)) return string.Empty;
-        if (DateTime.TryParse(dateStr, out var date))
+        
+        // Strip time if present (e.g. "30/01/2027 00:00:00")
+        var cleanDateStr = dateStr.Trim();
+        if (cleanDateStr.Contains(" "))
+        {
+            cleanDateStr = cleanDateStr.Split(' ')[0];
+        }
+
+        // Try exact parsing matching the API Server's serialization format (dd/MM/yyyy) first
+        string[] formats = { "dd/MM/yyyy", "MM/dd/yyyy", "yyyy-MM-dd", "dd-MM-yyyy", "yyyy/MM/dd", "d/M/yyyy", "M/d/yyyy" };
+        if (DateTime.TryParseExact(cleanDateStr, formats, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var date))
         {
             return FormatDate(date);
         }
-        return dateStr;
+
+        // Generic fallback parse if exact formats did not match
+        if (DateTime.TryParse(cleanDateStr, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out date))
+        {
+            return FormatDate(date);
+        }
+
+        return cleanDateStr;
     }
 
     public string FormatCurrency(double amount) => $"{DefaultCurrency} {amount:N2}";
