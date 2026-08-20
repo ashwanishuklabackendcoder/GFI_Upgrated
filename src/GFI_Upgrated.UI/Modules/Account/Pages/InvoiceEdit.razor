@@ -25,30 +25,30 @@
         <DataAnnotationsValidator />
         <MudGrid>
             <MudItem xs="12" md="4">
-                <MudTextField @bind-Value="_invoice.InvoiceNumber" Label="Invoice Number" Required="true" Variant="Variant.Outlined" For="@(() => _invoice.InvoiceNumber)" />
+                <MudTextField Disabled="@(_invoice.IsPaid == true)" @bind-Value="_invoice.InvoiceNumber" Label="Invoice Number" Required="true" Variant="Variant.Outlined" For="@(() => _invoice.InvoiceNumber)" />
             </MudItem>
             <MudItem xs="12" md="4">
-                <SearchableSelect T="long?" Label="Customer" Value="@((long?)_invoice.AccountID)" ValueChanged="@((long? val) => OnCustomerChanged(val ?? 0))" Variant="Variant.Outlined" Required="true" Items="@GetCustomerSelects()" />
+                <SearchableSelect T="long?" Disabled="@(_invoice.IsPaid == true)" Label="Customer" Value="@((long?)_invoice.AccountID)" ValueChanged="@((long? val) => OnCustomerChanged(val ?? 0))" Variant="Variant.Outlined" Required="true" Items="@GetCustomerSelects()" />
             </MudItem>
             <MudItem xs="12" md="4">
-                <MudCheckBox T="bool?" @bind-Value="_invoice.IsPaid" Label="Mark as Paid" Color="Color.Success" />
-            </MudItem>
-
-            <MudItem xs="12" md="4">
-                <MudDatePicker DateFormat="@SessionState.DatePickerFormat" Placeholder="@SessionState.DatePickerFormat" Editable="true" @bind-Date="_invoice.InvoiceDate" Label="@($"Invoice Date ({SessionState.DateFormat})")" Variant="Variant.Outlined" For="@(() => _invoice.InvoiceDate)" />
-            </MudItem>
-            <MudItem xs="12" md="4">
-                <MudDatePicker DateFormat="@SessionState.DatePickerFormat" Placeholder="@SessionState.DatePickerFormat" Editable="true" @bind-Date="_invoice.DueDate" Label="@($"Due Date ({SessionState.DateFormat})")" Variant="Variant.Outlined" For="@(() => _invoice.DueDate)" />
-            </MudItem>
-            <MudItem xs="12" md="4">
-                <SearchableSelect T="string" Label="Status" Value="@_invoice.InvoiceStatus" ValueChanged="@((string val) => { _invoice.InvoiceStatus = val; })" Variant="Variant.Outlined" Items="@GetStatusSelects()" />
+                <MudCheckBox Disabled="@(_invoice.IsPaid == true)" T="bool?" @bind-Value="_invoice.IsPaid" Label="Mark as Paid" Color="Color.Success" />
             </MudItem>
 
             <MudItem xs="12" md="4">
-                <SearchableSelect T="long?" Label="Currency" Value="@_invoice.CurrencyID" ValueChanged="OnCurrencyChanged" Variant="Variant.Outlined" Items="@GetCurrencySelects()" />
+                <MudDatePicker Disabled="@(_invoice.IsPaid == true)" DateFormat="@SessionState.DatePickerFormat" Placeholder="@SessionState.DatePickerFormat" Editable="true" @bind-Date="_invoice.InvoiceDate" Label="@($"Invoice Date ({SessionState.DateFormat})")" Variant="Variant.Outlined" For="@(() => _invoice.InvoiceDate)" />
             </MudItem>
             <MudItem xs="12" md="4">
-                <MudNumericField @bind-Value="_invoice.CurrencyConversion" Label="Exchange Rate (to Base)" HideSpinButtons="true" Variant="Variant.Outlined" />
+                <MudDatePicker Disabled="@(_invoice.IsPaid == true)" DateFormat="@SessionState.DatePickerFormat" Placeholder="@SessionState.DatePickerFormat" Editable="true" @bind-Date="_invoice.DueDate" Label="@($"Due Date ({SessionState.DateFormat})")" Variant="Variant.Outlined" For="@(() => _invoice.DueDate)" />
+            </MudItem>
+            <MudItem xs="12" md="4">
+                <SearchableSelect T="string" Disabled="@(_invoice.IsPaid == true)" Label="Status" Value="@_invoice.InvoiceStatus" ValueChanged="@((string val) => { _invoice.InvoiceStatus = val; })" Variant="Variant.Outlined" Items="@GetStatusSelects()" />
+            </MudItem>
+
+            <MudItem xs="12" md="4">
+                <SearchableSelect T="long?" Disabled="@(_invoice.IsPaid == true)" Label="Currency" Value="@_invoice.CurrencyID" ValueChanged="OnCurrencyChanged" Variant="Variant.Outlined" Items="@GetCurrencySelects()" />
+            </MudItem>
+            <MudItem xs="12" md="4">
+                <MudNumericField Disabled="@(_invoice.IsPaid == true)" @bind-Value="_invoice.CurrencyConversion" Label="Exchange Rate (to Base)" HideSpinButtons="true" Variant="Variant.Outlined" />
             </MudItem>
             <MudItem xs="12" md="4" Class="d-flex align-center">
                 <MudText Typo="Typo.subtitle1" Style="font-weight: bold;">
@@ -57,15 +57,18 @@
             </MudItem>
 
             <MudItem xs="12">
-                <MudTextField @bind-Value="_invoice.Remarks" Label="Remarks / Payment Instructions" Variant="Variant.Outlined" Lines="2" />
+                <MudTextField Disabled="@(_invoice.IsPaid == true)" @bind-Value="_invoice.Remarks" Label="Remarks / Payment Instructions" Variant="Variant.Outlined" Lines="2" />
             </MudItem>
 
             <MudItem xs="12" Class="mt-4">
                 <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-2">
                     <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">Invoice Line Items</MudText>
-                    <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="AddInvoiceItem" Size="Size.Small">
-                        Add Line Item
-                    </MudButton>
+                    @if (_invoice.IsPaid != true)
+                    {
+                        <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="AddInvoiceItem" Size="Size.Small">
+                            Add Line Item
+                        </MudButton>
+                    }
                 </MudStack>
 
                 <MudTable Items="@_invoice.Items" Hover="true" Dense="true" Striped="true" Bordered="true" Elevation="0" Class="mb-4">
@@ -81,31 +84,41 @@
                     </HeaderContent>
                     <RowTemplate Context="row">
                         <MudTd DataLabel="Item (SKU)">
-                            <SearchableSelect T="RawMaterialDto" Value="@(GetItemById(row.ItemId))" ValueChanged="@(async (RawMaterialDto val) => await OnItemChanged(row, val?.ItemId ?? 0))" Variant="Variant.Outlined" Dense="true" Items="@GetItemSelects()" />
+                            <SearchableSelect T="RawMaterialDto" Disabled="@(_invoice.IsPaid == true)" Value="@(GetItemById(row.ItemId))" ValueChanged="@(async (RawMaterialDto val) => await OnItemChanged(row, val?.ItemId ?? 0))" Variant="Variant.Outlined" Dense="true" Items="@GetItemSelects()" />
                         </MudTd>
                         <MudTd DataLabel="Related Order">
-                            <SearchableSelect T="long?" Value="@row.OrderID" ValueChanged="@((long? val) => OnOrderChanged(row, val ?? 0))" Variant="Variant.Outlined" Dense="true" Items="@GetOrderSelects()" />
+                            <SearchableSelect T="long?" Disabled="@(_invoice.IsPaid == true)" Value="@row.OrderID" ValueChanged="@((long? val) => OnOrderChanged(row, val ?? 0))" Variant="Variant.Outlined" Dense="true" Items="@GetOrderSelects()" />
                         </MudTd>
                         <MudTd DataLabel="Qty" Style="text-align: center;">
-                            <MudNumericField T="double" @bind-Value="row.Quantity" Variant="Variant.Outlined" Dense="true" Margin="Margin.Dense" Min="1.0" Max="@(GetMaxQuantity(row) ?? double.MaxValue)" Style="text-align: center;" />
+                            <MudNumericField T="double" Disabled="@(_invoice.IsPaid == true)" @bind-Value="row.Quantity" Variant="Variant.Outlined" Dense="true" Margin="Margin.Dense" Min="1.0" Max="@(GetMaxQuantity(row) ?? double.MaxValue)" Style="text-align: center;" />
                         </MudTd>
                         <MudTd DataLabel="Unit Price" Style="text-align: right;">
-                            <MudNumericField @bind-Value="row.UnitPrice" Variant="Variant.Outlined" Dense="true" Margin="Margin.Dense" Min="0.0" HideSpinButtons="true" Style="text-align: right;" />
+                            <MudNumericField Disabled="@(_invoice.IsPaid == true)" @bind-Value="row.UnitPrice" Variant="Variant.Outlined" Dense="true" Margin="Margin.Dense" Min="0.0" HideSpinButtons="true" Style="text-align: right;" />
                         </MudTd>
                         <MudTd DataLabel="Amount" Style="text-align: right; font-weight: bold;">
                             @((row.Quantity * row.UnitPrice).ToString("N2"))
                         </MudTd>
                         <MudTd DataLabel="Print Heading">
-                            <MudTextField @bind-Value="row.PrintHeading" Variant="Variant.Outlined" Dense="true" Margin="Margin.Dense" />
+                            <MudTextField Disabled="@(_invoice.IsPaid == true)" @bind-Value="row.PrintHeading" Variant="Variant.Outlined" Dense="true" Margin="Margin.Dense" />
                         </MudTd>
                         <MudTd DataLabel="Batch No.">
-                            <SearchableSelect T="ItemStockByBatchForBOMDto" Value="@(GetBatchById(row.ItemId, row.ItemStockByBatchId))" ValueChanged="@(async (ItemStockByBatchForBOMDto val) => await OnBatchChanged(row, val))" Variant="Variant.Outlined" Dense="true" Items="@GetBatchSelects(row.ItemId)" />
+                            @if (_invoice.IsPaid == true)
+                            {
+                                <MudText Typo="Typo.body2">@row.BatchNumber</MudText>
+                            }
+                            else
+                            {
+                                <SearchableSelect T="ItemStockByBatchForBOMDto" Value="@(GetBatchById(row.ItemId, row.ItemStockByBatchId))" ValueChanged="@(async (ItemStockByBatchForBOMDto val) => await OnBatchChanged(row, val))" Variant="Variant.Outlined" Dense="true" Items="@GetBatchSelects(row.ItemId)" />
+                            }
                             @if(row.CostPrice.HasValue) {
                                 <MudText Typo="Typo.caption" Color="Color.Success">Cost: @(_selectedCurrencySymbol ?? "$") @(row.CostPrice.Value.ToString("N2"))</MudText>
                             }
                         </MudTd>
                         <MudTd DataLabel="Action" Style="text-align: center;">
-                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => RemoveInvoiceItem(row))" />
+                            @if (_invoice.IsPaid != true)
+                            {
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => RemoveInvoiceItem(row))" />
+                            }
                         </MudTd>
                     </RowTemplate>
                 </MudTable>
@@ -113,7 +126,10 @@
 
             <MudItem xs="12" Class="pt-4">
                 <MudStack Row="true" Spacing="2">
-                    <MudButton ButtonType="ButtonType.Submit" Color="Color.Primary" Variant="Variant.Filled" Disabled="_busy">Save</MudButton>
+                    @if (_invoice.IsPaid != true)
+                    {
+                        <MudButton ButtonType="ButtonType.Submit" Color="Color.Primary" Variant="Variant.Filled" Disabled="_busy">Save</MudButton>
+                    }
                     @if (Id > 0)
                     {
                         <MudButton Variant="Variant.Filled" Color="Color.Info" StartIcon="@Icons.Material.Filled.Print" OnClick="PrintInvoice" Disabled="_busy">Print Invoice</MudButton>
@@ -190,21 +206,27 @@
                     var c = _currencies.FirstOrDefault(curr => curr.CurrencyID == _invoice.CurrencyID);
                     _selectedCurrencySymbol = c?.CurrencySymbol ?? "$";
 
-                    // Preload batches for existing items so the dropdown populates
-                    foreach (var item in _invoice.Items)
+                    if (_invoice.IsPaid != true)
                     {
-                        if (item.ItemId > 0 && !_itemBatches.ContainsKey(item.ItemId))
+                        // Preload batches for existing items so the dropdown populates for editable invoices
+                        foreach (var item in _invoice.Items)
                         {
-                            var batches = await ApiClient.GetItemStockByItemIDBatchListAsync(item.ItemId);
-                            _itemBatches[item.ItemId] = batches.ToList();
+                            if (item.ItemId > 0 && !_itemBatches.ContainsKey(item.ItemId))
+                            {
+                                var batches = await ApiClient.GetItemStockByItemIDBatchListAsync(item.ItemId);
+                                _itemBatches[item.ItemId] = batches.ToList();
+                            }
                             
                             // Attempt to auto-select the batch if we have a BatchNumber matching
-                            if (!string.IsNullOrEmpty(item.BatchNumber) && item.ItemStockByBatchId == null)
+                            if (item.ItemId > 0 && !string.IsNullOrEmpty(item.BatchNumber) && item.ItemStockByBatchId == null)
                             {
-                                var matchingBatch = _itemBatches[item.ItemId].FirstOrDefault(b => b.BatchNo == item.BatchNumber);
-                                if (matchingBatch != null)
+                                if (_itemBatches.TryGetValue(item.ItemId, out var batchList))
                                 {
-                                    item.ItemStockByBatchId = matchingBatch.ItemStockByBatchID;
+                                    var matchingBatch = batchList.FirstOrDefault(b => b.BatchNo == item.BatchNumber);
+                                    if (matchingBatch != null)
+                                    {
+                                        item.ItemStockByBatchId = matchingBatch.ItemStockByBatchID;
+                                    }
                                 }
                             }
                         }
@@ -261,10 +283,20 @@
         {
             row.ItemName = item.ItemName;
             
+            // Clear out old batch data when changing items
+            row.ItemStockByBatchId = null;
+            row.BatchNumber = null;
+            row.CostPrice = null;
+            
             if (!_itemBatches.ContainsKey(val))
             {
                 var batches = await ApiClient.GetItemStockByItemIDBatchListAsync(val);
                 _itemBatches[val] = batches.ToList();
+            }
+            
+            if (_itemBatches[val] == null || _itemBatches[val].Count == 0)
+            {
+                Snackbar.Add("Batch stock not available for the selected item.", Severity.Warning);
             }
         }
     }

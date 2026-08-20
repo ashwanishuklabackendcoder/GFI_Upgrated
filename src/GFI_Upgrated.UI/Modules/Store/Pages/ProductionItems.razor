@@ -9,23 +9,35 @@
 @inject AppSessionState SessionState
 @inject IJSRuntime JS
 
-<PageTitle>Manage Materials</PageTitle>
+<PageTitle>Manage Ingredients</PageTitle>
 
 <MudPaper Class="pa-4">
     <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
         <MudStack Spacing="0">
-            <MudText Typo="Typo.h5">Material Consumption</MudText>
-            @* <MudText Typo="Typo.body2" Color="Color.Secondary">Record raw materials used for Production Run #@HeaderId</MudText> *@
+            <MudText Typo="Typo.h5">Ingredient Consumption</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">Record raw materials used for Production Run #@HeaderId</MudText>
         </MudStack>
-        <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.ArrowBack" OnClick="OnBack">
-            Back
-        </MudButton>
+        <MudStack Row="true" Spacing="2">
+            <MudButton Variant="Variant.Outlined" Color="Color.Info" StartIcon="@Icons.Material.Filled.Edit" OnClick="@(() => Navigation.NavigateTo($"/store/production/edit/{HeaderId}"))">
+                Edit Header
+            </MudButton>
+            <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.ArrowBack" OnClick="OnBack">
+                Back
+            </MudButton>
+        </MudStack>
     </MudStack>
 
     @if (_header != null)
     {
         <MudAlert Severity="Severity.Info" Class="mb-4">
-            <b>Produced:</b> @_header.BomName | <b>BOM Batches:</b> @_header.BomQty.ToString("0.####") | <b>Batch No:</b> @_header.BatchNo | <b>Warehouse:</b> @_header.WarehouseName
+            <b>Produced:</b> @_header.SkuName | <b>Qty Made:</b> @_header.FillingBottles @_header.FillingUnitName | <b>BOM:</b> @_header.BomName (@_header.BomQty.ToString("0.####"))
+        </MudAlert>
+    }
+
+    @if (_hasMissingStock)
+    {
+        <MudAlert Severity="Severity.Warning" Class="mb-4">
+            <b>Warning:</b> One or more required ingredients do not have sufficient stock. Please review the list and adjust quantities/batches manually.
         </MudAlert>
     }
 
@@ -124,6 +136,7 @@
 
     private bool _saving;
     private bool _finalizing;
+    private bool _hasMissingStock;
 
     private sealed class ConsumptionRow
     {
@@ -164,6 +177,7 @@
             _allRawMaterials = (await ApiClient.GetItemsForBomLookupAsync(null)).Where(x => x.ItemTypeId == 2 || x.ItemTypeId == 3).ToList();
 
             _rows.Clear();
+            _hasMissingStock = false;
 
             if (_savedItems.Any())
             {
@@ -259,11 +273,12 @@
                         // If there is still remainder needed, add an extra row with the remainder
                         if (remainingNeeded > 0)
                         {
+                            _hasMissingStock = true;
                             var row = new ConsumptionRow
                             {
                                 ItemID = recipe.ItemID,
                                 ItemName = recipe.ItemName,
-                                Quantity = remainingNeeded,
+                                Quantity = 0,
                                 RecipeQty = neededQty,
                                 AvailableBatches = batches
                             };
@@ -277,12 +292,13 @@
                     }
                     else
                     {
+                        _hasMissingStock = true;
                         // No batches available, add a single row with needed qty and empty batch selection
                         var row = new ConsumptionRow
                         {
                             ItemID = recipe.ItemID,
                             ItemName = recipe.ItemName,
-                            Quantity = neededQty,
+                            Quantity = 0,
                             RecipeQty = neededQty,
                             AvailableBatches = batches
                         };
@@ -489,6 +505,10 @@
 
     private async Task OnFinalizeAsync()
     {
+        bool confirm = await JS.InvokeAsync<bool>("confirm", "Are you sure you want to finalize stock? If you finalize stock then you cannot edit and modify stock again.");
+
+        if (!confirm) return;
+
         var saved = await SaveConsumptionAsync();
         if (!saved) return;
 
