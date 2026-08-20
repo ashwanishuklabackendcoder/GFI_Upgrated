@@ -32,13 +32,13 @@ else
         <MudText Typo="Typo.h5" Color="Color.Primary" Class="mb-4">@_header.ItemName</MudText>
         <MudGrid>
             <MudItem xs="12" md="6">
-                <MudTextField T="string" Label="Processing Date" Value="@FormatDate(_header.ProcessingDate)" ReadOnly="true" />
+                <MudTextField T="string" Label="Processing Date" Value="@FormatDate(_header.ProcessingDate)" ReadOnly="true" Style="font-size:12px!important;"/>
                 <MudTextField T="string" Label="Batch Number Made" Value="@_header.BatchNumberMade" ReadOnly="true" />
                 <MudTextField T="string" Label="Process Employees" Value="@_employeeNames" ReadOnly="true" />
                 <MudTextField T="string" Label="Warehouse" Value="@_warehouseName" ReadOnly="true" />
             </MudItem>
             <MudItem xs="12" md="6">
-                <MudTextField T="string" Label="BOM / Product Name" Value="@_bomName" ReadOnly="true" />
+                <MudTextField T="string" Label="BOM Name" Value="@_bomName" ReadOnly="true" />
                 <MudTextField T="string" Label="Quantity Made" Value="@($"{_header.QuantityMade} {_header.UnitName}")" ReadOnly="true" />
                 <MudTextField T="string" Label="Expiry Date" Value="@FormatDate(_header.ExpiryDate)" ReadOnly="true" />
                 <MudTextField T="string" Label="Remarks" Value="@_header.Remarks" ReadOnly="true" />
@@ -48,7 +48,7 @@ else
     </MudPaper>
 
     <MudPaper Class="pa-4">
-        <MudText Typo="Typo.h6" Class="mb-4">Ingredients / Stock Used as of @FormatDate(_header.ProcessingDate)</MudText>
+        @* <MudText Typo="Typo.h6" Class="mb-4">Ingredients / Stock Used as of @FormatDate(_header.ProcessingDate)</MudText> *@
         <MudTable Items="_items" Hover="true" Dense="true" Striped="true" Bordered="true">
             <HeaderContent>
                 <MudTh>Date</MudTh>
@@ -57,13 +57,26 @@ else
                 <MudTh>Supplier</MudTh>
                 <MudTh Style="text-align: right;">Quantity Used</MudTh>
                 <MudTh Style="text-align: right;">Amount (SRD)</MudTh>
-                <MudTh>Description</MudTh>
+                <MudTh>Remarks</MudTh>
             </HeaderContent>
             <RowTemplate>
                 <MudTd DataLabel="Date">@(context.TransactionDate?.ToString("MM/dd/yyyy") ?? "N/A")</MudTd>
                 <MudTd DataLabel="Item Name">@context.ItemName</MudTd>
                 <MudTd DataLabel="Batch No">@context.BatchNo</MudTd>
-                <MudTd DataLabel="Supplier">@context.SupplierName</MudTd>
+                <MudTd DataLabel="Supplier">
+                    @if (context.StockById == 3)
+                    {
+                        <MudChip T="string" Color="Color.Success" Size="Size.Small">Opening Stock</MudChip>
+                    }
+                    else if (context.StockById == 2 || context.StockById == 4)
+                    {
+                        <MudChip T="string" Color="Color.Warning" Size="Size.Small">PreProcessing</MudChip>
+                    }
+                    else
+                    {
+                        @context.SupplierName
+                    }
+                </MudTd>
                 <MudTd DataLabel="Quantity Used" Style="text-align: right;">@context.Quantity @context.UnitName</MudTd>
                 <MudTd DataLabel="Amount" Style="text-align: right;">@context.Amount.ToString("N2")</MudTd>
                 <MudTd DataLabel="Description">@context.Description</MudTd>
@@ -87,12 +100,7 @@ else
 
     private string FormatDate(string? dateString)
     {
-        if (string.IsNullOrWhiteSpace(dateString)) return string.Empty;
-        if (DateTime.TryParse(dateString, out var dt))
-        {
-            return dt.ToString("MM/dd/yyyy");
-        }
-        return dateString;
+        return SessionState.FormatDate(dateString);
     }
 
     protected override async Task OnInitializedAsync()

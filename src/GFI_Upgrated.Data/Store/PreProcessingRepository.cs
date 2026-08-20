@@ -138,7 +138,42 @@ public sealed class PreProcessingRepository : IPreProcessingRepository
         try
         {
             var table = await ExecuteDataTableAsync("Inv_ItemStockUsedById", parameters, cancellationToken);
-            return table.AsEnumerable().Select(MapPreProcessingItem).ToList();
+            var list = table.AsEnumerable().Select(MapPreProcessingItem).ToList();
+
+            if (list.Any())
+            {
+                var batchIds = list.Select(x => x.ItemStockByBatchId).Distinct().ToList();
+                var batchSources = new Dictionary<long, int>();
+
+                await using (var connection = new SqlConnection(_connectionString))
+                {
+                    await connection.OpenAsync(cancellationToken);
+                    var batchIdsCsv = string.Join(",", batchIds);
+                    var query = $"SELECT ItemStockByBatchId, StockById FROM dbo.Inv_ItemStockByBatch WHERE ItemStockByBatchId IN ({batchIdsCsv})";
+                    await using (var cmd = new SqlCommand(query, connection))
+                    {
+                        await using (var reader = await cmd.ExecuteReaderAsync(cancellationToken))
+                        {
+                            while (await reader.ReadAsync(cancellationToken))
+                            {
+                                var id = Convert.ToInt64(reader["ItemStockByBatchId"]);
+                                var source = Convert.ToInt32(reader["StockById"]);
+                                batchSources[id] = source;
+                            }
+                        }
+                    }
+                }
+
+                foreach (var item in list)
+                {
+                    if (batchSources.TryGetValue(item.ItemStockByBatchId, out var source))
+                    {
+                        item.StockById = source;
+                    }
+                }
+            }
+
+            return list;
         }
         catch (Exception ex)
         {

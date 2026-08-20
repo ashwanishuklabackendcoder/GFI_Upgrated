@@ -36,14 +36,13 @@
                     </MudItem>
 
                     <MudItem xs="12" md="4">
-                        <MudAutocomplete Clearable="true"           MaxItems="1000" T="ItemCategoryDto" Label="Category" Value="@(_categories.FirstOrDefault(x => x.ItemCatId == _model.ItemCatId))" ValueChanged="@((ItemCategoryDto val) => { _model.ItemCatId = val?.ItemCatId ?? 0; })" SearchFunc="@SearchCategories" ToStringFunc="@(x => x?.ItemCatName ?? "")" Variant="Variant.Outlined" Required="true" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
-                        <ValidationMessage For="@(() => _model.ItemCatId)" />
+                        <MudAutocomplete Clearable="true"           MaxItems="1000" T="ItemCategoryDto" Label="Category" Value="@(_categories.FirstOrDefault(x => x.ItemCatId == _model.ItemCatId))" ValueChanged="@((ItemCategoryDto val) => { _model.ItemCatId = val?.ItemCatId ?? 0; _editContext?.NotifyFieldChanged(new Microsoft.AspNetCore.Components.Forms.FieldIdentifier(_model, nameof(_model.ItemCatId))); })" SearchFunc="@SearchCategories" ToStringFunc="@(x => x?.ItemCatName ?? "")" Variant="Variant.Outlined" Required="true" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" Error="@HasError(nameof(_model.ItemCatId))" ErrorText="@GetErrorText(nameof(_model.ItemCatId))" />
                     </MudItem>
                             <MudItem xs="12" md="4">
                                 <MudNumericField @bind-Value="_model.TentativeExpiryDays" Label="Tentative Expiry (Days)" Variant="Variant.Outlined" Min="0" />
                             </MudItem>
                     <MudItem xs="12" md="4">
-                        <MudAutocomplete Clearable="true"           MaxItems="1000" T="UnitDto" Label="Base Unit" Value="@(_units.FirstOrDefault(x => x.UnitId == _model.PurchaseUnit))" ValueChanged="@((UnitDto val) => { _model.PurchaseUnit = val?.UnitId ?? 0; })" SearchFunc="@SearchBaseUnits" ToStringFunc="@(x => x?.UnitName ?? "")" Variant="Variant.Outlined" Required="true" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
+                        <MudAutocomplete Clearable="true"           MaxItems="1000" T="UnitDto" Label="Base Unit" Value="@(_units.FirstOrDefault(x => x.UnitId == _model.PurchaseUnit))" ValueChanged="@((UnitDto val) => { _model.PurchaseUnit = val?.UnitId ?? 0; _editContext?.NotifyFieldChanged(new Microsoft.AspNetCore.Components.Forms.FieldIdentifier(_model, nameof(_model.PurchaseUnit))); })" SearchFunc="@SearchBaseUnits" ToStringFunc="@(x => x?.UnitName ?? "")" Variant="Variant.Outlined" Required="true" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" Error="@HasError(nameof(_model.PurchaseUnit))" ErrorText="@GetErrorText(nameof(_model.PurchaseUnit))" />
                     </MudItem>
 
                    @*  <MudItem xs="12" md="4">
@@ -57,8 +56,7 @@
 
 
                     <MudItem xs="12" md="4">
-                        <MudAutocomplete Clearable="true"   MaxItems="1000" T="StatusDto" Label="Status" Value="@(_statuses.FirstOrDefault(x => x.StatusId == _model.StatusId))" ValueChanged="@((StatusDto val) => { _model.StatusId = (int)(val?.StatusId ?? 0); })" SearchFunc="@SearchStatuses" ToStringFunc="@(x => x?.StatusName ?? "")" Variant="Variant.Outlined" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
-                        <ValidationMessage For="@(() => _model.StatusId)" />
+                        <MudAutocomplete Clearable="true"   MaxItems="1000" T="StatusDto" Label="Status" Value="@(_statuses.FirstOrDefault(x => x.StatusId == _model.StatusId))" ValueChanged="@((StatusDto val) => { _model.StatusId = (int)(val?.StatusId ?? 0); _editContext?.NotifyFieldChanged(new Microsoft.AspNetCore.Components.Forms.FieldIdentifier(_model, nameof(_model.StatusId))); })" SearchFunc="@SearchStatuses" ToStringFunc="@(x => x?.StatusName ?? "")" Variant="Variant.Outlined" Required="true" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" Error="@HasError(nameof(_model.StatusId))" ErrorText="@GetErrorText(nameof(_model.StatusId))" />
                     </MudItem>
                   
                           @*   <MudItem xs="12" md="4">
@@ -134,7 +132,7 @@
                             <MudAutocomplete Clearable="true"           MaxItems="1000" T="AccountLookupDto" Label="Supplier" Value="@(_accounts.FirstOrDefault(x => x.AccountId == _vendorModel.VendorAccountId))" ValueChanged="@((AccountLookupDto val) => { _vendorModel.VendorAccountId = (int)(val?.AccountId ?? 0); })" SearchFunc="@SearchAccounts" ToStringFunc="@(x => x?.AccountName ?? "")" Variant="Variant.Outlined" Required="true" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
                         </MudItem>
                         <MudItem xs="12" md="4">
-                            <MudNumericField @bind-Value="_vendorModel.PurchasePrice" Label="Purchase Price" Variant="Variant.Outlined" Format="N2" Min="0" />
+                            <MudNumericField @bind-Value="_vendorModel.PurchasePrice" Label="Purchase Price" Variant="Variant.Outlined" Format="N2" Min="0" Max="99999999.99" />
                         </MudItem>
                         <MudItem xs="12" md="4">
                             <MudAutocomplete Clearable="true"           MaxItems="1000" T="CurrencyLookupDto" Label="Currency" Value="@(_currencies.FirstOrDefault(x => x.CurrencyId == _vendorModel.CurrencyId))" ValueChanged="@((CurrencyLookupDto val) => { _vendorModel.CurrencyId = val?.CurrencyId ?? 0; })" SearchFunc="@SearchCurrencies" ToStringFunc="@(x => x?.CurrencyName ?? "")" Variant="Variant.Outlined" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
@@ -536,6 +534,25 @@
             return false;
         }
 
+        if (_details.MaximumQuantity > 0 || _details.CriticalLevelQuantity > 0 || _details.ReorderLevelQuantity > 0)
+        {
+            if (_details.MaximumQuantity <= 0)
+            {
+                Snackbar.Add("Maximum Quantity must be greater than 0 if critical or reorder levels are set.", Severity.Warning);
+                return false;
+            }
+            if (_details.CriticalLevelQuantity > _details.MaximumQuantity)
+            {
+                Snackbar.Add("Critical Level Quantity cannot exceed Maximum Quantity.", Severity.Warning);
+                return false;
+            }
+            if (_details.ReorderLevelQuantity >= _details.MaximumQuantity)
+            {
+                Snackbar.Add("Reorder Level Quantity must be less than Maximum Quantity.", Severity.Warning);
+                return false;
+            }
+        }
+
         _savingDetails = true;
         try
         {
@@ -563,9 +580,21 @@
             return false;
         }
 
+        if (_vendors.Any(v => v.VendorAccountId == _vendorModel.VendorAccountId && v.ItemVendorId != _vendorModel.ItemVendorId))
+        {
+            Snackbar.Add("Supplier already exists in the supplier list.", Severity.Warning);
+            return false;
+        }
+
         if (_vendorModel.PurchasePrice < 0)
         {
             Snackbar.Add("Purchase price cannot be negative.", Severity.Warning);
+            return false;
+        }
+
+        if (_vendorModel.PurchasePrice > 99999999.99)
+        {
+            Snackbar.Add("Purchase price cannot exceed 99,999,999.99.", Severity.Warning);
             return false;
         }
 
@@ -805,6 +834,20 @@
     {
         if (string.IsNullOrEmpty(value) || _warehouses.Any(x => (x.WarehouseName ?? "").Equals(value, StringComparison.OrdinalIgnoreCase))) return _warehouses;
         return _warehouses.Where(x => (x.WarehouseName ?? "").Contains(value, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private bool HasError(string fieldName)
+    {
+        if (_editContext == null) return false;
+        var fieldIdentifier = new Microsoft.AspNetCore.Components.Forms.FieldIdentifier(_model, fieldName);
+        return _editContext.GetValidationMessages(fieldIdentifier).Any();
+    }
+
+    private string GetErrorText(string fieldName)
+    {
+        if (_editContext == null) return "";
+        var fieldIdentifier = new Microsoft.AspNetCore.Components.Forms.FieldIdentifier(_model, fieldName);
+        return _editContext.GetValidationMessages(fieldIdentifier).FirstOrDefault() ?? "";
     }
 }
 
