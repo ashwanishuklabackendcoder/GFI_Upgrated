@@ -5,7 +5,7 @@
 @inject AccountApiClient ApiClient
 @inject StoreApiClient StoreApiClient
 @inject NavigationManager Navigation
-@inject AppSessionState SessionState
+@inject GFI_Upgrated.UI.State.AppSessionState SessionState
 @inject IJSRuntime JS
 @inject ISnackbar Snackbar
 
@@ -115,10 +115,10 @@ else
                                 @item.Quantity
                             </td>
                             <td style="padding: 12px 4px; text-align: right; color: #333; vertical-align: top;">
-                                @(_selectedCurrencySymbol ?? "$") @item.UnitPrice.ToString("N2")
+                                @(_selectedCurrencySymbol ?? "$") @SessionState.FormatNumber(item.UnitPrice)
                             </td>
                             <td style="padding: 12px 4px; text-align: right; font-weight: 600; color: #1a1a1a; vertical-align: top;">
-                                @(_selectedCurrencySymbol ?? "$") @((item.Quantity * item.UnitPrice).ToString("N2"))
+                                @(_selectedCurrencySymbol ?? "$") @SessionState.FormatNumber((item.Quantity * item.UnitPrice))
                             </td>
                         </tr>
                     }
@@ -138,7 +138,7 @@ else
             <div style="width: 300px;">
                 <div style="display: flex; justify-content: space-between; padding: 8px 4px; font-size: 13px; color: #555;">
                     <span>Subtotal:</span>
-                    <span>@(_selectedCurrencySymbol ?? "$") @(_subtotal.ToString("N2"))</span>
+                    <span>@(_selectedCurrencySymbol ?? "$") @(SessionState.FormatNumber(_subtotal))</span>
                 </div>
                 @if (_invoice.CurrencyConversion.HasValue && _invoice.CurrencyConversion.Value != 1.0)
                 {
@@ -149,7 +149,7 @@ else
                 }
                 <div style="display: flex; justify-content: space-between; padding: 12px 4px; font-size: 16px; font-weight: 800; color: #1a1a1a; border-top: 2px solid #1a1a1a; margin-top: 8px;">
                     <span>Total Due:</span>
-                    <span>@(_selectedCurrencySymbol ?? "$") @(_grandTotal.ToString("N2"))</span>
+                    <span>@(_selectedCurrencySymbol ?? "$") @(SessionState.FormatNumber(_grandTotal))</span>
                 </div>
             </div>
         </div>
@@ -288,4 +288,5 @@ else
         return "$";
     }
 }
+
 

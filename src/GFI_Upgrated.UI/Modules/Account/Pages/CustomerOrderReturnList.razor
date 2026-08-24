@@ -5,7 +5,7 @@
 @inject AccountApiClient ApiClient
 @inject StoreApiClient StoreApiClient
 @inject NavigationManager Navigation
-@inject AppSessionState SessionState
+@inject GFI_Upgrated.UI.State.AppSessionState SessionState
 @inject IJSRuntime JS
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
@@ -48,7 +48,7 @@
                 <MudTd DataLabel="Customer / Account">@context.AccountName</MudTd>
                 <MudTd DataLabel="Item Name">@context.ItemName</MudTd>
                 <MudTd DataLabel="Batch Number">@context.BatchNo</MudTd>
-                <MudTd DataLabel="Quantity Returned">@context.Quantity.ToString("N2")</MudTd>
+                <MudTd DataLabel="Quantity Returned">@SessionState.FormatNumber(context.Quantity)</MudTd>
                 <MudTd DataLabel="Return Reason">@context.ReturnReason</MudTd>
                 <MudTd DataLabel="Action" Style="text-align: center;">
                     @if (_canDelete)
@@ -398,4 +398,5 @@ else
 
 
 }
+
 

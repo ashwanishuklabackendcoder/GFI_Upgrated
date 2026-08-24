@@ -8,7 +8,7 @@
 @inject StoreApiClient ApiClient
 @inject ISnackbar Snackbar
 @inject NavigationManager Navigation
-@inject AppSessionState SessionState
+@inject GFI_Upgrated.UI.State.AppSessionState SessionState
 @inject IJSRuntime JS
 
 <PageTitle>Recipe (BOM)</PageTitle>
@@ -23,7 +23,7 @@
 
     <MudGrid Class="mb-4">
         <MudItem xs="12" md="6">
-            <MudTextField T="string" Value="@_search" ValueChanged="@OnSearchTextChanged" Placeholder="Search by Recipe name or Product..." Variant="Variant.Outlined" Immediate="true" Clearable="true" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" OnClearButtonClick="OnSearch" />
+            <MudTextField T="string" Value="@_search" ValueChanged="@OnSearchTextChanged" Placeholder="Search by Recipe name, Product, or Ingredient name..." Variant="Variant.Outlined" Immediate="true" Clearable="true" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" OnClearButtonClick="OnSearch" />
         </MudItem>
         <MudItem xs="12" md="3">
             <SearchableSelect T="int?" Value="@_itemTypeId" ValueChanged="OnItemTypeFilterChanged" Label="Product Type" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter" Clearable="true" Items="_productTypes" />
@@ -48,7 +48,7 @@
             <MudTd DataLabel="Parent">@context.ItemName</MudTd>
             <MudTd DataLabel="Yield" Style="text-align: right;">@context.Quantity</MudTd>
             <MudTd DataLabel="Unit">@context.UnitName</MudTd>
-            <MudTd DataLabel="Expenses" Style="text-align: right;">@context.ExtraExpensesPerPiece.ToString("N2")</MudTd>
+            <MudTd DataLabel="Expenses" Style="text-align: right;">@SessionState.FormatNumber(context.ExtraExpensesPerPiece)</MudTd>
             <MudTd DataLabel="Status" Style="text-align: center;">
                 <MudSwitch T="bool" Value="@context.IsActive" ValueChanged="@((bool val) => ToggleStatusAsync(context, val))" Color="Color.Success" UnCheckedColor="Color.Error" Disabled="!_canUpdate" />
             </MudTd>
@@ -217,4 +217,5 @@
         }
     }
 }
+
 

@@ -7,7 +7,7 @@
 @inject AccountApiClient ApiClient
 @inject StoreApiClient StoreApiClient
 @inject ISnackbar Snackbar
-@inject AppSessionState SessionState
+@inject GFI_Upgrated.UI.State.AppSessionState SessionState
 @inject NavigationManager Navigation
 
 <PageTitle>@_title</PageTitle>
@@ -52,7 +52,7 @@
             </MudItem>
             <MudItem xs="12" md="4" Class="d-flex align-center">
                 <MudText Typo="Typo.subtitle1" Style="font-weight: bold;">
-                    Total Due: @(_selectedCurrencySymbol ?? "$") @(CalculateTotalAmount().ToString("N2"))
+                    Total Due: @(_selectedCurrencySymbol ?? "$") @SessionState.FormatNumber(CalculateTotalAmount())
                 </MudText>
             </MudItem>
 
@@ -96,7 +96,7 @@
                             <MudNumericField Disabled="@(_invoice.IsPaid == true)" @bind-Value="row.UnitPrice" Variant="Variant.Outlined" Dense="true" Margin="Margin.Dense" Min="0.0" HideSpinButtons="true" Style="text-align: right;" />
                         </MudTd>
                         <MudTd DataLabel="Amount" Style="text-align: right; font-weight: bold;">
-                            @((row.Quantity * row.UnitPrice).ToString("N2"))
+                            @SessionState.FormatNumber((row.Quantity * row.UnitPrice))
                         </MudTd>
                         <MudTd DataLabel="Print Heading">
                             <MudTextField Disabled="@(_invoice.IsPaid == true)" @bind-Value="row.PrintHeading" Variant="Variant.Outlined" Dense="true" Margin="Margin.Dense" />
@@ -111,7 +111,7 @@
                                 <SearchableSelect T="ItemStockByBatchForBOMDto" Value="@(GetBatchById(row.ItemId, row.ItemStockByBatchId))" ValueChanged="@(async (ItemStockByBatchForBOMDto val) => await OnBatchChanged(row, val))" Variant="Variant.Outlined" Dense="true" Items="@GetBatchSelects(row.ItemId)" />
                             }
                             @if(row.CostPrice.HasValue) {
-                                <MudText Typo="Typo.caption" Color="Color.Success">Cost: @(_selectedCurrencySymbol ?? "$") @(row.CostPrice.Value.ToString("N2"))</MudText>
+                                <MudText Typo="Typo.caption" Color="Color.Success">Cost: @(_selectedCurrencySymbol ?? "$") @(SessionState.FormatNumber(row.CostPrice.Value))</MudText>
                             }
                         </MudTd>
                         <MudTd DataLabel="Action" Style="text-align: center;">
@@ -539,4 +539,5 @@
 
     private RawMaterialDto? GetItemById(long id) => _items.FirstOrDefault(x => x.ItemId == id);
 }
+
 

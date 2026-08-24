@@ -2,6 +2,7 @@
 @using GFI_Upgrated.UI.Services
 @using MudBlazor
 @inject ISnackbar Snackbar
+@inject GFI_Upgrated.UI.State.AppSessionState SessionState
 
 <MudDialog>
     <DialogContent>
@@ -18,8 +19,8 @@
             </HeaderContent>
             <RowTemplate>
                 <MudTd DataLabel="Batch Number">@context.BatchNo</MudTd>
-                <MudTd DataLabel="Dispatched Quantity">@context.Quantity.ToString("N2")</MudTd>
-                <MudTd DataLabel="Already Returned">@context.AlreadyReturned.ToString("N2")</MudTd>
+                <MudTd DataLabel="Dispatched Quantity">@SessionState.FormatNumber(context.Quantity)</MudTd>
+                <MudTd DataLabel="Already Returned">@SessionState.FormatNumber(context.AlreadyReturned)</MudTd>
                 <MudTd DataLabel="Quantity to Return">
                     <MudNumericField @bind-Value="context.ReturnQtyInput" 
                                      Min="0.0" 
@@ -141,4 +142,6 @@
         public double ReturnQtyInput { get; set; }
     }
 }
+
+
 

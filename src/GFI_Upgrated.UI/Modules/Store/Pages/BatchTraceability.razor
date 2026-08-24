@@ -3,6 +3,7 @@
 @using GFI_Upgrated.SharedDto.Store
 @using GFI_Upgrated.UI.Services
 @inject StoreApiClient ApiClient
+@inject GFI_Upgrated.UI.State.AppSessionState SessionState
 @inject ISnackbar Snackbar
 @inject NavigationManager Navigation
 @inject IJSRuntime JS
@@ -91,7 +92,7 @@
             </MudTd>
             <MudTd DataLabel="In Qty" Style="text-align: right;">@(context.InQty > 0 ? $"{context.InQty} {context.UnitName}" : "-")</MudTd>
             <MudTd DataLabel="Out Qty" Style="text-align: right;">@(context.OutQty > 0 ? $"{context.OutQty:F1} {context.UnitName}" : "-")</MudTd>
-            <MudTd DataLabel="Value" Style="text-align: right; font-weight: bold;">@context.TotalValue.ToString("N2")</MudTd>
+            <MudTd DataLabel="Value" Style="text-align: right; font-weight: bold;">@SessionState.FormatNumber(context.TotalValue)</MudTd>
         </RowTemplate>
         <NoRecordsContent>
             <MudText Class="pa-4">No traceability records found for this batch.</MudText>
@@ -129,3 +130,5 @@
         }
     }
 }
+
+
