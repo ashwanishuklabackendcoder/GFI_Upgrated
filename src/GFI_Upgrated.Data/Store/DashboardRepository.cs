@@ -58,7 +58,7 @@ public sealed class DashboardRepository : IDashboardRepository
         if (string.IsNullOrWhiteSpace(batchNo)) return result;
 
         const string usedQuery = @"
-            SELECT b.ItemStockByBatchId AS ProductionId, b.ItemId, u.CreatedDate AS FilledDate, i.ItemName, u.Quantity
+            SELECT b.ItemStockByBatchId AS ProductionId, b.ItemId, u.CreatedDate AS FilledDate, i.ItemName, u.Quantity, b.BatchNo AS UsedBatchNo
             FROM Inv_ItemStockUsed u
             JOIN Inv_ItemStockByBatch b ON u.ItemStockByBatchId = b.ItemStockByBatchId
             JOIN W_MasterItem i ON b.ItemId = i.ItemID
@@ -67,7 +67,7 @@ public sealed class DashboardRepository : IDashboardRepository
 
             UNION ALL
 
-            SELECT b.ItemStockByBatchId AS ProductionId, b.ItemId, u.CreatedDate AS FilledDate, i.ItemName, u.Quantity
+            SELECT b.ItemStockByBatchId AS ProductionId, b.ItemId, u.CreatedDate AS FilledDate, i.ItemName, u.Quantity, b.BatchNo AS UsedBatchNo
             FROM Inv_ItemStockUsed u
             JOIN Inv_ItemStockByBatch b ON u.ItemStockByBatchId = b.ItemStockByBatchId
             JOIN W_MasterItem i ON b.ItemID = i.ItemID
@@ -75,7 +75,7 @@ public sealed class DashboardRepository : IDashboardRepository
             WHERE u.UsedFor = 3 AND prod.BatchNo = @BatchNo";
 
         const string soldQuery = @"
-            SELECT c.InvoiceChildID AS ProductionId, c.ItemId, m.InvoiceDate AS FilledDate, i.ItemName, c.Quantity
+            SELECT c.InvoiceChildID AS ProductionId, c.ItemId, m.InvoiceDate AS FilledDate, i.ItemName, c.Quantity, '' AS UsedBatchNo
             FROM A_InvoiceChild c
             INNER JOIN A_InvoiceMaster m ON c.InvoiceID = m.InvoiceID
             INNER JOIN W_MasterItem i ON c.ItemId = i.ItemID
@@ -99,7 +99,8 @@ public sealed class DashboardRepository : IDashboardRepository
                             ItemId = Convert.ToInt64(reader["ItemId"]),
                             FilledDate = reader["FilledDate"] != DBNull.Value ? Convert.ToDateTime(reader["FilledDate"]) : null,
                             ItemName = reader["ItemName"]?.ToString() ?? string.Empty,
-                            Quantity = Convert.ToDecimal(reader["Quantity"])
+                            Quantity = Convert.ToDecimal(reader["Quantity"]),
+                            UsedBatchNo = reader["UsedBatchNo"]?.ToString() ?? string.Empty
                         });
                     }
                 }
@@ -119,7 +120,8 @@ public sealed class DashboardRepository : IDashboardRepository
                             ItemId = Convert.ToInt64(reader["ItemId"]),
                             FilledDate = reader["FilledDate"] != DBNull.Value ? Convert.ToDateTime(reader["FilledDate"]) : null,
                             ItemName = reader["ItemName"]?.ToString() ?? string.Empty,
-                            Quantity = Convert.ToDecimal(reader["Quantity"])
+                            Quantity = Convert.ToDecimal(reader["Quantity"]),
+                            UsedBatchNo = reader["UsedBatchNo"]?.ToString() ?? string.Empty
                         });
                     }
                 }

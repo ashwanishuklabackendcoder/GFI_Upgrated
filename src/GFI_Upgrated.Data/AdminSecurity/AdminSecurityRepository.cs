@@ -16,6 +16,7 @@ public interface IAdminSecurityRepository
     Task<PagedResult<UserDto>> GetUsersAsync(PagedRequest request, string? searchText, CancellationToken cancellationToken = default);
     Task<UserDto?> GetUserByIdAsync(long loginId, CancellationToken cancellationToken = default);
     Task<int> SaveUserAsync(SaveUserRequest request, CancellationToken cancellationToken = default);
+    Task<int> DeleteUserAsync(long loginId, string deletedBy, CancellationToken cancellationToken = default);
     Task<PagedResult<StaffDto>> GetStaffsAsync(PagedRequest request, string? searchText, CancellationToken cancellationToken = default);
     Task<StaffDto?> GetStaffByIdAsync(long staffId, CancellationToken cancellationToken = default);
     Task<int> SaveStaffAsync(SaveStaffRequest request, CancellationToken cancellationToken = default);
@@ -106,6 +107,13 @@ public sealed class AdminSecurityRepository : IAdminSecurityRepository
         var result = await GetLoginResultAsync(loginId, roleId, cancellationToken);
         if (result != null)
         {
+            // Enforce Active Status
+            var userDetails = await GetUserByIdAsync(loginId, cancellationToken);
+            if (userDetails == null || !userDetails.IsActive)
+            {
+                return null; // Reject login if inactive
+            }
+
             result.Status = Convert.ToInt32(statusParameter.Value ?? 0);
         }
         return result;
@@ -373,6 +381,20 @@ public sealed class AdminSecurityRepository : IAdminSecurityRepository
         }
 
         return result;
+    }
+
+    public async Task<int> DeleteUserAsync(long loginId, string deletedBy, CancellationToken cancellationToken = default)
+    {
+        var parameters = new[]
+        {
+            new SqlParameter("@LoginID", SqlDbType.BigInt) { Value = loginId }
+        };
+
+        // Perform Soft Delete by setting IsActive = 0
+        await ExecuteNonQueryRawAsync("UPDATE Z_UsersLogins SET IsActive = 0 WHERE LoginID = @LoginID", 
+            parameters, cancellationToken);
+            
+        return 1;
     }
 
     public async Task<PagedResult<StaffDto>> GetStaffsAsync(PagedRequest request, string? searchText, CancellationToken cancellationToken = default)

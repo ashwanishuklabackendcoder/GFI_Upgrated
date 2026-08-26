@@ -4,6 +4,7 @@
 @inject NavigationManager Navigation
 @inject AdminSecurityApiClient ApiClient
 @inject ISnackbar Snackbar
+@inject IJSRuntime JS
 
 <PageTitle>Users</PageTitle>
 
@@ -31,6 +32,9 @@
                     <MudTd>
                         <AuthorizeAction Action="update">
                             <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary" OnClick="@(() => LoadUserAsync(context.LoginId))">Edit</MudButton>
+                        </AuthorizeAction>
+                        <AuthorizeAction Action="delete">
+                            <MudIconButton Size="Size.Small" Icon="@Icons.Material.Filled.Delete" Color="Color.Error" OnClick="@(() => DeleteUserAsync(context.LoginId))" />
                         </AuthorizeAction>
                         <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Secondary" Href="@($"/admin/user-roles?loginId={context.LoginId}")">Roles</MudButton>
                     </MudTd>
@@ -252,6 +256,31 @@
         }
 
         return staff.StaffName;
+    }
+    private async Task DeleteUserAsync(long loginId)
+    {
+        bool confirmed = await JS.InvokeAsync<bool>("confirm", "Are you sure you want to delete this user login?");
+        
+        if (confirmed)
+        {
+            try
+            {
+                var response = await ApiClient.DeleteUserAsync(loginId);
+                if (response > 0)
+                {
+                    Snackbar.Add("User deleted successfully.", Severity.Success);
+                    await LoadAsync();
+                }
+                else
+                {
+                    Snackbar.Add("Failed to delete user.", Severity.Error);
+                }
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add(ex.Message, Severity.Error);
+            }
+        }
     }
 }
 

@@ -159,6 +159,8 @@
     private double _subtotal => _model.Items.Sum(i => i.Quantity * i.UnitPrice);
     private double _totalAmount => _subtotal + (_model.Taxes ?? 0) + (_model.Shipping ?? 0) - (_model.Discount ?? 0);
 
+    private List<PurchaseOrderDto> _allPendingPOs = new();
+
     protected override async Task OnInitializedAsync()
     {
         if (!SessionState.IsLoggedIn)
@@ -192,7 +194,7 @@
             _units = (await ApiClient.GetUnitsLookupAsync()).ToList();
             
             var pos = await ApiClient.GetPurchaseOrdersAsync(null, null, null, 1, 100);
-            _pendingPOs = pos.Items.ToList();
+            _allPendingPOs = pos.Items.ToList();
         }
         catch (Exception ex)
         {
@@ -210,6 +212,12 @@
                 _model = result.Items.First();
                 _model.Items = await ApiClient.GetPurchaseItemsAsync(Id);
                 _selectedVendor = _vendors.FirstOrDefault(v => v.AccountId == _model.AccountID);
+                
+                if (_selectedVendor != null)
+                {
+                    _pendingPOs = _allPendingPOs.Where(x => x.AccountID == _selectedVendor.AccountId).ToList();
+                }
+
                 _selectedPO = _pendingPOs.FirstOrDefault(p => p.PurchaseOrderID == _model.PurchaseOrderID);
                 
                 foreach (var item in _model.Items)
@@ -227,14 +235,52 @@
         }
     }
 
-    private void OnVendorChanged(AccountLookupDto? val)
+    private async Task OnVendorChanged(AccountLookupDto? val)
     {
         _selectedVendor = val;
+        _selectedPO = null;
+        _pendingPOs.Clear();
+
+        if (val != null)
+        {
+            _pendingPOs = _allPendingPOs.Where(x => x.AccountID == val.AccountId).ToList();
+        }
     }
 
-    private void OnPoChanged(PurchaseOrderDto? val)
+    private async Task OnPoChanged(PurchaseOrderDto? val)
     {
         _selectedPO = val;
+        
+        if (val != null)
+        {
+            try
+            {
+                var poItems = await ApiClient.GetPurchaseOrderItemsAsync(val.PurchaseOrderID);
+                _model.Items.Clear();
+                foreach (var poItem in poItems)
+                {
+                    var rawMat = _allItems.FirstOrDefault(x => x.ItemId == poItem.ItemID);
+                    var expiryDate = rawMat != null && rawMat.TentativeExpiryDays > 0 
+                        ? (_model.GoodsRecievedDate ?? DateTime.Today).AddDays(rawMat.TentativeExpiryDays) 
+                        : (DateTime?)null;
+
+                    _model.Items.Add(new PurchaseItemDto 
+                    {
+                        ItemID = poItem.ItemID,
+                        ItemName = poItem.ItemName,
+                        Quantity = poItem.Quantity,
+                        UnitId = poItem.UnitId,
+                        UnitPrice = poItem.Price,
+                        WarehouseId = _warehouses.FirstOrDefault()?.WarehouseId,
+                        ExpiryDate = expiryDate
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Error loading PO items: {ex.Message}", Severity.Error);
+            }
+        }
     }
 
     private IEnumerable<SearchableSelect<AccountLookupDto>.SelectItemDto<AccountLookupDto>> GetVendorSelects()

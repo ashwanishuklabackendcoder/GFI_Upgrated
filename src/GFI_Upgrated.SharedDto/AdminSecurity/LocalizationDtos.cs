@@ -66,7 +66,7 @@ public sealed class SaveLocalizedResourceRequest : IValidatableObject
     [Required]
     public string Key { get; set; } = string.Empty;
 
-    public string Value { get; set; } = string.Empty;
+    public string? Value { get; set; }
     public string? Comment { get; set; }
 
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)

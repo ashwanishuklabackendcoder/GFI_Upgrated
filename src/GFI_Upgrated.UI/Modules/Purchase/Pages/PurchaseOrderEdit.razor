@@ -160,7 +160,7 @@
                 .ToList();
             var units = await ApiClient.GetUnitsAsync(new PagedRequest { CurrentPage = 1, RecordPerPage = 1000 });
             _units = units.Items.Where(x => x.IsActive).ToList();
-            _allItems = (await ApiClient.GetItemsForBomLookupAsync(null)).ToList();
+            _allItems = (await ApiClient.GetItemsForBomLookupAsync(3)).ToList();
             
             var prs = await ApiClient.GetPurchaseRequestsAsync(null, null, null, 1, 100);
             _pendingPRs = prs.Items.ToList();
@@ -195,9 +195,33 @@
         _selectedVendor = val;
     }
 
-    private void OnPrChanged(PurchaseRequestDto? val)
+    private async Task OnPrChanged(PurchaseRequestDto? val)
     {
         _selectedPR = val;
+        
+        if (val != null)
+        {
+            try
+            {
+                var prItems = await ApiClient.GetPurchaseRequestItemsAsync(val.PurchaseRequestMasterID);
+                _model.Items.Clear();
+                foreach (var prItem in prItems)
+                {
+                    _model.Items.Add(new PurchaseOrderItemDto 
+                    {
+                        ItemID = prItem.ItemID,
+                        ItemName = prItem.ItemName,
+                        Quantity = prItem.Quantity,
+                        UnitId = prItem.UnitId,
+                        Price = 0 // Price isn't usually set on PR, needs manual input on PO
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Error loading PR items: {ex.Message}", Severity.Error);
+            }
+        }
     }
 
     private IEnumerable<SearchableSelect<AccountLookupDto>.SelectItemDto<AccountLookupDto>> GetVendorSelects()

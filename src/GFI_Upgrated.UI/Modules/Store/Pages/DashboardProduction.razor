@@ -80,17 +80,44 @@
                         </CardHeaderContent>
                     </MudCardHeader>
                     <MudCardContent>
-                        <MudTable Items="_dashboardData.TotalUsedItems" Hover="true" Dense="true" Striped="true" Elevation="0">
+                        <MudTable Items="_groupedUsedItems" Hover="true" Dense="true" Striped="true" Elevation="0">
                             <HeaderContent>
+                                <MudTh><MudIcon Icon="@Icons.Material.Filled.ExpandMore" Style="visibility: hidden;" /></MudTh>
                                 <MudTh>Product / Ingredient</MudTh>
-                                <MudTh Style="text-align: center;">Used Date</MudTh>
-                                <MudTh Style="text-align: right;">Qty Used</MudTh>
+                                <MudTh Style="text-align: right;">Total Qty Used</MudTh>
                             </HeaderContent>
                             <RowTemplate>
+                                <MudTd>
+                                    <MudIconButton Icon="@(context.ShowDetails ? Icons.Material.Filled.Remove : Icons.Material.Filled.Add)" 
+                                                   OnClick="@(() => context.ShowDetails = !context.ShowDetails)" 
+                                                   Size="Size.Small" />
+                                </MudTd>
                                 <MudTd DataLabel="Product / Ingredient" Class="font-weight-medium">@context.ItemName</MudTd>
-                                <MudTd DataLabel="Used Date" Style="text-align: center;">@(context.FilledDate?.ToString("yyyy-MM-dd") ?? "-")</MudTd>
-                                <MudTd DataLabel="Qty Used" Style="text-align: right;" Class="font-weight-bold">@context.Quantity</MudTd>
+                                <MudTd DataLabel="Total Qty Used" Style="text-align: right;" Class="font-weight-bold">@context.TotalQuantity</MudTd>
                             </RowTemplate>
+                            <ChildRowContent>
+                                @if (context.ShowDetails)
+                                {
+                                    <MudTr>
+                                        <td colspan="3">
+                                            <MudCard Elevation="0" Class="pa-2 ma-2" Style="background-color: #f5f5f5;">
+                                                <MudTable Items="context.Batches" Context="batchContext" Hover="true" Dense="true" Elevation="0">
+                                                    <HeaderContent>
+                                                        <MudTh>Used Batch No</MudTh>
+                                                        <MudTh Style="text-align: center;">Used Date</MudTh>
+                                                        <MudTh Style="text-align: right;">Qty</MudTh>
+                                                    </HeaderContent>
+                                                    <RowTemplate>
+                                                        <MudTd DataLabel="Used Batch No">@batchContext.UsedBatchNo</MudTd>
+                                                        <MudTd DataLabel="Used Date" Style="text-align: center;">@(batchContext.FilledDate?.ToString("yyyy-MM-dd") ?? "-")</MudTd>
+                                                        <MudTd DataLabel="Qty" Style="text-align: right;">@batchContext.Quantity</MudTd>
+                                                    </RowTemplate>
+                                                </MudTable>
+                                            </MudCard>
+                                        </td>
+                                    </MudTr>
+                                }
+                            </ChildRowContent>
                             <NoRecordsContent>
                                 <MudText Class="pa-4 text-center">No ingredients used for this batch.</MudText>
                             </NoRecordsContent>
@@ -107,6 +134,15 @@
     private string _selectedBatchNo = "";
     private List<DashboardBatchLookupDto> _batches = new();
     private ProductionDashboardDto _dashboardData = new();
+    private List<UsedItemGroup> _groupedUsedItems = new();
+
+    private class UsedItemGroup
+    {
+        public string ItemName { get; set; } = string.Empty;
+        public decimal TotalQuantity { get; set; }
+        public bool ShowDetails { get; set; }
+        public List<ProductionDashboardItemDto> Batches { get; set; } = new();
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -138,6 +174,18 @@
         try
         {
             _dashboardData = await ApiClient.GetProductionDashboardAsync(_selectedBatchNo);
+            
+            _groupedUsedItems = _dashboardData.TotalUsedItems
+                .GroupBy(x => x.ItemName)
+                .Select(g => new UsedItemGroup
+                {
+                    ItemName = g.Key,
+                    TotalQuantity = g.Sum(x => x.Quantity),
+                    Batches = g.ToList(),
+                    ShowDetails = false
+                })
+                .OrderBy(x => x.ItemName)
+                .ToList();
         }
         catch (Exception ex)
         {

@@ -217,23 +217,30 @@
 
     private async Task SaveResourceAsync(LocalizedResourceDto item)
     {
-        var id = await ApiClient.SaveLocalizedResourceAsync(new SaveLocalizedResourceRequest
+        try
         {
-            ResourceId = item.ResourceId,
-            LanguageId = _selectedLanguageId,
-            Key = item.Key,
-            Value = item.Value,
-            Comment = item.Comment
-        });
-
-        if (id > 0)
-        {
-            Snackbar.Add(LocalizationState.Text("Admin.ResourceEditor.ResourceSaved", "Resource saved successfully."), Severity.Success);
-            if (SessionState.CurrentUser?.LanguageId == _selectedLanguageId)
+            var id = await ApiClient.SaveLocalizedResourceAsync(new SaveLocalizedResourceRequest
             {
-                await LocalizationState.SetLanguageAsync(SessionState, ApiClient, JSRuntime, _selectedLanguageId);
+                ResourceId = item.ResourceId,
+                LanguageId = _selectedLanguageId,
+                Key = item.Key,
+                Value = item.Value,
+                Comment = item.Comment
+            });
+
+            if (id > 0)
+            {
+                Snackbar.Add(LocalizationState.Text("Admin.ResourceEditor.ResourceSaved", "Resource saved successfully."), Severity.Success);
+                if (SessionState.CurrentUser?.LanguageId == _selectedLanguageId)
+                {
+                    await LocalizationState.SetLanguageAsync(SessionState, ApiClient, JSRuntime, _selectedLanguageId);
+                }
+                await ReloadResourcesAsync();
             }
-            await ReloadResourcesAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
         }
     }
 
