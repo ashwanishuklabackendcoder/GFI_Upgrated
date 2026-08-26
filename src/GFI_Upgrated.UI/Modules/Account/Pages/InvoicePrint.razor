@@ -115,10 +115,10 @@ else
                                 @item.Quantity
                             </td>
                             <td style="padding: 12px 4px; text-align: right; color: #333; vertical-align: top;">
-                                @(_selectedCurrencySymbol ?? "$") @SessionState.FormatNumber(item.UnitPrice)
+                                @(_invoice.PrintWithRemark ? "-" : $"{_selectedCurrencySymbol ?? "$"} {SessionState.FormatNumber(item.UnitPrice)}")
                             </td>
                             <td style="padding: 12px 4px; text-align: right; font-weight: 600; color: #1a1a1a; vertical-align: top;">
-                                @(_selectedCurrencySymbol ?? "$") @SessionState.FormatNumber((item.Quantity * item.UnitPrice))
+                                @(_invoice.PrintWithRemark ? "-" : $"{_selectedCurrencySymbol ?? "$"} {SessionState.FormatNumber((item.Quantity * item.UnitPrice))}")
                             </td>
                         </tr>
                     }
@@ -131,25 +131,32 @@ else
             <div style="flex: 1; max-width: 50%;">
                 @if (!string.IsNullOrWhiteSpace(_invoice.Remarks))
                 {
-                    <h3 style="font-size: 11px; font-weight: 700; color: #888; text-transform: uppercase; margin: 0 0 6px 0; letter-spacing: 0.5px;">Notes &amp; Remarks</h3>
+                    <h3 style="font-size: 11px; font-weight: 700; color: #888; text-transform: uppercase; margin: 0 0 6px 0; letter-spacing: 0.5px;">Narration</h3>
                     <p style="font-size: 12px; color: #555; margin: 0; line-height: 1.5; white-space: pre-wrap;">@_invoice.Remarks</p>
                 }
+                
+                @if (_invoice.PrintWithRemark && !string.IsNullOrWhiteSpace(_invoice.InvoiceRemark))
+                {
+                    <h3 style="font-size: 11px; font-weight: 700; color: #888; text-transform: uppercase; margin: 16px 0 6px 0; letter-spacing: 0.5px;">Remark</h3>
+                    <p style="font-size: 12px; color: #555; margin: 0; line-height: 1.5; white-space: pre-wrap;">@_invoice.InvoiceRemark</p>
+                }
             </div>
+            
             <div style="width: 300px;">
                 <div style="display: flex; justify-content: space-between; padding: 8px 4px; font-size: 13px; color: #555;">
                     <span>Subtotal:</span>
-                    <span>@(_selectedCurrencySymbol ?? "$") @(SessionState.FormatNumber(_subtotal))</span>
+                    <span>@(_invoice.PrintWithRemark ? "-" : $"{_selectedCurrencySymbol ?? "$"} {SessionState.FormatNumber(_subtotal)}")</span>
                 </div>
                 @if (_invoice.CurrencyConversion.HasValue && _invoice.CurrencyConversion.Value != 1.0)
                 {
                     <div style="display: flex; justify-content: space-between; padding: 4px 4px; font-size: 12px; color: #666; font-style: italic;">
                         <span>Exchange Rate (@(_selectedCurrencySymbol ?? "$") to Base):</span>
-                        <span>@_invoice.CurrencyConversion.Value.ToString("N4")</span>
+                        <span>@(_invoice.PrintWithRemark ? "-" : _invoice.CurrencyConversion.Value.ToString("N4"))</span>
                     </div>
                 }
                 <div style="display: flex; justify-content: space-between; padding: 12px 4px; font-size: 16px; font-weight: 800; color: #1a1a1a; border-top: 2px solid #1a1a1a; margin-top: 8px;">
                     <span>Total Due:</span>
-                    <span>@(_selectedCurrencySymbol ?? "$") @(SessionState.FormatNumber(_grandTotal))</span>
+                    <span>@(_invoice.PrintWithRemark ? "-" : $"{_selectedCurrencySymbol ?? "$"} {SessionState.FormatNumber(_grandTotal)}")</span>
                 </div>
             </div>
         </div>
@@ -184,6 +191,10 @@ else
     [Parameter]
     public long Id { get; set; }
 
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "printWithRemark")]
+    public bool? PrintWithRemarkQuery { get; set; }
+
     private InvoiceDto? _invoice;
     private bool _loading = true;
     private string? _errorMessage;
@@ -216,6 +227,11 @@ else
             {
                 _subtotal = _invoice.Items.Sum(i => i.Quantity * i.UnitPrice);
                 _grandTotal = _subtotal;
+                
+                if (PrintWithRemarkQuery.HasValue)
+                {
+                    _invoice.PrintWithRemark = PrintWithRemarkQuery.Value;
+                }
 
                 // Load item names
                 try

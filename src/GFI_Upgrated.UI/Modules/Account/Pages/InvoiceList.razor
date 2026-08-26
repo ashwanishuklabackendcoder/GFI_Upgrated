@@ -61,6 +61,9 @@
                             <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Size="Size.Small" OnClick="@(() => OnEdit(context))" />
                         </MudTooltip>
                     }
+                    <MudTooltip Text="Print with Remark">
+                        <MudSwitch @bind-Value="context.PrintWithRemark" Color="Color.Primary" Size="Size.Small" Style="margin:0; padding:0;" />
+                    </MudTooltip>
                     <MudTooltip Text="Print Invoice">
                         <MudIconButton Icon="@Icons.Material.Filled.Print" Color="Color.Info" Size="Size.Small" OnClick="@(() => OnPrint(context))" />
                     </MudTooltip>
@@ -165,9 +168,9 @@
         Navigation.NavigateTo($"/admin/invoice/edit/{invoice.InvoiceID}");
     }
 
-    private void OnPrint(InvoiceDto invoice)
+    private void OnPrint(InvoiceDto dto)
     {
-        Navigation.NavigateTo($"/admin/invoice/print/{invoice.InvoiceID}");
+        Navigation.NavigateTo($"/admin/invoice/print/{dto.InvoiceID}?printWithRemark={dto.PrintWithRemark}");
     }
 
     private async Task OnDelete(InvoiceDto invoice)

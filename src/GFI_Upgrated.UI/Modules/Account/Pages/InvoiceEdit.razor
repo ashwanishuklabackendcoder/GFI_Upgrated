@@ -57,9 +57,13 @@
             </MudItem>
 
             <MudItem xs="12">
-                <MudTextField Disabled="@(_invoice.IsPaid == true)" @bind-Value="_invoice.Remarks" Label="Remarks / Payment Instructions" Variant="Variant.Outlined" Lines="2" />
+                <MudTextField Disabled="@(_invoice.IsPaid == true)" @bind-Value="_invoice.Remarks" Label="Narration" Variant="Variant.Outlined" Lines="2" />
             </MudItem>
 
+            <MudItem xs="12">
+                <MudTextField Disabled="@(_invoice.IsPaid == true)" @bind-Value="_invoice.InvoiceRemark" Label="Remark" Variant="Variant.Outlined" Lines="2" />
+            </MudItem>
+            
             <MudItem xs="12" Class="mt-4">
                 <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-2">
                     <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">Invoice Line Items</MudText>
@@ -178,9 +182,11 @@
             _customers = custResult.Where(x => x.AccountGroupId == 5).ToList();
 
             var currResult = await ApiClient.GetCurrenciesAsync(pageSize: 1000);
-            _currencies = currResult.Items.ToList();
+            _currencies = currResult.Items
+                .Where(c => c.CurrencySymbol.Equals(SessionState.DefaultCurrency, StringComparison.OrdinalIgnoreCase))
+                .ToList();
 
-            var itemResult = await StoreApiClient.GetItemsForBomLookupAsync(null);
+            var itemResult = await StoreApiClient.GetItemsForBomLookupAsync(1);
             _items = itemResult.ToList();
 
             var orderResult = await ApiClient.GetCustomerOrdersAsync(pageSize: 1000);
@@ -246,8 +252,10 @@
                     DueDate = DateTime.Today.AddDays(30),
                     CurrencyConversion = 1.0,
                     IsPaid = false,
-                    InvoiceStatus = "Draft"
+                    InvoiceStatus = "Draft",
+                    CurrencyID = _currencies.FirstOrDefault()?.CurrencyID
                 };
+                _selectedCurrencySymbol = _currencies.FirstOrDefault()?.CurrencySymbol ?? "$";
             }
         }
         catch (Exception ex)
