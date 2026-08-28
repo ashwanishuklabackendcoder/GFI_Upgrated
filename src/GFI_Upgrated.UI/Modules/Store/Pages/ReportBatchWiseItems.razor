@@ -102,7 +102,7 @@
     private string FormatQty(double qty, string? unitName)
     {
         if (qty == 0) return "0";
-        string formattedVal = (qty % 1 == 0) ? qty.ToString("0") : qty.ToString("0.##");
+        string formattedVal = SessionState.FormatNumber(qty);
         return string.IsNullOrWhiteSpace(unitName) ? formattedVal : $"{formattedVal} {unitName}";
     }
 

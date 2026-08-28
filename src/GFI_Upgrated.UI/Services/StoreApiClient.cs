@@ -403,6 +403,14 @@ public sealed class StoreApiClient : ApiClientBase
     public async Task<int> SaveFinishedProductVendorAsync(FinishedProductVendorDto request, CancellationToken cancellationToken = default)
         => await PostEnvelopeAsync<FinishedProductVendorDto, int>("api/store/finished-products/vendors", request, cancellationToken);
 
+    public async Task<bool> DeleteFinishedProductVendorAsync(long vendorId, string deletedBy, CancellationToken cancellationToken = default)
+    {
+        AddAuthHeader();
+        var response = await _httpClient.DeleteAsync($"api/store/finished-products/vendors/{vendorId}?deletedBy={deletedBy}", cancellationToken);
+        var envelope = await response.Content.ReadFromJsonAsync<ApiEnvelope<bool>>(cancellationToken: cancellationToken);
+        return envelope?.Success ?? false;
+    }
+
     public async Task<IReadOnlyList<FinishedProductBatchDto>> GetFinishedProductBatchesAsync(long itemId, CancellationToken cancellationToken = default)
         => await GetEnvelopeAsync<IReadOnlyList<FinishedProductBatchDto>>($"api/store/finished-products/{itemId}/batches", cancellationToken)
            ?? Array.Empty<FinishedProductBatchDto>();

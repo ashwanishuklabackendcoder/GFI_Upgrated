@@ -119,13 +119,13 @@
     {
         if (qty == 0) return "0";
         var unitName = _units.FirstOrDefault(u => u.UnitId == unitId)?.UnitName ?? "";
-        string formattedVal = (qty % 1 == 0) ? qty.ToString("0") : qty.ToString("0.##");
+        string formattedVal = SessionState.FormatNumber(qty);
         return string.IsNullOrWhiteSpace(unitName) ? formattedVal : $"{formattedVal} {unitName}";
     }
 
     private string FormatAmount(double val)
     {
-        return (val % 1 == 0) ? val.ToString("0") : val.ToString("0.##");
+        return SessionState.FormatNumber(val);
     }
 
     private MudTable<ItemStockReportDto>? _table;

@@ -61,11 +61,11 @@
                             <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Size="Size.Small" OnClick="@(() => OnEdit(context))" />
                         </MudTooltip>
                     }
-                    <MudTooltip Text="Print with Remark">
-                        <MudSwitch @bind-Value="context.PrintWithRemark" Color="Color.Primary" Size="Size.Small" Style="margin:0; padding:0;" />
-                    </MudTooltip>
                     <MudTooltip Text="Print Invoice">
-                        <MudIconButton Icon="@Icons.Material.Filled.Print" Color="Color.Info" Size="Size.Small" OnClick="@(() => OnPrint(context))" />
+                        <MudIconButton Icon="@Icons.Material.Filled.Print" Color="Color.Info" Size="Size.Small" OnClick="@(() => OnPrint(context, false))" />
+                    </MudTooltip>
+                    <MudTooltip Text="Print with Remark">
+                        <MudIconButton Icon="@Icons.Material.Filled.ReceiptLong" Color="Color.Secondary" Size="Size.Small" OnClick="@(() => OnPrint(context, true))" />
                     </MudTooltip>
                     @if (_canDelete)
                     {
@@ -168,9 +168,9 @@
         Navigation.NavigateTo($"/admin/invoice/edit/{invoice.InvoiceID}");
     }
 
-    private void OnPrint(InvoiceDto dto)
+    private async Task OnPrint(InvoiceDto dto, bool withRemark)
     {
-        Navigation.NavigateTo($"/admin/invoice/print/{dto.InvoiceID}?printWithRemark={dto.PrintWithRemark}");
+        await JS.InvokeVoidAsync("window.open", $"/admin/invoice/print/{dto.InvoiceID}?printWithRemark={withRemark}", "_blank");
     }
 
     private async Task OnDelete(InvoiceDto invoice)

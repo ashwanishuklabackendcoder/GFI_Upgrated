@@ -57,7 +57,7 @@
                             <RowTemplate>
                                 <MudTd DataLabel="Item Name" Class="font-weight-medium">@context.ItemName</MudTd>
                                 <MudTd DataLabel="Transaction Date" Style="text-align: center;">@(context.FilledDate?.ToString("yyyy-MM-dd") ?? "-")</MudTd>
-                                <MudTd DataLabel="Quantity" Style="text-align: right;" Class="font-weight-bold">@context.Quantity</MudTd>
+                                <MudTd DataLabel="Quantity" Style="text-align: right;" Class="font-weight-bold">@SessionState.FormatNumber(context.Quantity)</MudTd>
                             </RowTemplate>
                             <NoRecordsContent>
                                 <MudText Class="pa-4 text-center">No items sold for this batch.</MudText>
@@ -93,7 +93,7 @@
                                                    Size="Size.Small" />
                                 </MudTd>
                                 <MudTd DataLabel="Product / Ingredient" Class="font-weight-medium">@context.ItemName</MudTd>
-                                <MudTd DataLabel="Total Qty Used" Style="text-align: right;" Class="font-weight-bold">@context.TotalQuantity</MudTd>
+                                <MudTd DataLabel="Total Qty Used" Style="text-align: right;" Class="font-weight-bold">@SessionState.FormatNumber(context.TotalQuantity)</MudTd>
                             </RowTemplate>
                             <ChildRowContent>
                                 @if (context.ShowDetails)
@@ -110,7 +110,7 @@
                                                     <RowTemplate>
                                                         <MudTd DataLabel="Used Batch No">@batchContext.UsedBatchNo</MudTd>
                                                         <MudTd DataLabel="Used Date" Style="text-align: center;">@(batchContext.FilledDate?.ToString("yyyy-MM-dd") ?? "-")</MudTd>
-                                                        <MudTd DataLabel="Qty" Style="text-align: right;">@batchContext.Quantity</MudTd>
+                                                        <MudTd DataLabel="Qty" Style="text-align: right;">@SessionState.FormatNumber(batchContext.Quantity)</MudTd>
                                                     </RowTemplate>
                                                 </MudTable>
                                             </MudCard>

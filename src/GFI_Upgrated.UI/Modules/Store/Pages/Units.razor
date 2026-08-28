@@ -39,7 +39,7 @@
         </HeaderContent>
         <RowTemplate>
             <MudTd DataLabel="Unit Name">@context.UnitName</MudTd>
-            <MudTd DataLabel="Conversion">@(context.ConversionValue?.ToString() ?? "-")</MudTd>
+            <MudTd DataLabel="Conversion">@(SessionState.FormatNumber(context.ConversionValue))</MudTd>
             <MudTd DataLabel="Base Unit">@(context.BaseName ?? "-")</MudTd>
             <MudTd DataLabel="Status" Style="text-align: center;">
                 <MudSwitch T="bool" Value="@context.IsActive" ValueChanged="@((bool val) => ToggleStatusAsync(context, val))" Color="Color.Success" UnCheckedColor="Color.Error" Disabled="!_canUpdate" />

@@ -54,8 +54,9 @@
             </MudTd>
             <MudTd DataLabel="Action" Style="text-align: center;">
                 <MudStack Row="true" Justify="Justify.Center" Spacing="1">
-                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Size="Size.Small" OnClick="@(() => OnEdit(context.BomId))" Disabled="!_canUpdate" />
-                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => OnDelete(context))" Disabled="!_canDelete" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Size="Size.Small" OnClick="@(() => OnEdit(context.BomId))" Disabled="!_canUpdate" Title="Edit Recipe" />
+                    <MudIconButton Icon="@Icons.Material.Filled.ContentCopy" Color="Color.Info" Size="Size.Small" Title="Copy Recipe" OnClick="@(() => OnCopy(context))" Disabled="!_canInsert" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => OnDelete(context))" Disabled="!_canDelete" Title="Delete Recipe" />
                 </MudStack>
             </MudTd>
         </RowTemplate>
@@ -171,6 +172,8 @@
     private void OnAddNew() => Navigation.NavigateTo("/store/bom/new");
 
     private void OnEdit(long id) => Navigation.NavigateTo($"/store/bom/edit/{id}");
+
+    private void OnCopy(BomDto item) => Navigation.NavigateTo($"/store/bom/new?copyFromId={item.BomId}&itemId={item.ItemId}&itemTypeId={item.ItemTypeId}&returnUrl=/store/bom");
 
     private async Task OnDelete(BomDto item)
     {

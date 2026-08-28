@@ -123,18 +123,13 @@
                     <MudText Typo="Typo.subtitle1" Class="mb-2" Style="display:none;">Add/Edit Product Price</MudText>
                     <MudGrid>
                         <MudItem xs="12" md="4">
-                            <MudAutocomplete Clearable="true" MaxItems="1000" T="AccountLookupDto" Label="Customers" Value="@(_accounts.FirstOrDefault(x => x.AccountId == _vendorModel.VendorAccountId))" ValueChanged="@((AccountLookupDto val) => { _vendorModel.VendorAccountId = (int)(val?.AccountId ?? 0); })" SearchFunc="@SearchAccounts" ToStringFunc="@(x => x?.AccountName ?? "")" Variant="Variant.Outlined" Required="true" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
+                            <SearchableSelect T="AccountLookupDto" Label="Customers" Value="@(_accounts.FirstOrDefault(x => x.AccountId == _vendorModel.VendorAccountId))" ValueChanged="@((AccountLookupDto val) => { _vendorModel.VendorAccountId = (int)(val?.AccountId ?? 0); })" Items="@GetAccountSelects()" Variant="Variant.Outlined" Required="true" />
                         </MudItem>
                         <MudItem xs="12" md="4">
                             <MudNumericField @bind-Value="_vendorModel.PurchasePrice" Label="Price" Variant="Variant.Outlined" Format="@($"N{SessionState.DecimalDigits}")" Min="0" />
                         </MudItem>
                         <MudItem xs="12" md="4">
-                            <MudAutocomplete Clearable="true"          MaxItems="1000" T="CurrencyLookupDto" Label="Currency" 
-                                             Value="@(_currencies.FirstOrDefault(x => x.CurrencyId == _vendorModel.CurrencyId))" 
-                                             ValueChanged="@((CurrencyLookupDto val) => { _vendorModel.CurrencyId = val?.CurrencyId ?? 0; })" 
-                                             SearchFunc="@SearchCurrencies" ToStringFunc="@(x => x?.CurrencyName ?? "")"
-                                             Variant="Variant.Outlined" 
-                                             ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
+                            <SearchableSelect T="CurrencyLookupDto" Label="Currency" Value="@(_currencies.FirstOrDefault(x => x.CurrencyId == _vendorModel.CurrencyId))" ValueChanged="@((CurrencyLookupDto val) => { _vendorModel.CurrencyId = val?.CurrencyId ?? 0; })" Items="@GetCurrencySelects()" Variant="Variant.Outlined" Required="true" />
                         </MudItem>
 
                         <MudItem xs="12" md="4">
@@ -144,12 +139,7 @@
                             <MudDatePicker Editable="true" DateFormat="@SessionState.DatePickerFormat" Placeholder="@SessionState.DatePickerFormat"                      @bind-Date="_vendorModel.EndDate" Label="@($"End Date ({SessionState.DateFormat})")" Variant="Variant.Outlined" />
                         </MudItem>
                         <MudItem xs="12" md="4">
-                            <MudAutocomplete Clearable="true"          MaxItems="1000" T="StatusDto" Label="Price Status" 
-                                             Value="@(_statuses.FirstOrDefault(x => x.StatusId == _vendorModel.StatusId))" 
-                                             ValueChanged="@((StatusDto val) => { _vendorModel.StatusId = (int)(val?.StatusId ?? 0); })" 
-                                             SearchFunc="@SearchStatuses" ToStringFunc="@(x => x?.StatusName ?? "")"
-                                             Variant="Variant.Outlined" 
-                                             ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
+                            <SearchableSelect T="StatusDto" Label="Price Status" Value="@(_statuses.FirstOrDefault(x => x.StatusId == _vendorModel.StatusId))" ValueChanged="@((StatusDto val) => { _vendorModel.StatusId = (int)(val?.StatusId ?? 0); })" Items="@GetStatusSelects()" Variant="Variant.Outlined" Required="true" />
                         </MudItem>
 
                         <MudItem xs="12" Class="d-flex justify-end gap-2">
@@ -174,6 +164,7 @@
                         <MudTd DataLabel="Dates">@(context.StartDate?.ToShortDateString() ?? "-") to @(context.EndDate?.ToShortDateString() ?? "-")</MudTd>
                         <MudTd Style="text-align: center;">
                             <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Size="Size.Small" OnClick="@(() => EditVendor(context))" />
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => DeleteVendor(context))" />
                         </MudTd>
                     </RowTemplate>
                 </MudTable>
@@ -689,6 +680,24 @@
             return false;
         }
 
+        if (_vendorModel.PurchasePrice <= 0)
+        {
+            Snackbar.Add("Please enter a valid price.", Severity.Warning);
+            return false;
+        }
+
+        if (_vendorModel.CurrencyId == 0)
+        {
+            Snackbar.Add("Please select a currency.", Severity.Warning);
+            return false;
+        }
+
+        if (_vendorModel.StatusId == 0)
+        {
+            Snackbar.Add("Please select a valid status.", Severity.Warning);
+            return false;
+        }
+
         _savingVendor = true;
         try
         {
@@ -735,6 +744,65 @@
     private void ResetVendorForm()
     {
         _vendorModel = new FinishedProductVendorDto { StatusId = 1, CurrencyId = 1 };
+    }
+
+    private async Task DeleteVendor(FinishedProductVendorDto vendor)
+    {
+        var confirmed = await JS.InvokeAsync<bool>("confirm", $"Are you sure you want to delete pricing for '{vendor.VendorName}'?");
+        if (!confirmed) return;
+
+        _savingVendor = true;
+        try
+        {
+            var success = await ApiClient.DeleteFinishedProductVendorAsync(vendor.ItemVendorId, SessionState.CurrentUserAuditName ?? "System");
+            if (success)
+            {
+                Snackbar.Add("Pricing deleted successfully.", Severity.Success);
+                _vendors = (await ApiClient.GetFinishedProductVendorsAsync(Id)).ToList();
+            }
+            else
+            {
+                Snackbar.Add("Failed to delete pricing.", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error deleting pricing: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _savingVendor = false;
+            StateHasChanged();
+        }
+    }
+
+    private IEnumerable<SearchableSelect<AccountLookupDto>.SelectItemDto<AccountLookupDto>> GetAccountSelects()
+    {
+        return (_accounts ?? new List<AccountLookupDto>()).Select(x => new SearchableSelect<AccountLookupDto>.SelectItemDto<AccountLookupDto>
+        {
+            Value = x,
+            Text = x.AccountName ?? ""
+        });
+    }
+
+    private IEnumerable<SearchableSelect<CurrencyLookupDto>.SelectItemDto<CurrencyLookupDto>> GetCurrencySelects()
+    {
+        return (_currencies ?? new List<CurrencyLookupDto>()).Select(x => new SearchableSelect<CurrencyLookupDto>.SelectItemDto<CurrencyLookupDto>
+        {
+            Value = x,
+            Text = x.CurrencyName ?? ""
+        });
+    }
+
+    private IEnumerable<SearchableSelect<StatusDto>.SelectItemDto<StatusDto>> GetStatusSelects()
+    {
+        return (_statuses ?? new List<StatusDto>())
+            .Where(s => s.StatusName == "Active" || s.StatusName == "Inactive")
+            .Select(x => new SearchableSelect<StatusDto>.SelectItemDto<StatusDto>
+            {
+                Value = x,
+                Text = x.StatusName ?? ""
+            });
     }
 
     private async Task<bool> SaveBatch()

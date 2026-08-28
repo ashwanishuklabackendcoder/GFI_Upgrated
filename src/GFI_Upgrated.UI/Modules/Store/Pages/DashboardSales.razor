@@ -36,7 +36,7 @@
                 <MudPaper Class="pa-4 rounded-lg d-flex align-center justify-between" Elevation="3" Style="background: linear-gradient(135deg, #43a047, #66bb6a); color: white;">
                     <div>
                         <MudText Typo="Typo.subtitle2" Class="opacity-75" Style="color: #ffffff !important;">Total Items Sold</MudText>
-                        <MudText Typo="Typo.h4" Class="font-weight-bold mt-1" Style="color: #ffffff !important;">@_totalQtySold.ToString("N0")</MudText>
+                        <MudText Typo="Typo.h4" Class="font-weight-bold mt-1" Style="color: #ffffff !important;">@SessionState.FormatNumber(_totalQtySold)</MudText>
                     </div>
                     <MudIcon Icon="@Icons.Material.Filled.TrendingUp" Size="Size.Large" Class="opacity-50" />
                 </MudPaper>
