@@ -29,6 +29,9 @@ public sealed class LoginResultDto
     public string? CultureName { get; set; }
     public string Token { get; set; } = string.Empty;
     public IReadOnlyList<MenuDto> Menus { get; set; } = Array.Empty<MenuDto>();
+    public int DecimalDigits { get; set; } = 2;
+    public string? DateFormat { get; set; }
+    public string? DefaultCurrency { get; set; }
 }
 
 public sealed class RoleDto

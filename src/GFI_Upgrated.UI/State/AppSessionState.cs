@@ -18,9 +18,22 @@ public sealed class AppSessionState
     }
 
 
-    public string DateFormat { get; private set; } = "MM/DD/YYYY";
+    private string _localDateFormat = "MM/DD/YYYY";
+    public string DateFormat 
+    { 
+        get => !string.IsNullOrWhiteSpace(CurrentUser?.DateFormat) ? CurrentUser.DateFormat! : _localDateFormat; 
+        private set => _localDateFormat = value; 
+    }
+    
     public string DatePickerFormat => DateFormat.ToLower() == "mm/dd/yyyy" ? "MM/dd/yyyy" : "dd/MM/yyyy";
-    public string DefaultCurrency { get; private set; } = "SRD";
+    
+    private string _localDefaultCurrency = "SRD";
+    public string DefaultCurrency 
+    { 
+        get => !string.IsNullOrWhiteSpace(CurrentUser?.DefaultCurrency) ? CurrentUser.DefaultCurrency! : _localDefaultCurrency; 
+        private set => _localDefaultCurrency = value; 
+    }
+    
     public string NameFormat { get; private set; } = "FN_LN";
 
     public string CurrentUserAuditName => 
@@ -47,31 +60,50 @@ public sealed class AppSessionState
     {
         if (string.IsNullOrWhiteSpace(dateStr)) return string.Empty;
         
-        // Strip time if present (e.g. "30/01/2027 00:00:00")
         var cleanDateStr = dateStr.Trim();
-        if (cleanDateStr.Contains(" "))
+
+        // 1. Try standard parse first (handles textual formats like "12 Aug 2026")
+        if (DateTime.TryParse(cleanDateStr, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var date))
         {
-            cleanDateStr = cleanDateStr.Split(' ')[0];
+            return FormatDate(date);
         }
 
-        // Try exact parsing matching standardized ISO format (yyyy-MM-dd) first, then try regional formats
+        // 2. Try exact formats for cases where generic parsing fails (e.g. day > 12)
         string[] formats = { "yyyy-MM-dd", "dd/MM/yyyy", "MM/dd/yyyy", "dd-MM-yyyy", "yyyy/MM/dd", "d/M/yyyy", "M/d/yyyy" };
-        if (DateTime.TryParseExact(cleanDateStr, formats, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var date))
+        if (DateTime.TryParseExact(cleanDateStr, formats, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out date))
         {
             return FormatDate(date);
         }
 
-        // Generic fallback parse if exact formats did not match
-        if (DateTime.TryParse(cleanDateStr, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out date))
+        // 3. Try to strip time component if present and try exact formats again
+        if (cleanDateStr.Contains(' '))
         {
-            return FormatDate(date);
+            var dateOnlyStr = cleanDateStr.Substring(0, cleanDateStr.IndexOf(' '));
+            if (DateTime.TryParseExact(dateOnlyStr, formats, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out date))
+            {
+                return FormatDate(date);
+            }
         }
 
+        // 4. Return original if all parsing failed
         return cleanDateStr;
     }
 
-    public string FormatCurrency(double amount) => $"{DefaultCurrency} {amount:N2}";
-    public string FormatCurrency(decimal amount) => $"{DefaultCurrency} {amount:N2}";
+    public int DecimalDigits => CurrentUser?.DecimalDigits ?? 2;
+
+    public string FormatNumber(double amount) => amount.ToString($"N{DecimalDigits}");
+    public string FormatNumber(decimal amount) => amount.ToString($"N{DecimalDigits}");
+    public string FormatNumber(float amount) => amount.ToString($"N{DecimalDigits}");
+    public string FormatNumber(int amount) => amount.ToString($"N{DecimalDigits}");
+    public string FormatNumber(long amount) => amount.ToString($"N{DecimalDigits}");
+    public string FormatNumber(double? amount) => amount.HasValue ? amount.Value.ToString($"N{DecimalDigits}") : string.Empty;
+    public string FormatNumber(decimal? amount) => amount.HasValue ? amount.Value.ToString($"N{DecimalDigits}") : string.Empty;
+    public string FormatNumber(float? amount) => amount.HasValue ? amount.Value.ToString($"N{DecimalDigits}") : string.Empty;
+    public string FormatNumber(int? amount) => amount.HasValue ? amount.Value.ToString($"N{DecimalDigits}") : string.Empty;
+    public string FormatNumber(long? amount) => amount.HasValue ? amount.Value.ToString($"N{DecimalDigits}") : string.Empty;
+
+    public string FormatCurrency(double amount) => $"{DefaultCurrency} {FormatNumber(amount)}";
+    public string FormatCurrency(decimal amount) => $"{DefaultCurrency} {FormatNumber(amount)}";
 
     public string FormatName(string? firstName, string? lastName)
     {

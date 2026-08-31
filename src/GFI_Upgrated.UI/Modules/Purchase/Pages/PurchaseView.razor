@@ -3,6 +3,7 @@
 @using GFI_Upgrated.UI.Services
 @using GFI_Upgrated.SharedDto.Purchase
 @inject StoreApiClient ApiClient
+@inject GFI_Upgrated.UI.State.AppSessionState SessionState
 @inject ISnackbar Snackbar
 @inject NavigationManager Navigation
 @inject IJSRuntime JSRuntime
@@ -73,10 +74,10 @@
                     <MudTd DataLabel="Item Name">@context.ItemName</MudTd>
                     <MudTd DataLabel="Batch No">@context.BatchNo</MudTd>
                     <MudTd DataLabel="Expiry Date">@context.ExpiryDate?.ToString("dd/MM/yyyy")</MudTd>
-                    <MudTd DataLabel="Qty">@context.Quantity.ToString("N2")</MudTd>
+                    <MudTd DataLabel="Qty">@SessionState.FormatNumber(context.Quantity)</MudTd>
                     <MudTd DataLabel="Unit">@context.UnitName</MudTd>
-                    <MudTd DataLabel="Unit Price">@context.UnitPrice.ToString("N2")</MudTd>
-                    <MudTd DataLabel="Amount">@context.Amount.ToString("N2")</MudTd>
+                    <MudTd DataLabel="Unit Price">@SessionState.FormatNumber(context.UnitPrice)</MudTd>
+                    <MudTd DataLabel="Amount">@SessionState.FormatNumber(context.Amount)</MudTd>
                 </RowTemplate>
             </MudTable>
 
@@ -87,24 +88,24 @@
                         <MudStack Spacing="2">
                             <MudStack Row="true" Justify="Justify.SpaceBetween">
                                 <MudText Typo="Typo.body2">Sub Total</MudText>
-                                <MudText Typo="Typo.body2">@(_model.Items.Sum(x => x.Amount).ToString("N2"))</MudText>
+                                <MudText Typo="Typo.body2">@SessionState.FormatNumber(_model.Items.Sum(x => x.Amount))</MudText>
                             </MudStack>
                             <MudStack Row="true" Justify="Justify.SpaceBetween">
                                 <MudText Typo="Typo.body2">Discount</MudText>
-                                <MudText Typo="Typo.body2">@(_model.Discount?.ToString("N2") ?? "0.00")</MudText>
+                                <MudText Typo="Typo.body2">@(SessionState.FormatNumber(_model.Discount) == "" ? SessionState.FormatNumber(0) : SessionState.FormatNumber(_model.Discount))</MudText>
                             </MudStack>
                             <MudStack Row="true" Justify="Justify.SpaceBetween">
                                 <MudText Typo="Typo.body2">Shipping</MudText>
-                                <MudText Typo="Typo.body2">@(_model.Shipping?.ToString("N2") ?? "0.00")</MudText>
+                                <MudText Typo="Typo.body2">@(SessionState.FormatNumber(_model.Shipping) == "" ? SessionState.FormatNumber(0) : SessionState.FormatNumber(_model.Shipping))</MudText>
                             </MudStack>
                             <MudStack Row="true" Justify="Justify.SpaceBetween">
                                 <MudText Typo="Typo.body2">Taxes</MudText>
-                                <MudText Typo="Typo.body2">@(_model.Taxes?.ToString("N2") ?? "0.00")</MudText>
+                                <MudText Typo="Typo.body2">@(SessionState.FormatNumber(_model.Taxes) == "" ? SessionState.FormatNumber(0) : SessionState.FormatNumber(_model.Taxes))</MudText>
                             </MudStack>
                             <MudDivider />
                             <MudStack Row="true" Justify="Justify.SpaceBetween">
                                 <MudText Typo="Typo.subtitle1"><b>Total Amount</b></MudText>
-                                <MudText Typo="Typo.subtitle1"><b>@_model.TotalAmount.ToString("N2")</b></MudText>
+                                <MudText Typo="Typo.subtitle1"><b>@SessionState.FormatNumber(_model.TotalAmount)</b></MudText>
                             </MudStack>
                         </MudStack>
                     </MudPaper>
@@ -153,3 +154,5 @@
         await JSRuntime.InvokeVoidAsync("history.back");
     }
 }
+
+

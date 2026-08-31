@@ -6,7 +6,7 @@
 @inject AdminSecurityApiClient AdminApiClient
 @inject ISnackbar Snackbar
 @inject NavigationManager NavigationManager
-@inject AppSessionState SessionState
+@inject GFI_Upgrated.UI.State.AppSessionState SessionState
 @inject IJSRuntime JS
 
 <PageTitle>View Pre-Processing</PageTitle>
@@ -78,7 +78,7 @@ else
                     }
                 </MudTd>
                 <MudTd DataLabel="Quantity Used" Style="text-align: right;">@context.Quantity @context.UnitName</MudTd>
-                <MudTd DataLabel="Amount" Style="text-align: right;">@context.Amount.ToString("N2")</MudTd>
+                <MudTd DataLabel="Amount" Style="text-align: right;">@SessionState.FormatNumber(context.Amount)</MudTd>
                 <MudTd DataLabel="Description">@context.Description</MudTd>
             </RowTemplate>
             <NoRecordsContent>
@@ -155,3 +155,4 @@ else
         await JS.InvokeVoidAsync("history.back");
     }
 }
+

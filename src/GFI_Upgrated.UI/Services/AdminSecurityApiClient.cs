@@ -41,6 +41,9 @@ public sealed class AdminSecurityApiClient : ApiClientBase
     public async Task<int> SaveUserAsync(SaveUserRequest request, CancellationToken cancellationToken = default)
         => await PostEnvelopeAsync<SaveUserRequest, int>("api/admin/security/users", request, cancellationToken);
 
+    public async Task<int> DeleteUserAsync(long loginId, CancellationToken cancellationToken = default)
+        => await DeleteEnvelopeAsync<int>($"api/admin/security/users/{loginId}", cancellationToken);
+
     public async Task<PagedResult<StaffDto>> GetStaffsAsync(PagedRequest request, string? searchText = null, CancellationToken cancellationToken = default)
         => await GetEnvelopeAsync<PagedResult<StaffDto>>(BuildQuery("api/admin/security/staff", request, ("searchText", searchText)), cancellationToken)
            ?? new PagedResult<StaffDto>();

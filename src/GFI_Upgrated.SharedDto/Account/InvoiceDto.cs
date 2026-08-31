@@ -25,6 +25,8 @@ namespace GFI_Upgrated.SharedDto.Account
         public DateTime? CreatedDate { get; set; }
         public string? CreatedBy { get; set; }
         public string? Remarks { get; set; }
+        public string? InvoiceRemark { get; set; }
+        public bool PrintWithRemark { get; set; }
         public long? CurrencyID { get; set; }
         public double? CurrencyConversion { get; set; }
 

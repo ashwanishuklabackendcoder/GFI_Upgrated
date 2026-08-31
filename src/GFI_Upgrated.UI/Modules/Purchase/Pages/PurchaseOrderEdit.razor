@@ -9,7 +9,7 @@
 @inject AdminSecurityApiClient AdminApiClient
 @inject ISnackbar Snackbar
 @inject NavigationManager Navigation
-@inject AppSessionState SessionState
+@inject GFI_Upgrated.UI.State.AppSessionState SessionState
 
 <PageTitle>@(Id == 0 ? "New Purchase Order" : "Edit Purchase Order")</PageTitle>
 
@@ -66,10 +66,10 @@
                             <SearchableSelect T="long?" Value="@itemContext.UnitId" ValueChanged="@((long? val) => { itemContext.UnitId = val; })" Variant="Variant.Text" Dense="true" Items="@GetUnitSelects()" />
                         </MudTd>
                         <MudTd DataLabel="Price">
-                            <MudNumericField @bind-Value="itemContext.Price" Variant="Variant.Text" Dense="true" Format="N2" />
+                            <MudNumericField @bind-Value="itemContext.Price" Variant="Variant.Text" Dense="true" Format="@($"N{SessionState.DecimalDigits}")" />
                         </MudTd>
                         <MudTd DataLabel="Amount">
-                            <MudText>@((itemContext.Quantity * itemContext.Price).ToString("N2"))</MudText>
+                            <MudText>@SessionState.FormatNumber((itemContext.Quantity * itemContext.Price))</MudText>
                         </MudTd>
                         <MudTd Style="text-align: center;">
                             <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => RemoveRow(itemContext))" />
@@ -87,7 +87,7 @@
                     <MudStack Spacing="2">
                         <div class="d-flex justify-space-between">
                             <MudText>Subtotal:</MudText>
-                            <MudText>@_subtotal.ToString("N2")</MudText>
+                            <MudText>@SessionState.FormatNumber(_subtotal)</MudText>
                         </div>
                         <div class="d-flex justify-space-between align-center">
                             <MudText>Discount (%):</MudText>
@@ -100,7 +100,7 @@
                         <MudDivider />
                         <div class="d-flex justify-space-between">
                             <MudText Typo="Typo.h6">Total:</MudText>
-                            <MudText Typo="Typo.h6" Color="Color.Primary">@_total.ToString("N2")</MudText>
+                            <MudText Typo="Typo.h6" Color="Color.Primary">@SessionState.FormatNumber(_total)</MudText>
                         </div>
                     </MudStack>
                 </MudPaper>
@@ -160,7 +160,7 @@
                 .ToList();
             var units = await ApiClient.GetUnitsAsync(new PagedRequest { CurrentPage = 1, RecordPerPage = 1000 });
             _units = units.Items.Where(x => x.IsActive).ToList();
-            _allItems = (await ApiClient.GetItemsForBomLookupAsync(null)).ToList();
+            _allItems = (await ApiClient.GetItemsForBomLookupAsync(3)).ToList();
             
             var prs = await ApiClient.GetPurchaseRequestsAsync(null, null, null, 1, 100);
             _pendingPRs = prs.Items.ToList();
@@ -195,9 +195,33 @@
         _selectedVendor = val;
     }
 
-    private void OnPrChanged(PurchaseRequestDto? val)
+    private async Task OnPrChanged(PurchaseRequestDto? val)
     {
         _selectedPR = val;
+        
+        if (val != null)
+        {
+            try
+            {
+                var prItems = await ApiClient.GetPurchaseRequestItemsAsync(val.PurchaseRequestMasterID);
+                _model.Items.Clear();
+                foreach (var prItem in prItems)
+                {
+                    _model.Items.Add(new PurchaseOrderItemDto 
+                    {
+                        ItemID = prItem.ItemID,
+                        ItemName = prItem.ItemName,
+                        Quantity = prItem.Quantity,
+                        UnitId = prItem.UnitId,
+                        Price = 0 // Price isn't usually set on PR, needs manual input on PO
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Error loading PR items: {ex.Message}", Severity.Error);
+            }
+        }
     }
 
     private IEnumerable<SearchableSelect<AccountLookupDto>.SelectItemDto<AccountLookupDto>> GetVendorSelects()
@@ -306,4 +330,6 @@
 
     private void OnBack() => Navigation.NavigateTo("/admin/purchase-order");
 }
+
+
 

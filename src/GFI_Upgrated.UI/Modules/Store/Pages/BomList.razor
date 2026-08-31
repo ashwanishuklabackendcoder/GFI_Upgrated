@@ -8,7 +8,7 @@
 @inject StoreApiClient ApiClient
 @inject ISnackbar Snackbar
 @inject NavigationManager Navigation
-@inject AppSessionState SessionState
+@inject GFI_Upgrated.UI.State.AppSessionState SessionState
 @inject IJSRuntime JS
 
 <PageTitle>Recipe (BOM)</PageTitle>
@@ -23,7 +23,7 @@
 
     <MudGrid Class="mb-4">
         <MudItem xs="12" md="6">
-            <MudTextField T="string" Value="@_search" ValueChanged="@OnSearchTextChanged" Placeholder="Search by Recipe name or Product..." Variant="Variant.Outlined" Immediate="true" Clearable="true" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" OnClearButtonClick="OnSearch" />
+            <MudTextField T="string" Value="@_search" ValueChanged="@OnSearchTextChanged" Placeholder="Search by Recipe name, Product, or Ingredient name..." Variant="Variant.Outlined" Immediate="true" Clearable="true" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" OnClearButtonClick="OnSearch" />
         </MudItem>
         <MudItem xs="12" md="3">
             <SearchableSelect T="int?" Value="@_itemTypeId" ValueChanged="OnItemTypeFilterChanged" Label="Product Type" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter" Clearable="true" Items="_productTypes" />
@@ -48,14 +48,15 @@
             <MudTd DataLabel="Parent">@context.ItemName</MudTd>
             <MudTd DataLabel="Yield" Style="text-align: right;">@context.Quantity</MudTd>
             <MudTd DataLabel="Unit">@context.UnitName</MudTd>
-            <MudTd DataLabel="Expenses" Style="text-align: right;">@context.ExtraExpensesPerPiece.ToString("N2")</MudTd>
+            <MudTd DataLabel="Expenses" Style="text-align: right;">@SessionState.FormatNumber(context.ExtraExpensesPerPiece)</MudTd>
             <MudTd DataLabel="Status" Style="text-align: center;">
                 <MudSwitch T="bool" Value="@context.IsActive" ValueChanged="@((bool val) => ToggleStatusAsync(context, val))" Color="Color.Success" UnCheckedColor="Color.Error" Disabled="!_canUpdate" />
             </MudTd>
             <MudTd DataLabel="Action" Style="text-align: center;">
                 <MudStack Row="true" Justify="Justify.Center" Spacing="1">
-                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Size="Size.Small" OnClick="@(() => OnEdit(context.BomId))" Disabled="!_canUpdate" />
-                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => OnDelete(context))" Disabled="!_canDelete" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Size="Size.Small" OnClick="@(() => OnEdit(context.BomId))" Disabled="!_canUpdate" Title="Edit Recipe" />
+                    <MudIconButton Icon="@Icons.Material.Filled.ContentCopy" Color="Color.Info" Size="Size.Small" Title="Copy Recipe" OnClick="@(() => OnCopy(context))" Disabled="!_canInsert" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => OnDelete(context))" Disabled="!_canDelete" Title="Delete Recipe" />
                 </MudStack>
             </MudTd>
         </RowTemplate>
@@ -172,6 +173,8 @@
 
     private void OnEdit(long id) => Navigation.NavigateTo($"/store/bom/edit/{id}");
 
+    private void OnCopy(BomDto item) => Navigation.NavigateTo($"/store/bom/new?copyFromId={item.BomId}&itemId={item.ItemId}&itemTypeId={item.ItemTypeId}&returnUrl=/store/bom");
+
     private async Task OnDelete(BomDto item)
     {
         var confirmed = await JS.InvokeAsync<bool>("confirm", $"Are you sure you want to delete Recipe '{item.BomName}'?");
@@ -217,4 +220,5 @@
         }
     }
 }
+
 

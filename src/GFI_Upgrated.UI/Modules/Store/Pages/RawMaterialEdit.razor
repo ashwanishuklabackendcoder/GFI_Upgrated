@@ -6,7 +6,7 @@
 @inject StoreApiClient ApiClient
 @inject ISnackbar Snackbar
 @inject NavigationManager Navigation
-@inject AppSessionState SessionState
+@inject GFI_Upgrated.UI.State.AppSessionState SessionState
 @inject IJSRuntime JS
 
 <MudPaper Class="pa-4">
@@ -132,7 +132,7 @@
                             <MudAutocomplete Clearable="true"           MaxItems="1000" T="AccountLookupDto" Label="Supplier" Value="@(_accounts.FirstOrDefault(x => x.AccountId == _vendorModel.VendorAccountId))" ValueChanged="@((AccountLookupDto val) => { _vendorModel.VendorAccountId = (int)(val?.AccountId ?? 0); })" SearchFunc="@SearchAccounts" ToStringFunc="@(x => x?.AccountName ?? "")" Variant="Variant.Outlined" Required="true" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
                         </MudItem>
                         <MudItem xs="12" md="4">
-                            <MudNumericField @bind-Value="_vendorModel.PurchasePrice" Label="Purchase Price" Variant="Variant.Outlined" Format="N2" Min="0" Max="99999999.99" />
+                            <MudNumericField @bind-Value="_vendorModel.PurchasePrice" Label="Purchase Price" Variant="Variant.Outlined" Format="@($"N{SessionState.DecimalDigits}")" Min="0" Max="99999999.99" />
                         </MudItem>
                         <MudItem xs="12" md="4">
                             <MudAutocomplete Clearable="true"           MaxItems="1000" T="CurrencyLookupDto" Label="Currency" Value="@(_currencies.FirstOrDefault(x => x.CurrencyId == _vendorModel.CurrencyId))" ValueChanged="@((CurrencyLookupDto val) => { _vendorModel.CurrencyId = val?.CurrencyId ?? 0; })" SearchFunc="@SearchCurrencies" ToStringFunc="@(x => x?.CurrencyName ?? "")" Variant="Variant.Outlined" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
@@ -163,7 +163,7 @@
                     </HeaderContent>
                     <RowTemplate>
                         <MudTd DataLabel="Vendor">@context.VendorName</MudTd>
-                        <MudTd DataLabel="Price">@context.PurchasePrice.ToString("N2")</MudTd>
+                        <MudTd DataLabel="Price">@SessionState.FormatNumber(context.PurchasePrice)</MudTd>
                         <MudTd DataLabel="Currency">@(_currencies.FirstOrDefault(c => c.CurrencyId == context.CurrencyId)?.CurrencyName ?? "N/A")</MudTd>
                         <MudTd DataLabel="Dates">@(context.StartDate?.ToShortDateString() ?? "-") to @(context.EndDate?.ToShortDateString() ?? "-")</MudTd>
                         <MudTd Style="text-align: center;">
@@ -188,7 +188,7 @@
                             <MudAutocomplete Clearable="true" MaxItems="1000" T="UnitDto" Label="Unit" Value="@(_units.FirstOrDefault(x => x.UnitId == _batchModel.UnitId))" ValueChanged="@((UnitDto val) => { _batchModel.UnitId = (int)(val?.UnitId ?? 0); })" SearchFunc="@SearchBatchUnits" ToStringFunc="@(x => x?.UnitName ?? "")" Variant="Variant.Outlined" Required="true" ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
                         </MudItem>
                         <MudItem xs="12" md="4">
-                            <MudNumericField @bind-Value="_batchModel.Amount" Label="@($"Amount ({SessionState.DefaultCurrency})")" Variant="Variant.Outlined" Min="0" Adornment="Adornment.Start" AdornmentText="@SessionState.DefaultCurrency" Format="N2" />
+                            <MudNumericField @bind-Value="_batchModel.Amount" Label="@($"Amount ({SessionState.DefaultCurrency})")" Variant="Variant.Outlined" Min="0" Adornment="Adornment.Start" AdornmentText="@SessionState.DefaultCurrency" Format="@($"N{SessionState.DecimalDigits}")" />
                         </MudItem>
                        
                         <MudItem xs="12" md="4">
@@ -218,7 +218,7 @@
                     <RowTemplate>
                         <MudTd DataLabel="Batch">@context.BatchNo</MudTd>
                         <MudTd DataLabel="Qty">@context.Quantity @context.UnitName</MudTd>
-                        <MudTd DataLabel="Amount">@context.Amount.ToString("N2") SRD</MudTd>
+                        <MudTd DataLabel="Amount">@SessionState.FormatNumber(context.Amount) SRD</MudTd>
                         <MudTd DataLabel="Warehouse">@context.WarehouseName</MudTd>
                         <MudTd DataLabel="Expiry">@context.ExpiryDate?.ToShortDateString()</MudTd>
                         <MudTd DataLabel="Source">
@@ -261,7 +261,7 @@
                         <MudTd DataLabel="Reference">@context.Reference</MudTd>
                         <MudTd DataLabel="In Qty" Style="text-align: right;">@(context.InQty > 0 ? $"{context.InQty} {context.UnitName}" : "-")</MudTd>
                         <MudTd DataLabel="Out Qty" Style="text-align: right;">@(context.OutQty > 0 ? $"{context.OutQty} {context.UnitName}" : "-")</MudTd>
-                        <MudTd DataLabel="Value" Style="text-align: right; font-weight: bold;">@context.TotalValue.ToString("N2")</MudTd>
+                        <MudTd DataLabel="Value" Style="text-align: right; font-weight: bold;">@SessionState.FormatNumber(context.TotalValue)</MudTd>
                     </RowTemplate>
 
                     <NoRecordsContent>
@@ -850,4 +850,6 @@
         return _editContext.GetValidationMessages(fieldIdentifier).FirstOrDefault() ?? "";
     }
 }
+
+
 

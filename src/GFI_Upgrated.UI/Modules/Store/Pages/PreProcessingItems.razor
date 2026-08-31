@@ -6,7 +6,7 @@
 @inject StoreApiClient ApiClient
 @inject ISnackbar Snackbar
 @inject NavigationManager Navigation
-@inject AppSessionState SessionState
+@inject GFI_Upgrated.UI.State.AppSessionState SessionState
 @inject IJSRuntime JS
 
 <PageTitle>Manage Ingredients</PageTitle>
@@ -30,7 +30,7 @@
     @if (_header != null)
     {
         <MudAlert Severity="Severity.Info" Class="mb-4">
-            <b>Produced:</b> @_header.ItemName | <b>Qty Made:</b> @_header.QuantityMade.ToString("0.####") @_header.UnitName | <b>BOM:</b> @_header.BomName (@_header.BomQty.ToString("0.####"))
+            <b>Produced:</b> @_header.ItemName | <b>Qty Made:</b> @SessionState.FormatNumber(_header.QuantityMade) @_header.UnitName | <b>BOM:</b> @_header.BomName (@SessionState.FormatNumber(_header.BomQty))
         </MudAlert>
     }
 
@@ -70,7 +70,7 @@
             <MudTd DataLabel="Recipe Qty">
                 @if (context.RecipeQty > 0)
                 {
-                    <MudText Typo="Typo.body2">@context.RecipeQty.ToString("0.####")</MudText>
+                    <MudText Typo="Typo.body2">@SessionState.FormatNumber(context.RecipeQty)</MudText>
                 }
                 else
                 {
@@ -78,7 +78,7 @@
                 }
             </MudTd>
             <MudTd DataLabel="Qty Used">
-                <MudNumericField @bind-Value="context.Quantity" Variant="Variant.Outlined" Dense="true" Margin="Margin.Dense" Min="0.0001" Format="0.####" HideSpinButtons="true" Disabled="@(_header?.IsComplete != 0)" />
+                <MudNumericField @bind-Value="context.Quantity" Variant="Variant.Outlined" Dense="true" Margin="Margin.Dense" Min="0.0001" Format="@($"N{SessionState.DecimalDigits}")" HideSpinButtons="true" Disabled="@(_header?.IsComplete != 0)" />
             </MudTd>
             <MudTd DataLabel="Description / Remarks">
                 <MudTextField @bind-Value="context.Description" Variant="Variant.Outlined" Dense="true" Margin="Margin.Dense" Disabled="@(_header?.IsComplete != 0)" />
@@ -560,7 +560,7 @@
         return row.AvailableBatches.Select(x => new SearchableSelect<AvailableBatchDto>.SelectItemDto<AvailableBatchDto>
         {
             Value = x,
-            Text = $"{x.BatchNo} (Stock: {x.FinalQuantityLeft} {x.UnitName} | Exp: {(DateTime.TryParse(x.ExpiryDate, out var dt) ? dt.ToString(SessionState.DatePickerFormat) : x.ExpiryDate)})"
+            Text = $"{x.BatchNo} (Stock: {SessionState.FormatNumber(x.FinalQuantityLeft)} {x.UnitName} | Exp: {(DateTime.TryParse(x.ExpiryDate, out var dt) ? dt.ToString(SessionState.DatePickerFormat) : x.ExpiryDate)})"
         });
     }
 

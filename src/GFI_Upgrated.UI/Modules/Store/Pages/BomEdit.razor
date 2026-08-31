@@ -6,7 +6,7 @@
 @inject StoreApiClient ApiClient
 @inject ISnackbar Snackbar
 @inject NavigationManager Navigation
-@inject AppSessionState SessionState
+@inject GFI_Upgrated.UI.State.AppSessionState SessionState
 
 <MudPaper Class="pa-4">
     <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
@@ -52,7 +52,7 @@
                                   Items="@GetYieldUnitItems()" />
             </MudItem>
             <MudItem xs="12" md="3">
-                <MudNumericField @bind-Value="_model.ExtraExpensesPerPiece" Label="Extra Expenses" Variant="Variant.Outlined" Format="N2" />
+                <MudNumericField @bind-Value="_model.ExtraExpensesPerPiece" Label="Extra Expenses" Variant="Variant.Outlined" Format="@($"N{SessionState.DecimalDigits}")" />
             </MudItem>
             <MudItem xs="12" md="3" Class="d-flex align-center">
                 <MudCheckBox @bind-Value="_model.IsActive" Label="Is Active" Color="Color.Primary" />
@@ -505,4 +505,6 @@
         return filtered.Select(x => new SearchableSelect<long>.SelectItemDto<long> { Value = x.UnitId, Text = x.UnitName ?? "" });
     }
 }
+
+
 

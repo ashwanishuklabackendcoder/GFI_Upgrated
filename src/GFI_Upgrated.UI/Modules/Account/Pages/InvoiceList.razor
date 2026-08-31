@@ -5,7 +5,7 @@
 @using GFI_Upgrated.UI.State
 @inject AccountApiClient ApiClient
 @inject NavigationManager Navigation
-@inject AppSessionState SessionState
+@inject GFI_Upgrated.UI.State.AppSessionState SessionState
 @inject IJSRuntime JS
 @inject ISnackbar Snackbar
 
@@ -62,7 +62,10 @@
                         </MudTooltip>
                     }
                     <MudTooltip Text="Print Invoice">
-                        <MudIconButton Icon="@Icons.Material.Filled.Print" Color="Color.Info" Size="Size.Small" OnClick="@(() => OnPrint(context))" />
+                        <MudIconButton Icon="@Icons.Material.Filled.Print" Color="Color.Info" Size="Size.Small" OnClick="@(() => OnPrint(context, false))" />
+                    </MudTooltip>
+                    <MudTooltip Text="Print with Remark">
+                        <MudIconButton Icon="@Icons.Material.Filled.ReceiptLong" Color="Color.Secondary" Size="Size.Small" OnClick="@(() => OnPrint(context, true))" />
                     </MudTooltip>
                     @if (_canDelete)
                     {
@@ -165,9 +168,9 @@
         Navigation.NavigateTo($"/admin/invoice/edit/{invoice.InvoiceID}");
     }
 
-    private void OnPrint(InvoiceDto invoice)
+    private async Task OnPrint(InvoiceDto dto, bool withRemark)
     {
-        Navigation.NavigateTo($"/admin/invoice/print/{invoice.InvoiceID}");
+        await JS.InvokeVoidAsync("window.open", $"/admin/invoice/print/{dto.InvoiceID}?printWithRemark={withRemark}", "_blank");
     }
 
     private async Task OnDelete(InvoiceDto invoice)

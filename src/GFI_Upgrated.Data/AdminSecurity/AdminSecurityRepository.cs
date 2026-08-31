@@ -16,6 +16,7 @@ public interface IAdminSecurityRepository
     Task<PagedResult<UserDto>> GetUsersAsync(PagedRequest request, string? searchText, CancellationToken cancellationToken = default);
     Task<UserDto?> GetUserByIdAsync(long loginId, CancellationToken cancellationToken = default);
     Task<int> SaveUserAsync(SaveUserRequest request, CancellationToken cancellationToken = default);
+    Task<int> DeleteUserAsync(long loginId, string deletedBy, CancellationToken cancellationToken = default);
     Task<PagedResult<StaffDto>> GetStaffsAsync(PagedRequest request, string? searchText, CancellationToken cancellationToken = default);
     Task<StaffDto?> GetStaffByIdAsync(long staffId, CancellationToken cancellationToken = default);
     Task<int> SaveStaffAsync(SaveStaffRequest request, CancellationToken cancellationToken = default);
@@ -106,6 +107,13 @@ public sealed class AdminSecurityRepository : IAdminSecurityRepository
         var result = await GetLoginResultAsync(loginId, roleId, cancellationToken);
         if (result != null)
         {
+            // Enforce Active Status
+            var userDetails = await GetUserByIdAsync(loginId, cancellationToken);
+            if (userDetails == null || !userDetails.IsActive)
+            {
+                return null; // Reject login if inactive
+            }
+
             result.Status = Convert.ToInt32(statusParameter.Value ?? 0);
         }
         return result;
@@ -185,6 +193,38 @@ public sealed class AdminSecurityRepository : IAdminSecurityRepository
             userLanguage = null;
         }
 
+        int decimalDigits = 2;
+        string? dbDateFormat = null;
+        string? dbDefaultCurrency = null;
+
+        try
+        {
+            // Assuming the table has 'ConfigKey' and 'ConfigValue' columns
+            var configTable = await ExecuteDataTableRawAsync("SELECT ConfigKey, ConfigValue FROM Z_MasterGeneralSettings", Array.Empty<SqlParameter>(), cancellationToken);
+            foreach (DataRow configRow in configTable.Rows)
+            {
+                var key = configRow.SafeString("ConfigKey");
+                var val = configRow.SafeString("ConfigValue");
+
+                if (string.Equals(key, "DecimalDigits", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (int.TryParse(val, out int parsedDigits)) decimalDigits = parsedDigits;
+                }
+                else if (string.Equals(key, "DateFormat", StringComparison.OrdinalIgnoreCase))
+                {
+                    dbDateFormat = val;
+                }
+                else if (string.Equals(key, "DefaultCurrency", StringComparison.OrdinalIgnoreCase))
+                {
+                    dbDefaultCurrency = val;
+                }
+            }
+        }
+        catch
+        {
+            // Ignore if table doesn't exist yet or other error, fallback to defaults
+        }
+
         return new LoginResultDto
         {
             LoginId = loginId,
@@ -197,7 +237,10 @@ public sealed class AdminSecurityRepository : IAdminSecurityRepository
             DashboardPath = !string.IsNullOrWhiteSpace(dashboardPath) ? dashboardPath : "/admin",
             LanguageId = userLanguage?.LanguageId ?? 0,
             CultureName = userLanguage?.CultureName,
-            Menus = menus
+            Menus = menus,
+            DecimalDigits = decimalDigits,
+            DateFormat = dbDateFormat,
+            DefaultCurrency = dbDefaultCurrency
         };
     }
 
@@ -338,6 +381,20 @@ public sealed class AdminSecurityRepository : IAdminSecurityRepository
         }
 
         return result;
+    }
+
+    public async Task<int> DeleteUserAsync(long loginId, string deletedBy, CancellationToken cancellationToken = default)
+    {
+        var parameters = new[]
+        {
+            new SqlParameter("@LoginID", SqlDbType.BigInt) { Value = loginId }
+        };
+
+        // Perform Soft Delete by setting IsActive = 0
+        await ExecuteNonQueryRawAsync("UPDATE Z_UsersLogins SET IsActive = 0 WHERE LoginID = @LoginID", 
+            parameters, cancellationToken);
+            
+        return 1;
     }
 
     public async Task<PagedResult<StaffDto>> GetStaffsAsync(PagedRequest request, string? searchText, CancellationToken cancellationToken = default)

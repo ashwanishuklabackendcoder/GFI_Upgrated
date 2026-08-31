@@ -245,8 +245,9 @@ a, .btn-link {
 }
 
 .sidebar-brand-mark img {
-    width: 34px;
-    height: 34px;
+    height: auto;
+    max-height: 45px;
+    width: 180px;
     object-fit: contain;
 }
 
@@ -761,7 +762,7 @@ body.dark-theme .nav-tabs .nav-link {
 }
 
 .auth-brand-logo {
-    width: 180px;
+    width: 280px;
     max-width: 100%;
 }
 

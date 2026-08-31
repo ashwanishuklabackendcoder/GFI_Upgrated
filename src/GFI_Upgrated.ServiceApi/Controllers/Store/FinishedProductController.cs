@@ -75,6 +75,13 @@ public class FinishedProductController : ControllerBase
         return Ok(new ApiEnvelope<int> { Success = true, Message = "Vendor saved successfully.", Data = result });
     }
 
+    [HttpDelete("vendors/{vendorId:long}")]
+    public async Task<ActionResult<ApiEnvelope<bool>>> DeleteFinishedProductVendor(long vendorId, CancellationToken cancellationToken)
+    {
+        var result = await _service.DeleteFinishedProductVendorAsync(vendorId, cancellationToken);
+        return Ok(new ApiEnvelope<bool> { Success = true, Message = "Vendor deleted successfully.", Data = result });
+    }
+
     [HttpGet("{itemId:long}/batches")]
     public async Task<ActionResult<ApiEnvelope<IReadOnlyList<FinishedProductBatchDto>>>> GetFinishedProductBatches(long itemId, CancellationToken cancellationToken)
     {

@@ -96,7 +96,16 @@ public sealed class BomRepository : IBomRepository
                 LEFT JOIN dbo.W_MasterItem i ON b.ItemId = i.ItemID
                 WHERE (@ItemId = 0 OR b.ItemId = @ItemId)
                   AND (@ItemTypeId = 0 OR b.ItemTypeId = @ItemTypeId)
-                  AND (@SearchTerm = '' OR b.BomName LIKE '%' + @SearchTerm + '%')
+                  AND (@SearchTerm = '' 
+                       OR b.BomName LIKE '%' + @SearchTerm + '%'
+                       OR i.ItemName LIKE '%' + @SearchTerm + '%'
+                       OR EXISTS (
+                           SELECT 1 
+                           FROM dbo.W_MasterBomItems bi
+                           INNER JOIN dbo.W_MasterItem child_i ON bi.ItemId = child_i.ItemID
+                           WHERE bi.BomId = b.BomId 
+                             AND child_i.ItemName LIKE '%' + @SearchTerm + '%'
+                       ))
                 ORDER BY b.BomId DESC";
 
             var fallbackParams = new[]

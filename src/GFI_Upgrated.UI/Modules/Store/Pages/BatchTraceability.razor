@@ -1,8 +1,10 @@
 @page "/store/reports/batch-wise-items/traceability/{BatchNo}"
 @page "/admin/reports/batch-wise-items/traceability/{BatchNo}"
+@using System.Text
 @using GFI_Upgrated.SharedDto.Store
 @using GFI_Upgrated.UI.Services
 @inject StoreApiClient ApiClient
+@inject GFI_Upgrated.UI.State.AppSessionState SessionState
 @inject ISnackbar Snackbar
 @inject NavigationManager Navigation
 @inject IJSRuntime JS
@@ -15,9 +17,17 @@
             <MudText Typo="Typo.h5">Batch Traceability</MudText>
             <MudText Typo="Typo.subtitle1" Color="Color.Primary"><strong>@BatchNo</strong></MudText>
         </MudStack>
-        <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.ArrowBack" OnClick="@(() => JS.InvokeVoidAsync("history.back"))">
-            Back
-        </MudButton>
+        <MudStack Row="true" Spacing="2" Class="no-print">
+            <MudMenu Label="Export" StartIcon="@Icons.Material.Filled.SaveAlt" EndIcon="@Icons.Material.Filled.KeyboardArrowDown" Color="Color.Primary" Variant="Variant.Filled">
+                <MudMenuItem OnClick="ExportToCopyAsync" Icon="@Icons.Material.Filled.ContentCopy">Copy to Clipboard</MudMenuItem>
+                <MudMenuItem OnClick="ExportToCsvAsync" Icon="@Icons.Material.Filled.InsertDriveFile">Export to CSV</MudMenuItem>
+                <MudMenuItem OnClick="ExportToPrintAsync" Icon="@Icons.Material.Filled.Print">Print Report</MudMenuItem>
+                <MudMenuItem OnClick="ExportToPdfAsync" Icon="@Icons.Material.Filled.PictureAsPdf">Save as PDF</MudMenuItem>
+            </MudMenu>
+            <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.ArrowBack" OnClick="@(() => JS.InvokeVoidAsync("history.back"))">
+                Back
+            </MudButton>
+        </MudStack>
     </MudStack>
 </MudPaper>
 
@@ -91,7 +101,7 @@
             </MudTd>
             <MudTd DataLabel="In Qty" Style="text-align: right;">@(context.InQty > 0 ? $"{context.InQty} {context.UnitName}" : "-")</MudTd>
             <MudTd DataLabel="Out Qty" Style="text-align: right;">@(context.OutQty > 0 ? $"{context.OutQty:F1} {context.UnitName}" : "-")</MudTd>
-            <MudTd DataLabel="Value" Style="text-align: right; font-weight: bold;">@context.TotalValue.ToString("N2")</MudTd>
+            <MudTd DataLabel="Value" Style="text-align: right; font-weight: bold;">@SessionState.FormatNumber(context.TotalValue)</MudTd>
         </RowTemplate>
         <NoRecordsContent>
             <MudText Class="pa-4">No traceability records found for this batch.</MudText>
@@ -128,4 +138,47 @@
             _loading = false;
         }
     }
+
+    private async Task ExportToCopyAsync()
+    {
+        if (!_traceabilityData.Any()) return;
+        var sb = new StringBuilder();
+        sb.AppendLine("Reference\tDate\tItem Name\tTransaction Type\tIn Qty\tOut Qty\tValue (SRD)");
+        foreach (var item in _traceabilityData)
+        {
+            sb.AppendLine($"{item.Reference}\t{item.TransactionDate?.ToString("MM/dd/yyyy") ?? "N/A"}\t{item.ItemName}\t{item.TransactionType}\t{(item.InQty > 0 ? $"{SessionState.FormatNumber(item.InQty)} {item.UnitName}" : "-")}\t{(item.OutQty > 0 ? $"{SessionState.FormatNumber(item.OutQty)} {item.UnitName}" : "-")}\t{SessionState.FormatNumber(item.TotalValue)}");
+        }
+        var success = await JS.InvokeAsync<bool>("gfiCopyToClipboard", sb.ToString());
+        if (success) Snackbar.Add("Data copied to clipboard.", Severity.Success);
+        else Snackbar.Add("Failed to copy data.", Severity.Error);
+    }
+
+    private async Task ExportToCsvAsync()
+    {
+        if (!_traceabilityData.Any()) return;
+        var sb = new StringBuilder();
+        sb.AppendLine("Reference,Date,Item Name,Transaction Type,In Qty,Out Qty,Value (SRD)");
+        foreach (var item in _traceabilityData)
+        {
+            var refName = (item.Reference ?? "").Replace("\"", "\"\"");
+            var itemName = (item.ItemName ?? "").Replace("\"", "\"\"");
+            var typeName = (item.TransactionType ?? "").Replace("\"", "\"\"");
+            sb.AppendLine($"\"{refName}\",\"{item.TransactionDate?.ToString("MM/dd/yyyy") ?? "N/A"}\",\"{itemName}\",\"{typeName}\",\"{(item.InQty > 0 ? $"{SessionState.FormatNumber(item.InQty)} {item.UnitName}" : "-")}\",\"{(item.OutQty > 0 ? $"{SessionState.FormatNumber(item.OutQty)} {item.UnitName}" : "-")}\",\"{SessionState.FormatNumber(item.TotalValue)}\"");
+        }
+        await JS.InvokeVoidAsync("gfiDownloadTextFile", $"batch-traceability-{BatchNo.Replace(" ", "").Replace("|", "-")}-{DateTime.Now:yyyyMMddHHmmss}.csv", sb.ToString(), "text/csv;charset=utf-8");
+        Snackbar.Add("Data exported as CSV.", Severity.Success);
+    }
+
+    private async Task ExportToPrintAsync()
+    {
+        await JS.InvokeVoidAsync("window.print");
+    }
+
+    private async Task ExportToPdfAsync()
+    {
+        Snackbar.Add("Tip: Choose 'Save as PDF' as the destination in the print window.", Severity.Info);
+        await JS.InvokeVoidAsync("window.print");
+    }
 }
+
+

@@ -10,7 +10,7 @@
 @inject StoreApiClient ApiClient
 @inject ISnackbar Snackbar
 @inject NavigationManager Navigation
-@inject AppSessionState SessionState
+@inject GFI_Upgrated.UI.State.AppSessionState SessionState
 @inject IJSRuntime JS
 
 <PageTitle>Item Stock By Batch</PageTitle>
@@ -74,11 +74,11 @@
             <MudTd DataLabel="ID" Style="display:none;">@context.ItemStockByBatchId</MudTd>
             <MudTd DataLabel="Item Name">@context.ItemName</MudTd>
             <MudTd DataLabel="Batch No.">@context.BatchNo</MudTd>
-            <MudTd DataLabel="Quantity" Style="text-align: right;">@context.Quantity.ToString("N2") @context.UnitName</MudTd>         
-            <MudTd DataLabel="Issued Stock" Style="text-align: right;">@context.IssuedStock.ToString("N2") @context.UnitName</MudTd>
-            <MudTd DataLabel="Quantity Left" Style="text-align: right;">@context.FinalQuantityLeft.ToString("N2")</MudTd>
+            <MudTd DataLabel="Quantity" Style="text-align: right;">@SessionState.FormatNumber(context.Quantity) @context.UnitName</MudTd>         
+            <MudTd DataLabel="Issued Stock" Style="text-align: right;">@SessionState.FormatNumber(context.IssuedStock) @context.UnitName</MudTd>
+            <MudTd DataLabel="Quantity Left" Style="text-align: right;">@SessionState.FormatNumber(context.FinalQuantityLeft)</MudTd>
             <MudTd DataLabel="Expiry Date">@SessionState.FormatDate(context.ExpiryDate)</MudTd>
-            <MudTd DataLabel="Stock Value" Style="text-align: right;">@context.StockValue.ToString("N2")</MudTd>
+            <MudTd DataLabel="Stock Value" Style="text-align: right;">@SessionState.FormatNumber(context.StockValue)</MudTd>
             <MudTd DataLabel="Stock From">
                 <MudChip T="string" Color="@(context.StockById == 1 ? Color.Info : context.StockById == 2 ? Color.Warning : Color.Success)" Size="Size.Small">
                     @(context.StockById == 1 ? "Purchase" : context.StockById == 2 ? "PreProcessing" : context.StockById == 3 ? "Opening Stock" : "Unknown")
@@ -271,4 +271,5 @@
         await JS.InvokeVoidAsync("window.print");
     }
 }
+
 

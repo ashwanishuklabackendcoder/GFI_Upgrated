@@ -13,6 +13,7 @@ public interface IAdminSecurityService
     Task<PagedResult<UserDto>> GetUsersAsync(PagedRequest request, string? searchText, CancellationToken cancellationToken = default);
     Task<UserDto?> GetUserByIdAsync(long loginId, CancellationToken cancellationToken = default);
     Task<int> SaveUserAsync(SaveUserRequest request, CancellationToken cancellationToken = default);
+    Task<int> DeleteUserAsync(long loginId, string deletedBy, CancellationToken cancellationToken = default);
     Task<PagedResult<StaffDto>> GetStaffsAsync(PagedRequest request, string? searchText, CancellationToken cancellationToken = default);
     Task<StaffDto?> GetStaffByIdAsync(long staffId, CancellationToken cancellationToken = default);
     Task<int> SaveStaffAsync(SaveStaffRequest request, CancellationToken cancellationToken = default);
@@ -115,6 +116,9 @@ public sealed class AdminSecurityService : IAdminSecurityService
         }
         return result;
     }
+
+    public async Task<int> DeleteUserAsync(long loginId, string deletedBy, CancellationToken cancellationToken = default)
+        => await _repository.DeleteUserAsync(loginId, deletedBy, cancellationToken);
 
     public Task<PagedResult<StaffDto>> GetStaffsAsync(PagedRequest request, string? searchText, CancellationToken cancellationToken = default)
         => _repository.GetStaffsAsync(request, searchText, cancellationToken);

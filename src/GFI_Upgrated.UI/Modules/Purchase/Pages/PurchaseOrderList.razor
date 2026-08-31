@@ -5,7 +5,7 @@
 @inject StoreApiClient ApiClient
 @inject ISnackbar Snackbar
 @inject NavigationManager Navigation
-@inject AppSessionState SessionState
+@inject GFI_Upgrated.UI.State.AppSessionState SessionState
 @inject IJSRuntime JS
 
 <PageTitle>Purchase Orders</PageTitle>
@@ -36,7 +36,7 @@
             <MudTd DataLabel="Order #">@context.VoucherNumber</MudTd>
             <MudTd DataLabel="Date">@context.OrderDate?.ToString("dd/MM/yyyy")</MudTd>
             <MudTd DataLabel="Vendor">@context.VendorName</MudTd>
-            <MudTd DataLabel="Total Amount">@context.TotalAmount.ToString("N2")</MudTd>
+            <MudTd DataLabel="Total Amount">@SessionState.FormatNumber(context.TotalAmount)</MudTd>
             <MudTd DataLabel="Status">
                 @if (context.ConfirmedBy.HasValue)
                 {
@@ -179,4 +179,5 @@
         }
     }
 }
+
 

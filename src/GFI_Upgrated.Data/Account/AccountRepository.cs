@@ -564,6 +564,8 @@ namespace GFI_Upgrated.Data.Account
                 AccountName = cols.Contains("AccountName") ? row["AccountName"]?.ToString() : null,
                 CurrencySymbol = cols.Contains("CurrencySymbol") ? row["CurrencySymbol"]?.ToString() : null,
                 Remarks = cols.Contains("Remarks") ? row["Remarks"]?.ToString() : null,
+                InvoiceRemark = cols.Contains("InvoiceRemark") ? row["InvoiceRemark"]?.ToString() : null,
+                PrintWithRemark = cols.Contains("PrintWithRemark") && row["PrintWithRemark"] != DBNull.Value ? Convert.ToBoolean(row["PrintWithRemark"]) : false,
                 CurrencyID = cols.Contains("CurrencyID") && row["CurrencyID"] != DBNull.Value ? Convert.ToInt64(row["CurrencyID"]) : null,
                 CurrencyConversion = cols.Contains("CurrencyConversion") && row["CurrencyConversion"] != DBNull.Value ? Convert.ToDouble(row["CurrencyConversion"]) : null,
                 CreatedDate = cols.Contains("CreatedDate") && row["CreatedDate"] != DBNull.Value ? Convert.ToDateTime(row["CreatedDate"]) : null,
@@ -614,6 +616,8 @@ namespace GFI_Upgrated.Data.Account
                 new SqlParameter("@CurrencyID", (object?)invoice.CurrencyID ?? DBNull.Value),
                 new SqlParameter("@CurrencyConversion", (object?)invoice.CurrencyConversion ?? 1.0),
                 new SqlParameter("@Remarks", invoice.Remarks ?? ""),
+                new SqlParameter("@InvoiceRemark", invoice.InvoiceRemark ?? (object)DBNull.Value),
+                new SqlParameter("@PrintWithRemark", invoice.PrintWithRemark),
                 new SqlParameter("@IsPaid", invoice.IsPaid ?? false),
                 new SqlParameter("@ReturnVal", SqlDbType.Int) { Direction = ParameterDirection.Output }
             };

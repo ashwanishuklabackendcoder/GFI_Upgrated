@@ -2,13 +2,14 @@
 @using GFI_Upgrated.UI.Services
 @using MudBlazor
 @inject ISnackbar Snackbar
+@inject GFI_Upgrated.UI.State.AppSessionState SessionState
 
 <MudDialog>
     <DialogContent>
         <MudText Typo="Typo.body1" Class="mb-4">
             Allocate stock batches to fulfill the requirement for <b>@Item?.ItemName</b>.
             <br />
-            Required Quantity: <b>@Item?.Qty.ToString("N2")</b>
+            Required Quantity: <b>@SessionState.FormatNumber(Item?.Qty)</b>
         </MudText>
 
         <MudTable Items="_rows" Hover="true" Dense="true" Striped="true" Bordered="true" Breakpoint="Breakpoint.Sm" Elevation="0">
@@ -44,7 +45,7 @@
         </MudTable>
 
         <MudText Typo="Typo.body2" Class="mt-3" Color="@(GetTotalAllocated() == (Item?.Qty ?? 0) ? Color.Success : Color.Error)">
-            Total Allocated: <b>@GetTotalAllocated().ToString("N2")</b> / @Item?.Qty.ToString("N2")
+            Total Allocated: <b>@SessionState.FormatNumber(GetTotalAllocated())</b> / @SessionState.FormatNumber(Item?.Qty)
         </MudText>
     </DialogContent>
     <DialogActions>
@@ -173,4 +174,6 @@
         return AvailableBatches.Where(x => (x.BatchNo ?? "").Contains(value, StringComparison.OrdinalIgnoreCase));
     }
 }
+
+
 

@@ -236,13 +236,19 @@ public sealed class SecurityController : ControllerBase
     [HttpPost("users")]
     public async Task<ActionResult<ApiEnvelope<int>>> SaveUser([FromBody] SaveUserRequest request, CancellationToken cancellationToken)
     {
-        var id = await _service.SaveUserAsync(request, cancellationToken);
-        return Ok(new ApiEnvelope<int>
-        {
-            Success = id > 0,
-            Message = id > 0 ? "User saved successfully." : "User save failed.",
-            Data = id
-        });
+        request.UpdatedBy = User.Identity?.Name ?? "System";
+        if (request.LoginId == 0) request.CreatedBy = request.UpdatedBy;
+        var result = await _service.SaveUserAsync(request, cancellationToken);
+        return Ok(new ApiEnvelope<int> { Success = result > 0, Data = result });
+    }
+
+    [HttpDelete("users/{id}")]
+    [GFI_Upgrated.ServiceApi.Infrastructure.RequirePermission("Admin", "_Users", "delete")]
+    public async Task<ActionResult<ApiEnvelope<int>>> DeleteUser(long id, CancellationToken cancellationToken)
+    {
+        var deletedBy = User.Identity?.Name ?? "System";
+        var result = await _service.DeleteUserAsync(id, deletedBy, cancellationToken);
+        return Ok(new ApiEnvelope<int> { Success = result > 0, Data = result });
     }
 
     [HttpGet("staff")]

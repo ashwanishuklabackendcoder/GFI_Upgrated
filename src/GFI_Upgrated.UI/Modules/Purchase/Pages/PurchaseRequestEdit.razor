@@ -9,7 +9,7 @@
 @inject AdminSecurityApiClient AdminApiClient
 @inject ISnackbar Snackbar
 @inject NavigationManager Navigation
-@inject AppSessionState SessionState
+@inject GFI_Upgrated.UI.State.AppSessionState SessionState
 
 <PageTitle>@(Id == 0 ? "New Purchase Request" : "Edit Purchase Request")</PageTitle>
 
@@ -113,7 +113,7 @@
         else
         {
             _model.CreatedBy = SessionState.CurrentUserAuditName ?? "System";
-            _model.RequestedBy = SessionState.CurrentUser?.LoginId; // Default to current staff if possible
+            _model.RequestedBy = null; // Force user to select a valid staff member to prevent database foreign key errors
             _model.RequestNumber = $"PR-{DateTime.Now:yyyyMMdd-HHmm}";
         }
     }
@@ -125,7 +125,7 @@
             _staffList = (await AdminApiClient.GetActiveStaffAsync()).ToList();
             var units = await ApiClient.GetUnitsAsync(new PagedRequest { CurrentPage = 1, RecordPerPage = 1000 });
             _units = units.Items.Where(x => x.IsActive).ToList();
-            _allItems = (await ApiClient.GetItemsForBomLookupAsync(null)).ToList();
+            _allItems = (await ApiClient.GetItemsForBomLookupAsync(3)).ToList();
         }
         catch (Exception ex)
         {
@@ -203,6 +203,12 @@
         if (!_model.Items.Any())
         {
             Snackbar.Add("Please add at least one item.", Severity.Warning);
+            return;
+        }
+
+        if (_model.Items.Any(x => x.ItemID <= 0))
+        {
+            Snackbar.Add("Please select a valid item for all rows.", Severity.Warning);
             return;
         }
 

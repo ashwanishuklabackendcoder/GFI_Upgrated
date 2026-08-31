@@ -7,8 +7,9 @@
 @inject AccountApiClient ApiClient
 @inject StoreApiClient StoreApiClient
 @inject ISnackbar Snackbar
-@inject AppSessionState SessionState
+@inject GFI_Upgrated.UI.State.AppSessionState SessionState
 @inject NavigationManager Navigation
+@inject IJSRuntime JS
 
 <PageTitle>@_title</PageTitle>
 
@@ -25,45 +26,52 @@
         <DataAnnotationsValidator />
         <MudGrid>
             <MudItem xs="12" md="4">
-                <MudTextField Disabled="@(_invoice.IsPaid == true)" @bind-Value="_invoice.InvoiceNumber" Label="Invoice Number" Required="true" Variant="Variant.Outlined" For="@(() => _invoice.InvoiceNumber)" />
+                <MudTextField Disabled="@(_invoice.InvoiceStatus == "Submitted")" @bind-Value="_invoice.InvoiceNumber" Label="Invoice Number" Required="true" Variant="Variant.Outlined" For="@(() => _invoice.InvoiceNumber)" />
             </MudItem>
             <MudItem xs="12" md="4">
-                <SearchableSelect T="long?" Disabled="@(_invoice.IsPaid == true)" Label="Customer" Value="@((long?)_invoice.AccountID)" ValueChanged="@((long? val) => OnCustomerChanged(val ?? 0))" Variant="Variant.Outlined" Required="true" Items="@GetCustomerSelects()" />
+                <SearchableSelect T="long?" Disabled="@(_invoice.InvoiceStatus == "Submitted")" Label="Customer" Value="@((long?)_invoice.AccountID)" ValueChanged="@((long? val) => OnCustomerChanged(val ?? 0))" Variant="Variant.Outlined" Required="true" Items="@GetCustomerSelects()" />
             </MudItem>
             <MudItem xs="12" md="4">
-                <MudCheckBox Disabled="@(_invoice.IsPaid == true)" T="bool?" @bind-Value="_invoice.IsPaid" Label="Mark as Paid" Color="Color.Success" />
-            </MudItem>
-
-            <MudItem xs="12" md="4">
-                <MudDatePicker Disabled="@(_invoice.IsPaid == true)" DateFormat="@SessionState.DatePickerFormat" Placeholder="@SessionState.DatePickerFormat" Editable="true" @bind-Date="_invoice.InvoiceDate" Label="@($"Invoice Date ({SessionState.DateFormat})")" Variant="Variant.Outlined" For="@(() => _invoice.InvoiceDate)" />
-            </MudItem>
-            <MudItem xs="12" md="4">
-                <MudDatePicker Disabled="@(_invoice.IsPaid == true)" DateFormat="@SessionState.DatePickerFormat" Placeholder="@SessionState.DatePickerFormat" Editable="true" @bind-Date="_invoice.DueDate" Label="@($"Due Date ({SessionState.DateFormat})")" Variant="Variant.Outlined" For="@(() => _invoice.DueDate)" />
-            </MudItem>
-            <MudItem xs="12" md="4">
-                <SearchableSelect T="string" Disabled="@(_invoice.IsPaid == true)" Label="Status" Value="@_invoice.InvoiceStatus" ValueChanged="@((string val) => { _invoice.InvoiceStatus = val; })" Variant="Variant.Outlined" Items="@GetStatusSelects()" />
+                <MudCheckBox Disabled="@(_invoice.InvoiceStatus == "Submitted")" T="bool?" @bind-Value="_invoice.IsPaid" Label="Mark as Paid" Color="Color.Success" />
             </MudItem>
 
             <MudItem xs="12" md="4">
-                <SearchableSelect T="long?" Disabled="@(_invoice.IsPaid == true)" Label="Currency" Value="@_invoice.CurrencyID" ValueChanged="OnCurrencyChanged" Variant="Variant.Outlined" Items="@GetCurrencySelects()" />
+                <MudDatePicker Disabled="@(_invoice.InvoiceStatus == "Submitted")" DateFormat="@SessionState.DatePickerFormat" Placeholder="@SessionState.DatePickerFormat" Editable="true" @bind-Date="_invoice.InvoiceDate" Label="@($"Invoice Date ({SessionState.DateFormat})")" Variant="Variant.Outlined" For="@(() => _invoice.InvoiceDate)" />
             </MudItem>
             <MudItem xs="12" md="4">
-                <MudNumericField Disabled="@(_invoice.IsPaid == true)" @bind-Value="_invoice.CurrencyConversion" Label="Exchange Rate (to Base)" HideSpinButtons="true" Variant="Variant.Outlined" />
+                <MudDatePicker Disabled="@(_invoice.InvoiceStatus == "Submitted")" DateFormat="@SessionState.DatePickerFormat" Placeholder="@SessionState.DatePickerFormat" Editable="true" @bind-Date="_invoice.DueDate" Label="@($"Due Date ({SessionState.DateFormat})")" Variant="Variant.Outlined" For="@(() => _invoice.DueDate)" />
+            </MudItem>
+            <MudItem xs="12" md="4">
+                <SearchableSelect T="string" Disabled="@(_invoice.InvoiceStatus == "Submitted")" Label="Status" Value="@_invoice.InvoiceStatus" ValueChanged="@((string val) => { _invoice.InvoiceStatus = val; })" Variant="Variant.Outlined" Items="@GetStatusSelects()" />
+            </MudItem>
+
+            <MudItem xs="12" md="4">
+                <SearchableSelect T="CurrencyDto" Disabled="@(_invoice.InvoiceStatus == "Submitted")" Label="Currency" 
+                                  Value="@(_currencies.FirstOrDefault(c => c.CurrencyID == _invoice.CurrencyID))" 
+                                  ValueChanged="OnCurrencyChanged" 
+                                  Variant="Variant.Outlined" Items="@GetCurrencySelects()" />
+            </MudItem>
+            <MudItem xs="12" md="4">
+                <MudNumericField Disabled="@(_invoice.InvoiceStatus == "Submitted")" @bind-Value="_invoice.CurrencyConversion" Label="Exchange Rate (to Base)" HideSpinButtons="true" Variant="Variant.Outlined" />
             </MudItem>
             <MudItem xs="12" md="4" Class="d-flex align-center">
                 <MudText Typo="Typo.subtitle1" Style="font-weight: bold;">
-                    Total Due: @(_selectedCurrencySymbol ?? "$") @(CalculateTotalAmount().ToString("N2"))
+                    Total Due: @(_selectedCurrencySymbol ?? "$") @SessionState.FormatNumber(CalculateTotalAmount())
                 </MudText>
             </MudItem>
 
-            <MudItem xs="12">
-                <MudTextField Disabled="@(_invoice.IsPaid == true)" @bind-Value="_invoice.Remarks" Label="Remarks / Payment Instructions" Variant="Variant.Outlined" Lines="2" />
+            <MudItem xs="12" md="6">
+                <MudTextField Disabled="@(_invoice.InvoiceStatus == "Submitted")" @bind-Value="_invoice.Remarks" Label="The Narration Will be Printed on Invoice" Variant="Variant.Outlined" Lines="2" />
             </MudItem>
 
+            <MudItem xs="12" md="6">
+                <MudTextField Disabled="@(_invoice.InvoiceStatus == "Submitted")" @bind-Value="_invoice.InvoiceRemark" Label="Remarks" Variant="Variant.Outlined" Lines="2" />
+            </MudItem>
+            
             <MudItem xs="12" Class="mt-4">
                 <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-2">
                     <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">Invoice Line Items</MudText>
-                    @if (_invoice.IsPaid != true)
+                    @if (_invoice.InvoiceStatus != "Submitted")
                     {
                         <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="AddInvoiceItem" Size="Size.Small">
                             Add Line Item
@@ -74,35 +82,19 @@
                 <MudTable Items="@_invoice.Items" Hover="true" Dense="true" Striped="true" Bordered="true" Elevation="0" Class="mb-4">
                     <HeaderContent>
                         <MudTh>Item (SKU)</MudTh>
-                        <MudTh>Related Order</MudTh>
+                        <MudTh>Batch No.</MudTh>
                         <MudTh Style="width: 110px; text-align: center;">Qty</MudTh>
                         <MudTh Style="width: 140px; text-align: right;">Unit Price</MudTh>
                         <MudTh Style="width: 140px; text-align: right;">Amount</MudTh>
-                        <MudTh>Print Heading</MudTh>
-                        <MudTh>Batch No.</MudTh>
+                        <MudTh>Related Order</MudTh>
                         <MudTh Style="width: 80px; text-align: center;">Action</MudTh>
                     </HeaderContent>
                     <RowTemplate Context="row">
                         <MudTd DataLabel="Item (SKU)">
-                            <SearchableSelect T="RawMaterialDto" Disabled="@(_invoice.IsPaid == true)" Value="@(GetItemById(row.ItemId))" ValueChanged="@(async (RawMaterialDto val) => await OnItemChanged(row, val?.ItemId ?? 0))" Variant="Variant.Outlined" Dense="true" Items="@GetItemSelects()" />
-                        </MudTd>
-                        <MudTd DataLabel="Related Order">
-                            <SearchableSelect T="long?" Disabled="@(_invoice.IsPaid == true)" Value="@row.OrderID" ValueChanged="@((long? val) => OnOrderChanged(row, val ?? 0))" Variant="Variant.Outlined" Dense="true" Items="@GetOrderSelects()" />
-                        </MudTd>
-                        <MudTd DataLabel="Qty" Style="text-align: center;">
-                            <MudNumericField T="double" Disabled="@(_invoice.IsPaid == true)" @bind-Value="row.Quantity" Variant="Variant.Outlined" Dense="true" Margin="Margin.Dense" Min="1.0" Max="@(GetMaxQuantity(row) ?? double.MaxValue)" Style="text-align: center;" />
-                        </MudTd>
-                        <MudTd DataLabel="Unit Price" Style="text-align: right;">
-                            <MudNumericField Disabled="@(_invoice.IsPaid == true)" @bind-Value="row.UnitPrice" Variant="Variant.Outlined" Dense="true" Margin="Margin.Dense" Min="0.0" HideSpinButtons="true" Style="text-align: right;" />
-                        </MudTd>
-                        <MudTd DataLabel="Amount" Style="text-align: right; font-weight: bold;">
-                            @((row.Quantity * row.UnitPrice).ToString("N2"))
-                        </MudTd>
-                        <MudTd DataLabel="Print Heading">
-                            <MudTextField Disabled="@(_invoice.IsPaid == true)" @bind-Value="row.PrintHeading" Variant="Variant.Outlined" Dense="true" Margin="Margin.Dense" />
+                            <SearchableSelect T="RawMaterialDto" Disabled="@(_invoice.InvoiceStatus == "Submitted")" Value="@(GetItemById(row.ItemId))" ValueChanged="@(async (RawMaterialDto val) => await OnItemChanged(row, val?.ItemId ?? 0))" Variant="Variant.Outlined" Dense="true" Items="@GetItemSelects()" />
                         </MudTd>
                         <MudTd DataLabel="Batch No.">
-                            @if (_invoice.IsPaid == true)
+                            @if (_invoice.InvoiceStatus == "Submitted")
                             {
                                 <MudText Typo="Typo.body2">@row.BatchNumber</MudText>
                             }
@@ -111,11 +103,23 @@
                                 <SearchableSelect T="ItemStockByBatchForBOMDto" Value="@(GetBatchById(row.ItemId, row.ItemStockByBatchId))" ValueChanged="@(async (ItemStockByBatchForBOMDto val) => await OnBatchChanged(row, val))" Variant="Variant.Outlined" Dense="true" Items="@GetBatchSelects(row.ItemId)" />
                             }
                             @if(row.CostPrice.HasValue) {
-                                <MudText Typo="Typo.caption" Color="Color.Success">Cost: @(_selectedCurrencySymbol ?? "$") @(row.CostPrice.Value.ToString("N2"))</MudText>
+                                <MudText Typo="Typo.caption" Color="Color.Success">Cost: @(_selectedCurrencySymbol ?? "$") @(SessionState.FormatNumber(row.CostPrice.Value))</MudText>
                             }
                         </MudTd>
+                        <MudTd DataLabel="Qty" Style="text-align: center;">
+                            <MudNumericField Format="@($"N{SessionState.DecimalDigits}")" T="double" Disabled="@(_invoice.InvoiceStatus == "Submitted")" @bind-Value="row.Quantity" Variant="Variant.Outlined" Dense="true" Margin="Margin.Dense" Min="1.0" Max="@(GetMaxQuantity(row) ?? double.MaxValue)" Style="text-align: center;" />
+                        </MudTd>
+                        <MudTd DataLabel="Unit Price" Style="text-align: right;">
+                            <MudNumericField Format="@($"N{SessionState.DecimalDigits}")" Disabled="@(_invoice.InvoiceStatus == "Submitted")" @bind-Value="row.UnitPrice" Variant="Variant.Outlined" Dense="true" Margin="Margin.Dense" Min="0.0" HideSpinButtons="true" Style="text-align: right;" />
+                        </MudTd>
+                        <MudTd DataLabel="Amount" Style="text-align: right; font-weight: bold;">
+                            @SessionState.FormatNumber((row.Quantity * row.UnitPrice))
+                        </MudTd>
+                        <MudTd DataLabel="Related Order">
+                            <SearchableSelect T="long?" Disabled="@(_invoice.InvoiceStatus == "Submitted")" Value="@row.OrderID" ValueChanged="@((long? val) => OnOrderChanged(row, val ?? 0))" Variant="Variant.Outlined" Dense="true" Items="@GetOrderSelects()" />
+                        </MudTd>
                         <MudTd DataLabel="Action" Style="text-align: center;">
-                            @if (_invoice.IsPaid != true)
+                            @if (_invoice.InvoiceStatus != "Submitted")
                             {
                                 <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => RemoveInvoiceItem(row))" />
                             }
@@ -126,9 +130,10 @@
 
             <MudItem xs="12" Class="pt-4">
                 <MudStack Row="true" Spacing="2">
-                    @if (_invoice.IsPaid != true)
+                    @if (_invoice.InvoiceStatus != "Submitted")
                     {
-                        <MudButton ButtonType="ButtonType.Submit" Color="Color.Primary" Variant="Variant.Filled" Disabled="_busy">Save</MudButton>
+                        <MudButton ButtonType="ButtonType.Submit" Color="Color.Primary" Variant="Variant.Filled" Disabled="_busy">Save (Draft)</MudButton>
+                        <MudButton Variant="Variant.Filled" Color="Color.Success" Disabled="_busy" OnClick="SubmitInvoice">Submit Invoice</MudButton>
                     }
                     @if (Id > 0)
                     {
@@ -178,9 +183,9 @@
             _customers = custResult.Where(x => x.AccountGroupId == 5).ToList();
 
             var currResult = await ApiClient.GetCurrenciesAsync(pageSize: 1000);
-            _currencies = currResult.Items.ToList();
+            var allCurrencies = currResult.Items.ToList();
 
-            var itemResult = await StoreApiClient.GetItemsForBomLookupAsync(null);
+            var itemResult = await StoreApiClient.GetItemsForBomLookupAsync(1);
             _items = itemResult.ToList();
 
             var orderResult = await ApiClient.GetCustomerOrdersAsync(pageSize: 1000);
@@ -189,24 +194,23 @@
             if (Id > 0)
             {
                 _customers = custResult.Where(x => x.AccountGroupId == 5).ToList();
-            }
-            else
-            {
-                // Show all customers instead of filtering by completed orders
-                _customers = custResult.Where(x => x.AccountGroupId == 5).ToList();
-            }
-
-            if (Id > 0)
-            {
                 _title = "Edit Sales Invoice";
                 var fetched = await ApiClient.GetInvoiceByIdAsync(Id);
                 if (fetched != null)
                 {
                     _invoice = fetched;
-                    var c = _currencies.FirstOrDefault(curr => curr.CurrencyID == _invoice.CurrencyID);
-                    _selectedCurrencySymbol = c?.CurrencySymbol ?? "$";
+                    _currencies = allCurrencies;
+                    if (_invoice.CurrencyID.HasValue)
+                    {
+                        var matchingCurr = allCurrencies.FirstOrDefault(c => c.CurrencyID == _invoice.CurrencyID);
+                        _selectedCurrencySymbol = matchingCurr?.CurrencySymbol ?? "$";
+                    }
+                    else
+                    {
+                        _selectedCurrencySymbol = "$";
+                    }
 
-                    if (_invoice.IsPaid != true)
+                    if (_invoice.InvoiceStatus != "Submitted")
                     {
                         // Preload batches for existing items so the dropdown populates for editable invoices
                         foreach (var item in _invoice.Items)
@@ -240,14 +244,22 @@
             }
             else
             {
+                // Show all customers instead of filtering by completed orders
+                _customers = custResult.Where(x => x.AccountGroupId == 5).ToList();
+
+                _currencies = allCurrencies;
+                var defaultCurr = allCurrencies.FirstOrDefault(c => string.Equals(c.CurrencyString, SessionState.DefaultCurrency, StringComparison.OrdinalIgnoreCase)) ?? allCurrencies.FirstOrDefault();
+
                 _invoice = new InvoiceDto
                 {
                     InvoiceDate = DateTime.Today,
                     DueDate = DateTime.Today.AddDays(30),
                     CurrencyConversion = 1.0,
                     IsPaid = false,
-                    InvoiceStatus = "Draft"
+                    InvoiceStatus = "Draft",
+                    CurrencyID = defaultCurr?.CurrencyID
                 };
+                _selectedCurrencySymbol = defaultCurr?.CurrencySymbol ?? "$";
             }
         }
         catch (Exception ex)
@@ -349,11 +361,10 @@
         }
     }
 
-    private void OnCurrencyChanged(long? val)
+    private void OnCurrencyChanged(CurrencyDto val)
     {
-        _invoice.CurrencyID = val;
-        var c = _currencies.FirstOrDefault(curr => curr.CurrencyID == val);
-        _selectedCurrencySymbol = c?.CurrencySymbol ?? "$";
+        _invoice.CurrencyID = val?.CurrencyID;
+        _selectedCurrencySymbol = val?.CurrencySymbol ?? "$";
     }
 
     private double CalculateTotalAmount()
@@ -453,6 +464,16 @@
         }
     }
 
+    private async Task SubmitInvoice()
+    {
+        bool confirm = await JS.InvokeAsync<bool>("confirm", "Are you sure? After submitting the invoice you cannot edit it.");
+        if (confirm)
+        {
+            _invoice.InvoiceStatus = "Submitted";
+            await SaveInvoice();
+        }
+    }
+
     private void BackToList()
     {
         Navigation.NavigateTo("/admin/invoice");
@@ -481,18 +502,18 @@
 
     private IEnumerable<SearchableSelect<string>.SelectItemDto<string>> GetStatusSelects()
     {
-        return new[] { "Draft", "Sent", "Paid", "Overdue" }.Select(x => new SearchableSelect<string>.SelectItemDto<string>
+        return new[] { "Draft", "Sent", "Paid", "Overdue", "Submitted" }.Select(x => new SearchableSelect<string>.SelectItemDto<string>
         {
             Value = x,
             Text = x
         });
     }
 
-    private IEnumerable<SearchableSelect<long?>.SelectItemDto<long?>> GetCurrencySelects()
+    private IEnumerable<SearchableSelect<CurrencyDto>.SelectItemDto<CurrencyDto>> GetCurrencySelects()
     {
-        return _currencies.Select(x => new SearchableSelect<long?>.SelectItemDto<long?>
+        return _currencies.Select(x => new SearchableSelect<CurrencyDto>.SelectItemDto<CurrencyDto>
         {
-            Value = (long?)x.CurrencyID,
+            Value = x,
             Text = $"{x.CurrencySymbol} ({x.CurrencyString})"
         });
     }
@@ -539,4 +560,5 @@
 
     private RawMaterialDto? GetItemById(long id) => _items.FirstOrDefault(x => x.ItemId == id);
 }
+
 

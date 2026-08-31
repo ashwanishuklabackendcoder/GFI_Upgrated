@@ -6,7 +6,7 @@
 @inject StoreApiClient ApiClient
 @inject ISnackbar Snackbar
 @inject NavigationManager Navigation
-@inject AppSessionState SessionState
+@inject GFI_Upgrated.UI.State.AppSessionState SessionState
 
 <PageTitle>Sales Dashboard</PageTitle>
 
@@ -36,7 +36,7 @@
                 <MudPaper Class="pa-4 rounded-lg d-flex align-center justify-between" Elevation="3" Style="background: linear-gradient(135deg, #43a047, #66bb6a); color: white;">
                     <div>
                         <MudText Typo="Typo.subtitle2" Class="opacity-75" Style="color: #ffffff !important;">Total Items Sold</MudText>
-                        <MudText Typo="Typo.h4" Class="font-weight-bold mt-1" Style="color: #ffffff !important;">@_totalQtySold.ToString("N0")</MudText>
+                        <MudText Typo="Typo.h4" Class="font-weight-bold mt-1" Style="color: #ffffff !important;">@SessionState.FormatNumber(_totalQtySold)</MudText>
                     </div>
                     <MudIcon Icon="@Icons.Material.Filled.TrendingUp" Size="Size.Large" Class="opacity-50" />
                 </MudPaper>
@@ -79,7 +79,7 @@
                             <RowTemplate>
                                 <MudTd DataLabel="Item Name">@context.ItemName</MudTd>
                                 <MudTd DataLabel="Date" Style="text-align: center;">@(context.TransactionDate?.ToString("yyyy-MM-dd") ?? "-")</MudTd>
-                                <MudTd DataLabel="Quantity" Style="text-align: right;">@context.Quantity.ToString("N2")</MudTd>
+                                <MudTd DataLabel="Quantity" Style="text-align: right;">@SessionState.FormatNumber(context.Quantity)</MudTd>
                                 <MudTd DataLabel="Total Amount" Style="text-align: right;" Class="font-weight-bold">@FormatCurrency(context.TotalAmount)</MudTd>
                             </RowTemplate>
                             <NoRecordsContent>
@@ -112,7 +112,7 @@
                             <RowTemplate>
                                 <MudTd DataLabel="Year" Class="font-weight-bold">@context.Year</MudTd>
                                 <MudTd DataLabel="Revenue" Style="text-align: right;">@FormatCurrency(context.SalesAmount)</MudTd>
-                                <MudTd DataLabel="Qty Sold" Style="text-align: right;">@context.QuantitySold.ToString("N2")</MudTd>
+                                <MudTd DataLabel="Qty Sold" Style="text-align: right;">@SessionState.FormatNumber(context.QuantitySold)</MudTd>
                             </RowTemplate>
                         </MudTable>
                     </MudCardContent>
@@ -141,7 +141,7 @@
                             <RowTemplate>
                                 <MudTd DataLabel="Customer Group" Class="font-weight-medium">@context.CustomerGroup</MudTd>
                                 <MudTd DataLabel="Total Sales" Style="text-align: right;" Class="font-weight-bold text-success">@FormatCurrency(context.TotalAmount)</MudTd>
-                                <MudTd DataLabel="Qty Sold" Style="text-align: right;">@context.QuantitySold.ToString("N2")</MudTd>
+                                <MudTd DataLabel="Qty Sold" Style="text-align: right;">@SessionState.FormatNumber(context.QuantitySold)</MudTd>
                             </RowTemplate>
                         </MudTable>
                     </MudCardContent>
@@ -170,7 +170,7 @@
                             <RowTemplate>
                                 <MudTd DataLabel="Customer Name">@context.CustomerName</MudTd>
                                 <MudTd DataLabel="Total Amount" Style="text-align: right;" Class="font-weight-bold text-info">@FormatCurrency(context.TotalAmount)</MudTd>
-                                <MudTd DataLabel="Qty Sold" Style="text-align: right;">@context.QuantitySold.ToString("N2")</MudTd>
+                                <MudTd DataLabel="Qty Sold" Style="text-align: right;">@SessionState.FormatNumber(context.QuantitySold)</MudTd>
                             </RowTemplate>
                         </MudTable>
                     </MudCardContent>
@@ -250,6 +250,7 @@
 
     private string FormatCurrency(decimal val)
     {
-        return $"${val.ToString("N2")} SRD";
+        return $"${SessionState.FormatNumber(val)} SRD";
     }
 }
+
