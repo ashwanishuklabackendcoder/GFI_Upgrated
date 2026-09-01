@@ -1,0 +1,5 @@
+﻿    <ItemGroup>
+        <Content Include=""app_offline.htm"">
+            <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+        </Content>
+    </ItemGroup>

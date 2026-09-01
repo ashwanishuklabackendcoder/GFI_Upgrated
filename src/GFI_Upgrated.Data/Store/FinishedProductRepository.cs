@@ -370,6 +370,7 @@ public sealed class FinishedProductRepository : IFinishedProductRepository
             new SqlParameter("@CreatedBy", SqlDbType.NVarChar, 100) { Value = request.CreatedBy },
 
             new SqlParameter("@DeletedBatchIds", SqlDbType.NVarChar, -1) { Value = (object?)deletedBatchIds ?? DBNull.Value },
+            new SqlParameter("@Amount", SqlDbType.Float) { Value = request.Amount },
             new SqlParameter("@ReturnVal", SqlDbType.Int) { Direction = ParameterDirection.Output }
         };
 
