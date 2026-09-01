@@ -15,6 +15,9 @@ public sealed class AdminSecurityApiClient : ApiClientBase
     public async Task<LoginResultDto?> LoginAsync(LoginRequest request, CancellationToken cancellationToken = default)
         => await PostEnvelopeAsync<LoginRequest, LoginResultDto>("api/admin/security/login", request, cancellationToken);
 
+    public async Task<AdminDashboardDto?> GetAdminDashboardMetricsAsync(CancellationToken cancellationToken = default)
+        => await GetEnvelopeAsync<AdminDashboardDto>("api/admin/security/dashboard-metrics", cancellationToken);
+
     public async Task<string?> SendPasswordResetOtpAsync(string email, CancellationToken cancellationToken = default)
         => await PostEnvelopeAsync<object, string>($"api/admin/security/forgot-password/send-otp?email={Uri.EscapeDataString(email)}", new object(), cancellationToken);
 

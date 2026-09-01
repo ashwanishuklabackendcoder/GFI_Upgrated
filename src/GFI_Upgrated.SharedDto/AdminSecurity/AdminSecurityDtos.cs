@@ -380,3 +380,25 @@ public sealed class SaveStaffRequest : IValidatableObject
         }
     }
 }
+
+public class AdminKpiDto
+{
+    public decimal Value { get; set; }
+    public decimal GrowthPercentage { get; set; }
+    public bool IsPositive { get; set; }
+}
+
+public class AdminChartDataDto
+{
+    public string Label { get; set; } = string.Empty;
+    public decimal Value { get; set; }
+}
+
+public class AdminDashboardDto
+{
+    public AdminKpiDto TotalUsers { get; set; } = new();
+    public AdminKpiDto ActiveLogins { get; set; } = new();
+    public AdminKpiDto TotalRoles { get; set; } = new();
+    public AdminKpiDto ActivityLogs { get; set; } = new();
+    public List<AdminChartDataDto> LoginsByDay { get; set; } = new();
+}

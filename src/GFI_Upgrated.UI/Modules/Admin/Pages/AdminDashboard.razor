@@ -1,8 +1,10 @@
 @page "/admin"
 @inject GFI_Upgrated.UI.State.AppSessionState SessionState
 @inject NavigationManager Navigation
+@inject GFI_Upgrated.UI.Services.AdminSecurityApiClient ApiClient
+@inject GFI_Upgrated.UI.Services.StoreApiClient StoreApiClient
 
-<PageTitle>Dashboard</PageTitle>
+<PageTitle>System Dashboard</PageTitle>
 
 <div class="dashboard-page">
     <section class="dashboard-hero">
@@ -11,169 +13,189 @@
     </section>
 
     <section class="dashboard-kpi-grid">
-        <article class="dashboard-kpi-card">
-            <div class="kpi-badge violet">
-                <i class="ti ti-shopping-cart"></i>
+        @if (_loading)
+        {
+            <div class="p-4"><MudProgressCircular Color="Color.Primary" Indeterminate="true" /></div>
+        }
+        else if (!string.IsNullOrEmpty(_errorMessage))
+        {
+            <div class="p-4">
+                <MudAlert Severity="Severity.Error">@_errorMessage</MudAlert>
             </div>
-            <div class="kpi-label">Order</div>
-            <div class="kpi-mini">
-                <span style="height: 42%"></span>
-                <span style="height: 58%"></span>
-                <span style="height: 73%"></span>
-                <span style="height: 36%"></span>
-                <span style="height: 64%"></span>
-                <span style="height: 48%"></span>
-                <span style="height: 78%"></span>
-            </div>
-            <div class="d-flex align-items-end justify-content-between">
-                <div class="kpi-value">124k</div>
-                <div class="kpi-growth">+12.6%</div>
-            </div>
-        </article>
-
-        <article class="dashboard-kpi-card">
-            <div class="kpi-badge green">
-                <i class="ti ti-trending-up"></i>
-            </div>
-            <div class="kpi-label">Sales</div>
-            <div class="kpi-mini">
-                <span style="height: 26%"></span>
-                <span style="height: 40%"></span>
-                <span style="height: 22%"></span>
-                <span style="height: 61%"></span>
-                <span style="height: 80%"></span>
-                <span style="height: 68%"></span>
-                <span style="height: 52%"></span>
-            </div>
-            <div class="d-flex align-items-end justify-content-between">
-                <div class="kpi-value">175k</div>
-                <div class="kpi-growth kpi-negative">-16.2%</div>
-            </div>
-        </article>
-
-        <article class="dashboard-kpi-card">
-            <div class="kpi-badge pink">
-                <i class="ti ti-cash"></i>
-            </div>
-            <div class="kpi-label">Total Profit</div>
-            <p class="mb-1 mt-3 text-secondary">Last week</p>
-            <div class="kpi-value mb-3">1.28k</div>
-            <span class="badge rounded-pill" style="background:#ffe7ea;color:#ff5b78;">-12.2%</span>
-        </article>
-
-        <article class="dashboard-kpi-card">
-            <div class="kpi-badge green">
-                <i class="ti ti-cash-banknote"></i>
-            </div>
-            <div class="kpi-label">Total Sales</div>
-            <p class="mb-1 mt-3 text-secondary">Last week</p>
-            <div class="kpi-value mb-3">24.67k</div>
-            <span class="badge rounded-pill" style="background:#e2f7e9;color:#16a34a;">+24.5%</span>
-        </article>
-
-        <article class="dashboard-kpi-card">
-            <div class="d-flex align-items-start justify-content-between gap-3">
-                <div>
-                    <h5 class="mb-1 fw-bold">Revenue Growth</h5>
-                    <div class="kpi-label">Weekly Report</div>
+        }
+        else if (_dashboardData != null)
+        {
+            <article class="dashboard-kpi-card">
+                <div class="kpi-badge violet">
+                    <i class="ti ti-users"></i>
                 </div>
-                <div class="kpi-badge blue mb-0">
-                    <i class="ti ti-chart-bar"></i>
+                <div class="kpi-label">Total Users</div>
+                <p class="mb-1 mt-3 text-secondary">Active users</p>
+                <div class="kpi-value mb-3">@_dashboardData.TotalUsers.Value.ToString("N0")</div>
+                <span class="badge rounded-pill" style="background:#e2f7e9;color:#16a34a;">+Active</span>
+            </article>
+
+            <article class="dashboard-kpi-card">
+                <div class="kpi-badge green">
+                    <i class="ti ti-login"></i>
                 </div>
-            </div>
+                <div class="kpi-label">Active Logins</div>
+                <p class="mb-1 mt-3 text-secondary">Last 7 days</p>
+                <div class="kpi-value mb-3">@_dashboardData.ActiveLogins.Value.ToString("N0")</div>
+                <span class="badge rounded-pill" style="@(_dashboardData.ActiveLogins.IsPositive ? "background:#e2f7e9;color:#16a34a;" : "background:#ffe7ea;color:#ff5b78;")">@_dashboardData.ActiveLogins.GrowthPercentage.ToString("0.0")%</span>
+            </article>
 
-            <div class="d-flex align-items-end justify-content-between mt-4">
-                <div class="kpi-value">$4,673</div>
-                <span class="badge rounded-pill" style="background:#e2f7e9;color:#16a34a;">+15.2%</span>
-            </div>
+            <article class="dashboard-kpi-card">
+                <div class="kpi-badge pink">
+                    <i class="ti ti-shield-lock"></i>
+                </div>
+                <div class="kpi-label">Total Roles</div>
+                <p class="mb-1 mt-3 text-secondary">System config</p>
+                <div class="kpi-value mb-3">@_dashboardData.TotalRoles.Value.ToString("N0")</div>
+                <span class="badge rounded-pill" style="background:#e2f7e9;color:#16a34a;">+Active</span>
+            </article>
 
-            <div class="kpi-mini mt-4" style="height: 108px;">
-                <span style="height: 48%; background:rgba(115,103,240,.16)"></span>
-                <span style="height: 66%; background:rgba(115,103,240,.24)"></span>
-                <span style="height: 78%; background:rgba(115,103,240,.34)"></span>
-                <span style="height: 92%; background:rgba(115,103,240,.38)"></span>
-                <span style="height: 100%" class="highlight"></span>
-                <span style="height: 82%; background:rgba(115,103,240,.28)"></span>
-                <span style="height: 54%; background:rgba(115,103,240,.2)"></span>
-            </div>
-
-            <div class="d-flex justify-content-between text-uppercase text-secondary small">
-                <span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span><span>S</span>
-            </div>
-        </article>
+            <article class="dashboard-kpi-card">
+                <div class="kpi-badge blue">
+                    <i class="ti ti-activity"></i>
+                </div>
+                <div class="kpi-label">Activity Logs</div>
+                <p class="mb-1 mt-3 text-secondary">Last 7 days</p>
+                <div class="kpi-value mb-3">@_dashboardData.ActivityLogs.Value.ToString("N0")</div>
+                <span class="badge rounded-pill" style="@(_dashboardData.ActivityLogs.IsPositive ? "background:#e2f7e9;color:#16a34a;" : "background:#ffe7ea;color:#ff5b78;")">@_dashboardData.ActivityLogs.GrowthPercentage.ToString("0.0")%</span>
+            </article>
+        }
     </section>
 
-    <section class="dashboard-panels">
-        <article class="dashboard-panel">
-            <div class="panel-header">
-                <div>
-                    <h2 class="panel-title">Earning Reports</h2>
-                    <div class="panel-subtitle">Yearly earnings overview</div>
+    <section class="dashboard-panels mt-4">
+        @if (_dashboardData != null && !_loading)
+        {
+            <article class="dashboard-panel">
+                <div class="panel-header">
+                    <div>
+                        <h2 class="panel-title">System Activity</h2>
+                        <div class="panel-subtitle">Logins in the past 7 days</div>
+                    </div>
                 </div>
-                <i class="ti ti-dots-vertical"></i>
-            </div>
 
-            <div class="report-tabs">
-                <div class="report-tab active">
-                    <div class="report-tab-icon"><i class="ti ti-shopping-cart"></i></div>
-                    <div>Orders</div>
+                <div class="report-chart mt-4">
+                    @if (_dashboardData.LoginsByDay != null && _dashboardData.LoginsByDay.Any())
+                    {
+                        var maxVal = _dashboardData.LoginsByDay.Max(x => x.Value);
+                        if (maxVal == 0) maxVal = 1;
+                        foreach (var day in _dashboardData.LoginsByDay)
+                        {
+                            var height = (day.Value / (decimal)maxVal) * 100;
+                            <div class="report-bar">
+                                <span>@day.Value</span>
+                                <div class="bar @(height == 100 ? "highlight" : "")" style="height:@((int)height)%"></div>
+                                <small class="text-secondary">@day.Label</small>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <p class="text-secondary">No recent login data.</p>
+                    }
                 </div>
-                <div class="report-tab">
-                    <div class="report-tab-icon"><i class="ti ti-chart-bar"></i></div>
-                    <div>Sales</div>
-                </div>
-                <div class="report-tab">
-                    <div class="report-tab-icon"><i class="ti ti-cash"></i></div>
-                    <div>Profit</div>
-                </div>
-                <div class="report-tab">
-                    <div class="report-tab-icon"><i class="ti ti-clock"></i></div>
-                    <div>Income</div>
-                </div>
-                <div class="report-tab">
-                    <div class="report-tab-icon"><i class="ti ti-plus"></i></div>
-                    <div></div>
-                </div>
-            </div>
+            </article>
+        }
 
-            <div class="report-chart">
-                <div class="report-bar"><span>28k</span><div class="bar" style="height:28%"></div><small class="text-secondary">Jan</small></div>
-                <div class="report-bar"><span>10k</span><div class="bar" style="height:10%"></div><small class="text-secondary">Feb</small></div>
-                <div class="report-bar"><span>45k</span><div class="bar highlight" style="height:45%"></div><small class="text-secondary">Mar</small></div>
-                <div class="report-bar"><span>38k</span><div class="bar" style="height:38%"></div><small class="text-secondary">Apr</small></div>
-                <div class="report-bar"><span>15k</span><div class="bar" style="height:15%"></div><small class="text-secondary">May</small></div>
-                <div class="report-bar"><span>30k</span><div class="bar" style="height:30%"></div><small class="text-secondary">Jun</small></div>
-                <div class="report-bar"><span>35k</span><div class="bar" style="height:35%"></div><small class="text-secondary">Jul</small></div>
-                <div class="report-bar"><span>30k</span><div class="bar" style="height:30%"></div><small class="text-secondary">Aug</small></div>
-            </div>
-        </article>
-
-        <article class="dashboard-panel">
-            <div class="panel-header">
-                <div>
-                    <h2 class="panel-title">Sales</h2>
-                    <div class="panel-subtitle">Last 6 months</div>
+        @if (_salesData != null && !_loading)
+        {
+            <article class="dashboard-panel">
+                <div class="panel-header">
+                    <div>
+                        <h2 class="panel-title">Sales by Year</h2>
+                        <div class="panel-subtitle">Total sales overview</div>
+                    </div>
                 </div>
-                <i class="ti ti-dots-vertical"></i>
-            </div>
-
-            <div class="report-radar">
-                <div class="radar-graphic"></div>
-                <div class="d-flex gap-4 mt-4">
-                    <span class="d-inline-flex align-items-center gap-2"><span class="rounded-circle d-inline-block" style="width:12px;height:12px;background:#7367f0"></span>Sales</span>
-                    <span class="d-inline-flex align-items-center gap-2"><span class="rounded-circle d-inline-block" style="width:12px;height:12px;background:#00b7ff"></span>Visits</span>
+                <div class="report-chart mt-4">
+                    @if (_salesData.SalesPerYear != null && _salesData.SalesPerYear.Any())
+                    {
+                        var maxVal = _salesData.SalesPerYear.Max(x => x.SalesAmount);
+                        if (maxVal == 0) maxVal = 1m;
+                        foreach (var yearData in _salesData.SalesPerYear)
+                        {
+                            var height = (yearData.SalesAmount / maxVal) * 100;
+                            <div class="report-bar">
+                                <span>@yearData.SalesAmount.ToString("C0")</span>
+                                <div class="bar @(height == 100 ? "highlight" : "")" style="height:@((int)height)%"></div>
+                                <small class="text-secondary">@yearData.Year</small>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <p class="text-secondary">No sales data available.</p>
+                    }
                 </div>
-            </div>
-        </article>
+            </article>
+
+            <article class="dashboard-panel">
+                <div class="panel-header">
+                    <div>
+                        <h2 class="panel-title">Top Items Sold</h2>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    @if (_salesData.TotalSales != null && _salesData.TotalSales.Any())
+                    {
+                        <MudTable Items="@_salesData.TotalSales.Take(5)" Dense="true" Hover="true" Breakpoint="Breakpoint.None" Elevation="0">
+                            <HeaderContent>
+                                <MudTh>Item</MudTh>
+                                <MudTh Style="text-align:right">Qty</MudTh>
+                                <MudTh Style="text-align:right">Amount</MudTh>
+                            </HeaderContent>
+                            <RowTemplate>
+                                <MudTd DataLabel="Item">@context.ItemName</MudTd>
+                                <MudTd DataLabel="Quantity" Style="text-align:right">@context.Quantity.ToString("N0")</MudTd>
+                                <MudTd DataLabel="Amount" Style="text-align:right">@context.TotalAmount.ToString("C0")</MudTd>
+                            </RowTemplate>
+                        </MudTable>
+                    }
+                    else
+                    {
+                        <p class="text-secondary">No items data available.</p>
+                    }
+                </div>
+            </article>
+        }
     </section>
+
 </div>
 
 @code {
-    protected override void OnInitialized()
+    private GFI_Upgrated.SharedDto.AdminSecurity.AdminDashboardDto? _dashboardData;
+    private GFI_Upgrated.SharedDto.Store.SalesDashboardDto? _salesData;
+    private bool _loading = true;
+    private string? _errorMessage;
+
+    protected override async Task OnInitializedAsync()
     {
         if (!SessionState.IsLoggedIn)
         {
             Navigation.NavigateTo("/login");
+            return;
+        }
+
+        try
+        {
+            var adminTask = ApiClient.GetAdminDashboardMetricsAsync();
+            var salesTask = StoreApiClient.GetSalesDashboardAsync();
+            
+            await Task.WhenAll(adminTask, salesTask);
+            
+            _dashboardData = await adminTask;
+            _salesData = await salesTask;
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Failed to load dashboard metrics: {ex.Message}";
+        }
+        finally
+        {
+            _loading = false;
         }
     }
 }

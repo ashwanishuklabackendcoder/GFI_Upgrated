@@ -58,6 +58,7 @@ public interface IAdminSecurityService
     Task LogEmailAsync(EmailLogDto log, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<EmailLogDto>> GetEmailLogsByStaffIdAsync(long staffId, CancellationToken cancellationToken = default);
     Task<UserDto?> GetUserByStaffIdAsync(long staffId, CancellationToken cancellationToken = default);
+    Task<AdminDashboardDto> GetAdminDashboardMetricsAsync(CancellationToken cancellationToken = default);
 }
 
 public sealed class AdminSecurityService : IAdminSecurityService
@@ -67,6 +68,11 @@ public sealed class AdminSecurityService : IAdminSecurityService
     public AdminSecurityService(IAdminSecurityRepository repository)
     {
         _repository = repository;
+    }
+
+    public Task<AdminDashboardDto> GetAdminDashboardMetricsAsync(CancellationToken cancellationToken = default)
+    {
+        return _repository.GetAdminDashboardMetricsAsync(cancellationToken);
     }
 
     public Task<LoginResultDto?> LoginAsync(LoginRequest request, CancellationToken cancellationToken = default)
