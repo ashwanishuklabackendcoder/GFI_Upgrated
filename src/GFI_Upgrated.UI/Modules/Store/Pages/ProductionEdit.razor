@@ -55,13 +55,7 @@
             <MudItem xs="12" md="4">
                 <MudDatePicker DateFormat="@SessionState.DatePickerFormat" Placeholder="@SessionState.DatePickerFormat" Editable="true" @bind-Date="_editor.ExpiryDate" Label="@($"Expiry Date ({SessionState.DateFormat})")" Variant="Variant.Outlined" />
             </MudItem>
-            <!-- Kettle Details -->
-            <MudItem xs="12" md="6">
-                <SearchableSelect T="string" Label="Kettles" MultiSelection="true" SelectedValues="@_selectedKettles" SelectedValuesChanged="@((vals) => { _selectedKettles = vals; })" MultiSelectionTextFunc="@(x => string.Join(", ", x.Select(idStr => _kettles.FirstOrDefault(k => k.KettleId.ToString() == idStr)?.KettleNumber ?? idStr)))" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter" Items="@GetKettleSelects()" />
-            </MudItem>
-            <MudItem xs="12" md="6">
-                <MudNumericField @bind-Value="_editor.KettleRun" Label="Kettle Run" Variant="Variant.Outlined" Min="0" />
-            </MudItem>
+
 
             <!-- Filling and Batch Info -->
             <MudItem xs="12" md="4">
@@ -79,13 +73,7 @@
             <MudItem xs="12" md="4">
                 <MudNumericField @bind-Value="_editor.ExtraBottles" Label="Extra Bottles" Variant="Variant.Outlined" Min="0.0" Step="0.1" />
             </MudItem>
-            <MudItem xs="12" md="6">
-                <MudTextField @bind-Value="_editor.Colli" Label="Colli" Variant="Variant.Outlined" />
-            </MudItem>
 
-            <MudItem xs="12" md="6">
-                <MudTextField @bind-Value="_editor.PalletNumber" Label="Pallet Number" Variant="Variant.Outlined" />
-            </MudItem>
             <MudItem xs="12" md="6">
                 <SearchableSelect T="string" Label="Packed Country" Value="@_editor.PackedCountry" ValueChanged="@((string val) => { _editor.PackedCountry = val; })" Variant="Variant.Outlined" Items="@GetCountrySelects()" />
             </MudItem>

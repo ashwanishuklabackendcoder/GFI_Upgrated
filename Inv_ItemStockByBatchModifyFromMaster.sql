@@ -1,6 +1,4 @@
-Text                                                                                                                                                                                                                                                           
----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-CREATE PROCEDURE [dbo].[Inv_ItemStockByBatchModifyFromMaster]                  
+ALTER PROCEDURE [dbo].[Inv_ItemStockByBatchModifyFromMaster]                  
                                                                                                                                                                               
 @ItemStockByBatchId bigint = 0,                  
                                                                                                                                                                                                             

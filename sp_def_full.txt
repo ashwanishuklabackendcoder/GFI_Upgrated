@@ -1,0 +1,86 @@
+CREATE PROCEDURE [dbo].[W_ItemStockList]
+    @StockID int = 0,
+    @CreatedBy nvarchar(200) = null,
+    @ItemID int = 0,
+    @WarehouseID int = 0,
+    @ItemTypeId int = 0,
+    @FromDate date = null,
+    @ToDate date = null,
+    @CurrentPage int = 1 output,
+    @RecordPerPage int = 10,
+    @TotalRecord int = 0 output,
+    @SortOrd varchar(5) = 'DESC',
+    @SortColumn varchar(20) = 'StockID'
+AS
+BEGIN
+    SET NOCOUNT ON;
+    
+    DECLARE @RecQuery AS NVARCHAR(MAX)
+    DECLARE @Query AS NVARCHAR(MAX) = ''
+
+    IF @StockID > 0
+        SET @Query = @Query + ' AND W_ItemStock.StockID = ' + CAST(@StockID AS VARCHAR)
+    IF ISNULL(@CreatedBy, '') <> ''
+        SET @Query = @Query + ' AND W_ItemStock.CreatedBy = ''' + @CreatedBy + ''''
+    IF @ItemID > 0
+        SET @Query = @Query + ' AND W_ItemStock.ItemID = ' + CAST(@ItemID AS VARCHAR)
+    IF @WarehouseID > 0
+        SET @Query = @Query + ' AND W_ItemStock.WarehouseID = ' + CAST(@WarehouseID AS VARCHAR)
+    IF @ItemTypeId > 0
+        SET @Query = @Query + ' AND IM.ItemTypeId = ' + CAST(@ItemTypeId AS VARCHAR)
+
+    SET @TotalRecord = 0
+
+    SET @RecQuery = 'SELECT @TotalRecord = COUNT(1) FROM dbo.W_ItemStock INNER JOIN W_MasterItem IM ON IM.ItemID = W_ItemStock.ItemID LEFT JOIN W_MasterWarehouse MW ON Mw.WarehouseId = W_ItemStock.WarehouseID WHERE 1=1 ' + @Query
+    EXEC dbo.sp_ExecuteSql @RecQuery, N'@TotalRecord INT OUTPUT', @TotalRecord OUTPUT
+
+    DECLARE @MaxPage INT
+    SET @MaxPage = CEILING(ISNULL(@TotalRecord, 0) / (@RecordPerPage * 1.0))
+
+    IF @MaxPage < @CurrentPage
+    BEGIN
+        IF @MaxPage <= 0
+            SET @CurrentPage = 1
+        ELSE
+            SET @CurrentPage = @MaxPage
+    END
+
+    DECLARE @Top AS INT
+    DECLARE @Bottom AS INT
+    SET @Top = ((@CurrentPage - 1) * @RecordPerPage + 1)
+    SET @Bottom = (@CurrentPage * @RecordPerPage)
+
+    DECLARE @QualifiedSortColumn varchar(50) = @SortColumn
+    IF @SortColumn IN ('StockID', 'ItemID', 'WarehouseID', 'UnitId', 'CreatedBy')
+        SET @QualifiedSortColumn = 'W_ItemStock.' + @SortColumn
+
+    SET @RecQuery = 'SELECT * FROM (
+        SELECT ROW_NUMBER() OVER (ORDER BY ' + @QualifiedSortColumn + ' ' + @SortOrd + ') AS RowNumber,
+        W_ItemStock.StockID, 
+        ROUND(W_ItemStock.OpeningQuantity, 2) AS OpeningQuantity, 
+        ROUND(W_ItemStock.PurchasedQuantity, 2) AS PurchasedQuantity, 
+        ROUND(W_ItemStock.ProducedQuantity, 2) AS ProducedQuantity, 
+        W_ItemStock.ItemID, 
+        W_ItemStock.WarehouseID, 
+        W_ItemStock.UnitId, 
+        ROUND(W_ItemStock.IssuedQuantity, 2) AS IssuedQuantity, 
+        W_ItemStock.CreatedBy, 
+        W_ItemStock.OpeningStockDate, 
+        ROUND(W_ItemStock.RemovedQuantity, 2) AS RemovedQuantity,
+        
+        -- FINAL STOCK = EXACT MATH (Opening + Purchased + Produced - Issued - Removed)
+        ROUND(ISNULL(W_ItemStock.OpeningQuantity, 0) + ISNULL(W_ItemStock.PurchasedQuantity, 0) + ISNULL(W_ItemStock.ProducedQuantity, 0) - ISNULL(W_ItemStock.IssuedQuantity, 0) - ISNULL(W_ItemStock.RemovedQuantity, 0), 2) AS FinalStock,
+        
+        IM.ItemName, 
+        IM.ItemCode,
+        COALESCE(MW.WarehouseName, ''N/A'') AS WarehouseName,
+        0.0 AS TotalValue
+        FROM dbo.W_ItemStock 
+        INNER JOIN W_MasterItem IM ON IM.ItemID = W_ItemStock.ItemID
+        LEFT JOIN W_MasterWarehouse MW ON Mw.WarehouseId = W_ItemStock.WarehouseID
+        WHERE 1=1 ' + @Query + '
+    ) t1 
+    WHERE t1.RowNumber >= ' + CAST(@Top AS VARCHAR) + ' AND t1.RowNumber <= ' + CAST(@Bottom AS VARCHAR)
+
+    EXEC dbo.sp_ExecuteSql @RecQuery
+END;

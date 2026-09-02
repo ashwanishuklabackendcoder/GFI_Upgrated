@@ -44,6 +44,16 @@
                 Search
             </MudButton>
         </MudItem>
+        <MudItem xs="12" md="12">
+            <MudStack Row="true" Spacing="4" AlignItems="AlignItems.Center">
+                <MudText Typo="Typo.subtitle2">Transaction Filters (Columns):</MudText>
+                <MudCheckBox @bind-Value="_showOpening" Label="Opening" Color="Color.Primary" Dense="true" />
+                <MudCheckBox @bind-Value="_showPurchased" Label="Purchase" Color="Color.Primary" Dense="true" />
+                <MudCheckBox @bind-Value="_showProduced" Label="Produced" Color="Color.Primary" Dense="true" />
+                <MudCheckBox @bind-Value="_showIssued" Label="Adjusted/Sold (Issued)" Color="Color.Primary" Dense="true" />
+                <MudCheckBox @bind-Value="_showRemoved" Label="Removed" Color="Color.Primary" Dense="true" />
+            </MudStack>
+        </MudItem>
     </MudGrid>
 
     <div class="print-only mb-6">
@@ -66,11 +76,11 @@
             <HeaderContent>
                 <MudTh Style="display:none;"><MudTableSortLabel SortLabel="StockID" T="ItemStockReportDto">Stock ID</MudTableSortLabel></MudTh>
                 <MudTh>Item Name</MudTh>
-                <MudTh Style="text-align: right;">Opening Qty.</MudTh>
-                <MudTh Style="text-align: right;">Purchased Qty.</MudTh>
-                <MudTh Style="text-align: right;">Produced Qty.</MudTh>
-                <MudTh Style="text-align: right;">Issued Qty.</MudTh>
-                <MudTh Style="text-align: right;">Removed Qty.</MudTh>
+                @if (_showOpening) { <MudTh Style="text-align: right;">Opening Qty.</MudTh> }
+                @if (_showPurchased) { <MudTh Style="text-align: right;">Purchased Qty.</MudTh> }
+                @if (_showProduced) { <MudTh Style="text-align: right;">Produced Qty.</MudTh> }
+                @if (_showIssued) { <MudTh Style="text-align: right;">Issued Qty.</MudTh> }
+                @if (_showRemoved) { <MudTh Style="text-align: right;">Removed Qty.</MudTh> }
                 <MudTh Style="text-align: right;">Final Stock</MudTh>
                 <MudTh Style="text-align: right;">SRD</MudTh>
             </HeaderContent>
@@ -79,11 +89,11 @@
                 <MudTd DataLabel="Item">
                     <a href="@($"/store/reportbatchwiseitems?itemId={context.ItemID}&fromItemStock=true")" style="color:var(--mud-palette-primary); text-decoration:none;">@context.ItemName</a>
                 </MudTd>
-                <MudTd DataLabel="Opening Qty" Style="text-align: right;">@FormatQty(context.OpeningQuantity, context.UnitId)</MudTd>
-                <MudTd DataLabel="Purchased Qty" Style="text-align: right;">@FormatQty(context.PurchasedQuantity, context.UnitId)</MudTd>
-                <MudTd DataLabel="Produced Qty" Style="text-align: right;">@FormatQty(context.ProducedQuantity, context.UnitId)</MudTd>
-                <MudTd DataLabel="Issued Qty" Style="text-align: right;">@FormatQty(context.IssuedQuantity, context.UnitId)</MudTd>
-                <MudTd DataLabel="Removed Qty" Style="text-align: right;">@FormatQty(context.RemovedQuantity, context.UnitId)</MudTd>
+                @if (_showOpening) { <MudTd DataLabel="Opening Qty" Style="text-align: right;">@FormatQty(context.OpeningQuantity, context.UnitId)</MudTd> }
+                @if (_showPurchased) { <MudTd DataLabel="Purchased Qty" Style="text-align: right;">@FormatQty(context.PurchasedQuantity, context.UnitId)</MudTd> }
+                @if (_showProduced) { <MudTd DataLabel="Produced Qty" Style="text-align: right;">@FormatQty(context.ProducedQuantity, context.UnitId)</MudTd> }
+                @if (_showIssued) { <MudTd DataLabel="Issued Qty" Style="text-align: right;">@FormatQty(context.IssuedQuantity, context.UnitId)</MudTd> }
+                @if (_showRemoved) { <MudTd DataLabel="Removed Qty" Style="text-align: right;">@FormatQty(context.RemovedQuantity, context.UnitId)</MudTd> }
                 <MudTd DataLabel="Final Stock" Style="text-align: right; font-weight: bold;">@FormatQty(context.FinalStock, context.UnitId)</MudTd>
                 <MudTd DataLabel="Stock Value" Style="text-align: right; font-weight: bold;">@FormatAmount(context.TotalValue)</MudTd>
             </RowTemplate>
@@ -137,6 +147,12 @@
     
     private string _currentSortLabel = "StockID";
     private string _currentSortDirection = "ASC";
+
+    private bool _showOpening = true;
+    private bool _showPurchased = true;
+    private bool _showProduced = true;
+    private bool _showIssued = true;
+    private bool _showRemoved = true;
 
     private List<RawMaterialDto> _items = new();
     private List<UnitDto> _units = new();
