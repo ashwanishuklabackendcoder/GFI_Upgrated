@@ -61,6 +61,7 @@ public interface IAdminSecurityRepository
     Task LogEmailAsync(EmailLogDto log, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<EmailLogDto>> GetEmailLogsByStaffIdAsync(long staffId, CancellationToken cancellationToken = default);
     Task<UserDto?> GetUserByStaffIdAsync(long staffId, CancellationToken cancellationToken = default);
+    Task<AdminDashboardDto> GetAdminDashboardMetricsAsync(CancellationToken cancellationToken = default);
 }
 
 public sealed class AdminSecurityRepository : IAdminSecurityRepository
@@ -70,6 +71,70 @@ public sealed class AdminSecurityRepository : IAdminSecurityRepository
     public AdminSecurityRepository(string connectionString)
     {
         _connectionString = connectionString;
+    }
+
+    public async Task<AdminDashboardDto> GetAdminDashboardMetricsAsync(CancellationToken cancellationToken = default)
+    {
+        await using var connection = new SqlConnection(_connectionString);
+        await connection.OpenAsync(cancellationToken);
+
+        var dto = new AdminDashboardDto();
+        
+        var query = @"
+            SELECT 
+                (SELECT COUNT(*) FROM Z_UsersLogins WHERE IsActive = 1) AS TotalUsers,
+                (SELECT COUNT(*) FROM Z_UsersLogins WHERE IsActive = 0) AS InactiveUsers,
+                (SELECT COUNT(*) FROM Z_UsersRoles) AS TotalRoles,
+                (SELECT COUNT(*) FROM Z_UsersLoginsLog WHERE LoginDateTime >= DATEADD(day, -7, GETDATE())) AS ActiveLogins7Days,
+                (SELECT COUNT(*) FROM Z_UsersLoginsLog WHERE LoginDateTime >= DATEADD(day, -14, GETDATE()) AND LoginDateTime < DATEADD(day, -7, GETDATE())) AS ActiveLoginsPrevious7Days,
+                (SELECT COUNT(*) FROM Z_UsersActivityLog WHERE DT >= DATEADD(day, -7, GETDATE())) AS ActivityLogs7Days,
+                (SELECT COUNT(*) FROM Z_UsersActivityLog WHERE DT >= DATEADD(day, -14, GETDATE()) AND DT < DATEADD(day, -7, GETDATE())) AS ActivityLogsPrevious7Days
+        ";
+
+        await using var command = new SqlCommand(query, connection);
+        await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+        if (await reader.ReadAsync(cancellationToken))
+        {
+            var totalUsers = reader.GetInt32(reader.GetOrdinal("TotalUsers"));
+            dto.TotalUsers = new AdminKpiDto { Value = totalUsers, GrowthPercentage = 0, IsPositive = true };
+            
+            var totalRoles = reader.GetInt32(reader.GetOrdinal("TotalRoles"));
+            dto.TotalRoles = new AdminKpiDto { Value = totalRoles, GrowthPercentage = 0, IsPositive = true };
+            
+            var logins7Days = reader.GetInt32(reader.GetOrdinal("ActiveLogins7Days"));
+            var loginsPrev7Days = reader.GetInt32(reader.GetOrdinal("ActiveLoginsPrevious7Days"));
+            var loginsGrowth = loginsPrev7Days == 0 ? (logins7Days > 0 ? 100 : 0) : ((decimal)(logins7Days - loginsPrev7Days) / loginsPrev7Days * 100);
+            dto.ActiveLogins = new AdminKpiDto { Value = logins7Days, GrowthPercentage = Math.Round(loginsGrowth, 1), IsPositive = loginsGrowth >= 0 };
+            
+            var activity7Days = reader.GetInt32(reader.GetOrdinal("ActivityLogs7Days"));
+            var activityPrev7Days = reader.GetInt32(reader.GetOrdinal("ActivityLogsPrevious7Days"));
+            var activityGrowth = activityPrev7Days == 0 ? (activity7Days > 0 ? 100 : 0) : ((decimal)(activity7Days - activityPrev7Days) / activityPrev7Days * 100);
+            dto.ActivityLogs = new AdminKpiDto { Value = activity7Days, GrowthPercentage = Math.Round(activityGrowth, 1), IsPositive = activityGrowth >= 0 };
+        }
+        await reader.CloseAsync();
+
+        var chartQuery = @"
+            SELECT 
+                FORMAT(LoginDateTime, 'ddd') AS Label,
+                COUNT(*) AS Value,
+                MIN(CAST(LoginDateTime AS DATE)) as MinDate
+            FROM Z_UsersLoginsLog
+            WHERE LoginDateTime >= DATEADD(day, -7, GETDATE())
+            GROUP BY FORMAT(LoginDateTime, 'ddd')
+            ORDER BY MinDate
+        ";
+        await using var chartCommand = new SqlCommand(chartQuery, connection);
+        await using var chartReader = await chartCommand.ExecuteReaderAsync(cancellationToken);
+        while (await chartReader.ReadAsync(cancellationToken))
+        {
+            dto.LoginsByDay.Add(new AdminChartDataDto
+            {
+                Label = chartReader.GetString(chartReader.GetOrdinal("Label")),
+                Value = chartReader.GetInt32(chartReader.GetOrdinal("Value"))
+            });
+        }
+
+        return dto;
     }
 
     public async Task<LoginResultDto?> LoginAsync(LoginRequest request, CancellationToken cancellationToken = default)

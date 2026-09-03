@@ -251,6 +251,26 @@ public sealed class SecurityController : ControllerBase
         return Ok(new ApiEnvelope<int> { Success = result > 0, Data = result });
     }
 
+    [HttpGet("dashboard-metrics")]
+    public async Task<ActionResult<ApiEnvelope<AdminDashboardDto>>> GetAdminDashboardMetrics(CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await _service.GetAdminDashboardMetricsAsync(cancellationToken);
+            return Ok(new ApiEnvelope<AdminDashboardDto>
+            {
+                Success = true,
+                Message = "Metrics loaded",
+                Data = result
+            });
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex, "Error getting admin dashboard metrics");
+            return StatusCode(500, new ApiEnvelope<AdminDashboardDto> { Success = false, Message = ex.Message });
+        }
+    }
+
     [HttpGet("staff")]
     public async Task<ActionResult<ApiEnvelope<PagedResult<StaffDto>>>> GetStaff([FromQuery] PagedRequest request, [FromQuery] string? searchText, CancellationToken cancellationToken)
     {

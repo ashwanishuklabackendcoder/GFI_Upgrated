@@ -1,4 +1,6 @@
-ALTER PROCEDURE [dbo].[W_ItemStockList]      
+Text                                                                                                                                                                                                                                                           
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+CREATE PROCEDURE [dbo].[W_ItemStockList]      
                                                                                                                                                                                                                
     @StockID int=0,      
                                                                                                                                                                                                                                     
@@ -16,8 +18,6 @@ ALTER PROCEDURE [dbo].[W_ItemStockList]
                                                                                                                                                                                                                                        
     @CurrentPage int=1 output,
                                                                                                                                                                                                                                
-        
-                                                                                                                                                                                                                                                     
     @RecordPerPage int=10,        
                                                                                                                                                                                                                            
     @TotalRecord  int=0 output,           
@@ -36,7 +36,7 @@ begin
                                                                                                                                                                                                 
        
                                                                                                                                                                                                                                                       
-    declare @Query as nvarchar(max)          
+    declare @Query as varchar(1000)          
                                                                                                                                                                                                                 
     declare @RecQuery as nvarchar(max)          
                                                                                                                                                                                                              
@@ -54,8 +54,9 @@ begin
                                                                                                                                                                          
     if @WarehouseID<>0          
                                                                                                                                                                                                                              
-        set @Query=@Query + ' and (W_ItemStock.WarehouseID =' + cast(@WarehouseID as varchar) + ' or exists (select 1 from Inv_ItemStockByBatch b where b.ItemId = W_ItemStock.ItemID and b.WarehouseId = ' + cast(@WarehouseID as varchar) + '))'
-           
+        set @Query=@Query + ' and (W_ItemStock.WarehouseID =' + cast(@WarehouseID as varchar) + ' or exists (select 1 from (select ItemId, WarehouseId from Inv_ItemStockByBatch union all select ItemId, WarehouseId from Inv_ItemStockByBatchForBOM) b where 
+b.ItemId = W_ItemStock.ItemID and b.WarehouseId = ' + cast(@WarehouseID as varchar) + '))'
+                                                                                                                                                                   
     if @ItemTypeId<>0          
                                                                                                                                                                                                                               
         set @Query=@Query + ' and IM.ItemTypeId =' + cast(@ItemTypeId as varchar)  
@@ -63,23 +64,15 @@ begin
         
                                                                                                                                                                                                                                                      
     if @FromDate is not null
-        set @Query=@Query + ' and EXISTS (SELECT 1 FROM Inv_ItemStockByBatch b WHERE b.ItemId = W_ItemStock.ItemID AND ( ' +
-        ' (b.StockById = 1 AND EXISTS (SELECT 1 FROM W_PurchaseMaster p JOIN W_PurchaseChild pc ON p.PurchaseID = pc.PurchaseID WHERE pc.PurchaseItemID = b.IdFrom AND cast(p.GoodsRecievedDate as date) >= ''' + cast(@FromDate as varchar(50)) + ''')) OR ' +
-        ' (b.StockById = 2 AND EXISTS (SELECT 1 FROM W_PreProcessing pp WHERE pp.PreProcessingId = b.IdFrom AND cast(pp.ProcessingDate as date) >= ''' + cast(@FromDate as varchar(50)) + ''')) OR ' +
-        ' (b.StockById = 4 AND EXISTS (SELECT 1 FROM W_Production p WHERE p.ProductionId = b.IdFrom AND cast(p.CookingDate as date) >= ''' + cast(@FromDate as varchar(50)) + ''')) OR ' +
-        ' (b.StockById = 3 AND cast(W_ItemStock.OpeningStockDate as date) >= ''' + cast(@FromDate as varchar(50)) + ''') ' +
-        '))'
+                                                                                                                                                                                                                                 
+        set @Query=@Query + ' and cast(W_ItemStock.OpeningStockDate as date) >=''' + cast(@FromDate as varchar(50)) + ''''
                                                                                                                                    
     if @ToDate is not null
-        set @Query=@Query + ' and EXISTS (SELECT 1 FROM Inv_ItemStockByBatch b WHERE b.ItemId = W_ItemStock.ItemID AND ( ' +
-        ' (b.StockById = 1 AND EXISTS (SELECT 1 FROM W_PurchaseMaster p JOIN W_PurchaseChild pc ON p.PurchaseID = pc.PurchaseID WHERE pc.PurchaseItemID = b.IdFrom AND cast(p.GoodsRecievedDate as date) <= ''' + cast(@ToDate as varchar(50)) + ''')) OR ' +
-        ' (b.StockById = 2 AND EXISTS (SELECT 1 FROM W_PreProcessing pp WHERE pp.PreProcessingId = b.IdFrom AND cast(pp.ProcessingDate as date) <= ''' + cast(@ToDate as varchar(50)) + ''')) OR ' +
-        ' (b.StockById = 4 AND EXISTS (SELECT 1 FROM W_Production p WHERE p.ProductionId = b.IdFrom AND cast(p.CookingDate as date) <= ''' + cast(@ToDate as varchar(50)) + ''')) OR ' +
-        ' (b.StockById = 3 AND cast(W_ItemStock.OpeningStockDate as date) <= ''' + cast(@ToDate as varchar(50)) + ''') ' +
-        '))'
+                                                                                                                                                                                                                                   
+        set @Query=@Query + ' and cast(W_ItemStock.OpeningStockDate as date) <=''' + cast(@ToDate as varchar(50)) + ''''
                                                                                                                                      
-
-                                                                                                                                                                                                                                                             
+ 
+                                                                                                                                                                                                                                                            
     if @CreatedBy<>''          
                                                                                                                                                                                                                               
         set @Query=@Query + ' and W_ItemStock.CreatedBy like ''%'' + @CreatedBy + ''%'''        
@@ -88,14 +81,12 @@ begin
                                                                                                                                                                                                                                                      
     declare @MaxPage int          
                                                                                                                                                                                                                            
-
-                                                                                                                                                                                                                                                             
+ 
+                                                                                                                                                                                                                                                            
     set @RecQuery='select @TotalRecord=count(1) from dbo.W_ItemStock inner join W_MasterItem IM on IM.ItemID=W_ItemStock.ItemID where 1=1 ' + @Query             
                                                                                             
     exec dbo.sp_ExecuteSql @RecQuery,N'@TotalRecord int output',@TotalRecord output      
                                                                                                                                                                     
-   
-                                                                                                                                                                                                                                                          
     
                                                                                                                                                                                                                                                          
     set @MaxPage=ceiling(isnull(@TotalRecord,0) / (@RecordPerPage * 1.0))            
@@ -134,40 +125,115 @@ begin
                                                                                                                
         set @QualifiedSortColumn = 'W_ItemStock.' + @SortColumn
                                                                                                                                                                                               
-
-                                                                                                                                                                                                                                                             
-    -- NEW FILTER APPLIED HERE: ONLY SUM COMPLETED BATCHES FOR FINAL STOCK, AND SELECT ProducedQuantity
-                                                                                                                                                      
+ 
+                                                                                                                                                                                                                                                            
     set @RecQuery='select * from (select row_number() over (order by '+ @QualifiedSortColumn + ' ' + @SortOrd + ') as RowNumber, ' +
                                                                                                                          
- ' W_ItemStock.StockID, ROUND(W_ItemStock.OpeningQuantity, 2) as OpeningQuantity, ROUND(W_ItemStock.PurchasedQuantity, 2) as PurchasedQuantity, ROUND(W_ItemStock.ProducedQuantity, 2) as ProducedQuantity, W_ItemStock.ItemID, W_ItemStock.WarehouseID, W_ItemStock.UnitId, ROUND(W_ItemStock.IssuedQuantity, 2) as IssuedQuantity, W_ItemStock.CreatedBy, W_ItemStock.OpeningStockDate, ROUND(W_ItemStock.RemovedQuantity, 2) as RemovedQuantity, ' +
+ ' W_ItemStock.StockID, W_ItemStock.OpeningQuantity, W_ItemStock.PurchasedQuantity, W_ItemStock.ProducedQuantity, W_ItemStock.ItemID, W_ItemStock.WarehouseID, W_ItemStock.UnitId, W_ItemStock.IssuedQuantity, W_ItemStock.CreatedBy, W_ItemStock.OpeningStockD
+ate, W_ItemStock.RemovedQuantity, ' +
                                                                                                                                                                                                                         
- ' isnull((select sum(FinalQuantityLeft) from Inv_ItemStockByBatch b where b.ItemId = W_ItemStock.ItemID AND (b.StockById NOT IN (2, 4) OR (b.StockById = 2 AND EXISTS (SELECT 1 FROM dbo.W_PreProcessing pp WHERE pp.PreProcessingId = b.IdFrom AND pp.IsComplete = 1)) OR (b.StockById = 4 AND EXISTS (SELECT 1 FROM dbo.W_Production p WHERE p.ProductionId = b.IdFrom AND p.IsComplete = 1)))), 0) as FinalStock, ' +
-                                                                                                   
+ ' isnull((select sum(FinalQuantityLeft) from (
+                                                                                                                                                                                                              
+     select b.ItemId, b.StockById, b.IdFrom, 
+                                                                                                                                                                                                                
+            isnull(b.FinalQuantityLeft + bom.FinalQuantityLeft - b.Quantity, b.FinalQuantityLeft) as FinalQuantityLeft 
+                                                                                                                                      
+     from dbo.Inv_ItemStockByBatch b
+                                                                                                                                                                                                                         
+     left join dbo.Inv_ItemStockByBatchForBOM bom on b.IdFrom = bom.IDFrom and b.ItemId = bom.ItemId and b.StockById = (CASE WHEN bom.IDFrom = 0 THEN 3 WHEN EXISTS (SELECT 1 FROM dbo.W_MasterItem i WHERE i.ItemID = bom.ItemId AND i.ItemTypeId = 2) THEN 2 
+ELSE 4 END)
+                                                                                                                                                                                                                                                  
+     
+                                                                                                                                                                                                                                                        
+     union all
+                                                                                                                                                                                                                                               
+     
+                                                                                                                                                                                                                                                        
+     select bom.ItemId, 
+                                                                                                                                                                                                                                     
+            CASE WHEN bom.IDFrom = 0 THEN 3 WHEN EXISTS (SELECT 1 FROM dbo.W_MasterItem i WHERE i.ItemID = bom.ItemId AND i.ItemTypeId = 2) THEN 2 ELSE 4 END as StockById, 
+                                                                                 
+            IDFrom as IdFrom, FinalQuantityLeft 
+                                                                                                                                                                                                             
+     from dbo.Inv_ItemStockByBatchForBOM bom
+                                                                                                                                                                                                                 
+     where not exists (select 1 from dbo.Inv_ItemStockByBatch b where b.IdFrom = bom.IDFrom and b.ItemId = bom.ItemId and b.StockById = (CASE WHEN bom.IDFrom = 0 THEN 3 WHEN EXISTS (SELECT 1 FROM dbo.W_MasterItem i WHERE i.ItemID = bom.ItemId AND i.ItemTy
+peId = 2) THEN 2 ELSE 4 END))
+                                                                                                                                                                                                                                
+ ) b where b.ItemId = W_ItemStock.ItemID AND (b.StockById NOT IN (2, 4) OR (b.StockById = 2 AND EXISTS (SELECT 1 FROM dbo.W_PreProcessing pp WHERE pp.PreProcessingId = b.IdFrom AND pp.IsComplete = 1)) OR (b.StockById = 4 AND EXISTS (SELECT 1 FROM dbo.W_Pr
+oduction p WHERE p.ProductionId = b.IdFrom AND p.IsComplete = 1)))), 0) as FinalStock, ' +
+                                                                                                                                                                   
  ' ItemName,ItemCode, ' +
                                                                                                                                                                                                                                     
- ' coalesce(WarehouseName, (select top 1 w.WarehouseName from Inv_ItemStockByBatch b inner join W_MasterWarehouse w on b.WarehouseId = w.WarehouseId where b.ItemId = W_ItemStock.ItemID order by b.ItemStockByBatchId desc), ''N/A'') as WarehouseName, ' +
- 
- ' (select case when (isnull(ROUND(W_ItemStock.OpeningQuantity, 2), 0) + isnull(ROUND(W_ItemStock.PurchasedQuantity, 2), 0) + isnull(ROUND(W_ItemStock.ProducedQuantity, 2), 0)) = 0 then 0 else ' +
+ ' coalesce(WarehouseName, (select top 1 w.WarehouseName from (select ItemId, WarehouseId, ItemStockByBatchId from Inv_ItemStockByBatch union all select ItemId, WarehouseId, ItemStockByBatchID as ItemStockByBatchId from Inv_ItemStockByBatchForBOM) b inner
+ join W_MasterWarehouse w on b.WarehouseId = w.WarehouseId where b.ItemId = W_ItemStock.ItemID order by b.ItemStockByBatchId desc), ''N/A'') as WarehouseName, ' +
+                                                                                           
+ ' (select case when (isnull(W_ItemStock.OpeningQuantity, 0) + isnull(W_ItemStock.PurchasedQuantity, 0) + isnull(W_ItemStock.ProducedQuantity, 0)) = 0 then 0 else ' +
                                                                                        
  '  ((isnull((select sum(isnull(Amount, 0)) from Inv_ItemStockByBatch where ItemID = W_ItemStock.ItemID and (StockById = 3 or IdFrom = 0)), 0) + ' +
                                                                                                          
  '   isnull((select sum(isnull(pc.Quantity, 0) * isnull(pc.UnitPrice, 0)) from W_PurchaseChild pc where pc.ItemID = W_ItemStock.ItemID), 0) + ' +
                                                                                                             
- '   isnull((select sum(isnull(Amount, 0)) from Inv_ItemStockByBatch b where b.ItemId = W_ItemStock.ItemID AND (b.StockById = 2 AND EXISTS (SELECT 1 FROM dbo.W_PreProcessing pp WHERE pp.PreProcessingId = b.IdFrom AND pp.IsComplete = 1))), 0) + ' +
-      
- '   isnull((select sum(isnull(Amount, 0)) from Inv_ItemStockByBatch b where b.ItemId = W_ItemStock.ItemID AND (b.StockById = 4 AND EXISTS (SELECT 1 FROM dbo.W_Production p WHERE p.ProductionId = b.IdFrom AND p.IsComplete = 1))), 0)) ' + 
-               
- '  / (isnull(ROUND(W_ItemStock.OpeningQuantity, 2), 0) + isnull(ROUND(W_ItemStock.PurchasedQuantity, 2), 0) + isnull(ROUND(W_ItemStock.ProducedQuantity, 2), 0))) ' +
+ '   isnull((select sum(isnull(Amount, 0)) from (
+                                                                                                                                                                                                            
+         select b.ItemId, b.Amount, b.StockById, b.IdFrom 
+                                                                                                                                                                                                   
+         from dbo.Inv_ItemStockByBatch b
+                                                                                                                                                                                                                     
+         
+                                                                                                                                                                                                                                                    
+         union all
+                                                                                                                                                                                                                                           
+         
+                                                                                                                                                                                                                                                    
+         select bom.ItemId, bom.Amount, 
+                                                                                                                                                                                                                     
+                CASE WHEN bom.IDFrom = 0 THEN 3 WHEN EXISTS (SELECT 1 FROM dbo.W_MasterItem i WHERE i.ItemID = bom.ItemId AND i.ItemTypeId = 2) THEN 2 ELSE 4 END as StockById, 
+                                                                             
+                IDFrom as IdFrom 
+                                                                                                                                                                                                                            
+         from dbo.Inv_ItemStockByBatchForBOM bom
+                                                                                                                                                                                                             
+         where not exists (select 1 from dbo.Inv_ItemStockByBatch b where b.IdFrom = bom.IDFrom and b.ItemId = bom.ItemId and b.StockById = (CASE WHEN bom.IDFrom = 0 THEN 3 WHEN EXISTS (SELECT 1 FROM dbo.W_MasterItem i WHERE i.ItemID = bom.ItemId AND i.It
+emTypeId = 2) THEN 2 ELSE 4 END))
+                                                                                                                                                                                                                            
+     ) b where b.ItemId = W_ItemStock.ItemID AND (b.StockById = 2 AND EXISTS (SELECT 1 FROM dbo.W_PreProcessing pp WHERE pp.PreProcessingId = b.IdFrom AND pp.IsComplete = 1))), 0) + ' +
+                                                                    
+ '   isnull((select sum(isnull(Amount, 0)) from (
+                                                                                                                                                                                                            
+         select b.ItemId, b.Amount, b.StockById, b.IdFrom 
+                                                                                                                                                                                                   
+         from dbo.Inv_ItemStockByBatch b
+                                                                                                                                                                                                                     
+         
+                                                                                                                                                                                                                                                    
+         union all
+                                                                                                                                                                                                                                           
+         
+                                                                                                                                                                                                                                                    
+         select bom.ItemId, bom.Amount, 
+                                                                                                                                                                                                                     
+                CASE WHEN bom.IDFrom = 0 THEN 3 WHEN EXISTS (SELECT 1 FROM dbo.W_MasterItem i WHERE i.ItemID = bom.ItemId AND i.ItemTypeId = 2) THEN 2 ELSE 4 END as StockById, 
+                                                                             
+                IDFrom as IdFrom 
+                                                                                                                                                                                                                            
+         from dbo.Inv_ItemStockByBatchForBOM bom
+                                                                                                                                                                                                             
+         where not exists (select 1 from dbo.Inv_ItemStockByBatch b where b.IdFrom = bom.IDFrom and b.ItemId = bom.ItemId and b.StockById = (CASE WHEN bom.IDFrom = 0 THEN 3 WHEN EXISTS (SELECT 1 FROM dbo.W_MasterItem i WHERE i.ItemID = bom.ItemId AND i.It
+emTypeId = 2) THEN 2 ELSE 4 END))
+                                                                                                                                                                                                                            
+     ) b where b.ItemId = W_ItemStock.ItemID AND (b.StockById = 4 AND EXISTS (SELECT 1 FROM dbo.W_Production p WHERE p.ProductionId = b.IdFrom AND p.IsComplete = 1))), 0)) ' + 
+                                                                             
+ '  / (isnull(W_ItemStock.OpeningQuantity, 0) + isnull(W_ItemStock.PurchasedQuantity, 0) + isnull(W_ItemStock.ProducedQuantity, 0))) ' +
                                                                                                                      
- ' * (isnull(ROUND(W_ItemStock.OpeningQuantity, 2), 0) + isnull(ROUND(W_ItemStock.PurchasedQuantity, 2), 0) + isnull(ROUND(W_ItemStock.ProducedQuantity, 2), 0) - isnull(ROUND(W_ItemStock.IssuedQuantity, 2), 0) - isnull(ROUND(W_ItemStock.RemovedQuantity, 2), 0)) end) as TotalValue ' +
+ ' * (isnull(W_ItemStock.OpeningQuantity, 0) + isnull(W_ItemStock.PurchasedQuantity, 0) + isnull(W_ItemStock.ProducedQuantity, 0) - isnull(W_ItemStock.IssuedQuantity, 0) - isnull(W_ItemStock.RemovedQuantity, 0)) end) as TotalValue ' +
                    
  ' from dbo.W_ItemStock inner join W_MasterItem IM on IM.ItemID=W_ItemStock.ItemID ' +
                                                                                                                                                                        
  ' left join W_MasterWarehouse MW on Mw.WarehouseId=W_ItemStock.WarehouseID where 1=1 ' + @Query + ')t1 where t1.RowNumber>=' + cast(@Top as varchar) + ' and t1.RowNumber <=' + cast(@Bottom as varchar)          
                                           
-    
-                                                                                                                                                                                                                                                         
+ 
+                                                                                                                                                                                                                                                            
     exec dbo.sp_ExecuteSql @RecQuery      
                                                                                                                                                                                                                    
-end                                                                                                                                                                                                                                                            
+end;                                                                                                                                                                                                                                                           

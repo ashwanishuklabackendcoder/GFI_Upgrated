@@ -71,6 +71,9 @@
                         <MudTooltip Text="Edit Details">
                             <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Size="Size.Small" OnClick="@(() => OnEdit(context))" />
                         </MudTooltip>
+                        <MudTooltip Text="Copy Details">
+                            <MudIconButton Icon="@Icons.Material.Filled.ContentCopy" Color="Color.Info" Size="Size.Small" OnClick="@(() => OnCopy(context))" Disabled="!_canInsert" />
+                        </MudTooltip>
                         <MudTooltip Text="Manage Ingredients">
                             <MudIconButton Icon="@Icons.Material.Filled.FactCheck" Color="Color.Warning" Size="Size.Small" OnClick="@(() => OnManageItems(context))" />
                         </MudTooltip>
@@ -173,6 +176,8 @@
     private void OnAdd() => Navigation.NavigateTo("/store/production/new");
 
     private void OnEdit(ProductionDto dto) => Navigation.NavigateTo($"/store/production/edit/{dto.ProductionId}");
+
+    private void OnCopy(ProductionDto dto) => Navigation.NavigateTo($"/store/production/new?copyFromId={dto.ProductionId}");
 
     private void OnManageItems(ProductionDto dto) => Navigation.NavigateTo($"/store/production/items/{dto.ProductionId}");
 

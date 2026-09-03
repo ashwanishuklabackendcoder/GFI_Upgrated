@@ -99,8 +99,8 @@
                     <MudChip T="string" Color="Color.Default" Size="Size.Small">@context.TransactionType</MudChip>
                 }
             </MudTd>
-            <MudTd DataLabel="In Qty" Style="text-align: right;">@(context.InQty > 0 ? $"{context.InQty} {context.UnitName}" : "-")</MudTd>
-            <MudTd DataLabel="Out Qty" Style="text-align: right;">@(context.OutQty > 0 ? $"{context.OutQty:F1} {context.UnitName}" : "-")</MudTd>
+            <MudTd DataLabel="In Qty" Style="text-align: right;">@(context.InQty > 0 ? $"{SessionState.FormatNumber(context.InQty)} {context.UnitName}" : "-")</MudTd>
+            <MudTd DataLabel="Out Qty" Style="text-align: right;">@(context.OutQty > 0 ? $"{SessionState.FormatNumber(context.OutQty)} {context.UnitName}" : "-")</MudTd>
             <MudTd DataLabel="Value" Style="text-align: right; font-weight: bold;">@SessionState.FormatNumber(context.TotalValue)</MudTd>
         </RowTemplate>
         <NoRecordsContent>

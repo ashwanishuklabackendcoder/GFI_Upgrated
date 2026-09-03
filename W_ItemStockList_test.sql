@@ -36,7 +36,7 @@ begin
                                                                                                                                                                                                 
        
                                                                                                                                                                                                                                                       
-    declare @Query as nvarchar(max)          
+    declare @Query as varchar(1000)          
                                                                                                                                                                                                                 
     declare @RecQuery as nvarchar(max)          
                                                                                                                                                                                                              
@@ -92,7 +92,7 @@ begin
                                                                                                                                                                                                                                                              
     set @RecQuery='select @TotalRecord=count(1) from dbo.W_ItemStock inner join W_MasterItem IM on IM.ItemID=W_ItemStock.ItemID where 1=1 ' + @Query             
                                                                                             
-    exec dbo.sp_ExecuteSql @RecQuery,N'@TotalRecord int output',@TotalRecord output      
+    PRINT @RecQuery,N'@TotalRecord int output',@TotalRecord output      
                                                                                                                                                                     
    
                                                                                                                                                                                                                                                           
@@ -140,7 +140,7 @@ begin
                                                                                                                                                       
     set @RecQuery='select * from (select row_number() over (order by '+ @QualifiedSortColumn + ' ' + @SortOrd + ') as RowNumber, ' +
                                                                                                                          
- ' W_ItemStock.StockID, ROUND(W_ItemStock.OpeningQuantity, 2) as OpeningQuantity, ROUND(W_ItemStock.PurchasedQuantity, 2) as PurchasedQuantity, ROUND(W_ItemStock.ProducedQuantity, 2) as ProducedQuantity, W_ItemStock.ItemID, W_ItemStock.WarehouseID, W_ItemStock.UnitId, ROUND(W_ItemStock.IssuedQuantity, 2) as IssuedQuantity, W_ItemStock.CreatedBy, W_ItemStock.OpeningStockDate, ROUND(W_ItemStock.RemovedQuantity, 2) as RemovedQuantity, ' +
+ ' W_ItemStock.StockID, ROUND(W_ItemStock.OpeningQuantity, 2), ROUND(W_ItemStock.PurchasedQuantity, 2), ROUND(W_ItemStock.ProducedQuantity, 2), W_ItemStock.ItemID, W_ItemStock.WarehouseID, W_ItemStock.UnitId, ROUND(W_ItemStock.IssuedQuantity, 2), W_ItemStock.CreatedBy, W_ItemStock.OpeningStockDate, ROUND(W_ItemStock.RemovedQuantity, 2), ' +
                                                                                                                                                                                                                         
  ' isnull((select sum(FinalQuantityLeft) from Inv_ItemStockByBatch b where b.ItemId = W_ItemStock.ItemID AND (b.StockById NOT IN (2, 4) OR (b.StockById = 2 AND EXISTS (SELECT 1 FROM dbo.W_PreProcessing pp WHERE pp.PreProcessingId = b.IdFrom AND pp.IsComplete = 1)) OR (b.StockById = 4 AND EXISTS (SELECT 1 FROM dbo.W_Production p WHERE p.ProductionId = b.IdFrom AND p.IsComplete = 1)))), 0) as FinalStock, ' +
                                                                                                    
@@ -168,6 +168,6 @@ begin
                                           
     
                                                                                                                                                                                                                                                          
-    exec dbo.sp_ExecuteSql @RecQuery      
+    PRINT @RecQuery      
                                                                                                                                                                                                                    
 end                                                                                                                                                                                                                                                            

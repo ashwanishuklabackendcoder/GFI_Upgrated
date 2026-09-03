@@ -419,6 +419,7 @@
             return false;
         }
 
+        // Validate individual rows
         foreach (var row in _rows)
         {
             if (row.ItemID == 0)
@@ -436,11 +437,40 @@
                 Snackbar.Add($"Quantity for '{row.ItemName}' must be greater than 0.", Severity.Warning);
                 return false;
             }
+        }
 
-            var batch = row.AvailableBatches.FirstOrDefault(b => b.ItemStockByBatchId == row.ItemStockByBatchId);
-            if (batch != null && row.Quantity > batch.FinalQuantityLeft)
+        // Validate total quantities per batch across all rows
+        var batchGroups = _rows.GroupBy(r => r.ItemStockByBatchId).Where(g => g.Key > 0);
+        foreach (var group in batchGroups)
+        {
+            var firstRow = group.First();
+            var batch = firstRow.AvailableBatches.FirstOrDefault(b => b.ItemStockByBatchId == group.Key);
+            if (batch != null)
             {
-                Snackbar.Add($"Warning: Quantity for '{row.ItemName}' exceeds available batch stock ({batch.FinalQuantityLeft}).", Severity.Warning);
+                double totalRequestedBaseQty = 0;
+                foreach(var row in group)
+                {
+                    double qty = row.Quantity;
+                    var rawMaterial = _allRawMaterials.FirstOrDefault(x => x.ItemId == row.ItemID);
+                    if (rawMaterial != null && row.UnitId > 0 && row.UnitId != rawMaterial.PurchaseUnit)
+                    {
+                        var selectedUnit = _units.FirstOrDefault(u => u.UnitId == row.UnitId);
+                        if (selectedUnit != null && selectedUnit.ConversionValue.HasValue && selectedUnit.ConversionValue.Value > 0)
+                        {
+                            qty = row.Quantity / selectedUnit.ConversionValue.Value;
+                        }
+                    }
+                    totalRequestedBaseQty += qty;
+                }
+
+                // If this is an existing run, FinalQuantityLeft was not deducted yet (since IsComplete=0). 
+                // So FinalQuantityLeft represents the original available amount. 
+                // We must strictly block if total requested exceeds it.
+                if (totalRequestedBaseQty > batch.FinalQuantityLeft)
+                {
+                    Snackbar.Add($"Cannot save: Total quantity requested for batch '{batch.BatchNo}' ({SessionState.FormatNumber(totalRequestedBaseQty)}) exceeds the available stock ({SessionState.FormatNumber(batch.FinalQuantityLeft)}).", Severity.Error);
+                    return false;
+                }
             }
         }
 

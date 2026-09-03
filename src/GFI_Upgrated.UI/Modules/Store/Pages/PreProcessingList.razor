@@ -75,6 +75,9 @@
                         <MudTooltip Text="Edit Header">
                             <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Size="Size.Small" OnClick="@(() => OnEdit(context))" />
                         </MudTooltip>
+                        <MudTooltip Text="Copy Details">
+                            <MudIconButton Icon="@Icons.Material.Filled.ContentCopy" Color="Color.Info" Size="Size.Small" OnClick="@(() => OnCopy(context))" Disabled="!_canInsert" />
+                        </MudTooltip>
                         <MudTooltip Text="Manage Ingredients">
                             <MudIconButton Icon="@Icons.Material.Filled.FactCheck" Color="Color.Warning" Size="Size.Small" OnClick="@(() => OnManageItems(context))" />
                         </MudTooltip>
@@ -180,6 +183,8 @@
     private void OnAdd() => Navigation.NavigateTo("/store/preprocessing/new");
 
     private void OnEdit(PreProcessingDto dto) => Navigation.NavigateTo($"/store/preprocessing/edit/{dto.PreProcessingId}");
+
+    private void OnCopy(PreProcessingDto dto) => Navigation.NavigateTo($"/store/preprocessing/new?copyFromId={dto.PreProcessingId}");
 
     private void OnManageItems(PreProcessingDto dto) => Navigation.NavigateTo($"/store/preprocessing/items/{dto.PreProcessingId}");
 
