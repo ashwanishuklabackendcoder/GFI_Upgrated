@@ -119,12 +119,15 @@ BEGIN
                                                                                                                                                                               
                                    ELSE ''Manual Entry''
                                                                                                                                                                                                      
-                               END) AS AccountName
-                                                                                                                                                                                                           
+                               END) AS AccountName,
+                               SUM(t5.FinalQuantityLeft) AS AvailableQty,
+                               MAX(mu.UnitName) AS UnitName
+                                                                                                                                                                                                            
                         FROM Inv_ItemStockByBatch t5
-                                                                                                                                                                                                         
+                                                                                                                                                                                                          
                         LEFT JOIN W_MasterItem t3 ON t5.ItemId = t3.ItemID
-                                                                                                                                                                                   
+                        LEFT JOIN W_MasterUnit mu ON t5.Unit = mu.UnitId
+                                                                                                                                                                                    
                         LEFT JOIN W_PurchaseChild t1 ON t5.IdFrom = t1.PurchaseItemID AND t5.StockById = 1
                                                                                                                                                    
                         LEFT JOIN W_PurchaseMaster t2 ON t1.PurchaseID = t2.PurchaseID

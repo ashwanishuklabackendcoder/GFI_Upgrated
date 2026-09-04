@@ -66,9 +66,12 @@ BEGIN
                                    WHEN t5.StockById = 2 OR t5.StockById = 4 THEN ''Production''
                                    WHEN t5.StockById = 3 THEN ''Opening Stock''
                                    ELSE ''Manual Entry''
-                               END AS AccountName
+                                   END AS AccountName,
+                               t5.FinalQuantityLeft AS AvailableQty,
+                               mu.UnitName
                         FROM Inv_ItemStockByBatch t5
                         LEFT JOIN W_MasterItem t3 ON t5.ItemId = t3.ItemID
+                        LEFT JOIN W_MasterUnit mu ON t5.Unit = mu.UnitId
                         LEFT JOIN W_PurchaseChild t1 ON t5.IdFrom = t1.PurchaseItemID AND t5.StockById = 1
                         LEFT JOIN W_PurchaseMaster t2 ON t1.PurchaseID = t2.PurchaseID
                         LEFT JOIN A_MasterAccounts t4 ON t4.AccountId = t2.AccountID

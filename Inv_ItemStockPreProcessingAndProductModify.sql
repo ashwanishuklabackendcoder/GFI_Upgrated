@@ -162,6 +162,18 @@ BEGIN
                                                                                                                                                                                                                                                              
     -- Deduct Ingredient Stock on Finalize
                                                                                                                                                                                                                    
+    IF EXISTS (
+        SELECT 1 
+        FROM dbo.Inv_ItemStockByBatch b 
+        INNER JOIN dbo.Inv_ItemStockUsed u ON b.ItemStockByBatchId = u.ItemStockByBatchId 
+        WHERE u.UsedFor = @UsedFor AND u.UsedForId = @UsedForId
+        AND b.FinalQuantityLeft - u.Quantity < 0
+    )
+    BEGIN
+        RAISERROR('Insufficient stock available for one or more ingredients.', 16, 1);
+        RETURN;
+    END
+
     UPDATE b 
                                                                                                                                                                                                                                                 
     SET b.FinalQuantityLeft = b.FinalQuantityLeft - u.Quantity 
