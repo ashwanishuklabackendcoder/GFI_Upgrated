@@ -770,13 +770,23 @@ public sealed class AdminSecurityRepository : IAdminSecurityRepository
     public async Task<IReadOnlyList<StaffLookupDto>> GetUnassignedStaffAsync(CancellationToken cancellationToken = default)
     {
         var table = await ExecuteDataTableAsync("GetStaffLoginsNotExists", Array.Empty<SqlParameter>(), cancellationToken);
-        return table.AsEnumerable().Select(row => new StaffLookupDto
-        {
-            StaffId = row.SafeLong("StaffID"),
-            StaffName = row.SafeString("StaffName", "Name"),
-            Email = row.SafeString("Email", "ForgotEmail"),
-            Status = row.SafeInt("Status", "StatusID"),
-            IsActive = row.SafeBool("IsActive")
+        return table.AsEnumerable().Select(row => {
+            var firstName = row.SafeString("StaffFirstName", "FirstName");
+            var lastName = row.SafeString("StaffLastName", "LastName");
+            var staffName = row.SafeString("StaffName", "Name");
+            if (string.IsNullOrWhiteSpace(staffName))
+            {
+                staffName = string.Join(" ", new[] { firstName, lastName }.Where(x => !string.IsNullOrWhiteSpace(x))).Trim();
+            }
+
+            return new StaffLookupDto
+            {
+                StaffId = row.SafeLong("StaffID"),
+                StaffName = staffName,
+                Email = row.SafeString("Email", "EmailIDOfficial", "ForgotEmail"),
+                Status = row.SafeInt("Status", "StatusID"),
+                IsActive = row.SafeBool("IsActive", "Status")
+            };
         }).ToList();
     }
 
@@ -1508,23 +1518,36 @@ public sealed class AdminSecurityRepository : IAdminSecurityRepository
         ModuleName = row.SafeString("ModuleName")
     };
 
-    private static UserDto MapUser(DataRow row) => new()
+    private static UserDto MapUser(DataRow row)
     {
-        LoginId = row.SafeLong("LoginID"),
-        SchoolId = row.SafeLong("SchoolID"),
-        StaffId = row.SafeLong("StaffID"),
-        LoginName = row.SafeString("LoginName"),
-        Password = row.SafeString("Password"),
-        ForgotEmail = row.SafeString("ForgotEmail"),
-        FirstName = row.SafeString("StaffFirstName", "FirstName"),
-        LastName = row.SafeString("StaffLastName", "LastName"),
-        IsActive = row.SafeBool("IsActive"),
-        LoginType = row.SafeString("LoginType"),
-        Browser = row.SafeString("Browser"),
-        OperatingSystem = row.SafeString("OperatingSystem"),
-        ComputerName = row.SafeString("ComputerName"),
-        RoleId = row.SafeLong("RoleID", "RoleId")
-    };
+        var password = row.SafeString("Password");
+        try
+        {
+            if (!string.IsNullOrEmpty(password))
+            {
+                password = LegacyCrypto.DecryptString(password);
+            }
+        }
+        catch { }
+
+        return new UserDto
+        {
+            LoginId = row.SafeLong("LoginID"),
+            SchoolId = row.SafeLong("SchoolID"),
+            StaffId = row.SafeLong("StaffID"),
+            LoginName = row.SafeString("LoginName"),
+            Password = password,
+            ForgotEmail = row.SafeString("ForgotEmail"),
+            FirstName = row.SafeString("StaffFirstName", "FirstName"),
+            LastName = row.SafeString("StaffLastName", "LastName"),
+            IsActive = row.SafeBool("IsActive"),
+            LoginType = row.SafeString("LoginType"),
+            Browser = row.SafeString("Browser"),
+            OperatingSystem = row.SafeString("OperatingSystem"),
+            ComputerName = row.SafeString("ComputerName"),
+            RoleId = row.SafeLong("RoleID", "RoleId")
+        };
+    }
 
     private static StaffDto MapStaff(DataRow row) => new()
     {
