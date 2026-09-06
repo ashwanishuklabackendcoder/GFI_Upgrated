@@ -199,13 +199,15 @@ public sealed class AdminSecurityRepository : IAdminSecurityRepository
         var isAdmin = false;
         var roleNameFromDb = string.Empty;
         var dashboardPath = string.Empty;
+        long? dashboardMenuId = null;
         if (roleId > 0)
         {
-            var roleTable = await ExecuteDataTableRawAsync("SELECT RoleName, IsAdmin FROM Z_UsersRoles WHERE RoleID = @RoleID", new[] { new SqlParameter("@RoleID", SqlDbType.BigInt) { Value = roleId } }, cancellationToken);
+            var roleTable = await ExecuteDataTableRawAsync("SELECT RoleName, IsAdmin, DashboardMenuId FROM Z_UsersRoles WHERE RoleID = @RoleID", new[] { new SqlParameter("@RoleID", SqlDbType.BigInt) { Value = roleId } }, cancellationToken);
             if (roleTable.Rows.Count > 0)
             {
                 roleNameFromDb = roleTable.Rows[0].SafeString("RoleName");
                 isAdmin = roleTable.Rows[0].SafeBool("IsAdmin");
+                dashboardMenuId = roleTable.Rows[0].IsNull("DashboardMenuId") ? null : roleTable.Rows[0].Field<long?>("DashboardMenuId");
             }
         }
 
@@ -241,9 +243,17 @@ public sealed class AdminSecurityRepository : IAdminSecurityRepository
                 .Where(root => root.IsView || root.SubMenus.Any(child => child.IsView))
                 .ToList();
 
-            // Dynamically find a dashboard path from authorized menus
-            var firstDashboard = allMenus.FirstOrDefault(m => m.IsDashboard && m.IsView);
-            dashboardPath = firstDashboard?.PagePath ?? string.Empty;
+            // Use mapped dashboard if present, else fallback to first available
+            MenuDto? dashboardMenu = null;
+            if (dashboardMenuId.HasValue)
+            {
+                dashboardMenu = allMenus.FirstOrDefault(m => m.LinkId == dashboardMenuId.Value && m.IsView);
+            }
+            if (dashboardMenu == null)
+            {
+                dashboardMenu = allMenus.FirstOrDefault(m => m.IsDashboard && m.IsView);
+            }
+            dashboardPath = dashboardMenu?.PagePath ?? string.Empty;
         }
 
         UserLanguagePreferenceDto? userLanguage = null;
@@ -367,6 +377,7 @@ public sealed class AdminSecurityRepository : IAdminSecurityRepository
             new SqlParameter("@IsActive", SqlDbType.Bit) { Value = request.IsActive },
             new SqlParameter("@IsAdmin", SqlDbType.Bit) { Value = request.IsAdmin },
             new SqlParameter("@ModuleID", SqlDbType.BigInt) { Value = request.ModuleId },
+            new SqlParameter("@DashboardMenuId", SqlDbType.BigInt) { Value = (object?)request.DashboardMenuId ?? DBNull.Value },
             new SqlParameter("@CreatedDate", SqlDbType.DateTime) { Value = DateTime.UtcNow },
             new SqlParameter("@CreatedBy", SqlDbType.NVarChar, 400) { Value = request.CreatedBy },
             new SqlParameter("@UpdatedBy", SqlDbType.NVarChar, 400) { Value = request.UpdatedBy },
@@ -707,7 +718,9 @@ public sealed class AdminSecurityRepository : IAdminSecurityRepository
             new SqlParameter("@SortColumn", SqlDbType.VarChar, 50) { Value = "RoleName" }
         }, cancellationToken);
 
-        return table.AsEnumerable().Select(row => new UserRoleAssignmentDto
+        return table.AsEnumerable()
+            .Where(row => row.SafeBool("IsAssigned"))
+            .Select(row => new UserRoleAssignmentDto
         {
             UserRoleId = row.SafeLong("UserRoleID"),
             RoleId = row.SafeLong("RoleID"),
@@ -1515,7 +1528,8 @@ public sealed class AdminSecurityRepository : IAdminSecurityRepository
         IsActive = row.SafeBool("IsActive"),
         IsAdmin = row.SafeBool("IsAdmin"),
         ModuleId = row.SafeLong("ModuleID"),
-        ModuleName = row.SafeString("ModuleName")
+        ModuleName = row.SafeString("ModuleName"),
+        DashboardMenuId = row.IsNull("DashboardMenuId") ? null : row.Field<long?>("DashboardMenuId")
     };
 
     private static UserDto MapUser(DataRow row)
@@ -2127,3 +2141,5 @@ internal static class DataRowExtensions
         return string.Empty;
     }
 }
+
+

@@ -31,13 +31,11 @@
 
     <MudGrid Class="mb-4">
         <MudItem xs="12" md="5">
-            <MudAutocomplete Clearable="true"  MaxItems="1000" T="UserDto" Label="Login" Variant="Variant.Outlined" 
-                             Value="@(_users.FirstOrDefault(x => x.LoginId == _selectedLoginId))" 
-                             ValueChanged="@(async (UserDto val) => await OnLoginChangedAsync(val?.LoginId ?? 0))" 
-                             Disabled="_busy"
-                             SearchFunc="@SearchUsers" 
-                             ToStringFunc="@(x => x == null ? "" : FormatUser(x))"
-                             ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
+            <GFI_Upgrated.UI.Modules.Admin.Components.SearchableSelect T="long" Label="Login" Clearable="true" Variant="Variant.Outlined"
+                             Value="_selectedLoginId"
+                             ValueChanged="@(async (long val) => await OnLoginChangedAsync(val))"
+                             Items="GetUserSelects()"
+                             Disabled="_busy" />
         </MudItem>
     </MudGrid>
 
@@ -138,9 +136,9 @@
             {
                 _selectedLoginId = LoginId.Value;
             }
-            else if (_selectedLoginId == 0 || !_users.Any(user => user.LoginId == _selectedLoginId))
+            else if (!_users.Any(user => user.LoginId == _selectedLoginId))
             {
-                _selectedLoginId = _users[0].LoginId;
+                _selectedLoginId = 0;
             }
 
             await LoadAssignmentsAsync(_selectedLoginId);
@@ -171,7 +169,7 @@
             _selectedUser = _users.FirstOrDefault(user => user.LoginId == loginId);
             _defaultRoleId = 0;
 
-            var savedRoles = await ApiClient.GetUserRolesAsync(loginId);
+            var savedRoles = loginId > 0 ? await ApiClient.GetUserRolesAsync(loginId) : Array.Empty<UserRoleAssignmentDto>();
             var assigned = savedRoles.ToDictionary(role => role.RoleId, role => role);
 
             foreach (var row in _roleRows)
@@ -307,6 +305,15 @@
         {
             _busy = false;
         }
+    }
+
+    private IEnumerable<GFI_Upgrated.UI.Modules.Admin.Components.SearchableSelect<long>.SelectItemDto<long>> GetUserSelects()
+    {
+        return _users.Select(x => new GFI_Upgrated.UI.Modules.Admin.Components.SearchableSelect<long>.SelectItemDto<long>
+        {
+            Value = x.LoginId,
+            Text = FormatUser(x)
+        });
     }
 
     private static string FormatUser(UserDto user)

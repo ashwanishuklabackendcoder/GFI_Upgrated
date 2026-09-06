@@ -42,6 +42,13 @@
                 @* <MudNumericField @bind-Value="_editor.ModuleId" For="@(() => _editor.ModuleId)" Label="Module ID" Variant="Variant.Outlined" Class="mb-3" /> *@
                 <MudCheckBox T="bool" @bind-Value="_editor.IsAdmin" For="@(() => _editor.IsAdmin)" Label="Is Admin" />
                 <MudCheckBox T="bool" @bind-Value="_editor.IsActive" For="@(() => _editor.IsActive)" Label="Is Active" />
+                
+                <div class="mb-3 mt-3">
+                    <GFI_Upgrated.UI.Modules.Admin.Components.SearchableSelect T="long?" Label="Dashboard" Clearable="true" Variant="Variant.Outlined"
+                                     Value="_editor.DashboardMenuId"
+                                     ValueChanged="@((long? val) => _editor.DashboardMenuId = val)"
+                                     Items="GetDashboardSelects()" />
+                </div>
                 <MudStack Row="true" Spacing="2" Class="mt-4">
                     <MudButton ButtonType="ButtonType.Submit" Color="Color.Primary" Variant="Variant.Filled">Save</MudButton>
                     <MudButton Variant="Variant.Outlined" OnClick="NewRole">Reset</MudButton>
@@ -66,6 +73,7 @@
         return false;
     }
     private SaveRoleRequest _editor = new();
+    private List<MenuDto> _dashboards = new();
 
     protected override void OnInitialized()
     {
@@ -77,6 +85,7 @@
 
     protected override async Task OnInitializedAsync()
     {
+        _dashboards = (await ApiClient.GetDashboardsAsync()).ToList();
         await LoadAsync();
     }
 
@@ -84,6 +93,15 @@
     {
         var result = await ApiClient.GetRolesAsync(new PagedRequest { CurrentPage = 1, RecordPerPage = 100 }, _search);
         _roles = result.Items.ToList();
+    }
+
+    private IEnumerable<GFI_Upgrated.UI.Modules.Admin.Components.SearchableSelect<long?>.SelectItemDto<long?>> GetDashboardSelects()
+    {
+        return _dashboards.Select(x => new GFI_Upgrated.UI.Modules.Admin.Components.SearchableSelect<long?>.SelectItemDto<long?>
+        {
+            Value = x.LinkId,
+            Text = !string.IsNullOrWhiteSpace(x.PageHeading) ? x.PageHeading : (x.ActualName ?? "Unnamed Dashboard")
+        });
     }
 
     private async Task SaveAsync()
@@ -119,7 +137,8 @@
             IsActive = selected.IsActive,
             IsAdmin = selected.IsAdmin,
             ModuleId = selected.ModuleId,
-            SchoolId = selected.SchoolId
+            SchoolId = selected.SchoolId,
+            DashboardMenuId = selected.DashboardMenuId
         };
     }
 }
