@@ -59,6 +59,23 @@
     
     <script src="assets/js/ui-popover.js?v=2"></script>
     <script src="assets/js/file-download.js?v=1"></script>
+<script>
+    window.reinitVuexyMenu = function() {
+        setTimeout(function() {
+            let layoutMenuEl = document.querySelectorAll('#layout-menu');
+            layoutMenuEl.forEach(function (element) {
+                if (element.menuInstance) {
+                    element.menuInstance.destroy();
+                }
+                window.Helpers.mainMenu = new Menu(element, {
+                  orientation: 'horizontal',
+                  closeChildren: true,
+                  showDropdownOnHover: true
+                });
+            });
+        }, 100);
+    };
+</script>
 </body>
 
 </html>

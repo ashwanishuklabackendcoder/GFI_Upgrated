@@ -28,4 +28,54 @@ input[type=number] {
 .mud-input-numeric-spin {
     display: none !important;
 }
-
+
+/* Override Vuexy Semi-Dark bg-menu-theme to Light Mode to match target design */
+.layout-menu-horizontal.bg-menu-theme {
+    background-color: #ffffff !important;
+    color: #6f6b7d !important;
+}
+
+.layout-menu-horizontal.bg-menu-theme .menu-inner > .menu-item > .menu-link {
+    color: #6f6b7d !important;
+}
+
+.layout-menu-horizontal.bg-menu-theme .menu-inner > .menu-item > .menu-link:hover,
+.layout-menu-horizontal.bg-menu-theme .menu-inner > .menu-item > .menu-link:focus,
+.layout-menu-horizontal.bg-menu-theme .menu-inner > .menu-item.open > .menu-link {
+    color: #7367f0 !important;
+    background-color: rgba(115, 103, 240, 0.08) !important;
+}
+
+.layout-menu-horizontal.bg-menu-theme .menu-inner > .menu-item.active > .menu-link {
+    background-color: #7367f0 !important;
+    color: #ffffff !important;
+}
+
+.layout-menu-horizontal.bg-menu-theme .menu-inner > .menu-item.active > .menu-link i {
+    color: #ffffff !important;
+}
+
+.layout-menu-horizontal.bg-menu-theme .menu-sub {
+    background-color: #ffffff !important;
+    box-shadow: 0 0.25rem 1rem rgba(165, 163, 174, 0.45) !important;
+}
+
+.layout-menu-horizontal.bg-menu-theme .menu-sub > .menu-item > .menu-link {
+    color: #6f6b7d !important;
+}
+
+.layout-menu-horizontal.bg-menu-theme .menu-sub > .menu-item > .menu-link:hover,
+.layout-menu-horizontal.bg-menu-theme .menu-sub > .menu-item > .menu-link:focus {
+    color: #7367f0 !important;
+    background-color: rgba(115, 103, 240, 0.08) !important;
+}
+
+.layout-menu-horizontal.bg-menu-theme .menu-sub > .menu-item.active > .menu-link {
+    color: #7367f0 !important;
+    background-color: rgba(115, 103, 240, 0.08) !important;
+}
+
+/* Ensure arrows are visible and colored correctly */
+.layout-menu-horizontal.bg-menu-theme .menu-inner > .menu-item > .menu-link::after {
+    border-color: inherit !important;
+}
