@@ -6,163 +6,178 @@
 
 <PageTitle>System Dashboard</PageTitle>
 
-<div class="dashboard-page">
-    <section class="dashboard-hero">
-        <h1 class="dashboard-hero-title">Dashboard</h1>
-        <p class="dashboard-hero-subtitle">A professional workspace for managing users, roles, menus, and permissions.</p>
-    </section>
-
-    <section class="dashboard-kpi-grid">
-        @if (_loading)
-        {
-            <div class="p-4"><MudProgressCircular Color="Color.Primary" Indeterminate="true" /></div>
-        }
-        else if (!string.IsNullOrEmpty(_errorMessage))
-        {
-            <div class="p-4">
-                <MudAlert Severity="Severity.Error">@_errorMessage</MudAlert>
+<div class="row">
+    @if (_loading)
+    {
+        <div class="col-12 p-4 text-center"><MudProgressCircular Color="Color.Primary" Indeterminate="true" /></div>
+    }
+    else if (!string.IsNullOrEmpty(_errorMessage))
+    {
+        <div class="col-12 p-4">
+            <MudAlert Severity="Severity.Error">@_errorMessage</MudAlert>
+        </div>
+    }
+    else if (_dashboardData != null)
+    {
+        <!-- Total Users -->
+        <div class="col-sm-6 col-lg-3 mb-4">
+            <div class="card card-border-shadow-primary h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-2 pb-1">
+                        <div class="avatar me-2">
+                            <span class="avatar-initial rounded bg-label-primary"><i class="ti ti-users ti-md"></i></span>
+                        </div>
+                        <h4 class="ms-1 mb-0">@_dashboardData.TotalUsers.Value.ToString("N0")</h4>
+                    </div>
+                    <p class="mb-1 fw-medium">Total Users</p>
+                    <p class="mb-0">
+                        <span class="fw-medium me-1 text-success">+Active</span>
+                        <small class="text-muted">Active users</small>
+                    </p>
+                </div>
             </div>
-        }
-        else if (_dashboardData != null)
-        {
-            <article class="dashboard-kpi-card">
-                <div class="kpi-badge violet">
-                    <i class="ti ti-users"></i>
-                </div>
-                <div class="kpi-label">Total Users</div>
-                <p class="mb-1 mt-3 text-secondary">Active users</p>
-                <div class="kpi-value mb-3">@_dashboardData.TotalUsers.Value.ToString("N0")</div>
-                <span class="badge rounded-pill" style="background:#e2f7e9;color:#16a34a;">+Active</span>
-            </article>
+        </div>
 
-            <article class="dashboard-kpi-card">
-                <div class="kpi-badge green">
-                    <i class="ti ti-login"></i>
-                </div>
-                <div class="kpi-label">Active Logins</div>
-                <p class="mb-1 mt-3 text-secondary">Last 7 days</p>
-                <div class="kpi-value mb-3">@_dashboardData.ActiveLogins.Value.ToString("N0")</div>
-                <span class="badge rounded-pill" style="@(_dashboardData.ActiveLogins.IsPositive ? "background:#e2f7e9;color:#16a34a;" : "background:#ffe7ea;color:#ff5b78;")">@_dashboardData.ActiveLogins.GrowthPercentage.ToString("0.0")%</span>
-            </article>
-
-            <article class="dashboard-kpi-card">
-                <div class="kpi-badge pink">
-                    <i class="ti ti-shield-lock"></i>
-                </div>
-                <div class="kpi-label">Total Roles</div>
-                <p class="mb-1 mt-3 text-secondary">System config</p>
-                <div class="kpi-value mb-3">@_dashboardData.TotalRoles.Value.ToString("N0")</div>
-                <span class="badge rounded-pill" style="background:#e2f7e9;color:#16a34a;">+Active</span>
-            </article>
-
-            <article class="dashboard-kpi-card">
-                <div class="kpi-badge blue">
-                    <i class="ti ti-activity"></i>
-                </div>
-                <div class="kpi-label">Activity Logs</div>
-                <p class="mb-1 mt-3 text-secondary">Last 7 days</p>
-                <div class="kpi-value mb-3">@_dashboardData.ActivityLogs.Value.ToString("N0")</div>
-                <span class="badge rounded-pill" style="@(_dashboardData.ActivityLogs.IsPositive ? "background:#e2f7e9;color:#16a34a;" : "background:#ffe7ea;color:#ff5b78;")">@_dashboardData.ActivityLogs.GrowthPercentage.ToString("0.0")%</span>
-            </article>
-        }
-    </section>
-
-    <section class="dashboard-panels mt-4">
-        @if (_dashboardData != null && !_loading)
-        {
-            <article class="dashboard-panel">
-                <div class="panel-header">
-                    <div>
-                        <h2 class="panel-title">System Activity</h2>
-                        <div class="panel-subtitle">Logins in the past 7 days</div>
+        <!-- Active Logins -->
+        <div class="col-sm-6 col-lg-3 mb-4">
+            <div class="card card-border-shadow-success h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-2 pb-1">
+                        <div class="avatar me-2">
+                            <span class="avatar-initial rounded bg-label-success"><i class="ti ti-login ti-md"></i></span>
+                        </div>
+                        <h4 class="ms-1 mb-0">@_dashboardData.ActiveLogins.Value.ToString("N0")</h4>
                     </div>
+                    <p class="mb-1 fw-medium">Active Logins</p>
+                    <p class="mb-0">
+                        <span class="fw-medium me-1 @(_dashboardData.ActiveLogins.IsPositive ? "text-success" : "text-danger")">@_dashboardData.ActiveLogins.GrowthPercentage.ToString("0.0")%</span>
+                        <small class="text-muted">Last 7 days</small>
+                    </p>
                 </div>
+            </div>
+        </div>
 
-                <div class="report-chart mt-4">
-                    @if (_dashboardData.LoginsByDay != null && _dashboardData.LoginsByDay.Any())
-                    {
-                        var maxVal = _dashboardData.LoginsByDay.Max(x => x.Value);
-                        if (maxVal == 0) maxVal = 1;
-                        foreach (var day in _dashboardData.LoginsByDay)
+        <!-- Total Roles -->
+        <div class="col-sm-6 col-lg-3 mb-4">
+            <div class="card card-border-shadow-warning h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-2 pb-1">
+                        <div class="avatar me-2">
+                            <span class="avatar-initial rounded bg-label-warning"><i class="ti ti-shield-lock ti-md"></i></span>
+                        </div>
+                        <h4 class="ms-1 mb-0">@_dashboardData.TotalRoles.Value.ToString("N0")</h4>
+                    </div>
+                    <p class="mb-1 fw-medium">Total Roles</p>
+                    <p class="mb-0">
+                        <span class="fw-medium me-1 text-success">+Active</span>
+                        <small class="text-muted">System config</small>
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Activity Logs -->
+        <div class="col-sm-6 col-lg-3 mb-4">
+            <div class="card card-border-shadow-info h-100">
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-2 pb-1">
+                        <div class="avatar me-2">
+                            <span class="avatar-initial rounded bg-label-info"><i class="ti ti-activity ti-md"></i></span>
+                        </div>
+                        <h4 class="ms-1 mb-0">@_dashboardData.ActivityLogs.Value.ToString("N0")</h4>
+                    </div>
+                    <p class="mb-1 fw-medium">Activity Logs</p>
+                    <p class="mb-0">
+                        <span class="fw-medium me-1 @(_dashboardData.ActivityLogs.IsPositive ? "text-success" : "text-danger")">@_dashboardData.ActivityLogs.GrowthPercentage.ToString("0.0")%</span>
+                        <small class="text-muted">Last 7 days</small>
+                    </p>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+<div class="row">
+    @if (_dashboardData != null && !_loading)
+    {
+        <div class="col-lg-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">System Activity</h5>
+                    <small class="text-muted">Logins in the past 7 days</small>
+                </div>
+                <div class="card-body pb-0">
+                    <ul class="p-0 m-0">
+                        @if (_dashboardData.LoginsByDay != null && _dashboardData.LoginsByDay.Any())
                         {
-                            var height = (day.Value / (decimal)maxVal) * 100;
-                            <div class="report-bar">
-                                <span>@day.Value</span>
-                                <div class="bar @(height == 100 ? "highlight" : "")" style="height:@((int)height)%"></div>
-                                <small class="text-secondary">@day.Label</small>
-                            </div>
+                            var maxVal = _dashboardData.LoginsByDay.Max(x => x.Value);
+                            if (maxVal == 0) maxVal = 1;
+                            foreach (var day in _dashboardData.LoginsByDay)
+                            {
+                                var height = (day.Value / (decimal)maxVal) * 100;
+                                <li class="d-flex mb-3 align-items-center">
+                                    <div class="w-100 me-3">
+                                        <div class="d-flex justify-content-between mb-1">
+                                            <h6 class="mb-0">@day.Label</h6>
+                                            <span class="text-muted">@day.Value</span>
+                                        </div>
+                                        <div class="progress" style="height: 8px;">
+                                            <div class="progress-bar @(height == 100 ? "bg-primary" : "bg-label-primary")" role="progressbar" style="width: @((int)height)%" aria-valuenow="@((int)height)" aria-valuemin="0" aria-valuemax="100"></div>
+                                        </div>
+                                    </div>
+                                </li>
+                            }
                         }
-                    }
-                    else
-                    {
-                        <p class="text-secondary">No recent login data.</p>
-                    }
-                </div>
-            </article>
-        }
-
-        @if (_salesData != null && !_loading)
-        {
-            <article class="dashboard-panel">
-                <div class="panel-header">
-                    <div>
-                        <h2 class="panel-title">Sales by Year</h2>
-                        <div class="panel-subtitle">Total sales overview</div>
-                    </div>
-                </div>
-                <div class="report-chart mt-4">
-                    @if (_salesData.SalesPerYear != null && _salesData.SalesPerYear.Any())
-                    {
-                        var maxVal = _salesData.SalesPerYear.Max(x => x.SalesAmount);
-                        if (maxVal == 0) maxVal = 1m;
-                        foreach (var yearData in _salesData.SalesPerYear)
+                        else
                         {
-                            var height = (yearData.SalesAmount / maxVal) * 100;
-                            <div class="report-bar">
-                                <span>@yearData.SalesAmount.ToString("C0")</span>
-                                <div class="bar @(height == 100 ? "highlight" : "")" style="height:@((int)height)%"></div>
-                                <small class="text-secondary">@yearData.Year</small>
-                            </div>
+                            <p class="text-secondary">No recent login data.</p>
                         }
-                    }
-                    else
-                    {
-                        <p class="text-secondary">No sales data available.</p>
-                    }
+                    </ul>
                 </div>
-            </article>
+            </div>
+        </div>
+    }
 
-            <article class="dashboard-panel">
-                <div class="panel-header">
-                    <div>
-                        <h2 class="panel-title">Top Items Sold</h2>
-                    </div>
+    @if (_salesData != null && !_loading)
+    {
+        <div class="col-lg-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between">
+                    <h5 class="card-title mb-0">Top Items Sold</h5>
                 </div>
-                <div class="mt-4">
+                <div class="card-body">
                     @if (_salesData.TotalSales != null && _salesData.TotalSales.Any())
                     {
-                        <MudTable Items="@_salesData.TotalSales.Take(5)" Dense="true" Hover="true" Breakpoint="Breakpoint.None" Elevation="0">
-                            <HeaderContent>
-                                <MudTh>Item</MudTh>
-                                <MudTh Style="text-align:right">Qty</MudTh>
-                                <MudTh Style="text-align:right">Amount</MudTh>
-                            </HeaderContent>
-                            <RowTemplate>
-                                <MudTd DataLabel="Item">@context.ItemName</MudTd>
-                                <MudTd DataLabel="Quantity" Style="text-align:right">@context.Quantity.ToString("N0")</MudTd>
-                                <MudTd DataLabel="Amount" Style="text-align:right">@context.TotalAmount.ToString("C0")</MudTd>
-                            </RowTemplate>
-                        </MudTable>
+                        <div class="table-responsive">
+                            <table class="table table-borderless table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Item</th>
+                                        <th class="text-end">Qty</th>
+                                        <th class="text-end">Amount</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach(var item in _salesData.TotalSales.Take(5))
+                                    {
+                                        <tr>
+                                            <td>@item.ItemName</td>
+                                            <td class="text-end">@item.Quantity.ToString("N0")</td>
+                                            <td class="text-end fw-medium text-success">@item.TotalAmount.ToString("C0")</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
                     }
                     else
                     {
                         <p class="text-secondary">No items data available.</p>
                     }
                 </div>
-            </article>
-        }
-    </section>
-
+            </div>
+        </div>
+    }
 </div>
 
 @code {

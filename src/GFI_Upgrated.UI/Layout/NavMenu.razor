@@ -4,46 +4,21 @@
 @inject IJSRuntime JSRuntime
 @implements IDisposable
 
-<div class="sidebar-shell">
-    <a class="sidebar-brand" href="/">
-        <span class="sidebar-brand-mark">
-            <img src="assets/img/branding/nuvotrace-custom-logo.png" alt="Logo" style="width: 42px;" />
-        </span>
-        <span class="sidebar-brand-text ms-2">NUVOTRACE</span>
-    </a>
-
-@*     <div class="sidebar-label">
-        Apps & Pages (@(SessionState.CurrentUser?.Menus?.Count ?? 0))
-        @if (SessionState.CurrentUser != null)
-        {
-            <div class="mt-1" style="font-size: 0.65rem; color: #888;">
-                <div class="d-flex justify-content-between">
-                    <span>Role:</span> <strong>@SessionState.CurrentUser.RoleId (@SessionState.CurrentUser.RoleName)</strong>
-                </div>
-                <div class="d-flex justify-content-between">
-                    <span>DB IsAdmin:</span> <strong>@SessionState.CurrentUser.IsAdmin</strong>
-                </div>
-                <div class="d-flex justify-content-between">
-                    <span>Menus:</span> <strong>@SessionState.CurrentUser.Menus.Count</strong>
-                </div>
-            </div>
-        }
-    </div> *@
-
-    <nav class="sidebar-nav">
+<div class="container-xxl d-flex h-100">
+    <ul class="menu-inner">
         @if (SessionState.CurrentUser?.Menus != null)
         {
             @foreach (var group in SessionState.CurrentUser.Menus.Where(m => m.ShowInMenu).OrderBy(m => m.SequenceNo))
             {
-                var validChildren = group.SubMenus
+                var validChildren = (group.SubMenus ?? Enumerable.Empty<GFI_Upgrated.SharedDto.AdminSecurity.MenuDto>())
                     .Where(s => s.IsView && s.ShowInMenu && !string.IsNullOrWhiteSpace(s.PagePath))
                     .OrderBy(s => s.SequenceNo)
                     .ToList();
 
                 if (group.IsView && !string.IsNullOrWhiteSpace(group.PagePath) && group.PagePath != "#")
                 {
-                    var parentPath = SessionState.GetHardmappedRoute(group.PagePath, group.PageHeading);
-                    if (!validChildren.Any(c => SessionState.GetHardmappedRoute(c.PagePath, c.PageHeading) == parentPath))
+                    var parentPath = SessionState.GetHardmappedRoute(group.PagePath, group.PageHeading ?? string.Empty);
+                    if (!validChildren.Any(c => SessionState.GetHardmappedRoute(c.PagePath, c.PageHeading ?? string.Empty) == parentPath))
                     {
                         validChildren.Insert(0, new GFI_Upgrated.SharedDto.AdminSecurity.MenuDto 
                         { 
@@ -59,71 +34,115 @@
                 if (validChildren.Count == 0) continue;
 
                 var groupTitle = GetMenuText(group);
-                var groupId = $"nav-{group.LinkId}";
-                var groupIcon = "ti ti-folder";
+                var groupIcon = !string.IsNullOrEmpty(group.IconClass) ? group.IconClass : "icon-base ti tabler-folder";
 
-                <div class="sidebar-group">
-                    <button class="sidebar-link sidebar-group-toggle" type="button" @onclick="() => ToggleGroup(groupId)">
-                        <i class="@groupIcon"></i>
-                        <span>@groupTitle</span>
-                        <i class="ti ti-chevron-down sidebar-group-chevron @(IsExpanded(groupId) ? "is-open" : string.Empty)"></i>
-                    </button>
-                    <div class="sidebar-group-items @(IsExpanded(groupId) ? "is-open" : string.Empty)">
+                <li class="menu-item @(IsActive(group) ? "active" : "")">
+                    <a href="javascript:void(0)" class="menu-link menu-toggle">
+                        <i class="menu-icon tf-icons @groupIcon"></i>
+                        <div data-i18n="@groupTitle">@groupTitle</div>
+                    </a>
+                    <ul class="menu-sub">
                         @foreach (var item in validChildren)
                         {
                             var itemTitle = GetMenuText(item);
-                            var itemIcon = "ti ti-point";
-                            var itemHref = SessionState.GetHardmappedRoute(item.PagePath, item.PageHeading);
+                            var itemIcon = !string.IsNullOrEmpty(item.IconClass) ? item.IconClass : "icon-base ti tabler-point";
+                            var itemHref = SessionState.GetHardmappedRoute(item.PagePath, item.PageHeading ?? string.Empty);
                             var match = itemHref == "/admin" ? NavLinkMatch.All : NavLinkMatch.Prefix;
 
-                            <NavLink class="sidebar-link sidebar-sub-link" href="@itemHref" Match="@match">
-                                <i class="@itemIcon"></i>
-                                <span>@itemTitle</span>
-                            </NavLink>
+                            <li class="menu-item @(IsItemActive(itemHref, match) ? "active" : "")">
+                                <a href="@itemHref" class="menu-link">
+                                    <i class="menu-icon tf-icons @itemIcon"></i>
+                                    <div data-i18n="@itemTitle">@itemTitle</div>
+                                </a>
+                            </li>
                         }
-                    </div>
-                </div>
+                    </ul>
+                </li>
             }
         }
-    </nav>
+    </ul>
 </div>
 
 @code {
-    private readonly HashSet<string> _expandedGroups = new(StringComparer.OrdinalIgnoreCase);
+    private int _menuCount = 0;
 
     protected override void OnInitialized()
     {
         SessionState.OnChange += StateHasChanged;
         LocalizationState.OnChange += StateHasChanged;
-        
-        if (SessionState.CurrentUser?.Menus != null)
+        Navigation.LocationChanged += OnLocationChanged;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        var currentCount = SessionState.CurrentUser?.Menus?.Count ?? 0;
+        if (currentCount > 0 && _menuCount != currentCount)
         {
+            _menuCount = currentCount;
+            try {
+                await JSRuntime.InvokeVoidAsync("reinitVuexyMenu");
+            } catch { }
+        }
+        else if (firstRender && currentCount > 0)
+        {
+            try {
+                await JSRuntime.InvokeVoidAsync("reinitVuexyMenu");
+            } catch { }
+        }
+    }
+
+    private void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
+    {
+        StateHasChanged();
+    }
+
+    private bool IsItemActive(string itemHref, NavLinkMatch match)
+    {
+        var currentPath = "/"+ Navigation.ToBaseRelativePath(Navigation.Uri).Trim('/').ToLower();
+        var targetPath = itemHref.Trim('/').ToLower();
+        
+        if (targetPath == "/") targetPath = "";
+        if (currentPath == "/") currentPath = "";
+
+        if (match == NavLinkMatch.All)
+        {
+            return currentPath == targetPath || (string.IsNullOrEmpty(currentPath) && targetPath == "/admin");
+        }
+        
+        if (string.IsNullOrEmpty(targetPath)) return false;
+        
+        return currentPath.StartsWith(targetPath);
+    }
+
+    private bool IsActive(GFI_Upgrated.SharedDto.AdminSecurity.MenuDto group)
+    {
+        try 
+        {
+            if (SessionState.CurrentUser?.Menus == null) return false;
+            
             var currentPath = "/" + Navigation.ToBaseRelativePath(Navigation.Uri).Trim('/').ToLower();
-            foreach (var group in SessionState.CurrentUser.Menus)
+            var groupHref = SessionState.GetHardmappedRoute(group.PagePath, group.PageHeading ?? string.Empty).Trim('/').ToLower();
+            
+            if (groupHref == currentPath || (currentPath == "/" && groupHref == "/admin")) return true;
+
+            if (group.SubMenus != null)
             {
-                var groupHref = SessionState.GetHardmappedRoute(group.PagePath, group.PageHeading).Trim('/').ToLower();
-                if (groupHref == currentPath || group.SubMenus.Any(s => SessionState.GetHardmappedRoute(s.PagePath, s.PageHeading).Trim('/').ToLower() == currentPath))
+                if (group.SubMenus.Any(s => {
+                    var sHref = SessionState.GetHardmappedRoute(s.PagePath, s.PageHeading ?? string.Empty).Trim('/').ToLower();
+                    return currentPath.StartsWith(sHref) && sHref != "";
+                }))
                 {
-                    _expandedGroups.Add($"nav-{group.LinkId}");
+                    return true;
                 }
             }
-        }
-    }
-
-    private void ToggleGroup(string groupId)
-    {
-        if (_expandedGroups.Contains(groupId))
+        } 
+        catch 
         {
-            _expandedGroups.Remove(groupId);
+            // Ignore if routing check fails
         }
-        else
-        {
-            _expandedGroups.Clear();
-            _expandedGroups.Add(groupId);
-        }
+        
+        return false;
     }
-
-    private bool IsExpanded(string groupId) => _expandedGroups.Contains(groupId);
 
     private string CleanLabel(string? label)
     {
@@ -145,6 +164,6 @@
     {
         SessionState.OnChange -= StateHasChanged;
         LocalizationState.OnChange -= StateHasChanged;
+        Navigation.LocationChanged -= OnLocationChanged;
     }
 }
-

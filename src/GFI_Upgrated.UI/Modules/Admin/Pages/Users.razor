@@ -31,12 +31,12 @@
                     <MudTd DataLabel="Active">@context.IsActive</MudTd>
                     <MudTd>
                         <AuthorizeAction Action="update">
-                            <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Primary" OnClick="@(() => LoadUserAsync(context.LoginId))">Edit</MudButton>
+                            <MudIconButton Size="Size.Small" Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" OnClick="@(() => LoadUserAsync(context.LoginId))" Title="Edit" />
                         </AuthorizeAction>
                         <AuthorizeAction Action="delete">
-                            <MudIconButton Size="Size.Small" Icon="@Icons.Material.Filled.Delete" Color="Color.Error" OnClick="@(() => DeleteUserAsync(context.LoginId))" />
+                            <MudIconButton Size="Size.Small" Icon="@Icons.Material.Filled.Delete" Color="Color.Error" OnClick="@(() => DeleteUserAsync(context.LoginId))" Title="Delete" />
                         </AuthorizeAction>
-                        <MudButton Size="Size.Small" Variant="Variant.Text" Color="Color.Secondary" Href="@($"/admin/user-roles?loginId={context.LoginId}")">Roles</MudButton>
+                        <MudIconButton Size="Size.Small" Icon="@Icons.Material.Filled.Security" Color="Color.Secondary" Href="@($"/admin/user-roles?loginId={context.LoginId}")" Title="Roles" />
                     </MudTd>
                 </RowTemplate>
             </MudTable>
@@ -48,24 +48,23 @@
             <EditForm Model="_editor" OnValidSubmit="SaveAsync">
                 <DataAnnotationsValidator />
                 <MudText Typo="Typo.h5" Class="mb-4">Add New Login</MudText>
-                <MudAutocomplete Clearable="true" MaxItems="1000" T="StaffLookupDto" Label="Staff" Variant="Variant.Outlined"
-                                 Value="@(_activeStaff.FirstOrDefault(x => x.StaffId == _editor.StaffId))"
-                                 ValueChanged="@((StaffLookupDto val) => OnStaffSelected(val))"
-                                 Class="mb-3"
-                                 SearchFunc="@SearchStaff"
-                                 ToStringFunc="@(x => x == null ? "" : FormatStaff(x))"
-                                 ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
+                <div class="mb-3">
+                    <GFI_Upgrated.UI.Modules.Admin.Components.SearchableSelect T="long" Label="Staff" Clearable="true" Variant="Variant.Outlined"
+                                     Value="_editor.StaffId"
+                                     ValueChanged="@((long val) => OnStaffSelected(val))"
+                                     Items="GetStaffSelects()"
+                                     EmptyMessage="All staff users already have a login assigned. You can edit existing users by selecting them from the grid." />
+                </div>
                 <MudTextField @bind-Value="_editor.LoginName" For="@(() => _editor.LoginName)" Label="User ID" Variant="Variant.Outlined" Class="mb-3" />
-                <MudTextField @bind-Value="_editor.Password" For="@(() => _editor.Password)" Label="Password" Variant="Variant.Outlined" InputType="InputType.Password" Class="mb-3" />
+                <MudTextField @bind-Value="_editor.Password" For="@(() => _editor.Password)" Label="Password" Variant="Variant.Outlined" InputType="@_passwordInputType" Adornment="Adornment.End" AdornmentIcon="@_passwordInputIcon" OnAdornmentClick="TogglePasswordVisibility" Class="mb-3" />
                
                 <ValidationMessage For="@(() => _editor.StaffId)" />
-                <MudAutocomplete Clearable="true"        MaxItems="1000" T="RoleDto" Label="Primary Role" Variant="Variant.Outlined" 
-                                 Value="@(_roles.FirstOrDefault(x => x.RoleId == _editor.RoleId))" 
-                                 ValueChanged="@((RoleDto val) => { _editor.RoleId = val?.RoleId ?? 0; })" 
-                                 Class="mb-3"
-                                 SearchFunc="@SearchRoles" 
-                                 ToStringFunc="@(x => x?.RoleName ?? "")"
-                                 ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
+                <div class="mb-3">
+                    <GFI_Upgrated.UI.Modules.Admin.Components.SearchableSelect T="long" Label="Primary Role" Clearable="true" Variant="Variant.Outlined"
+                                     Value="_editor.RoleId"
+                                     ValueChanged="@((long val) => { _editor.RoleId = val; })"
+                                     Items="GetRoleSelects()" />
+                </div>
                 <ValidationMessage For="@(() => _editor.RoleId)" />
                 <MudCheckBox T="bool" @bind-Value="_editor.IsActive" For="@(() => _editor.IsActive)" Label="Is Active" />
                 <MudStack Row="true" Spacing="2" Class="mt-4">
@@ -85,6 +84,9 @@
     private List<RoleDto> _roles = new();
     private string? _search;
     private SaveUserRequest _editor = new();
+    private bool _isShowPassword = false;
+    private InputType _passwordInputType = InputType.Password;
+    private string _passwordInputIcon = Icons.Material.Filled.VisibilityOff;
 
     private bool FilterFunc1(UserDto user)
     {
@@ -97,16 +99,38 @@
         return false;
     }
 
-    private async Task<IEnumerable<StaffLookupDto>> SearchStaff(string value, CancellationToken token)
+    private void TogglePasswordVisibility()
     {
-        if (string.IsNullOrEmpty(value)) return _activeStaff;
-        return _activeStaff.Where(x => FormatStaff(x).Contains(value, StringComparison.OrdinalIgnoreCase));
+        if (_isShowPassword)
+        {
+            _isShowPassword = false;
+            _passwordInputIcon = Icons.Material.Filled.VisibilityOff;
+            _passwordInputType = InputType.Password;
+        }
+        else
+        {
+            _isShowPassword = true;
+            _passwordInputIcon = Icons.Material.Filled.Visibility;
+            _passwordInputType = InputType.Text;
+        }
     }
 
-    private async Task<IEnumerable<RoleDto>> SearchRoles(string value, CancellationToken token)
+    private IEnumerable<GFI_Upgrated.UI.Modules.Admin.Components.SearchableSelect<long>.SelectItemDto<long>> GetStaffSelects()
     {
-        if (string.IsNullOrEmpty(value) || _roles.Any(x => (x.RoleName ?? "").Equals(value, StringComparison.OrdinalIgnoreCase))) return _roles;
-        return _roles.Where(x => (x.RoleName ?? "").Contains(value, StringComparison.OrdinalIgnoreCase));
+        return _activeStaff.Select(x => new GFI_Upgrated.UI.Modules.Admin.Components.SearchableSelect<long>.SelectItemDto<long>
+        {
+            Value = x.StaffId,
+            Text = FormatStaff(x)
+        });
+    }
+
+    private IEnumerable<GFI_Upgrated.UI.Modules.Admin.Components.SearchableSelect<long>.SelectItemDto<long>> GetRoleSelects()
+    {
+        return _roles.Select(x => new GFI_Upgrated.UI.Modules.Admin.Components.SearchableSelect<long>.SelectItemDto<long>
+        {
+            Value = x.RoleId,
+            Text = x.RoleName ?? ""
+        });
     }
 
     protected override void OnInitialized()
@@ -132,7 +156,7 @@
 
     private async Task LoadActiveStaffAsync()
     {
-        _activeStaff = (await ApiClient.GetActiveStaffAsync()).ToList();
+        _activeStaff = (await ApiClient.GetUnassignedStaffAsync()).ToList();
     }
 
     private async Task LoadRolesAsync()
@@ -179,18 +203,19 @@
         }
     }
 
-    private void OnStaffSelected(StaffLookupDto? val)
+    private void OnStaffSelected(long val)
     {
-        _editor.StaffId = val?.StaffId ?? 0;
-        if (val != null)
+        _editor.StaffId = val;
+        var staff = _activeStaff.FirstOrDefault(x => x.StaffId == val);
+        if (staff != null)
         {
-            if (string.IsNullOrWhiteSpace(_editor.LoginName) && !string.IsNullOrWhiteSpace(val.Email))
+            if (string.IsNullOrWhiteSpace(_editor.LoginName) && !string.IsNullOrWhiteSpace(staff.Email))
             {
-                _editor.LoginName = val.Email;
+                _editor.LoginName = staff.Email;
             }
-            if (string.IsNullOrWhiteSpace(_editor.ForgotEmail) && !string.IsNullOrWhiteSpace(val.Email))
+            if (string.IsNullOrWhiteSpace(_editor.ForgotEmail) && !string.IsNullOrWhiteSpace(staff.Email))
             {
-                _editor.ForgotEmail = val.Email;
+                _editor.ForgotEmail = staff.Email;
             }
         }
     }
@@ -211,6 +236,10 @@
             return;
         }
 
+        var roles = await ApiClient.GetUserRolesAsync(loginId);
+        var defaultRole = roles.FirstOrDefault(x => x.IsDefault) ?? roles.FirstOrDefault();
+        long roleId = defaultRole?.RoleId ?? selected.RoleId;
+
         _editor = new SaveUserRequest
         {
             LoginId = selected.LoginId,
@@ -219,7 +248,7 @@
             ForgotEmail = selected.ForgotEmail,
             StaffId = selected.StaffId,
             IsActive = selected.IsActive,
-            RoleId = selected.RoleId
+            RoleId = roleId
         };
 
         await EnsureStaffVisibleAsync(selected.StaffId);

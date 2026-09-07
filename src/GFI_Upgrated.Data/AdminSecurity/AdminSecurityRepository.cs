@@ -58,6 +58,7 @@ public interface IAdminSecurityRepository
     Task<long> InsertUserActivityLogAsync(UserActivityLogDto log, CancellationToken cancellationToken = default);
     Task<string?> GetPasswordByEmailAsync(string forgotEmail, CancellationToken cancellationToken = default);
     Task<bool> ResetPasswordAsync(string email, string newPassword, CancellationToken cancellationToken = default);
+    Task<bool> ChangePasswordAsync(long loginId, string currentPassword, string newPassword, CancellationToken cancellationToken = default);
     Task LogEmailAsync(EmailLogDto log, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<EmailLogDto>> GetEmailLogsByStaffIdAsync(long staffId, CancellationToken cancellationToken = default);
     Task<UserDto?> GetUserByStaffIdAsync(long staffId, CancellationToken cancellationToken = default);
@@ -199,13 +200,15 @@ public sealed class AdminSecurityRepository : IAdminSecurityRepository
         var isAdmin = false;
         var roleNameFromDb = string.Empty;
         var dashboardPath = string.Empty;
+        long? dashboardMenuId = null;
         if (roleId > 0)
         {
-            var roleTable = await ExecuteDataTableRawAsync("SELECT RoleName, IsAdmin FROM Z_UsersRoles WHERE RoleID = @RoleID", new[] { new SqlParameter("@RoleID", SqlDbType.BigInt) { Value = roleId } }, cancellationToken);
+            var roleTable = await ExecuteDataTableRawAsync("SELECT RoleName, IsAdmin, DashboardMenuId FROM Z_UsersRoles WHERE RoleID = @RoleID", new[] { new SqlParameter("@RoleID", SqlDbType.BigInt) { Value = roleId } }, cancellationToken);
             if (roleTable.Rows.Count > 0)
             {
                 roleNameFromDb = roleTable.Rows[0].SafeString("RoleName");
                 isAdmin = roleTable.Rows[0].SafeBool("IsAdmin");
+                dashboardMenuId = roleTable.Rows[0].IsNull("DashboardMenuId") ? null : roleTable.Rows[0].Field<long?>("DashboardMenuId");
             }
         }
 
@@ -241,9 +244,17 @@ public sealed class AdminSecurityRepository : IAdminSecurityRepository
                 .Where(root => root.IsView || root.SubMenus.Any(child => child.IsView))
                 .ToList();
 
-            // Dynamically find a dashboard path from authorized menus
-            var firstDashboard = allMenus.FirstOrDefault(m => m.IsDashboard && m.IsView);
-            dashboardPath = firstDashboard?.PagePath ?? string.Empty;
+            // Use mapped dashboard if present, else fallback to first available
+            MenuDto? dashboardMenu = null;
+            if (dashboardMenuId.HasValue)
+            {
+                dashboardMenu = allMenus.FirstOrDefault(m => m.LinkId == dashboardMenuId.Value && m.IsView);
+            }
+            if (dashboardMenu == null)
+            {
+                dashboardMenu = allMenus.FirstOrDefault(m => m.IsDashboard && m.IsView);
+            }
+            dashboardPath = dashboardMenu?.PagePath ?? string.Empty;
         }
 
         UserLanguagePreferenceDto? userLanguage = null;
@@ -367,6 +378,7 @@ public sealed class AdminSecurityRepository : IAdminSecurityRepository
             new SqlParameter("@IsActive", SqlDbType.Bit) { Value = request.IsActive },
             new SqlParameter("@IsAdmin", SqlDbType.Bit) { Value = request.IsAdmin },
             new SqlParameter("@ModuleID", SqlDbType.BigInt) { Value = request.ModuleId },
+            new SqlParameter("@DashboardMenuId", SqlDbType.BigInt) { Value = (object?)request.DashboardMenuId ?? DBNull.Value },
             new SqlParameter("@CreatedDate", SqlDbType.DateTime) { Value = DateTime.UtcNow },
             new SqlParameter("@CreatedBy", SqlDbType.NVarChar, 400) { Value = request.CreatedBy },
             new SqlParameter("@UpdatedBy", SqlDbType.NVarChar, 400) { Value = request.UpdatedBy },
@@ -707,7 +719,9 @@ public sealed class AdminSecurityRepository : IAdminSecurityRepository
             new SqlParameter("@SortColumn", SqlDbType.VarChar, 50) { Value = "RoleName" }
         }, cancellationToken);
 
-        return table.AsEnumerable().Select(row => new UserRoleAssignmentDto
+        return table.AsEnumerable()
+            .Where(row => row.SafeBool("IsAssigned"))
+            .Select(row => new UserRoleAssignmentDto
         {
             UserRoleId = row.SafeLong("UserRoleID"),
             RoleId = row.SafeLong("RoleID"),
@@ -770,13 +784,23 @@ public sealed class AdminSecurityRepository : IAdminSecurityRepository
     public async Task<IReadOnlyList<StaffLookupDto>> GetUnassignedStaffAsync(CancellationToken cancellationToken = default)
     {
         var table = await ExecuteDataTableAsync("GetStaffLoginsNotExists", Array.Empty<SqlParameter>(), cancellationToken);
-        return table.AsEnumerable().Select(row => new StaffLookupDto
-        {
-            StaffId = row.SafeLong("StaffID"),
-            StaffName = row.SafeString("StaffName", "Name"),
-            Email = row.SafeString("Email", "ForgotEmail"),
-            Status = row.SafeInt("Status", "StatusID"),
-            IsActive = row.SafeBool("IsActive")
+        return table.AsEnumerable().Select(row => {
+            var firstName = row.SafeString("StaffFirstName", "FirstName");
+            var lastName = row.SafeString("StaffLastName", "LastName");
+            var staffName = row.SafeString("StaffName", "Name");
+            if (string.IsNullOrWhiteSpace(staffName))
+            {
+                staffName = string.Join(" ", new[] { firstName, lastName }.Where(x => !string.IsNullOrWhiteSpace(x))).Trim();
+            }
+
+            return new StaffLookupDto
+            {
+                StaffId = row.SafeLong("StaffID"),
+                StaffName = staffName,
+                Email = row.SafeString("Email", "EmailIDOfficial", "ForgotEmail"),
+                Status = row.SafeInt("Status", "StatusID"),
+                IsActive = row.SafeBool("IsActive", "Status")
+            };
         }).ToList();
     }
 
@@ -1505,26 +1529,40 @@ public sealed class AdminSecurityRepository : IAdminSecurityRepository
         IsActive = row.SafeBool("IsActive"),
         IsAdmin = row.SafeBool("IsAdmin"),
         ModuleId = row.SafeLong("ModuleID"),
-        ModuleName = row.SafeString("ModuleName")
+        ModuleName = row.SafeString("ModuleName"),
+        DashboardMenuId = row.IsNull("DashboardMenuId") ? null : row.Field<long?>("DashboardMenuId")
     };
 
-    private static UserDto MapUser(DataRow row) => new()
+    private static UserDto MapUser(DataRow row)
     {
-        LoginId = row.SafeLong("LoginID"),
-        SchoolId = row.SafeLong("SchoolID"),
-        StaffId = row.SafeLong("StaffID"),
-        LoginName = row.SafeString("LoginName"),
-        Password = row.SafeString("Password"),
-        ForgotEmail = row.SafeString("ForgotEmail"),
-        FirstName = row.SafeString("StaffFirstName", "FirstName"),
-        LastName = row.SafeString("StaffLastName", "LastName"),
-        IsActive = row.SafeBool("IsActive"),
-        LoginType = row.SafeString("LoginType"),
-        Browser = row.SafeString("Browser"),
-        OperatingSystem = row.SafeString("OperatingSystem"),
-        ComputerName = row.SafeString("ComputerName"),
-        RoleId = row.SafeLong("RoleID", "RoleId")
-    };
+        var password = row.SafeString("Password");
+        try
+        {
+            if (!string.IsNullOrEmpty(password))
+            {
+                password = LegacyCrypto.DecryptString(password);
+            }
+        }
+        catch { }
+
+        return new UserDto
+        {
+            LoginId = row.SafeLong("LoginID"),
+            SchoolId = row.SafeLong("SchoolID"),
+            StaffId = row.SafeLong("StaffID"),
+            LoginName = row.SafeString("LoginName"),
+            Password = password,
+            ForgotEmail = row.SafeString("ForgotEmail"),
+            FirstName = row.SafeString("StaffFirstName", "FirstName"),
+            LastName = row.SafeString("StaffLastName", "LastName"),
+            IsActive = row.SafeBool("IsActive"),
+            LoginType = row.SafeString("LoginType"),
+            Browser = row.SafeString("Browser"),
+            OperatingSystem = row.SafeString("OperatingSystem"),
+            ComputerName = row.SafeString("ComputerName"),
+            RoleId = row.SafeLong("RoleID", "RoleId")
+        };
+    }
 
     private static StaffDto MapStaff(DataRow row) => new()
     {
@@ -1787,6 +1825,40 @@ public sealed class AdminSecurityRepository : IAdminSecurityRepository
             await connection.OpenAsync(cancellationToken);
             var affected = await command.ExecuteNonQueryAsync(cancellationToken);
             return affected > 0;
+        }
+        return false;
+    }
+
+    public async Task<bool> ChangePasswordAsync(long loginId, string currentPassword, string newPassword, CancellationToken cancellationToken = default)
+    {
+        string? encryptedPassword = null;
+        using (var selectConnection = new SqlConnection(_connectionString))
+        using (var selectCommand = new SqlCommand("SELECT Password FROM Z_UsersLogins WHERE LoginID = @LoginID", selectConnection))
+        {
+            selectCommand.Parameters.AddWithValue("@LoginID", loginId);
+            await selectConnection.OpenAsync(cancellationToken);
+            var result = await selectCommand.ExecuteScalarAsync(cancellationToken);
+            if (result != null && result != DBNull.Value)
+            {
+                encryptedPassword = result.ToString();
+            }
+        }
+
+        if (encryptedPassword != null)
+        {
+            var decryptedPassword = string.IsNullOrEmpty(encryptedPassword) ? "" : LegacyCrypto.DecryptString(encryptedPassword);
+
+            if (decryptedPassword == currentPassword)
+            {
+                using var connection = new SqlConnection(_connectionString);
+                using var command = new SqlCommand("UPDATE Z_UsersLogins SET Password = @NewPassword WHERE LoginID = @LoginID", connection);
+                command.Parameters.AddWithValue("@NewPassword", LegacyCrypto.EncryptString(newPassword));
+                command.Parameters.AddWithValue("@LoginID", loginId);
+
+                await connection.OpenAsync(cancellationToken);
+                var affected = await command.ExecuteNonQueryAsync(cancellationToken);
+                return affected > 0;
+            }
         }
         return false;
     }
@@ -2104,3 +2176,5 @@ internal static class DataRowExtensions
         return string.Empty;
     }
 }
+
+

@@ -55,6 +55,11 @@ IF @ItemStockUsedID = 0
       IF @UsedFor NOT IN (2, 3)
                                                                                                                                                                                                                               
       BEGIN
+          IF EXISTS (SELECT 1 FROM Inv_ItemStockByBatch WHERE ItemStockByBatchId=@ItemStockByBatchId AND FinalQuantityLeft - @Quantity < 0)
+          BEGIN
+              RAISERROR('Insufficient stock available for this batch.', 16, 1);
+              RETURN;
+          END
                                                                                                                                                                                                                                                   
           UPDATE Inv_ItemStockByBatch       
                                                                                                                                                                                                                  
@@ -147,11 +152,27 @@ IF @ItemStockUsedID = 0
         IF @UsedFor NOT IN (2, 3)
                                                                                                                                                                                                                             
         BEGIN
-                                                                                                                                                                                                                                                
+            IF @OldBatchId = @ItemStockByBatchId
+            BEGIN
+                IF EXISTS (SELECT 1 FROM Inv_ItemStockByBatch WHERE ItemStockByBatchId=@ItemStockByBatchId AND FinalQuantityLeft + @OldQty - @Quantity < 0)
+                BEGIN
+                    RAISERROR('Insufficient stock available for this batch.', 16, 1);
+                    RETURN;
+                END
+            END
+            ELSE
+            BEGIN
+                IF EXISTS (SELECT 1 FROM Inv_ItemStockByBatch WHERE ItemStockByBatchId=@ItemStockByBatchId AND FinalQuantityLeft - @Quantity < 0)
+                BEGIN
+                    RAISERROR('Insufficient stock available for this batch.', 16, 1);
+                    RETURN;
+                END
+            END
+
             UPDATE Inv_ItemStockByBatch    
-                                                                                                                                                                                                                  
+                                                                                                                                                                                                                   
             SET FinalQuantityLeft = FinalQuantityLeft + @OldQty    
-                                                                                                                                                                                          
+                                                                                                                                                                                           
             WHERE ItemStockByBatchId = @OldBatchId    
                                                                                                                                                                                                        
         

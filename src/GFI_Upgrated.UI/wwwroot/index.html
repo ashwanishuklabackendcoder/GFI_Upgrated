@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" class="light-style layout-navbar-full layout-horizontal layout-without-menu" dir="ltr" data-theme="theme-default" data-assets-path="assets/" data-template="horizontal-menu-template">
+<html lang="en" class="light-style layout-navbar-full layout-horizontal" dir="ltr" data-theme="theme-default" data-assets-path="assets/" data-template="horizontal-menu-template">
 
 <head>
     <meta charset="utf-8" />
@@ -44,8 +44,38 @@
     </div>
     <script src="_framework/blazor.webassembly.js"></script>
     <script src="_content/MudBlazor/MudBlazor.min.js"></script>
+    
+    <!-- Vuexy Dependencies -->
+    <script src="assets/vendor/libs/jquery/jquery.js"></script>
+    <script src="assets/vendor/libs/popper/popper.js"></script>
+    <script src="assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.js"></script>
+    
+    <!-- Vuexy Core JS -->
+    <script src="assets/vendor/js/helpers.js"></script>
+    <script src="assets/js/config.js"></script>
+    <script src="assets/vendor/js/bootstrap.js"></script>
+    <script src="assets/vendor/js/menu.js"></script>
+    <script src="assets/js/main.js"></script>
+    
     <script src="assets/js/ui-popover.js?v=2"></script>
     <script src="assets/js/file-download.js?v=1"></script>
+<script>
+    window.reinitVuexyMenu = function() {
+        setTimeout(function() {
+            let layoutMenuEl = document.querySelectorAll('#layout-menu');
+            layoutMenuEl.forEach(function (element) {
+                if (element.menuInstance) {
+                    element.menuInstance.destroy();
+                }
+                window.Helpers.mainMenu = new Menu(element, {
+                  orientation: 'horizontal',
+                  closeChildren: true,
+                  showDropdownOnHover: true
+                });
+            });
+        }, 100);
+    };
+</script>
 </body>
 
 </html>

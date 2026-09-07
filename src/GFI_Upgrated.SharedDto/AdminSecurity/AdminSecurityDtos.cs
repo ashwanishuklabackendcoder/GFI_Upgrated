@@ -44,6 +44,7 @@ public sealed class RoleDto
     public bool IsAdmin { get; set; }
     public long ModuleId { get; set; }
     public string? ModuleName { get; set; }
+    public long? DashboardMenuId { get; set; }
 }
 
 public sealed class SaveRoleRequest
@@ -60,6 +61,7 @@ public sealed class SaveRoleRequest
     public long ModuleId { get; set; }
     public string CreatedBy { get; set; } = "System";
     public string UpdatedBy { get; set; } = "System";
+    public long? DashboardMenuId { get; set; }
 }
 
 public sealed class UserDto
@@ -93,6 +95,7 @@ public sealed class SaveUserRequest
     public bool IsActive { get; set; } = true;
     public string CreatedBy { get; set; } = "System";
     public string UpdatedBy { get; set; } = "System";
+    public long? DashboardMenuId { get; set; }
     public string? IpAddress { get; set; }
     
     [Required]
@@ -120,6 +123,7 @@ public sealed class MenuDto
     public bool ShowInMenu { get; set; }
     public bool IsApp { get; set; }
     public string? ModuleName { get; set; }
+    public long? DashboardMenuId { get; set; }
     public string? DisplayName { get; set; }
     public string? IconClass { get; set; }
     public List<MenuDto> SubMenus { get; set; } = new();
@@ -149,6 +153,7 @@ public sealed class SaveMenuRequest
     public string? IconClass { get; set; }
     public string CreatedBy { get; set; } = "System";
     public string UpdatedBy { get; set; } = "System";
+    public long? DashboardMenuId { get; set; }
 }
 
 public sealed class RolePermissionDto
@@ -234,6 +239,7 @@ public sealed class SaveDropDownMasterRequest
     public bool IsActive { get; set; } = true;
     public string CreatedBy { get; set; } = "System";
     public string UpdatedBy { get; set; } = "System";
+    public long? DashboardMenuId { get; set; }
 }
 
 public sealed class DropDownValueDto
@@ -256,6 +262,7 @@ public sealed class SaveDropDownValueRequest : IValidatableObject
     public bool IsActive { get; set; } = true;
     public string CreatedBy { get; set; } = "System";
     public string UpdatedBy { get; set; } = "System";
+    public long? DashboardMenuId { get; set; }
 
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {
@@ -329,6 +336,7 @@ public sealed class SaveStaffRequest : IValidatableObject
     public bool HasLogin { get; set; }
     public string CreatedBy { get; set; } = "System";
     public string? UpdatedBy { get; set; }
+    public long? DashboardMenuId { get; set; }
 
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {
@@ -402,3 +410,5 @@ public class AdminDashboardDto
     public AdminKpiDto ActivityLogs { get; set; } = new();
     public List<AdminChartDataDto> LoginsByDay { get; set; } = new();
 }
+
+

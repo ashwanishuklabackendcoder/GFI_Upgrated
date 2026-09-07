@@ -173,6 +173,32 @@ public sealed class SecurityController : ControllerBase
         }
     }
 
+    [HttpPost("change-password")]
+    public async Task<ActionResult<ApiEnvelope<bool>>> ChangePassword([FromBody] ChangePasswordRequest request, CancellationToken cancellationToken)
+    {
+        try
+        {
+            if (request == null || string.IsNullOrWhiteSpace(request.CurrentPassword) || string.IsNullOrWhiteSpace(request.NewPassword))
+            {
+                return BadRequest(new ApiEnvelope<bool> { Success = false, Message = "Invalid request payload." });
+            }
+
+            var result = await _service.ChangePasswordAsync(request, cancellationToken);
+            if (result)
+            {
+                return Ok(new ApiEnvelope<bool> { Success = true, Message = "Password changed successfully.", Data = true });
+            }
+            else
+            {
+                return Ok(new ApiEnvelope<bool> { Success = false, Message = "Current password is incorrect or failed to update password." });
+            }
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new ApiEnvelope<bool> { Success = false, Message = $"Server Error: {ex.Message}" });
+        }
+    }
+
     [HttpGet("roles")]
     public async Task<ActionResult<ApiEnvelope<PagedResult<RoleDto>>>> GetRoles([FromQuery] PagedRequest request, [FromQuery] string? searchText, CancellationToken cancellationToken)
     {

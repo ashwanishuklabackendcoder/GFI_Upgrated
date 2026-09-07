@@ -24,6 +24,9 @@ public sealed class AdminSecurityApiClient : ApiClientBase
     public async Task<bool> ResetPasswordWithOtpAsync(string email, string otp, string newPassword, CancellationToken cancellationToken = default)
         => await PostEnvelopeAsync<object, bool>($"api/admin/security/forgot-password/reset?email={Uri.EscapeDataString(email)}&otp={Uri.EscapeDataString(otp)}&newPassword={Uri.EscapeDataString(newPassword)}", new object(), cancellationToken);
 
+    public async Task<bool> ChangePasswordAsync(ChangePasswordRequest request, CancellationToken cancellationToken = default)
+        => await PostEnvelopeAsync<ChangePasswordRequest, bool>("api/admin/security/change-password", request, cancellationToken);
+
     public async Task<PagedResult<RoleDto>> GetRolesAsync(PagedRequest request, string? searchText = null, CancellationToken cancellationToken = default)
         => await GetEnvelopeAsync<PagedResult<RoleDto>>(BuildQuery("api/admin/security/roles", request, ("searchText", searchText)), cancellationToken)
            ?? new PagedResult<RoleDto>();
