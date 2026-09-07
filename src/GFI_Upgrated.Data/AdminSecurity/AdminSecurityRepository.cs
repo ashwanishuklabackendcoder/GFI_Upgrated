@@ -58,6 +58,7 @@ public interface IAdminSecurityRepository
     Task<long> InsertUserActivityLogAsync(UserActivityLogDto log, CancellationToken cancellationToken = default);
     Task<string?> GetPasswordByEmailAsync(string forgotEmail, CancellationToken cancellationToken = default);
     Task<bool> ResetPasswordAsync(string email, string newPassword, CancellationToken cancellationToken = default);
+    Task<bool> ChangePasswordAsync(long loginId, string currentPassword, string newPassword, CancellationToken cancellationToken = default);
     Task LogEmailAsync(EmailLogDto log, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<EmailLogDto>> GetEmailLogsByStaffIdAsync(long staffId, CancellationToken cancellationToken = default);
     Task<UserDto?> GetUserByStaffIdAsync(long staffId, CancellationToken cancellationToken = default);
@@ -1824,6 +1825,40 @@ public sealed class AdminSecurityRepository : IAdminSecurityRepository
             await connection.OpenAsync(cancellationToken);
             var affected = await command.ExecuteNonQueryAsync(cancellationToken);
             return affected > 0;
+        }
+        return false;
+    }
+
+    public async Task<bool> ChangePasswordAsync(long loginId, string currentPassword, string newPassword, CancellationToken cancellationToken = default)
+    {
+        string? encryptedPassword = null;
+        using (var selectConnection = new SqlConnection(_connectionString))
+        using (var selectCommand = new SqlCommand("SELECT Password FROM Z_UsersLogins WHERE LoginID = @LoginID", selectConnection))
+        {
+            selectCommand.Parameters.AddWithValue("@LoginID", loginId);
+            await selectConnection.OpenAsync(cancellationToken);
+            var result = await selectCommand.ExecuteScalarAsync(cancellationToken);
+            if (result != null && result != DBNull.Value)
+            {
+                encryptedPassword = result.ToString();
+            }
+        }
+
+        if (encryptedPassword != null)
+        {
+            var decryptedPassword = string.IsNullOrEmpty(encryptedPassword) ? "" : LegacyCrypto.DecryptString(encryptedPassword);
+
+            if (decryptedPassword == currentPassword)
+            {
+                using var connection = new SqlConnection(_connectionString);
+                using var command = new SqlCommand("UPDATE Z_UsersLogins SET Password = @NewPassword WHERE LoginID = @LoginID", connection);
+                command.Parameters.AddWithValue("@NewPassword", LegacyCrypto.EncryptString(newPassword));
+                command.Parameters.AddWithValue("@LoginID", loginId);
+
+                await connection.OpenAsync(cancellationToken);
+                var affected = await command.ExecuteNonQueryAsync(cancellationToken);
+                return affected > 0;
+            }
         }
         return false;
     }

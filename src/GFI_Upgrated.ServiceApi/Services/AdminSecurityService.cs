@@ -55,6 +55,7 @@ public interface IAdminSecurityService
     Task<long> InsertUserActivityLogAsync(UserActivityLogDto log, CancellationToken cancellationToken = default);
     Task<string?> GetPasswordByEmailAsync(string forgotEmail, CancellationToken cancellationToken = default);
     Task<bool> ResetPasswordAsync(string email, string newPassword, CancellationToken cancellationToken = default);
+    Task<bool> ChangePasswordAsync(ChangePasswordRequest request, CancellationToken cancellationToken = default);
     Task LogEmailAsync(EmailLogDto log, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<EmailLogDto>> GetEmailLogsByStaffIdAsync(long staffId, CancellationToken cancellationToken = default);
     Task<UserDto?> GetUserByStaffIdAsync(long staffId, CancellationToken cancellationToken = default);
@@ -248,6 +249,9 @@ public sealed class AdminSecurityService : IAdminSecurityService
 
     public Task<bool> ResetPasswordAsync(string email, string newPassword, CancellationToken cancellationToken = default)
         => _repository.ResetPasswordAsync(email, newPassword, cancellationToken);
+
+    public Task<bool> ChangePasswordAsync(ChangePasswordRequest request, CancellationToken cancellationToken = default)
+        => _repository.ChangePasswordAsync(request.LoginId, request.CurrentPassword, request.NewPassword, cancellationToken);
 
     public Task LogEmailAsync(EmailLogDto log, CancellationToken cancellationToken = default)
         => _repository.LogEmailAsync(log, cancellationToken);

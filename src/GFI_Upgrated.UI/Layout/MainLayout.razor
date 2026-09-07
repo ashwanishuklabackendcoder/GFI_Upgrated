@@ -4,6 +4,7 @@
 @inject LocalizationState LocalizationState
 @inject AdminSecurityApiClient ApiClient
 @inject IJSRuntime JSRuntime
+@inject IDialogService DialogService
 
 <div class="layout-wrapper layout-navbar-full layout-horizontal @(_sidebarMobileOpen ? "layout-menu-expanded" : "")">
   <div class="layout-container">
@@ -83,6 +84,10 @@
                     </li>
                     <li>
                       <div class="d-grid px-2 pt-2 pb-1">
+                        <a class="btn btn-sm btn-outline-secondary d-flex mb-2" href="javascript:void(0);" @onclick="OpenChangePasswordDialog">
+                          <small class="align-middle">Change Password</small>
+                          <i class="icon-base ti tabler-lock ms-2 icon-14px"></i>
+                        </a>
                         <a class="btn btn-sm btn-danger d-flex" href="javascript:void(0);" @onclick="Logout">
                           <small class="align-middle">@LocalizationState.Text("Layout.Logout", "Logout")</small>
                           <i class="icon-base ti tabler-logout ms-2 icon-14px"></i>
@@ -158,6 +163,12 @@
     private async Task ToggleTheme()
     {
         await SessionState.ToggleThemeAsync(JSRuntime);
+    }
+
+    private Task OpenChangePasswordDialog()
+    {
+        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+        return DialogService.ShowAsync<GFI_Upgrated.UI.Components.ChangePasswordDialog>("Change Password", options);
     }
 
     private async Task Logout()
