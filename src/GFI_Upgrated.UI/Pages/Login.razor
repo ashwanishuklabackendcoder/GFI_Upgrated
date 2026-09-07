@@ -8,13 +8,24 @@
 
 <PageTitle>@LocalizationState.Text("Login.PageTitle", "Login - NUVOTRACE")</PageTitle>
 
-<div class="authentication-wrapper authentication-basic container-p-y">
-    <div class="authentication-inner py-6">
-        <div class="card shadow-lg border-0">
-            <div class="card-body p-4 p-sm-5">
+<div class="authentication-wrapper authentication-cover authentication-bg">
+    <div class="authentication-inner row">
+        <!-- /Left Text -->
+        <div class="d-none d-lg-flex col-lg-7 p-0">
+            <div class="auth-cover-bg auth-cover-bg-color d-flex justify-content-center align-items-center">
+                <img src="assets/img/illustrations/auth-login-illustration-light.png" alt="auth-login-cover" class="img-fluid my-5 auth-illustration" data-app-light-img="illustrations/auth-login-illustration-light.png" data-app-dark-img="illustrations/auth-login-illustration-dark.png">
+
+                <img src="assets/img/illustrations/bg-shape-image-light.png" alt="auth-login-cover" class="platform-bg" data-app-light-img="illustrations/bg-shape-image-light.png" data-app-dark-img="illustrations/bg-shape-image-dark.png">
+            </div>
+        </div>
+        <!-- /Left Text -->
+
+        <!-- Login -->
+        <div class="d-flex col-12 col-lg-5 align-items-center p-sm-5 p-4">
+            <div class="w-px-400 mx-auto">
                 <!-- Logo -->
-                <div class="app-brand justify-content-center mb-4">
-                    <img src="assets/img/branding/nuvotrace-logo-2.png" alt="@LocalizationState.Text("Login.SystemTitle", "NUVOTRACE")" class="auth-brand-logo" style="max-height: 80px; width: auto; margin: 0 auto;" />
+                <div class="app-brand justify-content-center mb-5">
+                    <img src="assets/img/branding/nuvotrace-new-logo.jpg" alt="@LocalizationState.Text("Login.SystemTitle", "NUVOTRACE")" class="auth-brand-logo" style="max-height: 80px; width: auto; margin: 0 auto;" />
                 </div>
                 
                 <div class="text-center mb-4">
@@ -59,7 +70,6 @@
                         <div class="mb-3 form-password-toggle">
                             <div class="d-flex justify-content-between">
                                 <label class="form-label" for="password">@LocalizationState.Text("Login.Password", "Password")</label>
-                                
                             </div>
                             <div class="input-group input-group-merge">
                                 <input id="password"
@@ -158,6 +168,7 @@
                 </div>
             </div>
         </div>
+        <!-- /Login -->
     </div>
 </div>
 
