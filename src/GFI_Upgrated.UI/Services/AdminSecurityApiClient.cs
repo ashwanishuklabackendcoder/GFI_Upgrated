@@ -24,6 +24,14 @@ public sealed class AdminSecurityApiClient : ApiClientBase
     public async Task<bool> ResetPasswordWithOtpAsync(string email, string otp, string newPassword, CancellationToken cancellationToken = default)
         => await PostEnvelopeAsync<object, bool>($"api/admin/security/forgot-password/reset?email={Uri.EscapeDataString(email)}&otp={Uri.EscapeDataString(otp)}&newPassword={Uri.EscapeDataString(newPassword)}", new object(), cancellationToken);
 
+    
+    public async Task<CommonResponseDto> ChangeProfileAsync(ChangeProfileRequestDto request, CancellationToken cancellationToken = default)
+    {
+        var data = await PostEnvelopeAsync<ChangeProfileRequestDto, CommonResponseDto>("api/admin/security/change-profile", request, cancellationToken);
+        if (data != null) return data;
+        return new CommonResponseDto { Status = false, Message = "Unknown error occurred" };
+    }
+
     public async Task<bool> ChangePasswordAsync(ChangePasswordRequest request, CancellationToken cancellationToken = default)
         => await PostEnvelopeAsync<ChangePasswordRequest, bool>("api/admin/security/change-password", request, cancellationToken);
 

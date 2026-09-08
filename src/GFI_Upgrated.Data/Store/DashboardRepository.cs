@@ -134,7 +134,7 @@ public sealed class DashboardRepository : IDashboardRepository
     public async Task<List<DashboardBatchLookupDto>> GetProductionBatchesAsync(CancellationToken cancellationToken = default)
     {
         var list = new List<DashboardBatchLookupDto>();
-        const string query = "SELECT DISTINCT ItemStockByBatchId AS ProductionId, BatchNo FROM Inv_ItemStockByBatch WHERE ISNULL(BatchNo, '') <> '' ORDER BY BatchNo ASC";
+        const string query = "SELECT DISTINCT BatchNo FROM Inv_ItemStockByBatch WHERE ISNULL(BatchNo, '') <> '' ORDER BY BatchNo ASC";
         
         await using var connection = new SqlConnection(_connectionString);
         await using var command = new SqlCommand(query, connection)
@@ -148,7 +148,6 @@ public sealed class DashboardRepository : IDashboardRepository
         {
             list.Add(new DashboardBatchLookupDto
             {
-                ProductionId = Convert.ToInt64(reader["ProductionId"]),
                 BatchNo = reader["BatchNo"]?.ToString() ?? string.Empty
             });
         }

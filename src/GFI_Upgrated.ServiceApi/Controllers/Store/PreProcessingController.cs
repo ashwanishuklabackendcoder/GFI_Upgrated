@@ -133,13 +133,24 @@ public sealed class PreProcessingController : ControllerBase
     [HttpPost("{id:long}/finalize")]
     public async Task<ActionResult<ApiEnvelope<int>>> FinalizeStockUpdate(long id, [FromQuery] string? updatedBy, CancellationToken cancellationToken)
     {
-        var result = await _service.FinalizeStockUpdateAsync(id, updatedBy ?? "System", cancellationToken);
-        return Ok(new ApiEnvelope<int>
+        try
         {
-            Success = result > 0,
-            Message = result > 0 ? "Stock finalized successfully." : "Stock finalization failed.",
-            Data = result
-        });
+            var result = await _service.FinalizeStockUpdateAsync(id, updatedBy ?? "System", cancellationToken);
+            return Ok(new ApiEnvelope<int>
+            {
+                Success = result > 0,
+                Message = result > 0 ? "Stock finalized successfully." : "Stock finalization failed.",
+                Data = result
+            });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new ApiEnvelope<int>
+            {
+                Success = false,
+                Message = $"Error finalizing stock: {ex.Message}"
+            });
+        }
     }
 
     [HttpGet("bom/{bomId:long}/items")]

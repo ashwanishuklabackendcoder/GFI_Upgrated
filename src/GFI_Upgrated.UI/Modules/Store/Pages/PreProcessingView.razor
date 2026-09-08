@@ -9,12 +9,19 @@
 @inject GFI_Upgrated.UI.State.AppSessionState SessionState
 @inject IJSRuntime JS
 
-<PageTitle>View Pre-Processing</PageTitle>
+<PageTitle>Semi-Finished Product Details - Run #@Id</PageTitle>
 
-<MudPaper Class="pa-4 mb-4">
+<MudPaper Class="pa-4 mb-4 d-print-none">
     <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
-        <MudText Typo="Typo.h5">View Pre-Processing</MudText>
-        <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.ArrowBack" OnClick="OnBack">Back</MudButton>
+        <MudStack Spacing="0">
+            <MudText Typo="Typo.h5">Semi-Finished Product Details</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">Production Run #@Id</MudText>
+        </MudStack>
+        <MudStack Row="true" Spacing="2">
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Print" OnClick="OnPrint">Print Report</MudButton>
+            <MudButton Variant="Variant.Outlined" Color="Color.Warning" StartIcon="@Icons.Material.Filled.FactCheck" OnClick="@(() => NavigationManager.NavigateTo($"/store/preprocessing/items/{Id}"))">Manage Ingredients</MudButton>
+            <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.ArrowBack" OnClick="OnBack">Back</MudButton>
+        </MudStack>
     </MudStack>
 </MudPaper>
 
@@ -28,42 +35,114 @@ else if (_header == null)
 }
 else
 {
-    <MudPaper Class="pa-4 mb-4">
-        <MudText Typo="Typo.h5" Color="Color.Primary" Class="mb-4">@_header.ItemName</MudText>
-        <MudGrid>
-            <MudItem xs="12" md="6">
-                <MudTextField T="string" Label="Processing Date" Value="@FormatDate(_header.ProcessingDate)" ReadOnly="true" Style="font-size:12px!important;"/>
-                <MudTextField T="string" Label="Batch Number Made" Value="@_header.BatchNumberMade" ReadOnly="true" />
-                <MudTextField T="string" Label="Process Employees" Value="@_employeeNames" ReadOnly="true" />
-                <MudTextField T="string" Label="Warehouse" Value="@_warehouseName" ReadOnly="true" />
+    <MudPaper Class="pa-4 mb-4" Elevation="1">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4 pb-2 border-bottom">
+            <MudStack Spacing="0">
+                <MudText Typo="Typo.caption" Color="Color.Secondary">ITEM PRODUCED</MudText>
+                <MudText Typo="Typo.h5" Color="Color.Primary" Style="font-weight: 600;">@_header.ItemName</MudText>
+            </MudStack>
+            <div>
+                @if (_header.IsComplete == 1)
+                {
+                    <MudChip T="string" Color="Color.Success" Size="Size.Medium" Icon="@Icons.Material.Filled.CheckCircle">Status: Complete</MudChip>
+                }
+                else
+                {
+                    <MudChip T="string" Color="Color.Error" Size="Size.Medium" Icon="@Icons.Material.Filled.HourglassEmpty">Status: Incomplete</MudChip>
+                }
+            </div>
+        </MudStack>
+
+        <MudGrid Class="mt-2">
+            <MudItem xs="12" sm="6" md="3">
+                <MudText Typo="Typo.caption" Color="Color.Secondary">Processing Date</MudText>
+                <MudText Typo="Typo.body1" Style="font-weight: 500;">@(string.IsNullOrWhiteSpace(_header.ProcessingDate) ? "-" : FormatDate(_header.ProcessingDate))</MudText>
             </MudItem>
-            <MudItem xs="12" md="6">
-                <MudTextField T="string" Label="BOM Name" Value="@_bomName" ReadOnly="true" />
-                <MudTextField T="string" Label="Quantity Made" Value="@($"{_header.QuantityMade} {_header.UnitName}")" ReadOnly="true" />
-                <MudTextField T="string" Label="Expiry Date" Value="@FormatDate(_header.ExpiryDate)" ReadOnly="true" />
-                <MudTextField T="string" Label="Remarks" Value="@_header.Remarks" ReadOnly="true" />
-                <MudTextField T="string" Label="Total Ingredient Value" Value="@SessionState.FormatCurrency(_items.Sum(x => x.Amount))" ReadOnly="true" />
+
+            <MudItem xs="12" sm="6" md="3">
+                <MudText Typo="Typo.caption" Color="Color.Secondary">Batch Number Made</MudText>
+                <MudText Typo="Typo.body1" Style="font-weight: 500;">@(string.IsNullOrWhiteSpace(_header.BatchNumberMade) ? "-" : _header.BatchNumberMade)</MudText>
             </MudItem>
+
+            <MudItem xs="12" sm="6" md="3">
+                <MudText Typo="Typo.caption" Color="Color.Secondary">Recipe / BOM Name</MudText>
+                <MudText Typo="Typo.body1" Style="font-weight: 500;">@_bomName (@SessionState.FormatNumber(_header.BomQty))</MudText>
+            </MudItem>
+
+            <MudItem xs="12" sm="6" md="3">
+                <MudText Typo="Typo.caption" Color="Color.Secondary">Quantity Produced</MudText>
+                <MudText Typo="Typo.body1" Style="font-weight: 500;">@SessionState.FormatNumber(_header.QuantityMade) @_header.UnitName</MudText>
+            </MudItem>
+
+            <MudItem xs="12" sm="6" md="3">
+                <MudText Typo="Typo.caption" Color="Color.Secondary">Expiry Date</MudText>
+                <MudText Typo="Typo.body1" Style="font-weight: 500;">@(string.IsNullOrWhiteSpace(_header.ExpiryDate) ? "-" : FormatDate(_header.ExpiryDate))</MudText>
+            </MudItem>
+
+            <MudItem xs="12" sm="6" md="3">
+                <MudText Typo="Typo.caption" Color="Color.Secondary">Warehouse Location</MudText>
+                <MudText Typo="Typo.body1" Style="font-weight: 500;">@(string.IsNullOrWhiteSpace(_warehouseName) ? "-" : _warehouseName)</MudText>
+            </MudItem>
+
+            <MudItem xs="12" sm="6" md="3">
+                <MudText Typo="Typo.caption" Color="Color.Secondary">Process Employees</MudText>
+                <MudText Typo="Typo.body1" Style="font-weight: 500;">@(string.IsNullOrWhiteSpace(_employeeNames) ? "-" : _employeeNames)</MudText>
+            </MudItem>
+
+            <MudItem xs="12" sm="6" md="3">
+                <MudText Typo="Typo.caption" Color="Color.Secondary">Total Ingredient Cost</MudText>
+                <MudText Typo="Typo.body1" Color="Color.Success" Style="font-weight: 600;">@SessionState.FormatCurrency(_items.Sum(x => x.Amount))</MudText>
+            </MudItem>
+
+            @if (!string.IsNullOrWhiteSpace(_header.Remarks))
+            {
+                <MudItem xs="12">
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">Remarks / Notes</MudText>
+                    <MudText Typo="Typo.body1" Style="font-weight: 500;">@_header.Remarks</MudText>
+                </MudItem>
+            }
+
+            @if (!string.IsNullOrWhiteSpace(_header.CreatedBy))
+            {
+                <MudItem xs="12" sm="6">
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">Created By</MudText>
+                    <MudText Typo="Typo.body2">@_header.CreatedBy</MudText>
+                </MudItem>
+            }
         </MudGrid>
     </MudPaper>
 
-    <MudPaper Class="pa-4">
-        @* <MudText Typo="Typo.h6" Class="mb-4">Ingredients / Stock Used as of @FormatDate(_header.ProcessingDate)</MudText> *@
-        <MudTable Items="_items" Hover="true" Dense="true" Striped="true" Bordered="true">
+    <MudPaper Class="pa-4" Elevation="1">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-3">
+            <MudText Typo="Typo.h6" Color="Color.Primary">Ingredient Consumption & Raw Materials Used</MudText>
+            @if (_isDraftPreview)
+            {
+                <MudChip T="string" Color="Color.Info" Size="Size.Small" Icon="@Icons.Material.Filled.Info">Draft / Auto-Allocated Recipe Ingredients</MudChip>
+            }
+        </MudStack>
+
+        @if (_isDraftPreview)
+        {
+            <MudAlert Severity="Severity.Info" Class="mb-3" Variant="Variant.Outlined" Dense="true">
+                <b>Draft Preview:</b> These ingredients are calculated based on BOM recipe requirements and available batch stock because consumption has not been finalized yet.
+            </MudAlert>
+        }
+
+        <MudTable Items="_items" Hover="true" Dense="true" Striped="true" Bordered="true" Elevation="0">
             <HeaderContent>
                 <MudTh>Date</MudTh>
-                <MudTh>Item Name</MudTh>
-                <MudTh>Batch No</MudTh>
-                <MudTh>Supplier</MudTh>
+                <MudTh>Ingredient Name</MudTh>
+                <MudTh>Lot / Batch No</MudTh>
+                <MudTh>Supplier / Stock Source</MudTh>
                 <MudTh Style="text-align: right;">Quantity Used</MudTh>
                 <MudTh Style="text-align: right;">Amount (SRD)</MudTh>
-                <MudTh>Remarks</MudTh>
+                <MudTh>Remarks / Description</MudTh>
             </HeaderContent>
             <RowTemplate>
-                <MudTd DataLabel="Date">@(context.TransactionDate?.ToString("MM/dd/yyyy") ?? "N/A")</MudTd>
-                <MudTd DataLabel="Item Name">@context.ItemName</MudTd>
-                <MudTd DataLabel="Batch No">@context.BatchNo</MudTd>
-                <MudTd DataLabel="Supplier">
+                <MudTd DataLabel="Date">@(context.TransactionDate?.ToString(SessionState.DatePickerFormat) ?? "N/A")</MudTd>
+                <MudTd DataLabel="Ingredient Name"><b>@context.ItemName</b></MudTd>
+                <MudTd DataLabel="Lot / Batch No">@context.BatchNo</MudTd>
+                <MudTd DataLabel="Supplier / Stock Source">
                     @if (context.StockById == 3)
                     {
                         <MudChip T="string" Color="Color.Success" Size="Size.Small">Opening Stock</MudChip>
@@ -72,17 +151,27 @@ else
                     {
                         <MudChip T="string" Color="Color.Warning" Size="Size.Small">PreProcessing</MudChip>
                     }
-                    else
+                    else if (!string.IsNullOrWhiteSpace(context.SupplierName))
                     {
                         @context.SupplierName
                     }
+                    else
+                    {
+                        <span class="text-muted">-</span>
+                    }
                 </MudTd>
-                <MudTd DataLabel="Quantity Used" Style="text-align: right;">@context.Quantity @context.UnitName</MudTd>
+                <MudTd DataLabel="Quantity Used" Style="text-align: right;"><b>@SessionState.FormatNumber(context.Quantity)</b> @context.UnitName</MudTd>
                 <MudTd DataLabel="Amount" Style="text-align: right;">@SessionState.FormatNumber(context.Amount)</MudTd>
-                <MudTd DataLabel="Description">@context.Description</MudTd>
+                <MudTd DataLabel="Remarks / Description">@(string.IsNullOrWhiteSpace(context.Description) ? "-" : context.Description)</MudTd>
             </RowTemplate>
+            <FooterContent>
+                <MudTd ColumnSpan="4" Style="text-align: right; font-weight: bold;">Total:</MudTd>
+                <MudTd Style="text-align: right; font-weight: bold;">@SessionState.FormatNumber(_items.Sum(x => x.Quantity))</MudTd>
+                <MudTd Style="text-align: right; font-weight: bold; color: var(--mud-palette-success);">@SessionState.FormatCurrency(_items.Sum(x => x.Amount))</MudTd>
+                <MudTd></MudTd>
+            </FooterContent>
             <NoRecordsContent>
-                <MudText Class="pa-4">No ingredients recorded.</MudText>
+                <MudText Class="pa-4" Color="Color.Secondary">No ingredients recorded for this production run.</MudText>
             </NoRecordsContent>
         </MudTable>
     </MudPaper>
@@ -92,6 +181,7 @@ else
     [Parameter] public long Id { get; set; }
     
     private bool _loading = true;
+    private bool _isDraftPreview = false;
     private PreProcessingDto? _header;
     private List<PreProcessingItemDto> _items = new();
     private string _bomName = string.Empty;
@@ -138,6 +228,86 @@ else
                 
                 var itemsResult = await ApiClient.GetPreProcessingItemsAsync(Id);
                 _items = itemsResult.ToList();
+
+                // If no saved items exist in DB, fallback to auto-suggesting draft BOM recipe ingredients
+                if (!_items.Any() && _header.BomId > 0)
+                {
+                    _isDraftPreview = true;
+                    try
+                    {
+                        var bomItems = await ApiClient.GetBomItemsAsync(_header.BomId);
+                        var allRawMaterials = await ApiClient.GetItemsForBomLookupAsync(null);
+
+                        foreach (var recipe in bomItems)
+                        {
+                            double neededQty = recipe.Quantity * _header.BomQty;
+                            var batches = (await ApiClient.GetAvailableBatchesAsync(recipe.ItemID)).ToList();
+
+                            double remainingNeeded = neededQty;
+                            var raw = allRawMaterials.FirstOrDefault(x => x.ItemId == recipe.ItemID);
+                            string defaultUnitName = raw?.UnitName ?? "";
+
+                            if (batches.Any(b => b.FinalQuantityLeft > 0))
+                            {
+                                foreach (var batch in batches.Where(b => b.FinalQuantityLeft > 0))
+                                {
+                                    if (remainingNeeded <= 0) break;
+
+                                    double allocated = Math.Min(remainingNeeded, batch.FinalQuantityLeft);
+                                    if (allocated <= 0 && remainingNeeded > 0)
+                                    {
+                                        allocated = remainingNeeded;
+                                    }
+
+                                    _items.Add(new PreProcessingItemDto
+                                    {
+                                        ItemID = recipe.ItemID,
+                                        ItemName = recipe.ItemName,
+                                        ItemStockByBatchId = batch.ItemStockByBatchId,
+                                        BatchNo = batch.BatchNo,
+                                        Quantity = allocated,
+                                        UnitName = !string.IsNullOrWhiteSpace(batch.UnitName) ? batch.UnitName : defaultUnitName,
+                                        Amount = 0,
+                                        Description = "Draft / Auto-suggested from BOM"
+                                    });
+
+                                    remainingNeeded -= allocated;
+                                }
+
+                                if (remainingNeeded > 0)
+                                {
+                                    _items.Add(new PreProcessingItemDto
+                                    {
+                                        ItemID = recipe.ItemID,
+                                        ItemName = recipe.ItemName,
+                                        BatchNo = "Unallocated",
+                                        Quantity = remainingNeeded,
+                                        UnitName = defaultUnitName,
+                                        Amount = 0,
+                                        Description = "Draft / Insufficient batch stock"
+                                    });
+                                }
+                            }
+                            else
+                            {
+                                _items.Add(new PreProcessingItemDto
+                                {
+                                    ItemID = recipe.ItemID,
+                                    ItemName = recipe.ItemName,
+                                    BatchNo = "No Stock Available",
+                                    Quantity = neededQty,
+                                    UnitName = defaultUnitName,
+                                    Amount = 0,
+                                    Description = "Draft / No stock available"
+                                });
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Error loading draft BOM ingredients: {ex.Message}");
+                    }
+                }
             }
         }
         catch (Exception ex)
@@ -150,9 +320,13 @@ else
         }
     }
 
+    private async Task OnPrint()
+    {
+        await JS.InvokeVoidAsync("window.print");
+    }
+
     private async Task OnBack()
     {
         await JS.InvokeVoidAsync("history.back");
     }
 }
-

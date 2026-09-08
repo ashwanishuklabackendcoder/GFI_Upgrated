@@ -68,11 +68,11 @@
                 <MudStack Row="true" Spacing="1" Justify="Justify.Center" AlignItems="AlignItems.Center">
                     @if (_canUpdate)
                     {
-                        <MudTooltip Text="Edit Details">
-                            <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Size="Size.Small" OnClick="@(() => OnEdit(context))" />
-                        </MudTooltip>
                         <MudTooltip Text="Copy Details">
                             <MudIconButton Icon="@Icons.Material.Filled.ContentCopy" Color="Color.Info" Size="Size.Small" OnClick="@(() => OnCopy(context))" Disabled="!_canInsert" />
+                        </MudTooltip>
+                        <MudTooltip Text="Edit Details">
+                            <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Size="Size.Small" OnClick="@(() => OnEdit(context))" />
                         </MudTooltip>
                         <MudTooltip Text="Manage Ingredients">
                             <MudIconButton Icon="@Icons.Material.Filled.FactCheck" Color="Color.Warning" Size="Size.Small" OnClick="@(() => OnManageItems(context))" />
@@ -183,7 +183,7 @@
 
     private void OnView(ProductionDto dto)
     {
-        Navigation.NavigateTo($"/store/production/items/{dto.ProductionId}");
+        Navigation.NavigateTo($"/store/production/view/{dto.ProductionId}");
     }
 
     private async Task OnDelete(ProductionDto dto)

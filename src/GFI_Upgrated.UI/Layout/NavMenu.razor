@@ -6,6 +6,19 @@
 
 <div class="container-xxl d-flex h-100">
     <ul class="menu-inner">
+        @if (SessionState.IsLoggedIn)
+        {
+            var dashPath = !string.IsNullOrWhiteSpace(SessionState.CurrentUser?.DashboardPath) ? SessionState.CurrentUser.DashboardPath : "/blank";
+            var dashMatch = Navigation.Uri.EndsWith(dashPath, StringComparison.OrdinalIgnoreCase) || Navigation.Uri.EndsWith("/admin", StringComparison.OrdinalIgnoreCase);
+            
+            <li class="menu-item @(dashMatch ? "active" : "")">
+                <a href="@dashPath" class="menu-link">
+                    <i class="menu-icon tf-icons icon-base ti ti-dashboard"></i>
+                    <div data-i18n="Dashboard">@LocalizationState.Text("Menu.Dashboard", "Dashboard")</div>
+                </a>
+            </li>
+        }
+
         @if (SessionState.CurrentUser?.Menus != null)
         {
             @foreach (var group in SessionState.CurrentUser.Menus.Where(m => m.ShowInMenu).OrderBy(m => m.SequenceNo))
@@ -34,7 +47,7 @@
                 if (validChildren.Count == 0) continue;
 
                 var groupTitle = GetMenuText(group);
-                var groupIcon = !string.IsNullOrEmpty(group.IconClass) ? group.IconClass : "icon-base ti tabler-folder";
+                var groupIcon = !string.IsNullOrEmpty(group.IconClass) ? group.IconClass : "icon-base ti ti-folder";
 
                 <li class="menu-item @(IsActive(group) ? "active" : "")">
                     <a href="javascript:void(0)" class="menu-link menu-toggle">
@@ -45,7 +58,7 @@
                         @foreach (var item in validChildren)
                         {
                             var itemTitle = GetMenuText(item);
-                            var itemIcon = !string.IsNullOrEmpty(item.IconClass) ? item.IconClass : "icon-base ti tabler-point";
+                            var itemIcon = !string.IsNullOrEmpty(item.IconClass) ? item.IconClass : "icon-base ti ti-point";
                             var itemHref = SessionState.GetHardmappedRoute(item.PagePath, item.PageHeading ?? string.Empty);
                             var match = itemHref == "/admin" ? NavLinkMatch.All : NavLinkMatch.Prefix;
 

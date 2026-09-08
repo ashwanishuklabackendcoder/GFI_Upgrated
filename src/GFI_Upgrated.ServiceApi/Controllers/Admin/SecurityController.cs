@@ -173,6 +173,36 @@ public sealed class SecurityController : ControllerBase
         }
     }
 
+    [HttpPost("change-profile")]
+    public async Task<ActionResult<ApiEnvelope<GFI_Upgrated.SharedDto.Common.CommonResponseDto>>> ChangeProfile([FromBody] GFI_Upgrated.SharedDto.AdminSecurity.ChangeProfileRequestDto model, CancellationToken cancellationToken)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(new ApiEnvelope<GFI_Upgrated.SharedDto.Common.CommonResponseDto> { Success = false, Message = "Invalid request payload." });
+
+        // Get the logged in user's LoginId
+        long loginId = 0;
+        var loginIdClaim = User.Claims.FirstOrDefault(c => c.Type == "LoginId" || c.Type == System.Security.Claims.ClaimTypes.NameIdentifier);
+        if (loginIdClaim != null && long.TryParse(loginIdClaim.Value, out var parsedId))
+        {
+            loginId = parsedId;
+        }
+
+        if (loginId == 0)
+        {
+            return Unauthorized(new ApiEnvelope<GFI_Upgrated.SharedDto.Common.CommonResponseDto> { Success = false, Message = "Unauthorized" });
+        }
+
+        var result = await _service.ChangeProfileAsync(loginId, model, cancellationToken);
+        if (result.Status)
+        {
+            return Ok(new ApiEnvelope<GFI_Upgrated.SharedDto.Common.CommonResponseDto> { Success = true, Message = result.Message, Data = result });
+        }
+        else
+        {
+            return BadRequest(new ApiEnvelope<GFI_Upgrated.SharedDto.Common.CommonResponseDto> { Success = false, Message = result.Message, Data = result });
+        }
+    }
+
     [HttpPost("change-password")]
     public async Task<ActionResult<ApiEnvelope<bool>>> ChangePassword([FromBody] ChangePasswordRequest request, CancellationToken cancellationToken)
     {

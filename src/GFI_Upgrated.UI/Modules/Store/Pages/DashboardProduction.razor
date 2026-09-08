@@ -205,11 +205,14 @@
 
     private IEnumerable<SearchableSelect<string>.SelectItemDto<string>> GetBatchSelects()
     {
-        return (_batches ?? new List<DashboardBatchLookupDto>()).Select(x => new SearchableSelect<string>.SelectItemDto<string>
-        {
-            Value = x.BatchNo,
-            Text = x.BatchNo
-        });
+        return (_batches ?? new List<DashboardBatchLookupDto>())
+            .Where(x => !string.IsNullOrWhiteSpace(x.BatchNo))
+            .DistinctBy(x => x.BatchNo)
+            .Select(x => new SearchableSelect<string>.SelectItemDto<string>
+            {
+                Value = x.BatchNo,
+                Text = x.BatchNo
+            });
     }
 
     private async Task ReloadDashboardAsync()

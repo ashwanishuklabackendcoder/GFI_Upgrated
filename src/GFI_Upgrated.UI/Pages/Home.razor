@@ -7,7 +7,7 @@
 @code {
     protected override void OnInitialized()
     {
-        Navigation.NavigateTo(SessionState.IsLoggedIn ? "/admin" : "/login");
+        Navigation.NavigateTo(SessionState.IsLoggedIn ? (!string.IsNullOrWhiteSpace(SessionState.CurrentUser.DashboardPath) ? SessionState.CurrentUser.DashboardPath : "/blank") : "/login");
     }
 }
 

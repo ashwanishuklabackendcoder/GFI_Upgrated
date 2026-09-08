@@ -59,6 +59,7 @@ public interface IAdminSecurityRepository
     Task<string?> GetPasswordByEmailAsync(string forgotEmail, CancellationToken cancellationToken = default);
     Task<bool> ResetPasswordAsync(string email, string newPassword, CancellationToken cancellationToken = default);
     Task<bool> ChangePasswordAsync(long loginId, string currentPassword, string newPassword, CancellationToken cancellationToken = default);
+    Task<GFI_Upgrated.SharedDto.Common.CommonResponseDto> ChangeProfileAsync(long loginId, GFI_Upgrated.SharedDto.AdminSecurity.ChangeProfileRequestDto request, CancellationToken cancellationToken = default);
     Task LogEmailAsync(EmailLogDto log, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<EmailLogDto>> GetEmailLogsByStaffIdAsync(long staffId, CancellationToken cancellationToken = default);
     Task<UserDto?> GetUserByStaffIdAsync(long staffId, CancellationToken cancellationToken = default);
@@ -310,7 +311,7 @@ public sealed class AdminSecurityRepository : IAdminSecurityRepository
             RoleId = roleId,
             RoleName = !string.IsNullOrWhiteSpace(roleNameFromDb) ? roleNameFromDb : row.SafeString("RoleName"),
             IsAdmin = isAdmin,
-            DashboardPath = !string.IsNullOrWhiteSpace(dashboardPath) ? dashboardPath : "/admin",
+            DashboardPath = !string.IsNullOrWhiteSpace(dashboardPath) ? dashboardPath : "/blank",
             LanguageId = userLanguage?.LanguageId ?? 0,
             CultureName = userLanguage?.CultureName,
             Menus = menus,
@@ -1827,6 +1828,65 @@ public sealed class AdminSecurityRepository : IAdminSecurityRepository
             return affected > 0;
         }
         return false;
+    }
+
+    
+    public async Task<GFI_Upgrated.SharedDto.Common.CommonResponseDto> ChangeProfileAsync(long loginId, GFI_Upgrated.SharedDto.AdminSecurity.ChangeProfileRequestDto request, CancellationToken cancellationToken = default)
+    {
+        var response = new GFI_Upgrated.SharedDto.Common.CommonResponseDto();
+        try
+        {
+            var checkTable = await ExecuteDataTableRawAsync("SELECT LoginID FROM Z_UsersLogins WHERE LoginName = @LoginName", new[]
+            {
+                new Microsoft.Data.SqlClient.SqlParameter("@LoginName", System.Data.SqlDbType.VarChar) { Value = request.LoginName }
+            }, cancellationToken);
+
+            if (checkTable.Rows.Count > 0)
+            {
+                var existingLoginId = checkTable.Rows[0].Field<long>("LoginID");
+                if (existingLoginId != loginId)
+                {
+                    response.Status = false;
+                    response.Message = "Login Name already exists!";
+                    return response;
+                }
+            }
+
+            var loginTable = await ExecuteDataTableRawAsync("SELECT StaffId FROM Z_UsersLogins WHERE LoginID = @LoginID", new[]
+            {
+                new Microsoft.Data.SqlClient.SqlParameter("@LoginID", System.Data.SqlDbType.BigInt) { Value = loginId }
+            }, cancellationToken);
+
+            if (loginTable.Rows.Count == 0)
+            {
+                response.Status = false;
+                response.Message = "User not found!";
+                return response;
+            }
+
+            await ExecuteNonQueryRawAsync("UPDATE Z_UsersLogins SET LoginName = @LoginName WHERE LoginID = @LoginID", new[]
+            {
+                new Microsoft.Data.SqlClient.SqlParameter("@LoginName", System.Data.SqlDbType.VarChar) { Value = request.LoginName },
+                new Microsoft.Data.SqlClient.SqlParameter("@LoginID", System.Data.SqlDbType.BigInt) { Value = loginId }
+            }, cancellationToken);
+
+            long staffId = loginTable.Rows[0].Field<long>("StaffId");
+            await ExecuteNonQueryRawAsync("UPDATE Hr_StaffMaster SET StaffFirstName = @FirstName, StaffLastName = @LastName WHERE StaffId = @StaffId", new[]
+            {
+                new Microsoft.Data.SqlClient.SqlParameter("@FirstName", System.Data.SqlDbType.VarChar) { Value = request.FirstName },
+                new Microsoft.Data.SqlClient.SqlParameter("@LastName", System.Data.SqlDbType.VarChar) { Value = request.LastName },
+                new Microsoft.Data.SqlClient.SqlParameter("@StaffId", System.Data.SqlDbType.BigInt) { Value = staffId }
+            }, cancellationToken);
+
+            response.Status = true;
+            response.Message = "Profile updated successfully!";
+        }
+        catch (Exception ex)
+        {
+            response.Status = false;
+            response.Message = "Error updating profile: " + ex.Message;
+        }
+        return response;
     }
 
     public async Task<bool> ChangePasswordAsync(long loginId, string currentPassword, string newPassword, CancellationToken cancellationToken = default)

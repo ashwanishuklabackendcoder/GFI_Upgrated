@@ -20,7 +20,29 @@
         <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.ArrowBack" OnClick="OnBack">Back</MudButton>
     </MudStack>
 
-    <MudTabs @bind-ActivePanelIndex="_activeTabIndex" Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-6" Color="Color.Primary" Outlined="true">
+    @if (_loadingData)
+    {
+        <MudPaper Class="pa-8 d-flex justify-center align-center" Elevation="0">
+            <MudStack AlignItems="AlignItems.Center" Spacing="2">
+                <MudProgressCircular Color="Color.Primary" Indeterminate="true" Size="Size.Large" />
+                <MudText Typo="Typo.body2" Color="Color.Secondary">Loading product details...</MudText>
+            </MudStack>
+        </MudPaper>
+    }
+    else if (_loadFailed)
+    {
+        <MudAlert Severity="Severity.Error" Variant="Variant.Outlined" Class="mb-4">
+            <MudText Typo="Typo.h6" Class="mb-1">Unable to Load Product Details</MudText>
+            <MudText Typo="Typo.body2" Class="mb-3">@_loadErrorMessage</MudText>
+            <MudStack Row="true" Spacing="2">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Refresh" OnClick="LoadData">Retry</MudButton>
+                <MudButton Variant="Variant.Outlined" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.ArrowBack" OnClick="OnBack">Back to List</MudButton>
+            </MudStack>
+        </MudAlert>
+    }
+    else
+    {
+        <MudTabs @bind-ActivePanelIndex="_activeTabIndex" Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-6" Color="Color.Primary" Outlined="true">
         <MudTabPanel Text="General Info" Icon="@Icons.Material.Filled.Info">
             <EditForm EditContext="_editContext">
                 <DataAnnotationsValidator />
@@ -46,12 +68,7 @@
                             </MudItem>
                    
                     <MudItem xs="12" md="4">
-                        <MudAutocomplete Clearable="true"          MaxItems="1000" T="UnitDto" Label="Base Unit" 
-                                         Value="@(_units.FirstOrDefault(x => x.UnitId == _model.PurchaseUnit))" 
-                                         ValueChanged="@((UnitDto val) => { _model.PurchaseUnit = val?.UnitId ?? 0; })" 
-                                         SearchFunc="@SearchBaseUnits" ToStringFunc="@(x => x?.UnitName ?? "")"
-                                         Variant="Variant.Outlined" Required="true" 
-                                         ResetValueOnEmptyText="true" CoerceText="true" CoerceValue="true" />
+                        <SearchableSelect T="UnitDto" Label="Base Unit" Value="@(_units.FirstOrDefault(x => x.UnitId == _model.PurchaseUnit))" ValueChanged="@((UnitDto val) => { _model.PurchaseUnit = val?.UnitId ?? 0; })" Variant="Variant.Outlined" Required="true" Clearable="true" Items="@GetBaseUnitSelects()" />
                     </MudItem>
 
                     <MudItem xs="12" md="4">
@@ -110,9 +127,9 @@
                 <MudItem xs="12" md="4">
                     <MudNumericField @bind-Value="_details.ReorderLevelDays" Label="Reorder Level (Days)" Variant="Variant.Outlined" Min="0" />
                 </MudItem>
-
-              
-
+                <MudItem xs="12" Class="d-flex justify-end mt-2">
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="SaveInventoryDetails" Loading="_savingDetails">Save Item Details</MudButton>
+                </MudItem>
             </MudGrid>
             </MudPaper></MudStack>
         </MudTabPanel>
@@ -242,6 +259,53 @@
 
         <MudTabPanel Text="Stock History" Icon="@Icons.Material.Filled.History" Disabled="Id == 0">
             <MudStack Spacing="4">
+                <MudGrid Class="mb-2">
+                    <MudItem xs="12" sm="6" md="3">
+                        <MudPaper Class="pa-3 d-flex flex-row align-center" Outlined="true" Elevation="0" Style="border-left: 4px solid var(--mud-palette-success);">
+                            <MudIcon Icon="@Icons.Material.Filled.Inventory2" Color="Color.Success" Size="Size.Large" Class="mr-3" />
+                            <div>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">Available Stock</MudText>
+                                <MudText Typo="Typo.h6" Style="font-weight: bold;">
+                                    @SessionState.FormatNumber(Math.Max(0, _stockReports.Sum(x => x.InQty) - _stockReports.Sum(x => x.OutQty))) @_stockReports.FirstOrDefault(x => !string.IsNullOrEmpty(x.UnitName))?.UnitName
+                                </MudText>
+                            </div>
+                        </MudPaper>
+                    </MudItem>
+                    <MudItem xs="12" sm="6" md="3">
+                        <MudPaper Class="pa-3 d-flex flex-row align-center" Outlined="true" Elevation="0" Style="border-left: 4px solid var(--mud-palette-info);">
+                            <MudIcon Icon="@Icons.Material.Filled.AttachMoney" Color="Color.Info" Size="Size.Large" Class="mr-3" />
+                            <div>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">Available Stock Value</MudText>
+                                <MudText Typo="Typo.h6" Style="font-weight: bold; color: var(--mud-palette-info);">
+                                    @SessionState.FormatNumber(Math.Max(0, _stockReports.Sum(x => x.InQty > 0 ? x.TotalValue : 0) - _stockReports.Sum(x => x.OutQty > 0 ? x.TotalValue : 0)))
+                                </MudText>
+                            </div>
+                        </MudPaper>
+                    </MudItem>
+                    <MudItem xs="12" sm="6" md="3">
+                        <MudPaper Class="pa-3 d-flex flex-row align-center" Outlined="true" Elevation="0" Style="border-left: 4px solid var(--mud-palette-primary);">
+                            <MudIcon Icon="@Icons.Material.Filled.TrendingUp" Color="Color.Primary" Size="Size.Large" Class="mr-3" />
+                            <div>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">Total In Stock</MudText>
+                                <MudText Typo="Typo.h6" Style="font-weight: bold;">
+                                    @SessionState.FormatNumber(_stockReports.Sum(x => x.InQty)) @_stockReports.FirstOrDefault(x => !string.IsNullOrEmpty(x.UnitName))?.UnitName
+                                </MudText>
+                            </div>
+                        </MudPaper>
+                    </MudItem>
+                    <MudItem xs="12" sm="6" md="3">
+                        <MudPaper Class="pa-3 d-flex flex-row align-center" Outlined="true" Elevation="0" Style="border-left: 4px solid var(--mud-palette-warning);">
+                            <MudIcon Icon="@Icons.Material.Filled.TrendingDown" Color="Color.Warning" Size="Size.Large" Class="mr-3" />
+                            <div>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">Total Out Stock</MudText>
+                                <MudText Typo="Typo.h6" Style="font-weight: bold;">
+                                    @SessionState.FormatNumber(_stockReports.Sum(x => x.OutQty)) @_stockReports.FirstOrDefault(x => !string.IsNullOrEmpty(x.UnitName))?.UnitName
+                                </MudText>
+                            </div>
+                        </MudPaper>
+                    </MudItem>
+                </MudGrid>
+
                 <MudTable Items="_stockReports" Hover="true" Dense="true" Striped="true" Bordered="true" Elevation="0">
                     <HeaderContent>
                         <MudTh>Batch No</MudTh>
@@ -255,10 +319,64 @@
                     <RowTemplate>
                         <MudTd DataLabel="Batch No">@context.BatchNo</MudTd>
                         <MudTd DataLabel="Date">@SessionState.FormatDate(context.TransactionDate)</MudTd>
-                        <MudTd DataLabel="Transaction Type">@context.TransactionType</MudTd>
-                        <MudTd DataLabel="Reference">@context.Reference</MudTd>
-                        <MudTd DataLabel="In Qty" Style="text-align: right;">@(context.InQty > 0 ? $"{context.InQty} {context.UnitName}" : "-")</MudTd>
-                        <MudTd DataLabel="Out Qty" Style="text-align: right;">@(context.OutQty > 0 ? $"{context.OutQty} {context.UnitName}" : "-")</MudTd>
+                        <MudTd DataLabel="Transaction Type">
+                            @if (context.TransactionType.Contains("Opening Stock", StringComparison.OrdinalIgnoreCase))
+                            {
+                                <MudChip T="string" Color="Color.Success" Variant="Variant.Filled" Size="Size.Small">@context.TransactionType</MudChip>
+                            }
+                            else if (context.TransactionType.Contains("Produced", StringComparison.OrdinalIgnoreCase) || context.TransactionType.Contains("Production", StringComparison.OrdinalIgnoreCase))
+                            {
+                                <MudChip T="string" Color="Color.Primary" Variant="Variant.Filled" Size="Size.Small">@context.TransactionType</MudChip>
+                            }
+                            else if (context.TransactionType.Contains("Purchased", StringComparison.OrdinalIgnoreCase))
+                            {
+                                <MudChip T="string" Color="Color.Info" Variant="Variant.Filled" Size="Size.Small">@context.TransactionType</MudChip>
+                            }
+                            else if (context.TransactionType.Contains("Issued", StringComparison.OrdinalIgnoreCase) || context.TransactionType.Contains("Pre-Processing", StringComparison.OrdinalIgnoreCase))
+                            {
+                                <MudChip T="string" Color="Color.Warning" Variant="Variant.Filled" Size="Size.Small">@context.TransactionType</MudChip>
+                            }
+                            else
+                            {
+                                <MudChip T="string" Color="Color.Default" Variant="Variant.Filled" Size="Size.Small">@context.TransactionType</MudChip>
+                            }
+                        </MudTd>
+                        <MudTd DataLabel="Reference">
+                            @if (context.RefUsedFor == 2 && context.RefUsedForId > 0)
+                            {
+                                <a href="@($"/store/preprocessing/view/{context.RefUsedForId}")" style="color:var(--mud-palette-primary); text-decoration:underline; font-weight: 500;">
+                                    <MudIcon Icon="@Icons.Material.Filled.OpenInNew" Size="Size.Small" Style="vertical-align: middle; margin-right: 4px;" />
+                                    @context.Reference
+                                </a>
+                            }
+                            else if (context.RefUsedFor == 3 && context.RefUsedForId > 0)
+                            {
+                                <a href="@($"/store/production/view/{context.RefUsedForId}")" style="color:var(--mud-palette-primary); text-decoration:underline; font-weight: 500;">
+                                    <MudIcon Icon="@Icons.Material.Filled.OpenInNew" Size="Size.Small" Style="vertical-align: middle; margin-right: 4px;" />
+                                    @context.Reference
+                                </a>
+                            }
+                            else if (context.RefUsedFor == 1 && context.RefUsedForId > 0)
+                            {
+                                <a href="@($"/admin/invoice/edit/{context.RefUsedForId}")" style="color:var(--mud-palette-primary); text-decoration:underline; font-weight: 500;">
+                                    <MudIcon Icon="@Icons.Material.Filled.OpenInNew" Size="Size.Small" Style="vertical-align: middle; margin-right: 4px;" />
+                                    @context.Reference
+                                </a>
+                            }
+                            else if (context.RefUsedFor == -1 && context.RefUsedForId > 0)
+                            {
+                                <a href="@($"/admin/purchase/view/{context.RefUsedForId}")" style="color:var(--mud-palette-primary); text-decoration:underline; font-weight: 500;">
+                                    <MudIcon Icon="@Icons.Material.Filled.OpenInNew" Size="Size.Small" Style="vertical-align: middle; margin-right: 4px;" />
+                                    @context.Reference
+                                </a>
+                            }
+                            else
+                            {
+                                @context.Reference
+                            }
+                        </MudTd>
+                        <MudTd DataLabel="In Qty" Style="text-align: right;">@(context.InQty > 0 ? $"{SessionState.FormatNumber(context.InQty)} {context.UnitName}" : "-")</MudTd>
+                        <MudTd DataLabel="Out Qty" Style="text-align: right;">@(context.OutQty > 0 ? $"{SessionState.FormatNumber(context.OutQty)} {context.UnitName}" : "-")</MudTd>
                         <MudTd DataLabel="Value" Style="text-align: right; font-weight: bold;">@SessionState.FormatNumber(context.TotalValue)</MudTd>
                     </RowTemplate>
 
@@ -319,14 +437,18 @@
         </MudTabPanel>
     </MudTabs>
 
-    <MudPaper Class="pa-4 mt-4" Outlined="true" Elevation="0">
-        <div class="d-flex justify-end gap-2 flex-wrap">
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@(() => HandleSaveAction("stay"))" Loading="_savingGeneral || _savingDetails || _savingVendor || _savingBatch">Save</MudButton>
-            <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="@(() => HandleSaveAction("list"))" Loading="_savingGeneral || _savingDetails || _savingVendor || _savingBatch">Save & Move to List</MudButton>
-            <MudButton Variant="Variant.Filled" Color="Color.Info" OnClick="@(() => HandleSaveAction("next"))" Loading="_savingGeneral || _savingDetails || _savingVendor || _savingBatch">Save & Move to Next</MudButton>
-            <MudButton Variant="Variant.Filled" Color="Color.Dark" OnClick="@(() => HandleSaveAction("new"))" Loading="_savingGeneral || _savingDetails || _savingVendor || _savingBatch">Save & Add New</MudButton>
-        </div>
-    </MudPaper>
+    @if (_activeTabIndex == 0)
+    {
+        <MudPaper Class="pa-4 mt-4" Outlined="true" Elevation="0">
+            <div class="d-flex justify-end gap-2 flex-wrap">
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@(() => HandleSaveAction("stay"))" Loading="_savingGeneral || _savingDetails || _savingVendor || _savingBatch">Save</MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="@(() => HandleSaveAction("list"))" Loading="_savingGeneral || _savingDetails || _savingVendor || _savingBatch">Save & Move to List</MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Info" OnClick="@(() => HandleSaveAction("next"))" Loading="_savingGeneral || _savingDetails || _savingVendor || _savingBatch">Save & Move to Next</MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Dark" OnClick="@(() => HandleSaveAction("new"))" Loading="_savingGeneral || _savingDetails || _savingVendor || _savingBatch">Save & Add New</MudButton>
+            </div>
+        </MudPaper>
+    }
+    }
 </MudPaper>
 
 @code {
@@ -359,6 +481,10 @@
     private bool _savingDetails;
     private bool _savingVendor;
     private bool _savingBatch;
+
+    private bool _loadingData;
+    private bool _loadFailed;
+    private string _loadErrorMessage = string.Empty;
 
     protected override async Task OnInitializedAsync()
     {
@@ -420,6 +546,12 @@
 
     private async Task LoadData()
     {
+        if (Id <= 0) return;
+
+        _loadingData = true;
+        _loadFailed = false;
+        _loadErrorMessage = string.Empty;
+
         try
         {
             var item = await ApiClient.GetFinishedProductByIdAsync(Id);
@@ -446,6 +578,12 @@
                 };
                 _editContext = new EditContext(_model);
             }
+            else
+            {
+                _loadFailed = true;
+                _loadErrorMessage = "Finished product record not found or could not be retrieved.";
+                return;
+            }
 
             var details = await ApiClient.GetFinishedProductDetailAsync(Id);
             if (details != null) _details = details;
@@ -458,9 +596,15 @@
             
             await LoadRecipesAsync();
         }
-        catch (Exception ex)
+        catch (Exception)
         {
-            Snackbar.Add($"Error loading product data: {ex.Message}", Severity.Error);
+            _loadFailed = true;
+            _loadErrorMessage = "Unable to load finished product details at this moment. The record may be temporarily locked or unavailable. Please click Retry to try again.";
+            Snackbar.Add("Unable to load finished product details at this moment. The record may be temporarily locked or unavailable.", Severity.Warning);
+        }
+        finally
+        {
+            _loadingData = false;
         }
     }
 
@@ -937,6 +1081,16 @@
         var baseUnits = _units.Where(x => x.BaseUnit == null);
         if (string.IsNullOrEmpty(value)) return baseUnits;
         return baseUnits.Where(x => x.UnitName?.Contains(value, StringComparison.OrdinalIgnoreCase) == true);
+    }
+
+    private IEnumerable<SearchableSelect<UnitDto>.SelectItemDto<UnitDto>> GetBaseUnitSelects()
+    {
+        var baseUnits = (_units ?? new List<UnitDto>()).Where(x => x.BaseUnit == null);
+        return baseUnits.Select(x => new SearchableSelect<UnitDto>.SelectItemDto<UnitDto>
+        {
+            Value = x,
+            Text = x.UnitName ?? ""
+        });
     }
 
     private async Task<IEnumerable<StatusDto>> SearchStatuses(string value, CancellationToken token)

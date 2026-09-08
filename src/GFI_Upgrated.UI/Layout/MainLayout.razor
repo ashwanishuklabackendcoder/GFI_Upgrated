@@ -13,43 +13,53 @@
       <div class="container-xxl">
         <div class="navbar-brand app-brand demo d-flex py-0 me-4 ms-0">
           <a href="/" class="app-brand-link d-flex align-items-center gap-2">
-            <img src="assets/img/branding/nuvotrace-new-logo.jpg" alt="Logo" style="height: 40px; width: auto; object-fit: contain;" />
+            <img src="assets/img/branding/nuvotrace-horizontal-logo.png" alt="Logo" style="height: 65px; width: auto; object-fit: contain;" />
           </a>
           <a href="javascript:void(0);" class="layout-menu-toggle menu-link text-large ms-auto d-xl-none" @onclick="ToggleMobileSidebar">
-            <i class="icon-base ti tabler-x icon-sm d-flex align-items-center justify-content-center"></i>
+            <i class="icon-base ti ti-x icon-sm d-flex align-items-center justify-content-center"></i>
           </a>
         </div>
 
         <div class="layout-menu-toggle navbar-nav align-items-xl-center me-3 me-xl-0 d-xl-none">
           <a class="nav-item nav-link px-0 me-xl-6" href="javascript:void(0)" @onclick="ToggleMobileSidebar">
-            <i class="icon-base ti tabler-menu-2 icon-md"></i>
+            <i class="icon-base ti ti-menu-2 icon-md"></i>
           </a>
         </div>
 
         <div class="navbar-nav-right d-flex align-items-center justify-content-end" id="navbar-collapse">
           <ul class="navbar-nav flex-row align-items-center ms-md-auto">
             
-            <!-- Style Switcher -->
-            <li class="nav-item me-2 me-xl-0">
-              <a class="nav-link btn btn-icon btn-text-secondary rounded-pill" href="javascript:void(0);" @onclick="ToggleTheme" aria-label="@LocalizationState.Text("Layout.Theme", "Theme")">
-                <i class="icon-base icon-22px @(SessionState.IsDarkMode ? "ti tabler-moon" : "ti tabler-sun") text-heading"></i>
-              </a>
-            </li>
-            <!-- / Style Switcher-->
-
             <!-- Role Switcher -->
             @if (SessionState.IsLoggedIn && _userRoles.Count > 1)
             {
-              <li class="nav-item me-2 me-xl-0 d-flex align-items-center">
-                <MudSelect T="long" Value="@SessionState.CurrentUser.RoleId" ValueChanged="OnRoleChangedAsync" Margin="Margin.Dense" Variant="Variant.Outlined" Style="min-width:150px;" Dense="true">
-                    @foreach(var r in _userRoles)
-                    {
-                        <MudSelectItem Value="@r.RoleId">@r.RoleName</MudSelectItem>
-                    }
-                </MudSelect>
+              <li class="nav-item dropdown me-2 me-xl-0">
+                <a class="nav-link btn btn-icon btn-text-secondary rounded-pill dropdown-toggle hide-arrow" href="javascript:void(0);" data-bs-toggle="dropdown" aria-label="Switch Role">
+                  <i class="icon-base icon-22px ti ti-arrows-exchange text-heading"></i>
+                </a>
+                <ul class="dropdown-menu dropdown-menu-end">
+                  @foreach(var r in _userRoles)
+                  {
+                    <li>
+                      <a class="dropdown-item @(r.RoleId == SessionState.CurrentUser.RoleId ? "active" : "")" href="javascript:void(0);" @onclick="() => OnRoleChangedAsync(r.RoleId)">
+                        @r.RoleName
+                      </a>
+                    </li>
+                  }
+                </ul>
               </li>
             }
             <!--/ Role Switcher -->
+
+            <!-- Quick Logout -->
+            @if (SessionState.IsLoggedIn)
+            {
+              <li class="nav-item me-2 me-xl-0">
+                <a class="nav-link btn btn-icon btn-text-secondary rounded-pill" href="javascript:void(0);" @onclick="Logout" aria-label="Logout">
+                  <i class="icon-base icon-22px ti ti-logout text-heading text-danger"></i>
+                </a>
+              </li>
+            }
+            <!--/ Quick Logout -->
 
             <!-- User -->
             <li class="nav-item navbar-dropdown dropdown-user dropdown">
@@ -81,13 +91,17 @@
                     </li>
                     <li>
                       <div class="d-grid px-2 pt-2 pb-1">
+                        <a class="btn btn-sm btn-outline-primary d-flex mb-2" href="javascript:void(0);" @onclick="OpenChangeProfileDialog">
+                          <small class="align-middle">Change Profile</small>
+                          <i class="icon-base ti ti-user-edit ms-2 icon-14px"></i>
+                        </a>
                         <a class="btn btn-sm btn-outline-secondary d-flex mb-2" href="javascript:void(0);" @onclick="OpenChangePasswordDialog">
                           <small class="align-middle">Change Password</small>
-                          <i class="icon-base ti tabler-lock ms-2 icon-14px"></i>
+                          <i class="icon-base ti ti-lock ms-2 icon-14px"></i>
                         </a>
                         <a class="btn btn-sm btn-danger d-flex" href="javascript:void(0);" @onclick="Logout">
                           <small class="align-middle">@LocalizationState.Text("Layout.Logout", "Logout")</small>
-                          <i class="icon-base ti tabler-logout ms-2 icon-14px"></i>
+                          <i class="icon-base ti ti-logout ms-2 icon-14px"></i>
                         </a>
                       </div>
                     </li>
@@ -162,6 +176,23 @@
         await SessionState.ToggleThemeAsync(JSRuntime);
     }
 
+    private async Task OpenChangeProfileDialog()
+    {
+        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<GFI_Upgrated.UI.Components.ChangeProfileDialog>("Change Profile", options);
+        var result = await dialog.Result;
+        if (!result.Canceled && SessionState.CurrentUser != null)
+        {
+            // Refresh session to grab updated name
+            var refreshResult = await ApiClient.RefreshSessionAsync(SessionState.CurrentUser.LoginId, SessionState.CurrentUser.RoleId);
+            if (refreshResult != null)
+            {
+                await SessionState.UpdateUserAsync(JSRuntime, refreshResult);
+                StateHasChanged();
+            }
+        }
+    }
+
     private Task OpenChangePasswordDialog()
     {
         var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Small, FullWidth = true };
@@ -194,7 +225,7 @@
         var uri = new Uri(url);
         var path = uri.AbsolutePath.ToLower();
 
-        if (path == "/" || path.Equals("/admin", StringComparison.OrdinalIgnoreCase) || path.Contains("/login", StringComparison.OrdinalIgnoreCase))
+        if (path == "/" || path.Equals("/blank", StringComparison.OrdinalIgnoreCase) || path.Contains("/login", StringComparison.OrdinalIgnoreCase))
         {
             return;
         }
@@ -229,7 +260,7 @@
         if (refreshResult != null)
         {
             await SessionState.UpdateUserAsync(JSRuntime, refreshResult);
-            Navigation.NavigateTo(refreshResult.DashboardPath ?? "/admin", true);
+            Navigation.NavigateTo(!string.IsNullOrWhiteSpace(refreshResult.DashboardPath) ? refreshResult.DashboardPath : "/blank", true);
         }
     }
 

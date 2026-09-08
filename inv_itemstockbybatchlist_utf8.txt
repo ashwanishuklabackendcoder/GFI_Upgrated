@@ -1,0 +1,161 @@
+﻿Text                                                                                                                                                                                                                                                           
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+CREATE PROCEDURE [dbo].[Inv_ItemStockByBatchList]        
+                                                                                                                                                                                                    
+    @ItemStockByBatchId int=0,        
+                                                                                                                                                                                                                       
+    @StockById int=0,  
+                                                                                                                                                                                                                                      
+    @ItemID int=0,  
+                                                                                                                                                                                                                                         
+    @CurrentPage int=1 output,          
+                                                                                                                                                                                                                     
+    @RecordPerPage int=1000,          
+                                                                                                                                                                                                                       
+    @TotalRecord  int=0 output,             
+                                                                                                                                                                                                                 
+    @SortOrd varchar(5)='DESC',            
+                                                                                                                                                                                                                  
+    @SortColumn varchar(20)='ItemStockByBatchId'          
+                                                                                                                                                                                                   
+As        
+                                                                                                                                                                                                                                                   
+begin        
+                                                                                                                                                                                                                                                
+  set nocount on            
+                                                                                                                                                                                                                                 
+  set @StockById = dbo.ReplaceSingleQuote(@StockById)        
+                                                                                                                                                                                                
+         
+                                                                                                                                                                                                                                                    
+  declare @Query as varchar(1000)            
+                                                                                                                                                                                                                
+  declare @RecQuery as nvarchar(max)            
+                                                                                                                                                                                                             
+  set @Query=''         
+                                                                                                                                                                                                                                     
+            
+                                                                                                                                                                                                                                                 
+  if @ItemStockByBatchId<>0            
+                                                                                                                                                                                                                      
+      set @Query=@Query + ' and ItemStockByBatchId =' + cast(@ItemStockByBatchId as varchar)    
+                                                                                                                                                             
+  if @StockById<>0            
+                                                                                                                                                                                                                               
+      set @Query=@Query + ' and StockById =' + cast(@StockById as varchar)    
+                                                                                                                                                                               
+  if @ItemID<>0            
+                                                                                                                                                                                                                                  
+      set @Query=@Query + ' and Inv_ItemStockByBatch.ItemId =' + cast(@ItemID as varchar)    
+                                                                                                                                                                
+          
+                                                                                                                                                                                                                                                   
+  declare @MaxPage int            
+                                                                                                                                                                                                                           
+  set @RecQuery='select @TotalRecord=count(1) from (
+                                                                                                                                                                                                         
+      select ItemId, ItemStockByBatchId, StockById from dbo.Inv_ItemStockByBatch
+                                                                                                                                                                             
+      union all
+                                                                                                                                                                                                                                              
+      select ItemId, bom.ItemStockByBatchID as ItemStockByBatchId, 
+                                                                                                                                                                                          
+             CASE WHEN bom.IDFrom = 0 THEN 3 WHEN EXISTS (SELECT 1 FROM dbo.W_MasterItem i WHERE i.ItemID = bom.ItemId AND i.ItemTypeId = 2) THEN 2 ELSE 4 END as StockById 
+                                                                                 
+      from dbo.Inv_ItemStockByBatchForBOM bom
+                                                                                                                                                                                                                
+      where not exists (select 1 from dbo.Inv_ItemStockByBatch b where b.IdFrom = bom.IDFrom and b.ItemId = bom.ItemId and b.BatchNo = bom.BatchNo and b.StockById = (CASE WHEN bom.IDFrom = 0 THEN 3 WHEN EXISTS (SELECT 1 FROM dbo.W_MasterItem i WHERE i.Ite
+mID = bom.ItemId AND i.ItemTypeId = 2) THEN 2 ELSE 4 END))
+                                                                                                                                                                                                   
+  ) Inv_ItemStockByBatch where 1=1 ' + @Query               
+                                                                                                                                                                                                 
+  exec dbo.sp_ExecuteSql @RecQuery,N'@TotalRecord int output',@TotalRecord output        
+                                                                                                                                                                    
+         
+                                                                                                                                                                                                                                                    
+  set @MaxPage=ceiling(isnull(@TotalRecord,0) / (@RecordPerPage * 1.0))              
+                                                                                                                                                                        
+             
+                                                                                                                                                                                                                                                
+  if @MaxPage < @CurrentPage            
+                                                                                                                                                                                                                     
+  begin            
+                                                                                                                                                                                                                                          
+      if @MaxPage<=0            
+                                                                                                                                                                                                                             
+          set @CurrentPage = 1            
+                                                                                                                                                                                                                   
+      else            
+                                                                                                                                                                                                                                       
+          set @CurrentPage = @MaxPage                           
+                                                                                                                                                                                             
+  end            
+                                                                                                                                                                                                                                            
+             
+                                                                                                                                                                                                                                                
+  declare @Top as int            
+                                                                                                                                                                                                                            
+  declare @Bottom as int            
+                                                                                                                                                                                                                         
+  set @Top=((@CurrentPage - 1) * @RecordPerPage + 1)            
+                                                                                                                                                                                             
+  set @Bottom = (@CurrentPage * @RecordPerPage)             
+                                                                                                                                                                                                 
+             
+                                                                                                                                                                                                                                                
+  set @RecQuery='select * from (select row_number() over (order by '+ @SortColumn + ' ' + @SortOrd + ') as RowNumber,Inv_ItemStockByBatch.ItemStockByBatchId, Inv_ItemStockByBatch.StockById, Inv_ItemStockByBatch.IdFrom, Inv_ItemStockByBatch.ItemId, Inv_Ite
+mStockByBatch.Quantity  
+                                                                                                                                                                                                                                     
+ , Inv_ItemStockByBatch.Unit, Inv_ItemStockByBatch.BatchNo, Inv_ItemStockByBatch.Amount  
+                                                                                                                                                                    
+ ,convert(varchar(12),Inv_ItemStockByBatch.ExpiryDate,106) ExpiryDate,Inv_ItemStockByBatch.WarehouseId, Inv_ItemStockByBatch.FinalQuantityLeft  
+                                                                                                             
+,ItemName,UnitName,WarehouseName
+                                                                                                                                                                                                                             
+ ,(Inv_ItemStockByBatch.Quantity - Inv_ItemStockByBatch.FinalQuantityLeft) AS IssuedStock
+                                                                                                                                                                    
+ ,Inv_ItemStockByBatch.Amount AS StockValue
+                                                                                                                                                                                                                  
+ from (
+                                                                                                                                                                                                                                                      
+     select b.ItemStockByBatchId, b.StockById, b.IdFrom, b.ItemId, b.Quantity, b.Unit, b.BatchNo, b.ExpiryDate, b.WarehouseId, 
+                                                                                                                              
+            isnull(b.FinalQuantityLeft + bom.FinalQuantityLeft - b.Quantity, b.FinalQuantityLeft) as FinalQuantityLeft,
+                                                                                                                                      
+            b.Amount 
+                                                                                                                                                                                                                                        
+     from dbo.Inv_ItemStockByBatch b
+                                                                                                                                                                                                                         
+     left join dbo.Inv_ItemStockByBatchForBOM bom on b.IdFrom = bom.IDFrom and b.ItemId = bom.ItemId and b.BatchNo = bom.BatchNo and b.StockById = (CASE WHEN bom.IDFrom = 0 THEN 3 WHEN EXISTS (SELECT 1 FROM dbo.W_MasterItem i WHERE i.ItemID = bom.ItemId A
+ND i.ItemTypeId = 2) THEN 2 ELSE 4 END)
+                                                                                                                                                                                                                      
+     
+                                                                                                                                                                                                                                                        
+     union all
+                                                                                                                                                                                                                                               
+     
+                                                                                                                                                                                                                                                        
+     select bom.ItemStockByBatchID as ItemStockByBatchId, 
+                                                                                                                                                                                                   
+            CASE WHEN bom.IDFrom = 0 THEN 3 WHEN EXISTS (SELECT 1 FROM dbo.W_MasterItem i WHERE i.ItemID = bom.ItemId AND i.ItemTypeId = 2) THEN 2 ELSE 4 END as StockById, 
+                                                                                 
+            IDFrom as IdFrom, ItemId, Quantity, Unit, BatchNo, CAST(ExpiryDate AS date) as ExpiryDate, WarehouseId, FinalQuantityLeft, Amount 
+                                                                                                               
+     from dbo.Inv_ItemStockByBatchForBOM bom
+                                                                                                                                                                                                                 
+     where not exists (select 1 from dbo.Inv_ItemStockByBatch b where b.IdFrom = bom.IDFrom and b.ItemId = bom.ItemId and b.BatchNo = bom.BatchNo and b.StockById = (CASE WHEN bom.IDFrom = 0 THEN 3 WHEN EXISTS (SELECT 1 FROM dbo.W_MasterItem i WHERE i.Item
+ID = bom.ItemId AND i.ItemTypeId = 2) THEN 2 ELSE 4 END))
+                                                                                                                                                                                                    
+ ) Inv_ItemStockByBatch  
+                                                                                                                                                                                                                                    
+ inner join W_MasterItem on W_MasterItem.ItemID=Inv_ItemStockByBatch.ItemId  
+                                                                                                                                                                                
+ left join W_MasterUnit on W_MasterUnit.UnitId=Inv_ItemStockByBatch.Unit  
+                                                                                                                                                                                   
+ left join W_MasterWarehouse on W_MasterWarehouse.WarehouseId= Inv_ItemStockByBatch.WarehouseId  
+                                                                                                                                                            
+ where 1=1 ' + @Query + ')t1 where t1.RowNumber>=' + cast(@Top as varchar) + ' and t1.RowNumber <=' + cast(@Bottom as varchar)            
+                                                                                                                   
+  exec dbo.sp_ExecuteSql @RecQuery        
+                                                                                                                                                                                                                   
+end;                                                                                                                                                                                                                                                           
