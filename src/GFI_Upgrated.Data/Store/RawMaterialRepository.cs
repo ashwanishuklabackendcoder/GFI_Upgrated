@@ -344,7 +344,7 @@ public sealed class RawMaterialRepository : IRawMaterialRepository
                 UnitId = row.Table.Columns.Contains("Unit") ? row.SafeInt("Unit") : row.SafeInt("UnitId"),
                 UnitName = row.SafeString("UnitName"),
                 BatchNo = row.SafeString("BatchNo") + (patchError != null ? $" [Err: {patchError}]" : ""),
-                Amount = row.SafeDouble("Amount"),
+                Amount = row.SafeDouble("Amount", "StockValue"),
                 StockById = row.Table.Columns.Contains("StockById") ? row.SafeInt("StockById") : 0,
                 ExpiryDate = row.SafeDateTime("ExpiryDate")
             });

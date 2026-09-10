@@ -58,6 +58,22 @@ namespace GFI_Upgrated.UI.Helpers
 
             bool desc = string.Equals(sortOrd, "DESC", StringComparison.OrdinalIgnoreCase);
 
+            if (prop.PropertyType == typeof(string))
+            {
+                var sampleValues = source
+                    .Select(x => prop.GetValue(x) as string)
+                    .Where(s => !string.IsNullOrWhiteSpace(s))
+                    .Take(10)
+                    .ToList();
+
+                if (sampleValues.Count > 0 && sampleValues.All(s => DateTime.TryParse(s, out _)))
+                {
+                    return desc
+                        ? source.OrderByDescending(x => DateTime.TryParse(prop.GetValue(x) as string, out var dt) ? (DateTime?)dt : null)
+                        : source.OrderBy(x => DateTime.TryParse(prop.GetValue(x) as string, out var dt) ? (DateTime?)dt : null);
+                }
+            }
+
             return desc 
                 ? source.OrderByDescending(x => prop.GetValue(x) ?? GetDefaultValue(prop.PropertyType))
                 : source.OrderBy(x => prop.GetValue(x) ?? GetDefaultValue(prop.PropertyType));

@@ -345,7 +345,7 @@ public sealed class FinishedProductRepository : IFinishedProductRepository
                 UnitId = row.Table.Columns.Contains("Unit") ? row.SafeInt("Unit") : row.SafeInt("UnitId"),
                 UnitName = row.SafeString("UnitName"),
                 BatchNo = row.SafeString("BatchNo"),
-                Amount = row.SafeDouble("Amount"),
+                Amount = row.SafeDouble("Amount", "StockValue"),
                 StockById = row.Table.Columns.Contains("StockById") ? row.SafeInt("StockById") : 0,
                 ExpiryDate = row.SafeDateTime("ExpiryDate")
             });

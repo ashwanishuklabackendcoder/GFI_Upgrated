@@ -28,10 +28,10 @@
 
     <MudGrid Class="mb-4 no-print" Spacing="2">
         <MudItem xs="12" md="3">
-            <SearchableSelect T="long?" Label="Stock From" Value="@_selectedStockById" ValueChanged="@((long? val) => { _selectedStockById = val; })" Variant="Variant.Outlined" Items="@GetStockFromSelects()" />
+            <SearchableSelect T="long?" Label="Stock From" Value="@_selectedStockById" ValueChanged="@(async (long? val) => { _selectedStockById = val; _cachedItems = null; if (_table != null) await _table.ReloadServerData(); })" Variant="Variant.Outlined" Items="@GetStockFromSelects()" />
         </MudItem>
         <MudItem xs="12" md="4">
-            <SearchableSelect T="RawMaterialDto" Label="Select Item" Value="@_selectedItem" ValueChanged="@((RawMaterialDto val) => { _selectedItem = val; })" Variant="Variant.Outlined" Items="@GetItemSelects()" />
+            <SearchableSelect T="RawMaterialDto" Label="Select Item" Value="@_selectedItem" ValueChanged="@(async (RawMaterialDto val) => { _selectedItem = val; _cachedItems = null; if (_table != null) await _table.ReloadServerData(); })" Variant="Variant.Outlined" Items="@GetItemSelects()" />
         </MudItem>
         <MudItem xs="12" md="3">
             <MudTextField T="string" ValueChanged="OnSearchTextChanged" Label="Search Keyword" Variant="Variant.Outlined" Placeholder="Search by keywords" Clearable="true" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" />
@@ -51,7 +51,7 @@
         </div>
         <div style="font-size: 14px; margin-bottom: 16px;">
             <strong>Filters Applied:</strong><br />
-            Stock From: @(_selectedStockById == 1 ? "Purchase" : _selectedStockById == 2 ? "Pre-Processing" : _selectedStockById == 3 ? "Opening Stock" : "All Sources") | 
+            Stock From: @(_selectedStockById == 1 ? "Purchase" : _selectedStockById == 2 ? "Pre-Processing" : _selectedStockById == 4 ? "Production" : _selectedStockById == 3 ? "Opening Stock" : "All Sources") | 
             Item: @(_selectedItem?.ItemName ?? "All Items")
         </div>
     </div>
@@ -80,8 +80,8 @@
             <MudTd DataLabel="Expiry Date">@SessionState.FormatDate(context.ExpiryDate)</MudTd>
             <MudTd DataLabel="Stock Value" Style="text-align: right;">@SessionState.FormatNumber(context.StockValue)</MudTd>
             <MudTd DataLabel="Stock From">
-                <MudChip T="string" Color="@(context.StockById == 1 ? Color.Info : context.StockById == 2 ? Color.Warning : Color.Success)" Size="Size.Small">
-                    @(context.StockById == 1 ? "Purchase" : context.StockById == 2 ? "PreProcessing" : context.StockById == 3 ? "Opening Stock" : "Unknown")
+                <MudChip T="string" Color="@(context.StockById == 1 ? Color.Info : (context.StockById == 2 || context.StockById == 4) ? Color.Warning : Color.Success)" Size="Size.Small">
+                    @(context.StockById == 1 ? "Purchase" : context.StockById == 2 ? "Pre-Processing" : context.StockById == 4 ? "Production" : context.StockById == 3 ? "Opening Stock" : "Unknown")
                 </MudChip>
             </MudTd>
             <MudTd DataLabel="Warehouse">@context.WarehouseName</MudTd>
@@ -140,6 +140,7 @@
             new() { Value = null, Text = "All Sources" },
             new() { Value = 1, Text = "Purchase" },
             new() { Value = 2, Text = "Pre-Processing" },
+            new() { Value = 4, Text = "Production" },
             new() { Value = 3, Text = "Opening Stock" }
         };
     }
@@ -165,7 +166,7 @@
                                                                                 stockById: _selectedStockById,
                                                                                 itemId: _selectedItem?.ItemId,
                                                                                 page: 1,
-                                                                                size: state.PageSize,
+                                                                                size: 1000000,
                                                                                 sortCol: _currentSortLabel,
                                                                                 sortOrd: _currentSortDirection,
                                                                                 cancellationToken: cancellationToken
@@ -229,7 +230,7 @@
         sb.AppendLine("ID\tItem Name\tBatch No.\tQuantity\tUnit\tIssued Stock\tFinal Quantity\tExpiry Date\tStock Value\tStock From\tWarehouse");
         foreach (var item in data)
         {
-            var sourceName = item.StockById == 1 ? "Purchase" : item.StockById == 2 ? "PreProcessing" : item.StockById == 3 ? "Opening Stock" : "Unknown";
+            var sourceName = item.StockById == 1 ? "Purchase" : item.StockById == 2 ? "Pre-Processing" : item.StockById == 4 ? "Production" : item.StockById == 3 ? "Opening Stock" : "Unknown";
             sb.AppendLine($"{item.ItemStockByBatchId}\t{item.ItemName}\t{item.BatchNo}\t{item.Quantity}\t{item.UnitName}\t{item.IssuedStock}\t{item.FinalQuantityLeft}\t{item.ExpiryDate}\t{item.StockValue}\t{sourceName}\t{item.WarehouseName}");
         }
         var success = await JS.InvokeAsync<bool>("gfiCopyToClipboard", sb.ToString());
@@ -249,7 +250,7 @@
         sb.AppendLine("ID,Item Name,Batch No.,Quantity,Unit,Issued Stock,Final Quantity,Expiry Date,Stock Value,Stock From,Warehouse");
         foreach (var item in data)
         {
-            var sourceName = item.StockById == 1 ? "Purchase" : item.StockById == 2 ? "PreProcessing" : item.StockById == 3 ? "Opening Stock" : "Unknown";
+            var sourceName = item.StockById == 1 ? "Purchase" : item.StockById == 2 ? "Pre-Processing" : item.StockById == 4 ? "Production" : item.StockById == 3 ? "Opening Stock" : "Unknown";
             var itemName = (item.ItemName ?? "").Replace("\"", "\"\"");
             var unitName = (item.UnitName ?? "").Replace("\"", "\"\"");
             var batchNo = (item.BatchNo ?? "").Replace("\"", "\"\"");
