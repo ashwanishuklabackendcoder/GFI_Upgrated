@@ -33,6 +33,11 @@ namespace GFI_Upgrated.SharedDto.Account
         // Joined UI fields
         public string? AccountName { get; set; }
         public string? CurrencySymbol { get; set; }
+        public double? Taxes { get; set; }
+        public bool TaxIsPercent { get; set; } = true;
+        public double? Shipping { get; set; }
+        public double? Discount { get; set; }
+        public bool DiscountIsPercent { get; set; } = true;
         public double TotalAmount { get; set; }
 
         public List<InvoiceItemDto> Items { get; set; } = new();

@@ -81,13 +81,13 @@
 
                 <MudTable Items="@_invoice.Items" Hover="true" Dense="true" Striped="true" Bordered="true" Elevation="0" Class="mb-4">
                     <HeaderContent>
-                        <MudTh>Item (SKU)</MudTh>
-                        <MudTh>Batch No.</MudTh>
-                        <MudTh Style="width: 110px; text-align: center;">Qty</MudTh>
-                        <MudTh Style="width: 140px; text-align: right;">Unit Price</MudTh>
-                        <MudTh Style="width: 140px; text-align: right;">Amount</MudTh>
-                        <MudTh>Related Order</MudTh>
-                        <MudTh Style="width: 80px; text-align: center;">Action</MudTh>
+                        <MudTh Style="width: 25%;">Item (SKU)</MudTh>
+                        <MudTh Style="width: 30%; min-width: 260px;">Batch No.</MudTh>
+                        <MudTh Style="width: 10%; text-align: center;">Qty</MudTh>
+                        <MudTh Style="width: 12%; text-align: right;">Unit Price</MudTh>
+                        <MudTh Style="width: 13%; text-align: right;">Amount</MudTh>
+                        <MudTh Style="width: 15%;">Related Order</MudTh>
+                        <MudTh Style="width: 50px; text-align: center;">Action</MudTh>
                     </HeaderContent>
                     <RowTemplate Context="row">
                         <MudTd DataLabel="Item (SKU)">
@@ -128,11 +128,53 @@
                 </MudTable>
             </MudItem>
 
+            <MudItem xs="12" sm="7" md="5" Class="ml-auto pt-3">
+                <MudPaper Class="pa-4" Style="background-color: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 8px;" Elevation="1">
+                    <MudText Typo="Typo.subtitle1" Class="font-weight-bold mb-3" Color="Color.Primary">Invoice Financial Summary</MudText>
+                    <MudGrid Dense="true" Class="align-center">
+                        <MudItem xs="6" Class="d-flex align-center"><MudText Typo="Typo.subtitle2">Subtotal:</MudText></MudItem>
+                        <MudItem xs="6" Class="text-right"><MudText Typo="Typo.subtitle2">@(_selectedCurrencySymbol ?? "$") @(SessionState.FormatNumber(CalculateSubtotal()))</MudText></MudItem>
+
+                        <MudItem xs="6" Class="d-flex align-center">
+                            <MudText Typo="Typo.body2" Class="mr-2">Discount:</MudText>
+                            <MudToggleGroup T="bool" @bind-Value="_invoice.DiscountIsPercent" SelectionMode="SelectionMode.SingleSelection" Color="Color.Primary" Size="Size.Small">
+                                <MudToggleItem Value="true" Text="%" />
+                                <MudToggleItem Value="false" Text="$" />
+                            </MudToggleGroup>
+                        </MudItem>
+                        <MudItem xs="6" Class="d-flex align-center justify-end">
+                            <MudNumericField T="double?" Format="@($"N{SessionState.DecimalDigits}")" Disabled="@(_invoice.InvoiceStatus == "Submitted")" @bind-Value="_invoice.Discount" Variant="Variant.Outlined" Dense="true" Margin="Margin.Dense" Min="0.0" HideSpinButtons="true" Style="text-align: right; max-width: 120px;" HelperText="@(_invoice.DiscountIsPercent && (_invoice.Discount ?? 0) > 0 ? $"-{_selectedCurrencySymbol ?? "$"}{SessionState.FormatNumber(CalculateDiscountAmount())}" : "")" />
+                        </MudItem>
+
+                        <MudItem xs="6" Class="d-flex align-center">
+                            <MudText Typo="Typo.body2" Class="mr-2">Tax:</MudText>
+                            <MudToggleGroup T="bool" @bind-Value="_invoice.TaxIsPercent" SelectionMode="SelectionMode.SingleSelection" Color="Color.Primary" Size="Size.Small">
+                                <MudToggleItem Value="true" Text="%" />
+                                <MudToggleItem Value="false" Text="$" />
+                            </MudToggleGroup>
+                        </MudItem>
+                        <MudItem xs="6" Class="d-flex align-center justify-end">
+                            <MudNumericField T="double?" Format="@($"N{SessionState.DecimalDigits}")" Disabled="@(_invoice.InvoiceStatus == "Submitted")" @bind-Value="_invoice.Taxes" Variant="Variant.Outlined" Dense="true" Margin="Margin.Dense" Min="0.0" HideSpinButtons="true" Style="text-align: right; max-width: 120px;" HelperText="@(_invoice.TaxIsPercent && (_invoice.Taxes ?? 0) > 0 ? $"+{_selectedCurrencySymbol ?? "$"}{SessionState.FormatNumber(CalculateTaxAmount())}" : "")" />
+                        </MudItem>
+
+                        <MudItem xs="6" Class="d-flex align-center"><MudText Typo="Typo.body2">Freight / Shipping ($):</MudText></MudItem>
+                        <MudItem xs="6" Class="d-flex align-center justify-end">
+                            <MudNumericField T="double?" Format="@($"N{SessionState.DecimalDigits}")" Disabled="@(_invoice.InvoiceStatus == "Submitted")" @bind-Value="_invoice.Shipping" Variant="Variant.Outlined" Dense="true" Margin="Margin.Dense" Min="0.0" HideSpinButtons="true" Style="text-align: right; max-width: 120px;" />
+                        </MudItem>
+
+                        <MudItem xs="12"><MudDivider Class="my-2" /></MudItem>
+
+                        <MudItem xs="6" Class="d-flex align-center"><MudText Typo="Typo.h6">Total Amount:</MudText></MudItem>
+                        <MudItem xs="6" Class="text-right"><MudText Typo="Typo.h6" Color="Color.Success" Style="font-weight: bold;">@(_selectedCurrencySymbol ?? "$") @(SessionState.FormatNumber(CalculateTotalAmount()))</MudText></MudItem>
+                    </MudGrid>
+                </MudPaper>
+            </MudItem>
+
             <MudItem xs="12" Class="pt-4">
                 <MudStack Row="true" Spacing="2">
                     @if (_invoice.InvoiceStatus != "Submitted")
                     {
-                        <MudButton ButtonType="ButtonType.Submit" Color="Color.Primary" Variant="Variant.Filled" Disabled="_busy">Save (Draft)</MudButton>
+                        <MudButton Color="Color.Primary" Variant="Variant.Filled" Disabled="_busy" OnClick="SaveDraft">Save (Draft)</MudButton>
                         <MudButton Variant="Variant.Filled" Color="Color.Success" Disabled="_busy" OnClick="SubmitInvoice">Submit Invoice</MudButton>
                     }
                     @if (Id > 0)
@@ -147,7 +189,7 @@
 
     @if (!string.IsNullOrWhiteSpace(_message))
     {
-        <MudAlert Severity="Severity.Info" Class="mt-4" ContentAlignment="HorizontalAlignment.Center">@_message</MudAlert>
+        <MudAlert Severity="Severity.Warning" Class="mt-4" ContentAlignment="HorizontalAlignment.Center">@_message</MudAlert>
     }
 </MudPaper>
 
@@ -367,7 +409,7 @@
         _selectedCurrencySymbol = val?.CurrencySymbol ?? "$";
     }
 
-    private double CalculateTotalAmount()
+    private double CalculateSubtotal()
     {
         double sum = 0;
         foreach (var item in _invoice.Items)
@@ -375,8 +417,44 @@
             item.Amount = item.Quantity * item.UnitPrice;
             sum += item.Amount;
         }
-        _invoice.TotalAmount = sum;
         return sum;
+    }
+
+    private double CalculateDiscountAmount()
+    {
+        double subtotal = CalculateSubtotal();
+        double val = _invoice.Discount ?? 0.0;
+        if (val <= 0) return 0;
+        if (_invoice.DiscountIsPercent)
+        {
+            return Math.Round(subtotal * (val / 100.0), 2);
+        }
+        return Math.Round(val, 2);
+    }
+
+    private double CalculateTaxAmount()
+    {
+        double subtotalAfterDiscount = CalculateSubtotal() - CalculateDiscountAmount();
+        if (subtotalAfterDiscount < 0) subtotalAfterDiscount = 0;
+        double val = _invoice.Taxes ?? 0.0;
+        if (val <= 0) return 0;
+        if (_invoice.TaxIsPercent)
+        {
+            return Math.Round(subtotalAfterDiscount * (val / 100.0), 2);
+        }
+        return Math.Round(val, 2);
+    }
+
+    private double CalculateTotalAmount()
+    {
+        double subtotal = CalculateSubtotal();
+        double discountAmount = CalculateDiscountAmount();
+        double taxAmount = CalculateTaxAmount();
+        double shippingAmount = _invoice.Shipping ?? 0.0;
+
+        double total = subtotal - discountAmount + taxAmount + shippingAmount;
+        _invoice.TotalAmount = Math.Max(0, total);
+        return _invoice.TotalAmount;
     }
 
     private async Task SaveInvoice()
@@ -399,16 +477,6 @@
             return;
         }
 
-        foreach (var item in _invoice.Items)
-        {
-            var maxQty = GetMaxQuantity(item);
-            if (maxQty.HasValue && item.Quantity > maxQty.Value)
-            {
-                Snackbar.Add($"Quantity for item {item.ItemName} exceeds available batch stock ({maxQty.Value}).", Severity.Warning);
-                return;
-            }
-        }
-
         _busy = true;
         _message = null;
         try
@@ -425,6 +493,11 @@
             else
             {
                 _invoice.IsPaid = false;
+            }
+
+            if (string.IsNullOrWhiteSpace(_invoice.InvoiceStatus))
+            {
+                _invoice.InvoiceStatus = "Draft";
             }
 
             // 1. Save main invoice
@@ -446,6 +519,18 @@
                     await ApiClient.SaveInvoiceItemAsync(item);
                 }
 
+                // 4. Allocate stock (FIFO for Non-Draft, Revert for Draft)
+                var allocated = await ApiClient.AllocateInvoiceStockAsync(invoiceId, _invoice.InvoiceStatus ?? "Draft", _invoice.Items);
+                if (!allocated)
+                {
+                    _invoice.InvoiceStatus = "Draft";
+                    await ApiClient.SaveInvoiceAsync(_invoice);
+                    _message = "Stock allocation warning: Stock is no longer available.";
+                    Snackbar.Add(_message, Severity.Warning);
+                    _busy = false;
+                    return;
+                }
+
                 Snackbar.Add("Invoice saved successfully.", Severity.Success);
                 BackToList();
             }
@@ -457,11 +542,18 @@
         catch (Exception ex)
         {
             _message = ex.Message;
+            Snackbar.Add(ex.Message, Severity.Warning);
         }
         finally
         {
             _busy = false;
         }
+    }
+
+    private async Task SaveDraft()
+    {
+        _invoice.InvoiceStatus = "Draft";
+        await SaveInvoice();
     }
 
     private async Task SubmitInvoice()

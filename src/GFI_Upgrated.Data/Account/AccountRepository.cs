@@ -527,6 +527,11 @@ namespace GFI_Upgrated.Data.Account
                     IsPaid = cols.Contains("IsPaid") && row["IsPaid"] != DBNull.Value ? Convert.ToBoolean(row["IsPaid"]) : null,
                     AccountName = cols.Contains("AccountName") ? row["AccountName"]?.ToString() : null,
                     CurrencySymbol = cols.Contains("CurrencySymbol") ? row["CurrencySymbol"]?.ToString() : null,
+                    Taxes = cols.Contains("Taxes") && row["Taxes"] != DBNull.Value ? Convert.ToDouble(row["Taxes"]) : 0,
+                    TaxIsPercent = cols.Contains("TaxIsPercent") && row["TaxIsPercent"] != DBNull.Value ? Convert.ToBoolean(row["TaxIsPercent"]) : true,
+                    Discount = cols.Contains("Discount") && row["Discount"] != DBNull.Value ? Convert.ToDouble(row["Discount"]) : 0,
+                    DiscountIsPercent = cols.Contains("DiscountIsPercent") && row["DiscountIsPercent"] != DBNull.Value ? Convert.ToBoolean(row["DiscountIsPercent"]) : true,
+                    Shipping = cols.Contains("Shipping") && row["Shipping"] != DBNull.Value ? Convert.ToDouble(row["Shipping"]) : 0,
                     TotalAmount = cols.Contains("TotalAmount") && row["TotalAmount"] != DBNull.Value ? Convert.ToDouble(row["TotalAmount"]) : 0
                 });
             }
@@ -569,7 +574,12 @@ namespace GFI_Upgrated.Data.Account
                 CurrencyID = cols.Contains("CurrencyID") && row["CurrencyID"] != DBNull.Value ? Convert.ToInt64(row["CurrencyID"]) : null,
                 CurrencyConversion = cols.Contains("CurrencyConversion") && row["CurrencyConversion"] != DBNull.Value ? Convert.ToDouble(row["CurrencyConversion"]) : null,
                 CreatedDate = cols.Contains("CreatedDate") && row["CreatedDate"] != DBNull.Value ? Convert.ToDateTime(row["CreatedDate"]) : null,
-                CreatedBy = cols.Contains("CreatedBy") ? row["CreatedBy"]?.ToString() : null
+                CreatedBy = cols.Contains("CreatedBy") ? row["CreatedBy"]?.ToString() : null,
+                Taxes = cols.Contains("Taxes") && row["Taxes"] != DBNull.Value ? Convert.ToDouble(row["Taxes"]) : 0,
+                TaxIsPercent = cols.Contains("TaxIsPercent") && row["TaxIsPercent"] != DBNull.Value ? Convert.ToBoolean(row["TaxIsPercent"]) : true,
+                Discount = cols.Contains("Discount") && row["Discount"] != DBNull.Value ? Convert.ToDouble(row["Discount"]) : 0,
+                DiscountIsPercent = cols.Contains("DiscountIsPercent") && row["DiscountIsPercent"] != DBNull.Value ? Convert.ToBoolean(row["DiscountIsPercent"]) : true,
+                Shipping = cols.Contains("Shipping") && row["Shipping"] != DBNull.Value ? Convert.ToDouble(row["Shipping"]) : 0
             };
 
             var itemParams = new[]
@@ -611,19 +621,46 @@ namespace GFI_Upgrated.Data.Account
                 new SqlParameter("@DueDate", (object?)invoice.DueDate ?? DBNull.Value),
                 new SqlParameter("@InvoiceDate", (object?)invoice.InvoiceDate ?? DBNull.Value),
                 new SqlParameter("@InvoiceStatus", invoice.InvoiceStatus ?? ""),
+                new SqlParameter("@Remarks", invoice.Remarks ?? (invoice.InvoiceRemark ?? "")),
                 new SqlParameter("@CreatedDate", DateTime.UtcNow),
                 new SqlParameter("@CreatedBy", invoice.CreatedBy ?? "System"),
                 new SqlParameter("@CurrencyID", (object?)invoice.CurrencyID ?? DBNull.Value),
                 new SqlParameter("@CurrencyConversion", (object?)invoice.CurrencyConversion ?? 1.0),
-                new SqlParameter("@Remarks", invoice.Remarks ?? ""),
-                new SqlParameter("@InvoiceRemark", invoice.InvoiceRemark ?? (object)DBNull.Value),
-                new SqlParameter("@PrintWithRemark", invoice.PrintWithRemark),
-                new SqlParameter("@IsPaid", invoice.IsPaid ?? false),
                 new SqlParameter("@ReturnVal", SqlDbType.Int) { Direction = ParameterDirection.Output }
             };
 
             await ExecuteNonQueryAsync("A_InvoicesModify", parameters);
-            return Convert.ToInt64(parameters[^1].Value ?? 0);
+            long invoiceId = Convert.ToInt64(parameters[^1].Value ?? 0);
+            if (invoiceId == 0 && invoice.InvoiceID > 0)
+            {
+                invoiceId = invoice.InvoiceID;
+            }
+
+            if (invoiceId > 0)
+            {
+                var updateSql = @"
+UPDATE dbo.A_InvoiceMaster 
+SET Taxes = @Taxes, 
+    TaxIsPercent = @TaxIsPercent, 
+    Discount = @Discount, 
+    DiscountIsPercent = @DiscountIsPercent, 
+    Shipping = @Shipping 
+WHERE InvoiceID = @InvoiceID";
+
+                var updateParams = new[]
+                {
+                    new SqlParameter("@Taxes", (object?)invoice.Taxes ?? DBNull.Value),
+                    new SqlParameter("@TaxIsPercent", (object?)invoice.TaxIsPercent ?? DBNull.Value),
+                    new SqlParameter("@Discount", (object?)invoice.Discount ?? DBNull.Value),
+                    new SqlParameter("@DiscountIsPercent", (object?)invoice.DiscountIsPercent ?? DBNull.Value),
+                    new SqlParameter("@Shipping", (object?)invoice.Shipping ?? DBNull.Value),
+                    new SqlParameter("@InvoiceID", invoiceId)
+                };
+
+                await ExecuteNonQueryRawAsync(updateSql, updateParams);
+            }
+
+            return invoiceId;
         }
 
         public async Task<long> SaveInvoiceItemAsync(InvoiceItemDto item)
@@ -644,22 +681,6 @@ namespace GFI_Upgrated.Data.Account
 
             await ExecuteNonQueryAsync("A_InvoicesChildModify", parameters);
             long newChildId = Convert.ToInt64(parameters[^1].Value ?? 0);
-            
-            // Deduct stock if this is a new item and a batch was selected
-            if (item.InvoiceChildID == 0 && item.ItemStockByBatchId.HasValue && item.ItemStockByBatchId.Value > 0)
-            {
-                var stockDto = new ItemStockUsedDto
-                {
-                    ItemStockByBatchId = item.ItemStockByBatchId.Value,
-                    UsedFor = 1, // 1 represents Invoice Sales Dispatch
-                    UsedForId = item.InvoiceID,
-                    Quantity = item.Quantity,
-                    Description = "Invoice Dispatch",
-                    CreatedBy = "System"
-                };
-                await SaveItemStockUsedAsync(stockDto);
-            }
-            
             return newChildId;
         }
 
@@ -817,7 +838,20 @@ namespace GFI_Upgrated.Data.Account
                     ExpiryDateBOM = row.Table.Columns.Contains("ExpiryDate") ? row["ExpiryDate"]?.ToString() : null
                 });
             }
-            return list;
+            var consolidated = list
+                .Where(b => !string.IsNullOrWhiteSpace(b.BatchNo))
+                .GroupBy(b => b.BatchNo!.Trim(), StringComparer.OrdinalIgnoreCase)
+                .Select(g => new ItemStockByBatchForBOMDto
+                {
+                    ItemStockByBatchID = g.First().ItemStockByBatchID,
+                    BatchNo = g.Key,
+                    FinalQuantityLeft = g.Sum(x => x.FinalQuantityLeft),
+                    ExpiryDateBOM = g.FirstOrDefault(x => !string.IsNullOrEmpty(x.ExpiryDateBOM))?.ExpiryDateBOM
+                })
+                .Where(b => b.FinalQuantityLeft > 0)
+                .ToList();
+
+            return consolidated;
         }
 
         public async Task<IReadOnlyList<ItemStockUsedForBOMDto>> GetItemStockUsedForBOMByOrderDetailIdAsync(long orderDetailsId)
@@ -901,46 +935,150 @@ namespace GFI_Upgrated.Data.Account
             return Convert.ToInt64(parameters[^1].Value ?? 0);
         }
 
+        public async Task RevertInvoiceStockAsync(long invoiceId)
+        {
+            await using var connection = new SqlConnection(_connectionString);
+            await connection.OpenAsync();
+
+            var query = @"
+                UPDATE b
+                SET b.FinalQuantityLeft = b.FinalQuantityLeft + u.Quantity
+                FROM dbo.Inv_ItemStockByBatch b
+                INNER JOIN dbo.Inv_ItemStockUsed u ON b.ItemStockByBatchId = u.ItemStockByBatchId
+                WHERE u.UsedFor = 1 AND u.UsedForId = @InvoiceID;
+
+                UPDATE s
+                SET s.IssuedQuantity = ISNULL(s.IssuedQuantity, 0) - u.TotalQty
+                FROM dbo.W_ItemStock s
+                INNER JOIN (
+                    SELECT b.ItemID, SUM(u.Quantity) AS TotalQty
+                    FROM dbo.Inv_ItemStockUsed u
+                    INNER JOIN dbo.Inv_ItemStockByBatch b ON u.ItemStockByBatchId = b.ItemStockByBatchId
+                    WHERE u.UsedFor = 1 AND u.UsedForId = @InvoiceID
+                    GROUP BY b.ItemID
+                ) u ON s.ItemID = u.ItemID;
+
+                DELETE FROM dbo.Inv_ItemStockUsed
+                WHERE UsedFor = 1 AND UsedForId = @InvoiceID;";
+
+            await using var command = new SqlCommand(query, connection);
+            command.Parameters.AddWithValue("@InvoiceID", invoiceId);
+            await command.ExecuteNonQueryAsync();
+        }
+
+        public async Task<bool> ProcessInvoiceStockAllocationAsync(long invoiceId, string invoiceStatus, List<InvoiceItemDto> items)
+        {
+            // First, always revert any existing stock deduction for this invoice ID
+            await RevertInvoiceStockAsync(invoiceId);
+
+            // If the invoice is in Draft status, do not deduct stock
+            if (string.Equals(invoiceStatus, "Draft", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            // Group batch items by ItemId and BatchNumber
+            var batchItems = items
+                .Where(i => i.ItemId > 0 && !string.IsNullOrWhiteSpace(i.BatchNumber) && i.Quantity > 0)
+                .GroupBy(i => new { i.ItemId, BatchNumber = i.BatchNumber!.Trim() });
+
+            foreach (var group in batchItems)
+            {
+                double totalRequired = group.Sum(g => g.Quantity);
+                string batchNo = group.Key.BatchNumber;
+                long itemId = group.Key.ItemId;
+                string itemName = group.FirstOrDefault(g => !string.IsNullOrEmpty(g.ItemName))?.ItemName ?? $"Item #{itemId}";
+
+                // Fetch active batch lots sorted by FIFO (ProcessingDate / CreationDate)
+                var lots = await GetActiveBatchLotsAsync(itemId, batchNo);
+                double totalAvailable = lots.Sum(l => l.FinalQuantityLeft);
+
+                if (totalAvailable < totalRequired)
+                {
+                    throw new InvalidOperationException($"Insufficient stock for batch '{batchNo}' (Item: {itemName}). Required: {totalRequired}, Available: {totalAvailable}. Stock is no longer available.");
+                }
+
+                double remainingRequired = totalRequired;
+                foreach (var lot in lots)
+                {
+                    if (remainingRequired <= 0) break;
+                    double deductQty = Math.Min(remainingRequired, lot.FinalQuantityLeft);
+
+                    var stockDto = new ItemStockUsedDto
+                    {
+                        ItemStockByBatchId = lot.ItemStockByBatchId,
+                        UsedFor = 1, // 1 represents Invoice Sales Dispatch
+                        UsedForId = invoiceId,
+                        Quantity = deductQty,
+                        Description = "Invoice Dispatch (FIFO)",
+                        CreatedBy = "System"
+                    };
+                    await SaveItemStockUsedAsync(stockDto);
+
+                    remainingRequired -= deductQty;
+                }
+            }
+
+            return true;
+        }
+
+        private async Task<List<(long ItemStockByBatchId, double FinalQuantityLeft)>> GetActiveBatchLotsAsync(long itemId, string batchNo)
+        {
+            var result = new List<(long ItemStockByBatchId, double FinalQuantityLeft)>();
+            var query = @"
+                SELECT ItemStockByBatchId, FinalQuantityLeft, ProcessingDate
+                FROM (
+                    SELECT b.ItemStockByBatchId, b.FinalQuantityLeft,
+                           COALESCE(p.GoodsRecievedDate, prod.CookingDate, s.OpeningStockDate, '2000-01-01') AS ProcessingDate
+                    FROM dbo.Inv_ItemStockByBatch b
+                    LEFT JOIN dbo.W_PurchaseChild pc ON b.IdFrom = pc.PurchaseItemID AND b.StockById = 1
+                    LEFT JOIN dbo.W_PurchaseMaster p ON pc.PurchaseID = p.PurchaseID
+                    LEFT JOIN dbo.W_Production prod ON b.IdFrom = prod.ProductionId AND b.StockById IN (2, 4)
+                    LEFT JOIN dbo.W_ItemStock s ON b.IdFrom = s.StockID AND b.StockById = 3
+                    WHERE b.ItemId = @ItemId AND LOWER(LTRIM(RTRIM(b.BatchNo))) = LOWER(LTRIM(RTRIM(@BatchNo))) AND b.FinalQuantityLeft > 0
+
+                    UNION ALL
+
+                    SELECT bom.ItemStockByBatchID AS ItemStockByBatchId, bom.FinalQuantityLeft,
+                           '2000-01-01' AS ProcessingDate
+                    FROM dbo.Inv_ItemStockByBatchForBOM bom
+                    WHERE bom.ItemId = @ItemId AND LOWER(LTRIM(RTRIM(bom.BatchNo))) = LOWER(LTRIM(RTRIM(@BatchNo))) AND bom.FinalQuantityLeft > 0
+                      AND NOT EXISTS (
+                          SELECT 1 FROM dbo.Inv_ItemStockByBatch b 
+                          WHERE b.ItemId = bom.ItemId AND LOWER(LTRIM(RTRIM(b.BatchNo))) = LOWER(LTRIM(RTRIM(bom.BatchNo)))
+                      )
+                ) t
+                ORDER BY ProcessingDate ASC, ItemStockByBatchId ASC;";
+
+            var sqlParams = new[]
+            {
+                new SqlParameter("@ItemId", itemId),
+                new SqlParameter("@BatchNo", batchNo)
+            };
+
+            var table = await Common.ResilientSqlExecutor.ExecuteDataTableRawAsync(_connectionString, query, sqlParams, CancellationToken.None);
+            foreach (DataRow row in table.Rows)
+            {
+                long id = Convert.ToInt64(row["ItemStockByBatchId"]);
+                double qty = Convert.ToDouble(row["FinalQuantityLeft"]);
+                result.Add((id, qty));
+            }
+
+            return result;
+        }
+
         #endregion
 
         #region Helpers
 
-        private async Task<DataTable> ExecuteStoredProcedureAsync(string storedProcedure, IEnumerable<SqlParameter> parameters)
-        {
-            await using var connection = new SqlConnection(_connectionString);
-            await using var command = new SqlCommand(storedProcedure, connection)
-            {
-                CommandType = CommandType.StoredProcedure
-            };
+        private Task<DataTable> ExecuteStoredProcedureAsync(string storedProcedure, IEnumerable<SqlParameter> parameters)
+            => Common.ResilientSqlExecutor.ExecuteDataTableAsync(_connectionString, storedProcedure, parameters, CancellationToken.None);
 
-            foreach (var parameter in parameters)
-            {
-                command.Parameters.Add(parameter);
-            }
+        private Task<int> ExecuteNonQueryAsync(string storedProcedure, IEnumerable<SqlParameter> parameters)
+            => Common.ResilientSqlExecutor.ExecuteNonQueryAsync(_connectionString, storedProcedure, parameters, CancellationToken.None);
 
-            var table = new DataTable();
-            await connection.OpenAsync();
-            await using var reader = await command.ExecuteReaderAsync();
-            table.Load(reader);
-            return table;
-        }
-
-        private async Task<int> ExecuteNonQueryAsync(string storedProcedure, IEnumerable<SqlParameter> parameters)
-        {
-            await using var connection = new SqlConnection(_connectionString);
-            await using var command = new SqlCommand(storedProcedure, connection)
-            {
-                CommandType = CommandType.StoredProcedure
-            };
-
-            foreach (var parameter in parameters)
-            {
-                command.Parameters.Add(parameter);
-            }
-
-            await connection.OpenAsync();
-            return await command.ExecuteNonQueryAsync();
-        }
+        private Task<int> ExecuteNonQueryRawAsync(string sqlText, IEnumerable<SqlParameter> parameters)
+            => Common.ResilientSqlExecutor.ExecuteNonQueryRawAsync(_connectionString, sqlText, parameters, CancellationToken.None);
 
         #endregion
     }

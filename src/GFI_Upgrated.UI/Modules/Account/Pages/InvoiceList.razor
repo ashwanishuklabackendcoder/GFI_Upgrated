@@ -184,6 +184,7 @@
             if (success)
             {
                 Snackbar.Add("Invoice deleted successfully.", Severity.Success);
+                _cachedItems = null;
                 if (_table is not null) await _table.ReloadServerData();
             }
             else

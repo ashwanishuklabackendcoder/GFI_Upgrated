@@ -264,17 +264,41 @@ public sealed class ProductionRepository : IProductionRepository
             new SqlParameter("@ReturnVal", SqlDbType.Int) { Direction = ParameterDirection.Output }
         };
 
-        await ExecuteNonQueryAsync("Inv_ItemStockPreProcessingAndProductModify", parameters, cancellationToken);
-        
-        // Explicitly persist IsComplete status to 1 on the production header
-        var updateQuery = "UPDATE dbo.W_Production SET IsComplete = 1 WHERE ProductionId = @ProductionId";
+        //await ExecuteNonQueryAsync("Inv_ItemStockPreProcessingAndProductModify", parameters, cancellationToken);
+
+        //// Explicitly persist IsComplete status to 1 on the production header
+        //var updateQuery = "UPDATE dbo.W_Production SET IsComplete = 1 WHERE ProductionId = @ProductionId";
+        //await using var connection = new SqlConnection(_connectionString);
+        //await using var command = new SqlCommand(updateQuery, connection);
+        //command.Parameters.AddWithValue("@ProductionId", productionId);
+        //await connection.OpenAsync(cancellationToken);
+        //await command.ExecuteNonQueryAsync(cancellationToken);
+
+        //return Convert.ToInt32(parameters[^1].Value ?? 0);
         await using var connection = new SqlConnection(_connectionString);
-        await using var command = new SqlCommand(updateQuery, connection);
-        command.Parameters.AddWithValue("@ProductionId", productionId);
         await connection.OpenAsync(cancellationToken);
-        await command.ExecuteNonQueryAsync(cancellationToken);
-        
-        return Convert.ToInt32(parameters[^1].Value ?? 0);
+        await using var transaction = await connection.BeginTransactionAsync(cancellationToken);
+        try
+        {
+            // 1. Execute SP within transaction
+            await ExecuteNonQueryAsync("Inv_ItemStockPreProcessingAndProductModify", parameters, cancellationToken);
+
+            // 2. Persist IsComplete status within same transaction
+            var updateQuery = "UPDATE dbo.W_Production SET IsComplete = 1 WHERE ProductionId = @ProductionId";
+            await using (var command = new SqlCommand(updateQuery, connection, (SqlTransaction)transaction))
+            {
+                command.Parameters.AddWithValue("@ProductionId", productionId);
+                await command.ExecuteNonQueryAsync(cancellationToken);
+            }
+            await transaction.CommitAsync(cancellationToken);
+            return Convert.ToInt32(parameters[^1].Value ?? 0);
+        }
+        catch
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            throw;
+        }
+
     }
 
     public async Task<IReadOnlyList<CountryLookupDto>> GetCountriesLookupAsync(CancellationToken cancellationToken = default)

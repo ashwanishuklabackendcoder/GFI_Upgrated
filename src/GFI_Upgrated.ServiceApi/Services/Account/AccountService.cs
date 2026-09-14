@@ -95,6 +95,9 @@ namespace GFI_Upgrated.ServiceApi.Services.Account
 
         public async Task<bool> DeleteInvoiceItemAsync(string ids)
             => await _repository.DeleteInvoiceItemAsync(ids);
+
+        public async Task<bool> ProcessInvoiceStockAllocationAsync(long invoiceId, string invoiceStatus, List<InvoiceItemDto> items)
+            => await _repository.ProcessInvoiceStockAllocationAsync(invoiceId, invoiceStatus, items);
         #endregion
 
         #region Customer Order Return
