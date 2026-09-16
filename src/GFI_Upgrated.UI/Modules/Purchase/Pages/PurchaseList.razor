@@ -20,7 +20,6 @@
 
     <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-4" Style="max-width: 500px;">
         <MudTextField T="string" Value="@_search" ValueChanged="@OnSearchTextChanged" Placeholder="Search" Variant="Variant.Outlined" Immediate="true" Clearable="true" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" OnClearButtonClick="OnSearch" />
-        
     </MudStack>
 
     <MudTable RowsPerPage="25" T="PurchaseDto" @ref="_table" ServerData="LoadServerDataAsync" Hover="true" Dense="true" Striped="true" Bordered="true" Loading="_loading">
@@ -29,23 +28,38 @@
             <MudTh><MudTableSortLabel SortLabel="GoodsRecievedDate" T="PurchaseDto">Received Date</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel SortLabel="VoucherNumber" T="PurchaseDto">Voucher #</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel SortLabel="InvoiceNo" T="PurchaseDto">Invoice #</MudTableSortLabel></MudTh>
-           
-          
+            <MudTh><MudTableSortLabel SortLabel="Status" T="PurchaseDto">Status</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel SortLabel="TotalAmount" T="PurchaseDto">Total Amount</MudTableSortLabel></MudTh>
-            <MudTh Style="text-align: center; width: 120px;">Action</MudTh>
+            <MudTh Style="text-align: center; width: 140px;">Action</MudTh>
         </HeaderContent>
         <RowTemplate>
             <MudTd DataLabel="Supplier">@context.VendorName</MudTd>
             <MudTd DataLabel="Received Date">@SessionState.FormatDate(context.GoodsRecievedDate)</MudTd>
             <MudTd DataLabel="Voucher #">@context.VoucherNumber</MudTd>
             <MudTd DataLabel="Invoice #">@context.InvoiceNo</MudTd>
-           
-           
+            <MudTd DataLabel="Status">
+                @if (context.IsFinalized)
+                {
+                    <MudChip T="string" Color="Color.Success" Size="Size.Small" Icon="@Icons.Material.Filled.CheckCircle">Finalized</MudChip>
+                }
+                else
+                {
+                    <MudChip T="string" Color="Color.Warning" Size="Size.Small" Icon="@Icons.Material.Filled.Drafts">Draft</MudChip>
+                }
+            </MudTd>
             <MudTd DataLabel="Total Amount">@SessionState.FormatCurrency(context.TotalAmount)</MudTd>
             <MudTd DataLabel="Action" Style="text-align: center;">
                 <MudStack Row="true" Justify="Justify.Center" Spacing="1">
-                    <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Size="Size.Small" OnClick="@(() => OnEdit(context.PurchaseID))" Disabled="!_canUpdate" />
-                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => OnDelete(context))" Disabled="!_canDelete" />
+                    <MudIconButton Icon="@Icons.Material.Filled.Visibility" Color="Color.Info" Size="Size.Small" OnClick="@(() => OnView(context.PurchaseID))" Title="View Purchase" />
+                    @if (!context.IsFinalized)
+                    {
+                        <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Size="Size.Small" OnClick="@(() => OnEdit(context.PurchaseID))" Disabled="!_canUpdate" Title="Edit Draft" />
+                    }
+                    else
+                    {
+                        <MudIconButton Icon="@Icons.Material.Filled.Lock" Color="Color.Default" Size="Size.Small" Disabled="true" Title="Finalized (Locked from Editing)" />
+                    }
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => OnDelete(context))" Disabled="!_canDelete" Title="Delete Purchase" />
                 </MudStack>
             </MudTd>
         </RowTemplate>
@@ -102,13 +116,13 @@
             if (_cachedItems == null)
             {
                 var result = await ApiClient.GetPurchasesAsync(
-                                                                                null, 
-                                                                                _search, 
-                                                                                null, 
-                                                                                null,
-                                                                                state.Page + 1, 
-                                                                                state.PageSize, 
-                                                                                cancellationToken);
+                    null, 
+                    _search, 
+                    null, 
+                    null,
+                    state.Page + 1, 
+                    state.PageSize, 
+                    cancellationToken);
                 _cachedItems = result.Items.ToList();
             }
 
@@ -140,11 +154,17 @@
 
     private void OnAddNew() => Navigation.NavigateTo("/admin/purchase/new");
 
+    private void OnView(long id) => Navigation.NavigateTo($"/admin/purchase/view/{id}");
+
     private void OnEdit(long id) => Navigation.NavigateTo($"/admin/purchase/edit/{id}");
 
     private async Task OnDelete(PurchaseDto item)
     {
-        var confirmed = await JS.InvokeAsync<bool>("confirm", $"Are you sure you want to delete Goods Receipt (Voucher: {item.VoucherNumber})?");
+        var msg = item.IsFinalized 
+            ? $"Are you sure you want to delete Finalized Goods Receipt (Voucher: {item.VoucherNumber})? This will revert and remove associated inventory stock."
+            : $"Are you sure you want to delete Draft Goods Receipt (Voucher: {item.VoucherNumber})?";
+
+        var confirmed = await JS.InvokeAsync<bool>("confirm", msg);
         if (!confirmed) return;
 
         try
@@ -153,9 +173,9 @@
             var success = await ApiClient.DeletePurchasesAsync(item.PurchaseID.ToString(), user);
             if (success)
             {
-                Snackbar.Add("Goods Receipt deleted successfully.", Severity.Success);
+                Snackbar.Add("Goods Receipt deleted and inventory stock reverted successfully.", Severity.Success);
                 _cachedItems = null;
-                    if (_table is not null) await _table.ReloadServerData();
+                if (_table is not null) await _table.ReloadServerData();
             }
             else
             {
@@ -164,8 +184,7 @@
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Error deleting Goods Receipt: {ex.Message}", Severity.Error);
+            Snackbar.Add(ex.Message, Severity.Error);
         }
     }
 }
-

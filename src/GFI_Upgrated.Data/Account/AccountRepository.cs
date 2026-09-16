@@ -686,6 +686,18 @@ WHERE InvoiceID = @InvoiceID";
 
         public async Task<bool> DeleteInvoiceAsync(string ids)
         {
+            if (!string.IsNullOrWhiteSpace(ids))
+            {
+                var idList = ids.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                foreach (var idStr in idList)
+                {
+                    if (long.TryParse(idStr, out long invId) && invId > 0)
+                    {
+                        await RevertInvoiceStockAsync(invId);
+                    }
+                }
+            }
+
             var parameters = new[]
             {
                 new SqlParameter("@ID", ids),
@@ -971,8 +983,9 @@ WHERE InvoiceID = @InvoiceID";
             // First, always revert any existing stock deduction for this invoice ID
             await RevertInvoiceStockAsync(invoiceId);
 
-            // If the invoice is in Draft status, do not deduct stock
-            if (string.Equals(invoiceStatus, "Draft", StringComparison.OrdinalIgnoreCase))
+            // Stock is ONLY deducted at the time of finalization (when status is 'Submitted').
+            // No stock will be deducted for any other status (Draft, Paid, Unpaid, etc.).
+            if (!string.Equals(invoiceStatus, "Submitted", StringComparison.OrdinalIgnoreCase))
             {
                 return true;
             }

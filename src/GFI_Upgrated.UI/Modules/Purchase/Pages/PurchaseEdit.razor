@@ -10,52 +10,75 @@
 @inject ISnackbar Snackbar
 @inject NavigationManager Navigation
 @inject GFI_Upgrated.UI.State.AppSessionState SessionState
+@inject IJSRuntime JS
 
 <PageTitle>@(Id == 0 ? "New Goods Receipt" : "Edit Goods Receipt")</PageTitle>
 
 <MudPaper Class="pa-4">
     <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
         <MudStack Spacing="0">
-            <MudText Typo="Typo.h5">@(Id == 0 ? "Add Purchase" : "Edit Purchase")</MudText>
-            @* <MudText Typo="Typo.body2" Color="Color.Secondary">Record incoming goods and update inventory.</MudText> *@
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                <MudText Typo="Typo.h5">@(Id == 0 ? "Add Purchase" : (_isReadOnly ? "View Purchase (Finalized)" : "Edit Purchase"))</MudText>
+                @if (Id > 0)
+                {
+                    @if (_model.IsFinalized)
+                    {
+                        <MudChip T="string" Color="Color.Success" Size="Size.Small" Icon="@Icons.Material.Filled.Lock">Finalized & Credited</MudChip>
+                    }
+                    else
+                    {
+                        <MudChip T="string" Color="Color.Warning" Size="Size.Small" Icon="@Icons.Material.Filled.Drafts">Draft (No Stock Credited)</MudChip>
+                    }
+                }
+            </MudStack>
         </MudStack>
         <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.ArrowBack" OnClick="OnBack">Back</MudButton>
     </MudStack>
 
-    <EditForm Model="_model" OnValidSubmit="OnSave">
+    @if (_isReadOnly)
+    {
+        <MudAlert Severity="Severity.Info" Variant="Variant.Filled" Class="mb-4" Icon="@Icons.Material.Filled.Lock">
+            <b>Finalized Receipt:</b> This Goods Receipt has been finalized and stock has been credited to inventory. It cannot be edited.
+        </MudAlert>
+    }
+
+    <EditForm Model="_model">
         <DataAnnotationsValidator />
         <MudGrid>
             <MudItem xs="12" md="3">
-                <MudTextField @bind-Value="_model.VoucherNumber" Label="Voucher Number" Variant="Variant.Outlined" Required="true" For="@(() => _model.VoucherNumber)" />
+                <MudTextField @bind-Value="_model.VoucherNumber" Label="Voucher Number" Variant="Variant.Outlined" Required="true" Disabled="_isReadOnly" For="@(() => _model.VoucherNumber)" />
             </MudItem>
             <MudItem xs="12" md="3">
-                <SearchableSelect T="AccountLookupDto" Label="Supplier" Value="@_selectedVendor" ValueChanged="OnVendorChanged" Variant="Variant.Outlined" Required="true" Items="@GetVendorSelects()" />
+                <SearchableSelect T="AccountLookupDto" Label="Supplier" Value="@_selectedVendor" ValueChanged="OnVendorChanged" Variant="Variant.Outlined" Required="true" Disabled="_isReadOnly" Items="@GetVendorSelects()" />
             </MudItem>
            
             <MudItem xs="12" md="3">
-                <MudDatePicker Editable="true" DateFormat="@SessionState.DatePickerFormat" Placeholder="@SessionState.DatePickerFormat"                      Label="@($"Received Date ({SessionState.DateFormat})")" Date="_model.GoodsRecievedDate" DateChanged="OnGoodsReceivedDateChanged" Variant="Variant.Outlined" For="@(() => _model.GoodsRecievedDate)" />
+                <MudDatePicker Editable="!_isReadOnly" DateFormat="@SessionState.DatePickerFormat" Placeholder="@SessionState.DatePickerFormat" Label="@($"Received Date ({SessionState.DateFormat})")" Date="_model.GoodsRecievedDate" DateChanged="OnGoodsReceivedDateChanged" Variant="Variant.Outlined" Disabled="_isReadOnly" For="@(() => _model.GoodsRecievedDate)" />
             </MudItem>
             <MudItem xs="12" md="3">
-                <MudDatePicker Editable="true" DateFormat="@SessionState.DatePickerFormat" Placeholder="@SessionState.DatePickerFormat" Label="@($"Invoice Date ({SessionState.DateFormat})")" @bind-Date="_model.InvoiceDate" Variant="Variant.Outlined" />
+                <MudDatePicker Editable="!_isReadOnly" DateFormat="@SessionState.DatePickerFormat" Placeholder="@SessionState.DatePickerFormat" Label="@($"Invoice Date ({SessionState.DateFormat})")" @bind-Date="_model.InvoiceDate" Variant="Variant.Outlined" Disabled="_isReadOnly" />
             </MudItem>
             <MudItem xs="12" md="3">
-                <MudTextField @bind-Value="_model.InvoiceNo" Label="Invoice Number" Variant="Variant.Outlined" />
+                <MudTextField @bind-Value="_model.InvoiceNo" Label="Invoice Number" Variant="Variant.Outlined" Disabled="_isReadOnly" />
             </MudItem>
 
-             <MudItem xs="12" md="3">
-                <SearchableSelect T="PurchaseOrderDto" Label="Link PO" Value="@_selectedPO" ValueChanged="OnPoChanged" Variant="Variant.Outlined" Items="@GetPoSelects()" />
+            <MudItem xs="12" md="3">
+                <SearchableSelect T="PurchaseOrderDto" Label="Link PO" Value="@_selectedPO" ValueChanged="OnPoChanged" Variant="Variant.Outlined" Disabled="_isReadOnly" Items="@GetPoSelects()" />
             </MudItem>
 
            
             <MudItem xs="12" md="6">
-                <MudTextField @bind-Value="_model.Narration" Label="Remarks" Variant="Variant.Outlined" />
+                <MudTextField @bind-Value="_model.Narration" Label="Remarks" Variant="Variant.Outlined" Disabled="_isReadOnly" />
             </MudItem>
 
             <!-- Items Section -->
             <MudItem xs="12" Class="mt-6">
                 <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-2">
                     <MudText Typo="Typo.subtitle1" Color="Color.Primary">Received Items & Batches</MudText>
-                    <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" Size="Size.Small" OnClick="AddRow">Add Item</MudButton>
+                    @if (!_isReadOnly)
+                    {
+                        <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" Size="Size.Small" OnClick="AddRow">Add Item</MudButton>
+                    }
                 </MudStack>
                 <MudDivider Class="mb-4" />
 
@@ -68,33 +91,60 @@
                         <MudTh>Batch No.</MudTh>
                         <MudTh>Expiry Date</MudTh>
                         <MudTh>Warehouse</MudTh>
-                        <MudTh Style="text-align: center; width: 60px;">Action</MudTh>
+                        @if (!_isReadOnly)
+                        {
+                            <MudTh Style="text-align: center; width: 60px;">Action</MudTh>
+                        }
                     </HeaderContent>
                     <RowTemplate>
                         <MudTd DataLabel="Item">
-                            <SearchableSelect T="RawMaterialDto" Value="@(GetItemById(itemContext.ItemID))" ValueChanged="@((RawMaterialDto val) => OnItemChanged(itemContext, val))" Variant="Variant.Text" Dense="true" Required="true" Items="@GetItemSelects()" />
+                            @if (_isReadOnly)
+                            {
+                                <MudText Typo="Typo.body2">@itemContext.ItemName</MudText>
+                            }
+                            else
+                            {
+                                <SearchableSelect T="RawMaterialDto" Value="@(GetItemById(itemContext.ItemID))" ValueChanged="@((RawMaterialDto val) => OnItemChanged(itemContext, val))" Variant="Variant.Text" Dense="true" Required="true" Items="@GetItemSelects()" />
+                            }
                         </MudTd>
                         <MudTd DataLabel="Qty">
-                            <MudNumericField @bind-Value="itemContext.Quantity" Variant="Variant.Text" Dense="true" Min="1" />
+                            <MudNumericField @bind-Value="itemContext.Quantity" Variant="Variant.Text" Dense="true" Min="1" Disabled="_isReadOnly" />
                         </MudTd>
                         <MudTd DataLabel="Unit">
-                            <SearchableSelect T="long?" Value="@itemContext.UnitId" ValueChanged="@((long? val) => { itemContext.UnitId = val; })" Variant="Variant.Text" Dense="true" Required="true" Items="@GetUnitSelects()" />
+                            @if (_isReadOnly)
+                            {
+                                <MudText Typo="Typo.body2">@itemContext.UnitName</MudText>
+                            }
+                            else
+                            {
+                                <SearchableSelect T="long?" Value="@itemContext.UnitId" ValueChanged="@((long? val) => { itemContext.UnitId = val; })" Variant="Variant.Text" Dense="true" Required="true" Items="@GetUnitSelects()" />
+                            }
                         </MudTd>
                         <MudTd DataLabel="Price">
-                            <MudNumericField @bind-Value="itemContext.UnitPrice" Variant="Variant.Text" Dense="true" Format="@($"N{SessionState.DecimalDigits}")" />
+                            <MudNumericField @bind-Value="itemContext.UnitPrice" Variant="Variant.Text" Dense="true" Format="@($"N{SessionState.DecimalDigits}")" Disabled="_isReadOnly" />
                         </MudTd>
                         <MudTd DataLabel="Batch #">
-                            <MudTextField @bind-Value="itemContext.BatchNo" Variant="Variant.Text" Dense="true" Placeholder="AUTO" />
+                            <MudTextField @bind-Value="itemContext.BatchNo" Variant="Variant.Text" Dense="true" Placeholder="AUTO" Disabled="_isReadOnly" />
                         </MudTd>
                         <MudTd DataLabel="Expiry">
-                            <MudDatePicker Editable="true" DateFormat="@SessionState.DatePickerFormat" Placeholder="@SessionState.DatePickerFormat"                      @bind-Date="itemContext.ExpiryDate" Variant="Variant.Text" Dense="true" />
+                            <MudDatePicker Editable="!_isReadOnly" DateFormat="@SessionState.DatePickerFormat" Placeholder="@SessionState.DatePickerFormat" @bind-Date="itemContext.ExpiryDate" Variant="Variant.Text" Dense="true" Disabled="_isReadOnly" />
                         </MudTd>
                         <MudTd DataLabel="Warehouse">
-                            <SearchableSelect T="long?" Value="@itemContext.WarehouseId" ValueChanged="@((long? val) => { itemContext.WarehouseId = val; })" Variant="Variant.Text" Dense="true" Items="@GetWarehouseSelects()" />
+                            @if (_isReadOnly)
+                            {
+                                <MudText Typo="Typo.body2">@(_warehouses.FirstOrDefault(w => w.WarehouseId == itemContext.WarehouseId)?.WarehouseName ?? "-")</MudText>
+                            }
+                            else
+                            {
+                                <SearchableSelect T="long?" Value="@itemContext.WarehouseId" ValueChanged="@((long? val) => { itemContext.WarehouseId = val; })" Variant="Variant.Text" Dense="true" Items="@GetWarehouseSelects()" />
+                            }
                         </MudTd>
-                        <MudTd Style="text-align: center;">
-                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => RemoveRow(itemContext))" />
-                        </MudTd>
+                        @if (!_isReadOnly)
+                        {
+                            <MudTd Style="text-align: center;">
+                                <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => RemoveRow(itemContext))" />
+                            </MudTd>
+                        }
                     </RowTemplate>
                 </MudTable>
             </MudItem>
@@ -106,15 +156,15 @@
                     <MudStack Spacing="2">
                         <div class="d-flex justify-space-between align-center">
                             <MudText>Taxes:</MudText>
-                            <MudNumericField @bind-Value="_model.Taxes" Variant="Variant.Text" Dense="true" Style="width: 100px;" />
+                            <MudNumericField @bind-Value="_model.Taxes" Variant="Variant.Text" Dense="true" Style="width: 100px;" Disabled="_isReadOnly" />
                         </div>
                         <div class="d-flex justify-space-between align-center">
                             <MudText>Shipping:</MudText>
-                            <MudNumericField @bind-Value="_model.Shipping" Variant="Variant.Text" Dense="true" Style="width: 100px;" />
+                            <MudNumericField @bind-Value="_model.Shipping" Variant="Variant.Text" Dense="true" Style="width: 100px;" Disabled="_isReadOnly" />
                         </div>
                         <div class="d-flex justify-space-between align-center">
                             <MudText>Discount:</MudText>
-                            <MudNumericField @bind-Value="_model.Discount" Variant="Variant.Text" Dense="true" Style="width: 100px;" />
+                            <MudNumericField @bind-Value="_model.Discount" Variant="Variant.Text" Dense="true" Style="width: 100px;" Disabled="_isReadOnly" />
                         </div>
                         <MudDivider />
                         <div class="d-flex justify-space-between">
@@ -130,20 +180,18 @@
             </MudItem>
 
             <MudItem xs="12" Class="d-flex justify-end mt-6 gap-2">
-                
-                <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Loading="_saving" OnClick="OnSubmitClick">Save</MudButton>
-                <MudButton Variant="Variant.Outlined" OnClick="OnBack">Cancel</MudButton>
+                @if (!_isReadOnly)
+                {
+                    <MudButton Variant="Variant.Outlined" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.Drafts" Loading="_saving" OnClick="SaveDraftAsync">Save Draft</MudButton>
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.CheckCircle" Loading="_saving" OnClick="FinalizeAsync">Finalize & Credit Stock</MudButton>
+                }
+                <MudButton Variant="Variant.Outlined" OnClick="OnBack">@(_isReadOnly ? "Back" : "Cancel")</MudButton>
             </MudItem>
         </MudGrid>
     </EditForm>
 </MudPaper>
 
 @code {
-    private void OnSubmitClick()
-    {
-        Console.WriteLine("[DEBUG] Record Receipt button clicked");
-    }
-
     [Parameter] public long Id { get; set; }
 
     private PurchaseDto _model = new() { GoodsRecievedDate = DateTime.Now };
@@ -155,6 +203,7 @@
     private List<RawMaterialDto> _allItems = new();
     private List<UnitLookupDto> _units = new();
     private bool _saving;
+    private bool _isReadOnly;
 
     private double _subtotal => _model.Items.Sum(i => i.Quantity * i.UnitPrice);
     private double _totalAmount => _subtotal + (_model.Taxes ?? 0) + (_model.Shipping ?? 0) - (_model.Discount ?? 0);
@@ -227,6 +276,11 @@
                         item.WarehouseId = _warehouses.FirstOrDefault()?.WarehouseId;
                     }
                 }
+
+                if (_model.IsFinalized)
+                {
+                    _isReadOnly = true;
+                }
             }
         }
         catch (Exception ex)
@@ -237,6 +291,7 @@
 
     private async Task OnVendorChanged(AccountLookupDto? val)
     {
+        if (_isReadOnly) return;
         _selectedVendor = val;
         _selectedPO = null;
         _pendingPOs.Clear();
@@ -249,6 +304,7 @@
 
     private async Task OnPoChanged(PurchaseOrderDto? val)
     {
+        if (_isReadOnly) return;
         _selectedPO = val;
         
         if (val != null)
@@ -332,6 +388,7 @@
 
     private void OnItemChanged(PurchaseItemDto row, RawMaterialDto? item)
     {
+        if (_isReadOnly) return;
         if (item != null)
         {
             row.ItemID = item.ItemId;
@@ -350,11 +407,13 @@
 
     private void AddRow()
     {
+        if (_isReadOnly) return;
         _model.Items.Add(new PurchaseItemDto { Quantity = 1, WarehouseId = _warehouses.FirstOrDefault()?.WarehouseId });
     }
 
     private void OnGoodsReceivedDateChanged(DateTime? newDate)
     {
+        if (_isReadOnly) return;
         _model.GoodsRecievedDate = newDate;
         foreach (var item in _model.Items)
         {
@@ -371,12 +430,29 @@
 
     private void RemoveRow(PurchaseItemDto row)
     {
+        if (_isReadOnly) return;
         _model.Items.Remove(row);
     }
 
-    private async Task OnSave()
+    private async Task SaveDraftAsync()
     {
-        Console.WriteLine("[DEBUG] OnSave triggered");
+        _model.IsFinalized = false;
+        _model.Status = "Draft";
+        await ExecuteSaveAsync();
+    }
+
+    private async Task FinalizeAsync()
+    {
+        var confirmed = await JS.InvokeAsync<bool>("confirm", "Are you sure you want to finalize this Goods Receipt? Once finalized, stock will be credited to inventory and this receipt CANNOT be edited.");
+        if (!confirmed) return;
+
+        _model.IsFinalized = true;
+        _model.Status = "Finalized";
+        await ExecuteSaveAsync();
+    }
+
+    private async Task ExecuteSaveAsync()
+    {
         if (_selectedVendor == null)
         {
             Snackbar.Add("Please select a vendor.", Severity.Warning);
@@ -392,21 +468,39 @@
         _saving = true;
         try
         {
+            var auditUser = SessionState.CurrentUserAuditName ?? "System";
             _model.AccountID = _selectedVendor.AccountId;
             _model.PurchaseOrderID = _selectedPO?.PurchaseOrderID;
             _model.TotalAmount = _totalAmount;
-            _model.CreatedBy = SessionState.CurrentUserAuditName ?? "System";
             
-            // Calculate item Amount before saving to prevent DB errors
+            if (Id == 0)
+            {
+                _model.CreatedBy = auditUser;
+            }
+            else
+            {
+                _model.UpdatedBy = auditUser;
+            }
+            
+            // Calculate item Amount before saving
             foreach (var item in _model.Items)
             {
                 item.Amount = item.Quantity * item.UnitPrice;
+                if (item.PurchaseItemID == 0)
+                {
+                    item.CreatedBy = auditUser;
+                }
+                else
+                {
+                    item.UpdatedBy = auditUser;
+                }
             }
             
             var resultId = await ApiClient.SavePurchaseAsync(_model);
             if (resultId > 0)
             {
-                Snackbar.Add("Goods Receipt saved successfully.", Severity.Success);
+                var msg = _model.IsFinalized ? "Goods Receipt finalized and stock credited to inventory." : "Goods Receipt draft saved successfully.";
+                Snackbar.Add(msg, Severity.Success);
                 Navigation.NavigateTo("/admin/purchase");
             }
             else if (resultId == -1)
@@ -430,6 +524,3 @@
 
     private void OnBack() => Navigation.NavigateTo("/admin/purchase");
 }
-
-
-

@@ -10,9 +10,36 @@
 
 <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
     <MudPaper Class="pa-4">
-        <MudStack Row="true" AlignItems="AlignItems.Center" Class="mb-4">
-            <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" OnClick="GoBack" />
-            <MudText Typo="Typo.h5">View Purchase Receipt</MudText>
+        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" OnClick="GoBack" />
+                <MudText Typo="Typo.h5">View Purchase Receipt</MudText>
+                @if (_model != null)
+                {
+                    @if (_model.IsFinalized)
+                    {
+                        <MudChip T="string" Color="Color.Success" Size="Size.Small" Icon="@Icons.Material.Filled.Lock">Finalized & Credited</MudChip>
+                    }
+                    else
+                    {
+                        <MudChip T="string" Color="Color.Warning" Size="Size.Small" Icon="@Icons.Material.Filled.Drafts">Draft (No Stock Credited)</MudChip>
+                    }
+                }
+            </MudStack>
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                @if (_model != null && !_model.IsFinalized)
+                {
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.CheckCircle" OnClick="FinalizeDirectlyAsync">
+                        Finalize & Credit Stock
+                    </MudButton>
+                }
+                @if (_model != null)
+                {
+                    <MudButton Variant="Variant.Outlined" Color="Color.Error" StartIcon="@Icons.Material.Filled.Delete" OnClick="OnDeleteAsync">
+                        Delete
+                    </MudButton>
+                }
+            </MudStack>
         </MudStack>
 
         @if (_isLoading)
@@ -149,10 +176,66 @@
         }
     }
 
+    private async Task FinalizeDirectlyAsync()
+    {
+        if (_model == null) return;
+        var confirmed = await JSRuntime.InvokeAsync<bool>("confirm", "Are you sure you want to finalize this Goods Receipt? Stock will be credited to inventory and it CANNOT be edited afterward.");
+        if (!confirmed) return;
+
+        try
+        {
+            _model.IsFinalized = true;
+            _model.Status = "Finalized";
+            _model.UpdatedBy = SessionState.CurrentUserAuditName ?? "System";
+            var resultId = await ApiClient.SavePurchaseAsync(_model);
+            if (resultId > 0)
+            {
+                Snackbar.Add("Goods Receipt finalized and stock credited to inventory.", Severity.Success);
+                await LoadDataAsync();
+            }
+            else
+            {
+                Snackbar.Add("Failed to finalize Goods Receipt.", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error finalizing receipt: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task OnDeleteAsync()
+    {
+        if (_model == null) return;
+        var msg = _model.IsFinalized 
+            ? $"Are you sure you want to delete Finalized Goods Receipt (Voucher: {_model.VoucherNumber})? This will revert and remove associated inventory stock."
+            : $"Are you sure you want to delete Draft Goods Receipt (Voucher: {_model.VoucherNumber})?";
+
+        var confirmed = await JSRuntime.InvokeAsync<bool>("confirm", msg);
+        if (!confirmed) return;
+
+        try
+        {
+            var user = SessionState.CurrentUserAuditName ?? "System";
+            var success = await ApiClient.DeletePurchasesAsync(_model.PurchaseID.ToString(), user);
+            if (success)
+            {
+                Snackbar.Add("Goods Receipt deleted and inventory stock reverted successfully.", Severity.Success);
+                Navigation.NavigateTo("/admin/purchase");
+            }
+            else
+            {
+                Snackbar.Add("Failed to delete Goods Receipt.", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+    }
+
     private async Task GoBack()
     {
         await JSRuntime.InvokeVoidAsync("history.back");
     }
 }
-
-

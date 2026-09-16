@@ -64,6 +64,9 @@ public interface IAdminSecurityRepository
     Task<IReadOnlyList<EmailLogDto>> GetEmailLogsByStaffIdAsync(long staffId, CancellationToken cancellationToken = default);
     Task<UserDto?> GetUserByStaffIdAsync(long staffId, CancellationToken cancellationToken = default);
     Task<AdminDashboardDto> GetAdminDashboardMetricsAsync(CancellationToken cancellationToken = default);
+    Task<GeneralSettingsDto> GetGeneralSettingsAsync(CancellationToken cancellationToken = default);
+    Task<Dictionary<string, string>> GetGeneralSettingsDictionaryAsync(CancellationToken cancellationToken = default);
+    Task<bool> SaveGeneralSettingsAsync(UpdateGeneralSettingsRequest request, CancellationToken cancellationToken = default);
 }
 
 public sealed class AdminSecurityRepository : IAdminSecurityRepository
@@ -273,15 +276,25 @@ public sealed class AdminSecurityRepository : IAdminSecurityRepository
         int decimalDigits = 2;
         string? dbDateFormat = null;
         string? dbDefaultCurrency = null;
+        string companyName = "GFI Nuvotrace";
+        string companyAddress = string.Empty;
+        string companyLogo = "/assets/img/branding/nuvotrace-horizontal-logo.png";
+        string topbarLogo = "/assets/img/branding/nuvotrace-horizontal-logo.png";
+        string loginPageLogo = "/assets/img/branding/nuvotrace-custom-logo.png";
+        var generalSettingsDict = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
         try
         {
-            // Assuming the table has 'ConfigKey' and 'ConfigValue' columns
             var configTable = await ExecuteDataTableRawAsync("SELECT ConfigKey, ConfigValue FROM Z_MasterGeneralSettings", Array.Empty<SqlParameter>(), cancellationToken);
             foreach (DataRow configRow in configTable.Rows)
             {
                 var key = configRow.SafeString("ConfigKey");
                 var val = configRow.SafeString("ConfigValue");
+
+                if (!string.IsNullOrWhiteSpace(key))
+                {
+                    generalSettingsDict[key] = val ?? string.Empty;
+                }
 
                 if (string.Equals(key, "DecimalDigits", StringComparison.OrdinalIgnoreCase))
                 {
@@ -289,11 +302,31 @@ public sealed class AdminSecurityRepository : IAdminSecurityRepository
                 }
                 else if (string.Equals(key, "DateFormat", StringComparison.OrdinalIgnoreCase))
                 {
-                    dbDateFormat = val;
+                    if (!string.IsNullOrWhiteSpace(val)) dbDateFormat = val;
                 }
                 else if (string.Equals(key, "DefaultCurrency", StringComparison.OrdinalIgnoreCase))
                 {
-                    dbDefaultCurrency = val;
+                    if (!string.IsNullOrWhiteSpace(val)) dbDefaultCurrency = val;
+                }
+                else if (string.Equals(key, "CompanyName", StringComparison.OrdinalIgnoreCase))
+                {
+                    companyName = val ?? string.Empty;
+                }
+                else if (string.Equals(key, "CompanyAddress", StringComparison.OrdinalIgnoreCase))
+                {
+                    companyAddress = val ?? string.Empty;
+                }
+                else if (string.Equals(key, "CompanyLogo", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (!string.IsNullOrWhiteSpace(val)) companyLogo = val;
+                }
+                else if (string.Equals(key, "TopbarLogo", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (!string.IsNullOrWhiteSpace(val)) topbarLogo = val;
+                }
+                else if (string.Equals(key, "LoginPageLogo", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (!string.IsNullOrWhiteSpace(val)) loginPageLogo = val;
                 }
             }
         }
@@ -317,7 +350,13 @@ public sealed class AdminSecurityRepository : IAdminSecurityRepository
             Menus = menus,
             DecimalDigits = decimalDigits,
             DateFormat = dbDateFormat,
-            DefaultCurrency = dbDefaultCurrency
+            DefaultCurrency = dbDefaultCurrency,
+            CompanyName = companyName,
+            CompanyAddress = companyAddress,
+            CompanyLogo = companyLogo,
+            TopbarLogo = topbarLogo,
+            LoginPageLogo = loginPageLogo,
+            GeneralSettings = generalSettingsDict
         };
     }
 
@@ -2002,6 +2041,97 @@ public sealed class AdminSecurityRepository : IAdminSecurityRepository
             };
         }
         return null;
+    }
+
+    public async Task<Dictionary<string, string>> GetGeneralSettingsDictionaryAsync(CancellationToken cancellationToken = default)
+    {
+        var dict = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        try
+        {
+            var configTable = await ExecuteDataTableRawAsync("SELECT ConfigKey, ConfigValue FROM Z_MasterGeneralSettings", Array.Empty<SqlParameter>(), cancellationToken);
+            foreach (DataRow row in configTable.Rows)
+            {
+                var key = row.SafeString("ConfigKey");
+                var val = row.SafeString("ConfigValue");
+                if (!string.IsNullOrWhiteSpace(key))
+                {
+                    dict[key] = val ?? string.Empty;
+                }
+            }
+        }
+        catch
+        {
+            // Fallback defaults
+        }
+
+        return dict;
+    }
+
+    public async Task<GeneralSettingsDto> GetGeneralSettingsAsync(CancellationToken cancellationToken = default)
+    {
+        var dict = await GetGeneralSettingsDictionaryAsync(cancellationToken);
+        var result = new GeneralSettingsDto
+        {
+            CompanyName = dict.TryGetValue("CompanyName", out var cn) ? cn : string.Empty,
+            CompanyAddress = dict.TryGetValue("CompanyAddress", out var ca) ? ca : string.Empty,
+            CompanyLogo = dict.TryGetValue("CompanyLogo", out var cl) && !string.IsNullOrWhiteSpace(cl) ? cl : "/assets/img/branding/nuvotrace-horizontal-logo.png",
+            TopbarLogo = dict.TryGetValue("TopbarLogo", out var tbl) && !string.IsNullOrWhiteSpace(tbl) ? tbl : "/assets/img/branding/nuvotrace-horizontal-logo.png",
+            LoginPageLogo = dict.TryGetValue("LoginPageLogo", out var lpl) && !string.IsNullOrWhiteSpace(lpl) ? lpl : "/assets/img/branding/nuvotrace-custom-logo.png",
+            DefaultCurrency = dict.TryGetValue("DefaultCurrency", out var cur) && !string.IsNullOrWhiteSpace(cur) ? cur : "SRD",
+            DateFormat = dict.TryGetValue("DateFormat", out var df) && !string.IsNullOrWhiteSpace(df) ? df : "MM/DD/YYYY",
+            DecimalDigits = dict.TryGetValue("DecimalDigits", out var dd) && int.TryParse(dd, out var parsedDigits) ? parsedDigits : 2,
+            CustomSettings = dict
+        };
+        return result;
+    }
+
+    public async Task<bool> SaveGeneralSettingsAsync(UpdateGeneralSettingsRequest request, CancellationToken cancellationToken = default)
+    {
+        var settingsToUpdate = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["CompanyName"] = request.CompanyName ?? string.Empty,
+            ["CompanyAddress"] = request.CompanyAddress ?? string.Empty,
+            ["CompanyLogo"] = request.CompanyLogo ?? string.Empty,
+            ["TopbarLogo"] = request.TopbarLogo ?? string.Empty,
+            ["LoginPageLogo"] = request.LoginPageLogo ?? string.Empty,
+            ["DefaultCurrency"] = request.DefaultCurrency ?? "SRD",
+            ["DateFormat"] = request.DateFormat ?? "MM/DD/YYYY",
+            ["DecimalDigits"] = request.DecimalDigits.ToString()
+        };
+
+        if (request.AdditionalSettings != null)
+        {
+            foreach (var kvp in request.AdditionalSettings)
+            {
+                if (!string.IsNullOrWhiteSpace(kvp.Key))
+                {
+                    settingsToUpdate[kvp.Key] = kvp.Value ?? string.Empty;
+                }
+            }
+        }
+
+        const string upsertSql = @"
+IF EXISTS (SELECT 1 FROM Z_MasterGeneralSettings WHERE ConfigKey = @ConfigKey)
+    UPDATE Z_MasterGeneralSettings SET ConfigValue = @ConfigValue WHERE ConfigKey = @ConfigKey
+ELSE
+    INSERT INTO Z_MasterGeneralSettings (ConfigID, ConfigKey, ConfigValue)
+    VALUES ((SELECT ISNULL(MAX(ConfigID), 0) + 1 FROM Z_MasterGeneralSettings), @ConfigKey, @ConfigValue)";
+
+        foreach (var kvp in settingsToUpdate)
+        {
+            var val = kvp.Value ?? string.Empty;
+            if (val.Length > 300) val = val.Substring(0, 300);
+
+            var parameters = new[]
+            {
+                new SqlParameter("@ConfigKey", SqlDbType.NVarChar, 300) { Value = kvp.Key },
+                new SqlParameter("@ConfigValue", SqlDbType.NVarChar, 300) { Value = val }
+            };
+
+            await ExecuteNonQueryRawAsync(upsertSql, parameters, cancellationToken);
+        }
+
+        return true;
     }
 }
 

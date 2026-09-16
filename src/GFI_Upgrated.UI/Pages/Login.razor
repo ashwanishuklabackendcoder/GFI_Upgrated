@@ -26,8 +26,7 @@
                 <!-- Logo -->
                 <div class="app-brand justify-content-center mb-5">
                     <a href="https://nuvotrace.com/" target="_blank" class="app-brand-link d-flex align-items-center gap-2">
-                        <img src="assets/img/branding/nuvotrace-custom-logo.png" alt="@LocalizationState.Text("Login.SystemTitle", "NUVOTRACE")" class="auth-brand-logo" style="max-height: 180px; max-width: 100%; width: auto; margin: 0 auto;" />
-
+                        <img src="@(string.IsNullOrWhiteSpace(SessionState.LoginPageLogo) ? "assets/img/branding/nuvotrace-custom-logo.png" : SessionState.LoginPageLogo)" alt="@(string.IsNullOrWhiteSpace(SessionState.CompanyName) ? LocalizationState.Text("Login.SystemTitle", "NUVOTRACE") : SessionState.CompanyName)" class="auth-brand-logo" style="max-height: 180px; max-width: 100%; width: auto; margin: 0 auto;" />
                     </a>
                 </div>
                 

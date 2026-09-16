@@ -306,6 +306,24 @@ namespace GFI_Upgrated.Data.Purchase
             await using var transaction = await conn.BeginTransactionAsync();
             try
             {
+                // Check if existing record is already finalized
+                if (purchase.PurchaseID > 0)
+                {
+                    await using (var checkCmd = new SqlCommand("SELECT IsFinalized FROM dbo.W_PurchaseMaster WHERE PurchaseID = @PurchaseID", conn, (SqlTransaction)transaction))
+                    {
+                        checkCmd.Parameters.AddWithValue("@PurchaseID", purchase.PurchaseID);
+                        var isFinScalar = await checkCmd.ExecuteScalarAsync();
+                        if (isFinScalar != null && isFinScalar != DBNull.Value && Convert.ToBoolean(isFinScalar))
+                        {
+                            throw new InvalidOperationException("Finalized Goods Receipts cannot be modified.");
+                        }
+                    }
+                }
+
+                // Standardize Status string
+                purchase.Status = purchase.IsFinalized ? "Finalized" : "Draft";
+                DateTime now = DateTime.Now;
+
                 var parameters = new[]
                 {
                     new SqlParameter("@PurchaseID", SqlDbType.BigInt) { Value = purchase.PurchaseID },
@@ -319,11 +337,14 @@ namespace GFI_Upgrated.Data.Purchase
                     new SqlParameter("@Shipping", SqlDbType.Float) { Value = purchase.Shipping ?? 0 },
                     new SqlParameter("@Discount", SqlDbType.Float) { Value = purchase.Discount ?? 0 },
                     new SqlParameter("@TotalAmount", SqlDbType.Float) { Value = purchase.TotalAmount },
-                    new SqlParameter("@CreatedDate", SqlDbType.DateTime) { Value = purchase.CreatedDate ?? DateTime.Now },
+                    new SqlParameter("@CreatedDate", SqlDbType.DateTime) { Value = purchase.CreatedDate ?? now },
                     new SqlParameter("@CreatedBy", SqlDbType.NVarChar, 400) { Value = purchase.CreatedBy ?? "" },
                     new SqlParameter("@UpdatedBy", SqlDbType.NVarChar, 400) { Value = purchase.UpdatedBy ?? "" },
+                    new SqlParameter("@UpdatedDate", SqlDbType.DateTime) { Value = purchase.PurchaseID > 0 ? (object)now : DBNull.Value },
                     new SqlParameter("@FileName", SqlDbType.NVarChar, 1000) { Value = purchase.FileName ?? "" },
                     new SqlParameter("@Narration", SqlDbType.NVarChar, 4000) { Value = purchase.Narration ?? "" },
+                    new SqlParameter("@Status", SqlDbType.NVarChar, 50) { Value = purchase.Status },
+                    new SqlParameter("@IsFinalized", SqlDbType.Bit) { Value = purchase.IsFinalized },
                     new SqlParameter("@ReturnVal", SqlDbType.Int) { Direction = ParameterDirection.Output }
                 };
 
@@ -402,6 +423,8 @@ namespace GFI_Upgrated.Data.Purchase
                             new SqlParameter("@Amount", SqlDbType.Float) { Value = item.Amount },
                             new SqlParameter("@Description", SqlDbType.NVarChar, 4000) { Value = item.Description ?? "" },
                             new SqlParameter("@CreatedBy", SqlDbType.NVarChar, 400) { Value = purchase.CreatedBy ?? "" },
+                            new SqlParameter("@UpdatedBy", SqlDbType.NVarChar, 400) { Value = purchase.UpdatedBy ?? "" },
+                            new SqlParameter("@UpdatedDate", SqlDbType.DateTime) { Value = item.PurchaseItemID > 0 ? (object)now : DBNull.Value },
                             new SqlParameter("@ReturnVal", SqlDbType.Int) { Direction = ParameterDirection.Output }
                         };
 
@@ -414,39 +437,55 @@ namespace GFI_Upgrated.Data.Purchase
 
                         var purchaseItemId = Convert.ToInt64(itemParams[^1].Value ?? 0);
 
-                        if (purchaseItemId > 0)
+                        // If Purchase is NOT Finalized (Draft), ensure stock is NOT created/credited in Inv_ItemStockByBatch
+                        if (!purchase.IsFinalized)
                         {
-                            long batchId = 0;
-                            await using (var cmd = new SqlCommand("SELECT ItemStockByBatchId FROM dbo.Inv_ItemStockByBatch WHERE IdFrom = @PurchaseItemID AND StockById = 1", conn, (SqlTransaction)transaction))
+                            if (purchaseItemId > 0)
                             {
-                                cmd.Parameters.AddWithValue("@PurchaseItemID", purchaseItemId);
-                                var scalar = await cmd.ExecuteScalarAsync();
-                                if (scalar != null && scalar != DBNull.Value)
+                                await using (var cmd = new SqlCommand("DELETE FROM dbo.Inv_ItemStockByBatch WHERE IdFrom = @PurchaseItemID AND StockById = 1", conn, (SqlTransaction)transaction))
                                 {
-                                    batchId = Convert.ToInt64(scalar);
+                                    cmd.Parameters.AddWithValue("@PurchaseItemID", purchaseItemId);
+                                    await cmd.ExecuteNonQueryAsync();
                                 }
                             }
-
-                            var batchParams = new[]
+                        }
+                        else
+                        {
+                            // If Purchase IS Finalized, create / update stock in Inv_ItemStockByBatch
+                            if (purchaseItemId > 0)
                             {
-                                new SqlParameter("@PurchaseID", SqlDbType.BigInt) { Value = purchaseId },
-                                new SqlParameter("@ItemStockByBatchId", SqlDbType.BigInt) { Value = batchId },
-                                new SqlParameter("@StockById", SqlDbType.Int) { Value = 1 }, // 1 = Purchase / GRN
-                                new SqlParameter("@ItemId", SqlDbType.BigInt) { Value = item.ItemID },
-                                new SqlParameter("@Quantity", SqlDbType.Float) { Value = item.Quantity },
-                                new SqlParameter("@BatchNo", SqlDbType.NVarChar, 50) { Value = (object?)item.BatchNo ?? DBNull.Value },
-                                new SqlParameter("@Amount", SqlDbType.Float) { Value = item.Amount },
-                                new SqlParameter("@ExpiryDate", SqlDbType.Date) { Value = (object?)item.ExpiryDate ?? DBNull.Value },
-                                new SqlParameter("@WarehouseId", SqlDbType.BigInt) { Value = (object?)item.WarehouseId ?? DBNull.Value },
-                                new SqlParameter("@IdFrom", SqlDbType.BigInt) { Value = purchaseItemId },
-                                new SqlParameter("@ReturnVal", SqlDbType.Int) { Direction = ParameterDirection.Output }
-                            };
+                                long batchId = 0;
+                                await using (var cmd = new SqlCommand("SELECT ItemStockByBatchId FROM dbo.Inv_ItemStockByBatch WHERE IdFrom = @PurchaseItemID AND StockById = 1", conn, (SqlTransaction)transaction))
+                                {
+                                    cmd.Parameters.AddWithValue("@PurchaseItemID", purchaseItemId);
+                                    var scalar = await cmd.ExecuteScalarAsync();
+                                    if (scalar != null && scalar != DBNull.Value)
+                                    {
+                                        batchId = Convert.ToInt64(scalar);
+                                    }
+                                }
 
-                            await using (var cmd = new SqlCommand("Inv_ItemStockByBatchModify", conn, (SqlTransaction)transaction))
-                            {
-                                cmd.CommandType = CommandType.StoredProcedure;
-                                cmd.Parameters.AddRange(batchParams);
-                                await cmd.ExecuteNonQueryAsync();
+                                var batchParams = new[]
+                                {
+                                    new SqlParameter("@PurchaseID", SqlDbType.BigInt) { Value = purchaseId },
+                                    new SqlParameter("@ItemStockByBatchId", SqlDbType.BigInt) { Value = batchId },
+                                    new SqlParameter("@StockById", SqlDbType.Int) { Value = 1 }, // 1 = Purchase / GRN
+                                    new SqlParameter("@ItemId", SqlDbType.BigInt) { Value = item.ItemID },
+                                    new SqlParameter("@Quantity", SqlDbType.Float) { Value = item.Quantity },
+                                    new SqlParameter("@BatchNo", SqlDbType.NVarChar, 50) { Value = (object?)item.BatchNo ?? DBNull.Value },
+                                    new SqlParameter("@Amount", SqlDbType.Float) { Value = item.Amount },
+                                    new SqlParameter("@ExpiryDate", SqlDbType.Date) { Value = (object?)item.ExpiryDate ?? DBNull.Value },
+                                    new SqlParameter("@WarehouseId", SqlDbType.BigInt) { Value = (object?)item.WarehouseId ?? DBNull.Value },
+                                    new SqlParameter("@IdFrom", SqlDbType.BigInt) { Value = purchaseItemId },
+                                    new SqlParameter("@ReturnVal", SqlDbType.Int) { Direction = ParameterDirection.Output }
+                                };
+
+                                await using (var cmd = new SqlCommand("Inv_ItemStockByBatchModify", conn, (SqlTransaction)transaction))
+                                {
+                                    cmd.CommandType = CommandType.StoredProcedure;
+                                    cmd.Parameters.AddRange(batchParams);
+                                    await cmd.ExecuteNonQueryAsync();
+                                }
                             }
                         }
                     }
@@ -463,7 +502,7 @@ namespace GFI_Upgrated.Data.Purchase
                 }
                 catch
                 {
-                    // Ignore rollback errors
+                    // Ignore rollback exceptions
                 }
                 throw;
             }
@@ -475,12 +514,19 @@ namespace GFI_Upgrated.Data.Purchase
             {
                 new SqlParameter("@ID", SqlDbType.VarChar, 2000) { Value = ids },
                 new SqlParameter("@OprType", SqlDbType.SmallInt) { Value = 1 },
-                new SqlParameter("@UpdatedBy", SqlDbType.NVarChar) { Value = deletedBy },
+                new SqlParameter("@UpdatedBy", SqlDbType.NVarChar, 400) { Value = deletedBy },
                 new SqlParameter("@Iserror", SqlDbType.Int) { Direction = ParameterDirection.Output }
             };
 
             await ExecuteNonQueryAsync("W_PurchaseMasterOperation", parameters);
-            return Convert.ToInt32(parameters[^1].Value ?? 0) == 1;
+            int result = Convert.ToInt32(parameters[^1].Value ?? 0);
+
+            if (result == -2)
+            {
+                throw new InvalidOperationException("Cannot delete this Goods Receipt because stock from its batch has already been consumed in production or sales.");
+            }
+
+            return result == 1;
         }
 
         #endregion
@@ -755,6 +801,9 @@ namespace GFI_Upgrated.Data.Purchase
             CreatedDate = row.SafeDateTime("CreatedDate"),
             CreatedBy = row.SafeString("CreatedBy"),
             UpdatedBy = row.SafeString("UpdatedBy"),
+            UpdatedDate = row.Table.Columns.Contains("UpdatedDate") ? row.SafeDateTime("UpdatedDate") : null,
+            Status = row.Table.Columns.Contains("Status") ? (row.SafeString("Status") ?? "Draft") : "Draft",
+            IsFinalized = row.Table.Columns.Contains("IsFinalized") ? row.SafeBool("IsFinalized") : false,
             FileName = row.SafeString("FileName"),
             Narration = row.SafeString("Narration")
         };
@@ -774,7 +823,9 @@ namespace GFI_Upgrated.Data.Purchase
             Amount = row.SafeDouble("Amount"),
             Description = row.SafeString("Description"),
             CreatedDate = row.SafeDateTime("CreatedDate"),
-            CreatedBy = row.SafeString("CreatedBy")
+            CreatedBy = row.SafeString("CreatedBy"),
+            UpdatedDate = row.Table.Columns.Contains("UpdatedDate") ? row.SafeDateTime("UpdatedDate") : null,
+            UpdatedBy = row.Table.Columns.Contains("UpdatedBy") ? row.SafeString("UpdatedBy") : null
         };
 
         private PurchaseReturnDto MapPurchaseReturn(DataRow row) => new()

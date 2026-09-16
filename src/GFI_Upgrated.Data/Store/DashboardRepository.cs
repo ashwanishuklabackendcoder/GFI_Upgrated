@@ -79,7 +79,7 @@ public sealed class DashboardRepository : IDashboardRepository
             FROM A_InvoiceChild c
             INNER JOIN A_InvoiceMaster m ON c.InvoiceID = m.InvoiceID
             INNER JOIN W_MasterItem i ON c.ItemId = i.ItemID
-            WHERE c.BatchNumber = @BatchNo";
+            WHERE c.BatchNumber = @BatchNo AND m.InvoiceStatus = 'Submitted'";
 
         await using (var connection = new SqlConnection(_connectionString))
         {
@@ -166,6 +166,7 @@ public sealed class DashboardRepository : IDashboardRepository
             FROM A_InvoiceChild c
             INNER JOIN A_InvoiceMaster m ON c.InvoiceID = m.InvoiceID
             INNER JOIN W_MasterItem i ON c.ItemId = i.ItemID
+            WHERE m.InvoiceStatus = 'Submitted'
             ORDER BY m.InvoiceDate DESC";
 
         // 2. Sales Per Year Query
@@ -173,6 +174,7 @@ public sealed class DashboardRepository : IDashboardRepository
             SELECT YEAR(m.InvoiceDate) AS [Year], SUM(c.Amount) AS SalesAmount, SUM(c.Quantity) AS QuantitySold
             FROM A_InvoiceChild c
             INNER JOIN A_InvoiceMaster m ON c.InvoiceID = m.InvoiceID
+            WHERE m.InvoiceStatus = 'Submitted'
             GROUP BY YEAR(m.InvoiceDate)
             ORDER BY YEAR(m.InvoiceDate) DESC";
 
@@ -183,6 +185,7 @@ public sealed class DashboardRepository : IDashboardRepository
             INNER JOIN A_InvoiceMaster m ON c.InvoiceID = m.InvoiceID
             INNER JOIN A_MasterAccounts a ON m.AccountID = a.AccountID
             INNER JOIN A_AccountGroupMaster g ON a.AccountGroupID = g.AccountGroupID
+            WHERE m.InvoiceStatus = 'Submitted'
             GROUP BY g.AccountGroupName
             ORDER BY TotalAmount DESC";
 
@@ -192,6 +195,7 @@ public sealed class DashboardRepository : IDashboardRepository
             FROM A_InvoiceChild c
             INNER JOIN A_InvoiceMaster m ON c.InvoiceID = m.InvoiceID
             INNER JOIN A_MasterAccounts a ON m.AccountID = a.AccountID
+            WHERE m.InvoiceStatus = 'Submitted'
             GROUP BY a.AccountName
             ORDER BY TotalAmount DESC";
 

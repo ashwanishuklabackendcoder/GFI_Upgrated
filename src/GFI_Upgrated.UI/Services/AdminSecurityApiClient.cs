@@ -230,4 +230,38 @@ public sealed class AdminSecurityApiClient : ApiClientBase
     {
         return await PostEnvelopeAsync<object, bool>($"api/admin/security/staff/resend-login/{staffId}", new object(), cancellationToken);
     }
+
+    public async Task<GeneralSettingsDto?> GetGeneralSettingsAsync(CancellationToken cancellationToken = default)
+        => await GetEnvelopeAsync<GeneralSettingsDto>("api/admin/general-settings", cancellationToken);
+
+    public async Task<bool> SaveGeneralSettingsAsync(UpdateGeneralSettingsRequest request, CancellationToken cancellationToken = default)
+        => await PostEnvelopeAsync<UpdateGeneralSettingsRequest, bool>("api/admin/general-settings", request, cancellationToken);
+
+    public async Task<string?> UploadLogoAsync(Stream contentStream, string fileName, string logoType, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            using var content = new MultipartFormDataContent();
+            var streamContent = new StreamContent(contentStream);
+            content.Add(streamContent, "file", fileName);
+
+            var requestMessage = new HttpRequestMessage(HttpMethod.Post, $"api/admin/general-settings/upload-logo?logoType={Uri.EscapeDataString(logoType)}")
+            {
+                Content = content
+            };
+
+            AddAuthHeader();
+            var response = await _httpClient.SendAsync(requestMessage, cancellationToken);
+            if (response.IsSuccessStatusCode)
+            {
+                var envelope = await response.Content.ReadFromJsonAsync<ApiEnvelope<string>>(cancellationToken: cancellationToken);
+                return envelope?.Data;
+            }
+        }
+        catch
+        {
+            // Ignore
+        }
+        return null;
+    }
 }

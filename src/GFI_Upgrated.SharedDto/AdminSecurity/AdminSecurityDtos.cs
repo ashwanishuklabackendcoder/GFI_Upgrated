@@ -32,6 +32,12 @@ public sealed class LoginResultDto
     public int DecimalDigits { get; set; } = 2;
     public string? DateFormat { get; set; }
     public string? DefaultCurrency { get; set; }
+    public string CompanyName { get; set; } = "GFI Nuvotrace";
+    public string CompanyAddress { get; set; } = string.Empty;
+    public string CompanyLogo { get; set; } = "/assets/img/branding/nuvotrace-horizontal-logo.png";
+    public string TopbarLogo { get; set; } = "/assets/img/branding/nuvotrace-horizontal-logo.png";
+    public string LoginPageLogo { get; set; } = "/assets/img/branding/nuvotrace-custom-logo.png";
+    public Dictionary<string, string> GeneralSettings { get; set; } = new(StringComparer.OrdinalIgnoreCase);
 }
 
 public sealed class RoleDto

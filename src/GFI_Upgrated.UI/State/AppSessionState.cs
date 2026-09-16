@@ -34,6 +34,54 @@ public sealed class AppSessionState
         private set => _localDefaultCurrency = value; 
     }
     
+    private string _localCompanyName = string.Empty;
+    public string CompanyName
+    {
+        get => CurrentUser?.CompanyName ?? _localCompanyName;
+        private set => _localCompanyName = value;
+    }
+
+    private string _localCompanyAddress = string.Empty;
+    public string CompanyAddress
+    {
+        get => CurrentUser?.CompanyAddress ?? _localCompanyAddress;
+        private set => _localCompanyAddress = value;
+    }
+
+    private string _localCompanyLogo = "/assets/img/branding/nuvotrace-horizontal-logo.png";
+    public string CompanyLogo
+    {
+        get => !string.IsNullOrWhiteSpace(CurrentUser?.CompanyLogo) ? CurrentUser.CompanyLogo! : _localCompanyLogo;
+        private set => _localCompanyLogo = value;
+    }
+
+    private string _localTopbarLogo = "/assets/img/branding/nuvotrace-horizontal-logo.png";
+    public string TopbarLogo
+    {
+        get => !string.IsNullOrWhiteSpace(CurrentUser?.TopbarLogo) 
+            ? CurrentUser.TopbarLogo! 
+            : (!string.IsNullOrWhiteSpace(_localTopbarLogo) ? _localTopbarLogo : CompanyLogo);
+        private set => _localTopbarLogo = value;
+    }
+
+    private string _localLoginPageLogo = "/assets/img/branding/nuvotrace-custom-logo.png";
+    public string LoginPageLogo
+    {
+        get => !string.IsNullOrWhiteSpace(CurrentUser?.LoginPageLogo) 
+            ? CurrentUser.LoginPageLogo! 
+            : (!string.IsNullOrWhiteSpace(_localLoginPageLogo) ? _localLoginPageLogo : CompanyLogo);
+        private set => _localLoginPageLogo = value;
+    }
+
+    public string GetSetting(string key, string fallback = "")
+    {
+        if (CurrentUser?.GeneralSettings != null && CurrentUser.GeneralSettings.TryGetValue(key, out var value) && !string.IsNullOrWhiteSpace(value))
+        {
+            return value;
+        }
+        return fallback;
+    }
+    
     public string NameFormat { get; private set; } = "FN_LN";
 
     public string CurrentUserAuditName => 
@@ -138,6 +186,12 @@ public sealed class AppSessionState
 
         // Normalize path for comparison
         var normalizedPath = path.ToLower().Trim('/').Replace("\\", "/");
+
+        // Allow access to System General Settings for logged-in admin users
+        if (normalizedPath == "admin/general-settings" || normalizedPath == "admin/master-settings")
+        {
+            return true;
+        }
         
         // Find if the menu exists in the backend-returned authorized tree
         var menu = FindMenu(CurrentUser.Menus, normalizedPath);
@@ -263,6 +317,8 @@ public sealed class AppSessionState
         { "admin/drop-down-values", "drop-down-editor" },
         { "admin/drop-down", "drop-down-editor" },
         { "admin/resource-editor", "resource-editor" },
+        { "admin/general-settings", "general-settings" },
+        { "admin/master-settings", "general-settings" },
         { "acc/accountmaster", "customers-suppliers" },
         { "acc/customer-supplier", "customers-suppliers" }
     };
@@ -317,6 +373,7 @@ public sealed class AppSessionState
             "logins" => "/admin/users",
             "drop down editor" or "drop down" or "dropdown editor" or "dropdown" => "/admin/drop-down-editor",
             "resource editor" => "/admin/resource-editor",
+            "general settings" or "general-settings" or "master settings" or "generalsettings" => "/admin/general-settings",
             "user activity logs" => "/admin/user-activity-logs",
             "logins log" => "/admin/logins-log",
             "assign roles" => "/admin/user-roles",
@@ -408,6 +465,21 @@ public sealed class AppSessionState
 
             var defaultCurrency = await jsRuntime.InvokeAsync<string?>("localStorage.getItem", "DefaultCurrency");
             if (!string.IsNullOrWhiteSpace(defaultCurrency)) DefaultCurrency = defaultCurrency;
+
+            var companyName = await jsRuntime.InvokeAsync<string?>("localStorage.getItem", "CompanyName");
+            if (!string.IsNullOrWhiteSpace(companyName)) CompanyName = companyName;
+
+            var companyAddress = await jsRuntime.InvokeAsync<string?>("localStorage.getItem", "CompanyAddress");
+            if (companyAddress != null) CompanyAddress = companyAddress;
+
+            var companyLogo = await jsRuntime.InvokeAsync<string?>("localStorage.getItem", "CompanyLogo");
+            if (!string.IsNullOrWhiteSpace(companyLogo)) CompanyLogo = companyLogo;
+
+            var topbarLogo = await jsRuntime.InvokeAsync<string?>("localStorage.getItem", "TopbarLogo");
+            if (!string.IsNullOrWhiteSpace(topbarLogo)) TopbarLogo = topbarLogo;
+
+            var loginPageLogo = await jsRuntime.InvokeAsync<string?>("localStorage.getItem", "LoginPageLogo");
+            if (!string.IsNullOrWhiteSpace(loginPageLogo)) LoginPageLogo = loginPageLogo;
 
             var nameFormat = await jsRuntime.InvokeAsync<string?>("localStorage.getItem", "NameFormat");
             if (!string.IsNullOrWhiteSpace(nameFormat)) NameFormat = nameFormat;
