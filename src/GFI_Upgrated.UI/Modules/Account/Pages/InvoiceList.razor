@@ -49,8 +49,8 @@
                 @SessionState.FormatCurrency(context.TotalAmount)
             </MudTd>
             <MudTd DataLabel="Status" Style="text-align: center;">
-                <MudChip T="string" Color="@(context.IsPaid == true || context.InvoiceStatus == "Paid" ? Color.Success : Color.Warning)" Size="Size.Small" Variant="Variant.Text">
-                    @(context.IsPaid == true || context.InvoiceStatus == "Paid" ? "Paid" : "Unpaid")
+                <MudChip T="string" Color="@(context.IsPaid == true || string.Equals(context.InvoiceStatus, "Paid", StringComparison.OrdinalIgnoreCase) ? Color.Success : Color.Warning)" Size="Size.Small" Variant="Variant.Filled" Style="font-weight: 600;">
+                    @(context.IsPaid == true || string.Equals(context.InvoiceStatus, "Paid", StringComparison.OrdinalIgnoreCase) ? "Paid" : "Unpaid")
                 </MudChip>
             </MudTd>
             <MudTd DataLabel="Action" Style="text-align: center;">

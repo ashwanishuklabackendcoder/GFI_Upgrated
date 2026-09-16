@@ -16,7 +16,12 @@
 <MudPaper Class="pa-4">
     <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
         <MudStack Spacing="0">
-            <MudText Typo="Typo.h5">@_title</MudText>
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                <MudText Typo="Typo.h5">@_title</MudText>
+                <MudChip T="string" Color="@(_invoice.IsPaid == true ? Color.Success : Color.Warning)" Size="Size.Small" Variant="Variant.Filled" Style="font-weight: 600;">
+                    @(_invoice.IsPaid == true ? "Paid" : "Unpaid")
+                </MudChip>
+            </MudStack>
             <MudText Typo="Typo.body2" Color="Color.Secondary">Enter sales invoice details, exchange rates, and line items below.</MudText>
         </MudStack>
         <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.ArrowBack" OnClick="BackToList">Back</MudButton>
@@ -32,7 +37,7 @@
                 <SearchableSelect T="long?" Disabled="@(_invoice.InvoiceStatus == "Submitted")" Label="Customer" Value="@((long?)_invoice.AccountID)" ValueChanged="@((long? val) => OnCustomerChanged(val ?? 0))" Variant="Variant.Outlined" Required="true" Items="@GetCustomerSelects()" />
             </MudItem>
             <MudItem xs="12" md="4">
-                <MudCheckBox Disabled="@(_invoice.InvoiceStatus == "Submitted")" T="bool?" @bind-Value="_invoice.IsPaid" Label="Mark as Paid" Color="Color.Success" />
+                <MudCheckBox Disabled="@(_invoice.InvoiceStatus == "Submitted")" T="bool?" Value="_invoice.IsPaid" ValueChanged="@OnIsPaidChanged" Label="Mark as Paid" Color="Color.Success" />
             </MudItem>
 
             <MudItem xs="12" md="4">
@@ -40,9 +45,6 @@
             </MudItem>
             <MudItem xs="12" md="4">
                 <MudDatePicker Disabled="@(_invoice.InvoiceStatus == "Submitted")" DateFormat="@SessionState.DatePickerFormat" Placeholder="@SessionState.DatePickerFormat" Editable="true" @bind-Date="_invoice.DueDate" Label="@($"Due Date ({SessionState.DateFormat})")" Variant="Variant.Outlined" For="@(() => _invoice.DueDate)" />
-            </MudItem>
-            <MudItem xs="12" md="4">
-                <SearchableSelect T="string" Disabled="@(_invoice.InvoiceStatus == "Submitted")" Label="Status" Value="@_invoice.InvoiceStatus" ValueChanged="@((string val) => { _invoice.InvoiceStatus = val; })" Variant="Variant.Outlined" Items="@GetStatusSelects()" />
             </MudItem>
 
             <MudItem xs="12" md="4">
@@ -71,15 +73,9 @@
             <MudItem xs="12" Class="mt-4">
                 <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-2">
                     <MudText Typo="Typo.subtitle1" Style="font-weight: 600;">Invoice Line Items</MudText>
-                    @if (_invoice.InvoiceStatus != "Submitted")
-                    {
-                        <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="AddInvoiceItem" Size="Size.Small">
-                            Add Line Item
-                        </MudButton>
-                    }
                 </MudStack>
 
-                <MudTable Items="@_invoice.Items" Hover="true" Dense="true" Striped="true" Bordered="true" Elevation="0" Class="mb-4">
+                <MudTable Items="@_invoice.Items" Hover="true" Dense="true" Striped="true" Bordered="true" Elevation="0" Class="mb-2">
                     <HeaderContent>
                         <MudTh Style="width: 25%;">Item (SKU)</MudTh>
                         <MudTh Style="width: 30%; min-width: 260px;">Batch No.</MudTh>
@@ -126,6 +122,13 @@
                         </MudTd>
                     </RowTemplate>
                 </MudTable>
+
+                @if (_invoice.InvoiceStatus != "Submitted")
+                {
+                    <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="AddInvoiceItem" Size="Size.Small" Class="mt-1 mb-4">
+                        Add Item
+                    </MudButton>
+                }
             </MudItem>
 
             <MudItem xs="12" sm="7" md="5" Class="ml-auto pt-3">
@@ -241,6 +244,14 @@
                 if (fetched != null)
                 {
                     _invoice = fetched;
+                    if (_invoice.IsPaid == true || string.Equals(_invoice.InvoiceStatus, "Paid", StringComparison.OrdinalIgnoreCase))
+                    {
+                        _invoice.IsPaid = true;
+                    }
+                    else
+                    {
+                        _invoice.IsPaid = false;
+                    }
                     _currencies = allCurrencies;
                     if (_invoice.CurrencyID.HasValue)
                     {
@@ -307,6 +318,20 @@
         catch (Exception ex)
         {
             _message = ex.Message;
+        }
+    }
+
+    private void OnIsPaidChanged(bool? val)
+    {
+        _invoice.IsPaid = val ?? false;
+    }
+
+    private void OnStatusChanged(string val)
+    {
+        _invoice.InvoiceStatus = val;
+        if (_invoice.InvoiceStatus != "Submitted")
+        {
+            _invoice.IsPaid = string.Equals(val, "Paid", StringComparison.OrdinalIgnoreCase);
         }
     }
 
@@ -485,19 +510,21 @@
             _invoice.CreatedDate = DateTime.Now;
             _invoice.TotalAmount = CalculateTotalAmount();
 
-            if (_invoice.IsPaid == true || _invoice.InvoiceStatus == "Paid")
+            if (_invoice.IsPaid == true)
             {
                 _invoice.IsPaid = true;
-                _invoice.InvoiceStatus = "Paid";
+                if (_invoice.InvoiceStatus != "Submitted")
+                {
+                    _invoice.InvoiceStatus = "Paid";
+                }
             }
             else
             {
                 _invoice.IsPaid = false;
-            }
-
-            if (string.IsNullOrWhiteSpace(_invoice.InvoiceStatus))
-            {
-                _invoice.InvoiceStatus = "Draft";
+                if (_invoice.InvoiceStatus != "Submitted")
+                {
+                    _invoice.InvoiceStatus = "Draft";
+                }
             }
 
             // 1. Save main invoice

@@ -626,6 +626,7 @@ namespace GFI_Upgrated.Data.Account
                 new SqlParameter("@CreatedBy", invoice.CreatedBy ?? "System"),
                 new SqlParameter("@CurrencyID", (object?)invoice.CurrencyID ?? DBNull.Value),
                 new SqlParameter("@CurrencyConversion", (object?)invoice.CurrencyConversion ?? 1.0),
+                new SqlParameter("@IsPaid", invoice.IsPaid ?? false),
                 new SqlParameter("@ReturnVal", SqlDbType.Int) { Direction = ParameterDirection.Output }
             };
 
