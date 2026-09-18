@@ -201,11 +201,25 @@
 
     private IEnumerable<SearchableSelect<RawMaterialDto>.SelectItemDto<RawMaterialDto>> GetItemSelects()
     {
-        return (_items ?? new List<RawMaterialDto>()).Select(x => new SearchableSelect<RawMaterialDto>.SelectItemDto<RawMaterialDto>
+        var list = new List<SearchableSelect<RawMaterialDto>.SelectItemDto<RawMaterialDto>>
         {
-            Value = x,
-            Text = x.ItemName ?? ""
-        });
+            new SearchableSelect<RawMaterialDto>.SelectItemDto<RawMaterialDto>
+            {
+                Value = null,
+                Text = "-- All Items --"
+            }
+        };
+
+        if (_items != null)
+        {
+            list.AddRange(_items.Select(x => new SearchableSelect<RawMaterialDto>.SelectItemDto<RawMaterialDto>
+            {
+                Value = x,
+                Text = x.ItemName ?? ""
+            }));
+        }
+
+        return list;
     }
 
     private async Task<TableData<ItemStockReportDto>> LoadServerDataAsync(TableState state, CancellationToken cancellationToken)

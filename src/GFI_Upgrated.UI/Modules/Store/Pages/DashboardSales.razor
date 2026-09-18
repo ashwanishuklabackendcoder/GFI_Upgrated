@@ -71,20 +71,25 @@
         <div class="col-lg-8 mb-4">
             <div class="card h-100">
                 <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="card-title mb-0">Recent Invoice Sales</h5>
-                    <small class="text-muted">Latest transactions from customer billing</small>
+                    <div>
+                        <h5 class="card-title mb-0">Recent Invoice Sales</h5>
+                        <small class="text-muted">Summarized per item name per year</small>
+                    </div>
+                    <div style="width: 220px;">
+                        <MudTextField @bind-Value="_itemSearchString" Placeholder="Search Item or Year..." Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0" Immediate="true" Clearable="true"></MudTextField>
+                    </div>
                 </div>
                 <div class="card-body">
-                    <MudTable Items="_dashboardData.TotalSales" Hover="true" Dense="true" Striped="true" Elevation="0" Height="300px">
+                    <MudTable Items="FilteredTotalSales" Hover="true" Dense="true" Striped="true" Elevation="0" Height="300px">
                         <HeaderContent>
                             <MudTh>Item Name</MudTh>
-                            <MudTh Style="text-align: center;">Transaction Date</MudTh>
+                            <MudTh Style="text-align: center;">Year</MudTh>
                             <MudTh Style="text-align: right;">Quantity</MudTh>
                             <MudTh Style="text-align: right;">Total Amount</MudTh>
                         </HeaderContent>
                         <RowTemplate>
                             <MudTd DataLabel="Item Name">@context.ItemName</MudTd>
-                            <MudTd DataLabel="Date" Style="text-align: center;">@(context.TransactionDate?.ToString("yyyy-MM-dd") ?? "-")</MudTd>
+                            <MudTd DataLabel="Year" Style="text-align: center;" Class="fw-bold">@context.Year</MudTd>
                             <MudTd DataLabel="Quantity" Style="text-align: right;">@SessionState.FormatNumber(context.Quantity)</MudTd>
                             <MudTd DataLabel="Total Amount" Style="text-align: right;" Class="fw-medium text-success">@FormatCurrency(context.TotalAmount)</MudTd>
                         </RowTemplate>
@@ -167,6 +172,43 @@
                 </div>
             </div>
         </div>
+
+        <!-- Finished Products Batch Stock -->
+        <div class="col-12 mb-4">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="card-title mb-0">Finished Products - Batch Stock</h5>
+                        <small class="text-muted">Available stock per finished product batch</small>
+                    </div>
+                    <div class="d-flex align-items-center gap-3">
+                        <MudCheckBox T="bool" Value="_finishedInStockOnly" ValueChanged="OnFinishedInStockChanged" Color="Color.Primary" Label="In-Stock Only" Dense="true" Class="m-0" />
+                        <a href="/store/reportbatchwiseitems" class="btn btn-sm btn-outline-primary">View Full Batch Report</a>
+                    </div>
+                </div>
+                <div class="card-body pa-0">
+                    <MudTable Items="_finishedBatchItems" Hover="true" Dense="true" Striped="true" Elevation="0" Height="280px" Loading="_finishedBatchLoading">
+                        <HeaderContent>
+                            <MudTh>Batch No.</MudTh>
+                            <MudTh>Item Name</MudTh>
+                            <MudTh Style="text-align: right;">Available Qty.</MudTh>
+                            <MudTh>Processing Date</MudTh>
+                            <MudTh>Expiry Date</MudTh>
+                        </HeaderContent>
+                        <RowTemplate>
+                            <MudTd DataLabel="Batch No." Class="fw-medium">@context.BatchNo</MudTd>
+                            <MudTd DataLabel="Item Name">@context.ItemName</MudTd>
+                            <MudTd DataLabel="Available Qty." Style="text-align: right;" Class="fw-bold text-success">@SessionState.FormatNumber(context.AvailableQty) @context.UnitName</MudTd>
+                            <MudTd DataLabel="Processing Date">@SessionState.FormatDate(context.ProcessingDate)</MudTd>
+                            <MudTd DataLabel="Expiry Date">@SessionState.FormatDate(context.ExpiryDate)</MudTd>
+                        </RowTemplate>
+                        <NoRecordsContent>
+                            <p class="text-secondary text-center pa-4">No finished product batch items found.</p>
+                        </NoRecordsContent>
+                    </MudTable>
+                </div>
+            </div>
+        </div>
     }
 </div>
 @code {
@@ -176,6 +218,27 @@
     private decimal _totalRevenue = 0;
     private decimal _totalQtySold = 0;
     private string _topCustomerGroup = "None";
+    private string _itemSearchString = string.Empty;
+
+    private bool _finishedBatchLoading = false;
+    private bool _finishedInStockOnly = true;
+    private List<BatchWiseItemDto> _finishedBatchItems = new();
+
+    private IEnumerable<SalesSummaryDto> FilteredTotalSales
+    {
+        get
+        {
+            if (_dashboardData.TotalSales == null)
+                return Enumerable.Empty<SalesSummaryDto>();
+
+            if (string.IsNullOrWhiteSpace(_itemSearchString))
+                return _dashboardData.TotalSales;
+
+            return _dashboardData.TotalSales.Where(x =>
+                x.ItemName.Contains(_itemSearchString, StringComparison.OrdinalIgnoreCase) ||
+                x.Year.ToString().Contains(_itemSearchString, StringComparison.OrdinalIgnoreCase));
+        }
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -186,6 +249,31 @@
         }
 
         await LoadDashboardDataAsync();
+        await LoadFinishedBatchItemsAsync();
+    }
+
+    private async Task LoadFinishedBatchItemsAsync()
+    {
+        _finishedBatchLoading = true;
+        try
+        {
+            var res = await ApiClient.GetBatchWiseItemsPagedAsync(null, null, 1, _finishedInStockOnly, 1, 25, "DESC");
+            _finishedBatchItems = res.Items.ToList();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error loading batch stock: {ex.Message}", Severity.Warning);
+        }
+        finally
+        {
+            _finishedBatchLoading = false;
+        }
+    }
+
+    private async Task OnFinishedInStockChanged(bool val)
+    {
+        _finishedInStockOnly = val;
+        await LoadFinishedBatchItemsAsync();
     }
 
     private async Task LoadDashboardDataAsync()

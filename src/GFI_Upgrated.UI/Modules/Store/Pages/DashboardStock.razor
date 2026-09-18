@@ -85,6 +85,45 @@
                     </MudCardContent>
                 </MudCard>
             </MudItem>
+
+            <!-- Raw Materials Batch Stock Card -->
+            <MudItem xs="12" Class="mt-4">
+                <MudCard Elevation="3" Class="rounded-lg border-t-4 border-solid border-blue-500">
+                    <MudCardHeader>
+                        <CardHeaderAvatar>
+                            <MudIcon Icon="@Icons.Material.Filled.Inventory" Color="Color.Primary" />
+                        </CardHeaderAvatar>
+                        <CardHeaderContent>
+                            <MudText Typo="Typo.h6">Raw Materials - Batch Stock</MudText>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">Available stock per raw material batch</MudText>
+                        </CardHeaderContent>
+                        <CardHeaderActions>
+                            <MudCheckBox T="bool" Value="_rawBatchInStockOnly" ValueChanged="OnRawBatchInStockChanged" Color="Color.Primary" Label="In-Stock Only" Class="mr-4 mt-2" />
+                        </CardHeaderActions>
+                    </MudCardHeader>
+                    <MudCardContent>
+                        <MudTable Items="_rawMaterialBatchItems" Hover="true" Dense="true" Striped="true" Elevation="0" Height="280px" Loading="_rawBatchLoading">
+                            <HeaderContent>
+                                <MudTh>Batch No.</MudTh>
+                                <MudTh>Item Name</MudTh>
+                                <MudTh Style="text-align: right;">Available Qty.</MudTh>
+                                <MudTh>Processing Date</MudTh>
+                                <MudTh>Expiry Date</MudTh>
+                            </HeaderContent>
+                            <RowTemplate>
+                                <MudTd DataLabel="Batch No." Class="font-weight-medium">@context.BatchNo</MudTd>
+                                <MudTd DataLabel="Item Name">@context.ItemName</MudTd>
+                                <MudTd DataLabel="Available Qty." Style="text-align: right;" Class="font-weight-bold">@SessionState.FormatNumber(context.AvailableQty) @context.UnitName</MudTd>
+                                <MudTd DataLabel="Processing Date">@SessionState.FormatDate(context.ProcessingDate)</MudTd>
+                                <MudTd DataLabel="Expiry Date">@SessionState.FormatDate(context.ExpiryDate)</MudTd>
+                            </RowTemplate>
+                            <NoRecordsContent>
+                                <MudText Class="pa-4 text-center">No raw material batch stock records found.</MudText>
+                            </NoRecordsContent>
+                        </MudTable>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
         </MudGrid>
     }
 </MudContainer>
@@ -102,6 +141,10 @@
     private bool _loading = true;
     private StockDashboardDto _dashboardData = new();
 
+    private bool _rawBatchLoading = false;
+    private bool _rawBatchInStockOnly = true;
+    private List<BatchWiseItemDto> _rawMaterialBatchItems = new();
+
     protected override async Task OnInitializedAsync()
     {
         if (!SessionState.IsLoggedIn)
@@ -111,6 +154,31 @@
         }
 
         await LoadDashboardDataAsync();
+        await LoadRawMaterialBatchStockAsync();
+    }
+
+    private async Task LoadRawMaterialBatchStockAsync()
+    {
+        _rawBatchLoading = true;
+        try
+        {
+            var res = await ApiClient.GetBatchWiseItemsPagedAsync(null, null, 3, _rawBatchInStockOnly, 1, 25, "DESC");
+            _rawMaterialBatchItems = res.Items.ToList();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error loading raw material batch stock: {ex.Message}", Severity.Warning);
+        }
+        finally
+        {
+            _rawBatchLoading = false;
+        }
+    }
+
+    private async Task OnRawBatchInStockChanged(bool val)
+    {
+        _rawBatchInStockOnly = val;
+        await LoadRawMaterialBatchStockAsync();
     }
 
     private async Task LoadDashboardDataAsync()

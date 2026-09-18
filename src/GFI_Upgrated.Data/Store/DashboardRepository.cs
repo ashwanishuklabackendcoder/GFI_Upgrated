@@ -160,14 +160,15 @@ public sealed class DashboardRepository : IDashboardRepository
     {
         var result = new SalesDashboardDto();
 
-        // 1. Total Sales Query
+        // 1. Total Sales (Summarized Per Item Name Per Year) Query
         const string totalSalesQuery = @"
-            SELECT TOP 50 i.ItemName, m.InvoiceDate AS TransactionDate, c.Quantity, c.Amount AS TotalAmount
+            SELECT YEAR(m.InvoiceDate) AS [Year], i.ItemName, SUM(c.Quantity) AS Quantity, SUM(c.Amount) AS TotalAmount
             FROM A_InvoiceChild c
             INNER JOIN A_InvoiceMaster m ON c.InvoiceID = m.InvoiceID
             INNER JOIN W_MasterItem i ON c.ItemId = i.ItemID
             WHERE m.InvoiceStatus = 'Submitted'
-            ORDER BY m.InvoiceDate DESC";
+            GROUP BY YEAR(m.InvoiceDate), i.ItemName
+            ORDER BY YEAR(m.InvoiceDate) DESC, TotalAmount DESC";
 
         // 2. Sales Per Year Query
         const string salesPerYearQuery = @"
@@ -212,7 +213,7 @@ public sealed class DashboardRepository : IDashboardRepository
                     result.TotalSales.Add(new SalesSummaryDto
                     {
                         ItemName = reader["ItemName"]?.ToString() ?? string.Empty,
-                        TransactionDate = reader["TransactionDate"] != DBNull.Value ? Convert.ToDateTime(reader["TransactionDate"]) : null,
+                        Year = Convert.ToInt32(reader["Year"]),
                         Quantity = Convert.ToDecimal(reader["Quantity"]),
                         TotalAmount = Convert.ToDecimal(reader["TotalAmount"])
                     });

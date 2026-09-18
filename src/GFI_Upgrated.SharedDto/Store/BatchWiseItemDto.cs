@@ -10,5 +10,7 @@ public sealed class BatchWiseItemDto
     public string? AccountName { get; set; }
     public double AvailableQty { get; set; }
     public string? UnitName { get; set; }
+    public long ItemTypeId { get; set; }
+    public string? ItemTypeName { get; set; }
 
 }

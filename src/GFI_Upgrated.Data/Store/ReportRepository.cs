@@ -197,6 +197,145 @@ public sealed class ReportRepository : IReportRepository
         RefUsedForId = row.SafeLong("RefUsedForId")
     };
 
+    public async Task<PagedResult<BatchWiseItemDto>> GetBatchWiseItemsPagedAsync(string? batchNo, long? itemId, long? itemTypeId, bool inStockOnly, int page, int size, string sortType, CancellationToken cancellationToken = default)
+    {
+        page = Math.Max(1, page);
+        size = Math.Max(1, size);
+        var sortOrd = string.Equals(sortType, "ASC", StringComparison.OrdinalIgnoreCase) ? "ASC" : "DESC";
+
+        var whereConditions = new List<string>();
+        var parameters = new List<SqlParameter>();
+
+        if (!string.IsNullOrWhiteSpace(batchNo))
+        {
+            whereConditions.Add("t5.BatchNo LIKE @BatchNo");
+            parameters.Add(new SqlParameter("@BatchNo", SqlDbType.NVarChar, 50) { Value = $"%{batchNo.Trim()}%" });
+        }
+
+        if (itemId.HasValue && itemId.Value > 0)
+        {
+            whereConditions.Add("t5.ItemId = @ItemId");
+            parameters.Add(new SqlParameter("@ItemId", SqlDbType.BigInt) { Value = itemId.Value });
+        }
+
+        if (itemTypeId.HasValue && itemTypeId.Value > 0)
+        {
+            whereConditions.Add("t3.ItemTypeId = @ItemTypeId");
+            parameters.Add(new SqlParameter("@ItemTypeId", SqlDbType.BigInt) { Value = itemTypeId.Value });
+        }
+
+        if (inStockOnly)
+        {
+            whereConditions.Add("t5.FinalQuantityLeft > 0");
+        }
+
+        whereConditions.Add(@"(
+            t5.StockById NOT IN (2, 4)
+            OR (t5.StockById = 2 AND EXISTS (SELECT 1 FROM dbo.W_PreProcessing pp WHERE pp.PreProcessingId = t5.IdFrom AND pp.IsComplete = 1))
+            OR (t5.StockById = 4 AND EXISTS (
+                SELECT 1 FROM dbo.W_Production p 
+                WHERE p.ProductionId = t5.IdFrom 
+                AND NOT EXISTS (
+                    SELECT 1 FROM dbo.W_MasterBomItems AS Bom 
+                    WHERE Bom.BomId = p.BomId 
+                    AND NOT EXISTS (
+                        SELECT 1 FROM dbo.inv_itemstockused AS StockUsed 
+                        WHERE StockUsed.UsedFor = 3 AND StockUsed.UsedForId = p.ProductionId
+                    )
+                )
+            ))
+        )");
+
+        string whereClause = whereConditions.Any() ? "WHERE " + string.Join(" AND ", whereConditions) : "";
+
+        string countSql = $@"
+            SELECT COUNT(1)
+            FROM Inv_ItemStockByBatch t5
+            LEFT JOIN W_MasterItem t3 ON t5.ItemId = t3.ItemID
+            {whereClause}";
+
+        int totalRecords = 0;
+        var items = new List<BatchWiseItemDto>();
+
+        await using (var connection = new SqlConnection(_connectionString))
+        {
+            await connection.OpenAsync(cancellationToken);
+
+            using (var countCmd = new SqlCommand(countSql, connection))
+            {
+                foreach (var p in parameters) countCmd.Parameters.Add((SqlParameter)((ICloneable)p).Clone());
+                var countRes = await countCmd.ExecuteScalarAsync(cancellationToken);
+                totalRecords = countRes != null && countRes != DBNull.Value ? Convert.ToInt32(countRes) : 0;
+            }
+
+            int offset = (page - 1) * size;
+            string dataSql = $@"
+                SELECT 
+                    t5.ItemStockByBatchId AS Id,
+                    t5.BatchNo,
+                    t5.ExpiryDate,
+                    CASE
+                        WHEN t5.StockById = 1 THEN t2.GoodsRecievedDate
+                        WHEN t5.StockById = 2 OR t5.StockById = 4 THEN prod.CookingDate
+                        WHEN t5.StockById = 3 THEN stock.OpeningStockDate
+                    END AS ProcessingDate,
+                    t3.ItemName,
+                    t3.ItemTypeId,
+                    it.ItemTypeName,
+                    CASE
+                        WHEN t5.StockById = 1 THEN t4.AccountName
+                        WHEN t5.StockById = 2 OR t5.StockById = 4 THEN 'Production'
+                        WHEN t5.StockById = 3 THEN 'Opening Stock'
+                        ELSE 'Manual Entry'
+                    END AS AccountName,
+                    t5.FinalQuantityLeft AS AvailableQty,
+                    mu.UnitName
+                FROM Inv_ItemStockByBatch t5
+                LEFT JOIN W_MasterItem t3 ON t5.ItemId = t3.ItemID
+                LEFT JOIN W_MasterItemType it ON t3.ItemTypeId = it.ItemTypeId
+                LEFT JOIN W_MasterUnit mu ON t5.Unit = mu.UnitId
+                LEFT JOIN W_PurchaseChild t1 ON t5.IdFrom = t1.PurchaseItemID AND t5.StockById = 1
+                LEFT JOIN W_PurchaseMaster t2 ON t1.PurchaseID = t2.PurchaseID
+                LEFT JOIN A_MasterAccounts t4 ON t4.AccountId = t2.AccountID
+                LEFT JOIN W_Production prod ON t5.IdFrom = prod.ProductionId AND (t5.StockById = 2 OR t5.StockById = 4)
+                LEFT JOIN W_ItemStock stock ON t5.IdFrom = stock.StockID AND t5.StockById = 3
+                {whereClause}
+                ORDER BY t5.ItemStockByBatchId {sortOrd}
+                OFFSET {offset} ROWS FETCH NEXT {size} ROWS ONLY";
+
+            using (var dataCmd = new SqlCommand(dataSql, connection))
+            {
+                foreach (var p in parameters) dataCmd.Parameters.Add((SqlParameter)((ICloneable)p).Clone());
+                await using (var reader = await dataCmd.ExecuteReaderAsync(cancellationToken))
+                {
+                    while (await reader.ReadAsync(cancellationToken))
+                    {
+                        items.Add(new BatchWiseItemDto
+                        {
+                            Id = Convert.ToInt64(reader["Id"]),
+                            BatchNo = reader["BatchNo"]?.ToString(),
+                            ProcessingDate = reader["ProcessingDate"] != DBNull.Value ? Convert.ToDateTime(reader["ProcessingDate"]).ToString("yyyy-MM-dd") : null,
+                            ExpiryDate = reader["ExpiryDate"] != DBNull.Value ? Convert.ToDateTime(reader["ExpiryDate"]).ToString("yyyy-MM-dd") : null,
+                            ItemName = reader["ItemName"]?.ToString(),
+                            AccountName = reader["AccountName"]?.ToString(),
+                            AvailableQty = reader["AvailableQty"] != DBNull.Value ? Convert.ToDouble(reader["AvailableQty"]) : 0,
+                            UnitName = reader["UnitName"]?.ToString(),
+                            ItemTypeId = reader["ItemTypeId"] != DBNull.Value ? Convert.ToInt64(reader["ItemTypeId"]) : 0,
+                            ItemTypeName = reader["ItemTypeName"]?.ToString()
+                        });
+                    }
+                }
+            }
+        }
+
+        return new PagedResult<BatchWiseItemDto>
+        {
+            CurrentPage = page,
+            TotalRecord = totalRecords,
+            Items = items
+        };
+    }
+
     private BatchWiseItemDto MapBatchWiseItem(DataRow row) => new()
     {
         Id = row.SafeLong("Id"),
@@ -206,7 +345,9 @@ public sealed class ReportRepository : IReportRepository
         ItemName = row.SafeString("ItemName"),
         AccountName = row.SafeString("AccountName"),
         AvailableQty = row.SafeDouble("AvailableQty"),
-        UnitName = row.SafeString("UnitName")
+        UnitName = row.SafeString("UnitName"),
+        ItemTypeId = row.Table.Columns.Contains("ItemTypeId") ? row.SafeLong("ItemTypeId") : 0,
+        ItemTypeName = row.Table.Columns.Contains("ItemTypeName") ? row.SafeString("ItemTypeName") : string.Empty
     };
 
 

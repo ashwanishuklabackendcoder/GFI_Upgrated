@@ -48,7 +48,7 @@ public class DashboardBatchLookupDto
 public class SalesSummaryDto
 {
     public string ItemName { get; set; } = string.Empty;
-    public DateTime? TransactionDate { get; set; }
+    public int Year { get; set; }
     public decimal Quantity { get; set; }
     public decimal TotalAmount { get; set; }
 }
