@@ -205,6 +205,7 @@
     private List<RawMaterialDto> _items = new();
     private List<CustomerOrderDto> _orders = new();
     private Dictionary<long, List<ItemStockByBatchForBOMDto>> _itemBatches = new();
+    private Dictionary<long, List<FinishedProductVendorDto>> _itemCustomerPrices = new();
     private List<long> _deletedItemIds = new();
     private string? _selectedCurrencySymbol = "$";
     private bool _busy;
@@ -354,6 +355,47 @@
         _invoice.Items.Remove(item);
     }
 
+    private async Task<double?> GetCustomerUnitPriceAsync(long itemId, long customerId)
+    {
+        if (itemId <= 0 || customerId <= 0) return null;
+
+        try
+        {
+            if (!_itemCustomerPrices.TryGetValue(itemId, out var vendors))
+            {
+                var result = await StoreApiClient.GetFinishedProductVendorsAsync(itemId);
+                vendors = result.ToList();
+                _itemCustomerPrices[itemId] = vendors;
+            }
+
+            if (vendors == null || !vendors.Any()) return null;
+
+            var invoiceDate = _invoice.InvoiceDate ?? DateTime.Today;
+
+            // Find price matching Customer Account ID and valid date range
+            var matchingVendor = vendors.FirstOrDefault(v => v.VendorAccountId == customerId 
+                && (!v.StartDate.HasValue || v.StartDate.Value <= invoiceDate)
+                && (!v.EndDate.HasValue || v.EndDate.Value >= invoiceDate));
+
+            // Fallback: match by Customer Account ID without date constraint if date-restricted record not found
+            if (matchingVendor == null)
+            {
+                matchingVendor = vendors.FirstOrDefault(v => v.VendorAccountId == customerId);
+            }
+
+            if (matchingVendor != null && matchingVendor.PurchasePrice > 0)
+            {
+                return matchingVendor.PurchasePrice;
+            }
+        }
+        catch
+        {
+            // Ignore pricing fetch error gracefully
+        }
+
+        return null;
+    }
+
     private async Task OnItemChanged(InvoiceItemDto row, long val)
     {
         row.ItemId = val;
@@ -366,6 +408,15 @@
             row.ItemStockByBatchId = null;
             row.BatchNumber = null;
             row.CostPrice = null;
+
+            if (_invoice.AccountID > 0)
+            {
+                var customPrice = await GetCustomerUnitPriceAsync(val, _invoice.AccountID);
+                if (customPrice.HasValue)
+                {
+                    row.UnitPrice = customPrice.Value;
+                }
+            }
             
             if (!_itemBatches.ContainsKey(val))
             {
@@ -607,7 +658,20 @@
     {
         _invoice.AccountID = customerId;
         
-        // Remove auto-filling of orders when customer is selected to allow manual batch selection
+        if (customerId > 0 && _invoice.Items != null)
+        {
+            foreach (var item in _invoice.Items)
+            {
+                if (item.ItemId > 0)
+                {
+                    var customPrice = await GetCustomerUnitPriceAsync(item.ItemId, customerId);
+                    if (customPrice.HasValue)
+                    {
+                        item.UnitPrice = customPrice.Value;
+                    }
+                }
+            }
+        }
     }
 
     private IEnumerable<SearchableSelect<long?>.SelectItemDto<long?>> GetCustomerSelects()

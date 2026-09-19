@@ -125,6 +125,7 @@
     private List<PurchaseRequestDto> _pendingPRs = new();
     private List<UnitDto> _units = new();
     private List<RawMaterialDto> _allItems = new();
+    private Dictionary<long, List<RawMaterialVendorDto>> _itemSupplierPrices = new();
     private bool _saving;
     
     private double _subtotal => _model.Items.Sum(i => i.Quantity * i.Price);
@@ -190,9 +191,27 @@
         }
     }
 
-    private void OnVendorChanged(AccountLookupDto? val)
+    private async Task OnVendorChanged(AccountLookupDto? val)
     {
         _selectedVendor = val;
+        if (val != null)
+        {
+            _model.AccountID = val.AccountId;
+            if (_model.Items != null)
+            {
+                foreach (var item in _model.Items)
+                {
+                    if (item.ItemID > 0)
+                    {
+                        var customPrice = await GetSupplierUnitPriceAsync(item.ItemID, val.AccountId);
+                        if (customPrice.HasValue)
+                        {
+                            item.Price = customPrice.Value;
+                        }
+                    }
+                }
+            }
+        }
     }
 
     private async Task OnPrChanged(PurchaseRequestDto? val)
@@ -205,15 +224,23 @@
             {
                 var prItems = await ApiClient.GetPurchaseRequestItemsAsync(val.PurchaseRequestMasterID);
                 _model.Items.Clear();
+                var supplierId = _selectedVendor?.AccountId ?? _model.AccountID;
                 foreach (var prItem in prItems)
                 {
+                    double price = 0;
+                    if (supplierId > 0 && prItem.ItemID > 0)
+                    {
+                        var customPrice = await GetSupplierUnitPriceAsync(prItem.ItemID, supplierId);
+                        if (customPrice.HasValue) price = customPrice.Value;
+                    }
+
                     _model.Items.Add(new PurchaseOrderItemDto 
                     {
                         ItemID = prItem.ItemID,
                         ItemName = prItem.ItemName,
                         Quantity = prItem.Quantity,
                         UnitId = prItem.UnitId,
-                        Price = 0 // Price isn't usually set on PR, needs manual input on PO
+                        Price = price
                     });
                 }
             }
@@ -262,12 +289,62 @@
 
     private RawMaterialDto? GetItemById(long? id) => id.HasValue ? _allItems.FirstOrDefault(x => x.ItemId == id.Value) : null;
 
-    private void OnItemChanged(PurchaseOrderItemDto row, RawMaterialDto? item)
+    private async Task<double?> GetSupplierUnitPriceAsync(long itemId, long supplierId)
+    {
+        if (itemId <= 0 || supplierId <= 0) return null;
+
+        try
+        {
+            if (!_itemSupplierPrices.TryGetValue(itemId, out var vendors))
+            {
+                var result = await ApiClient.GetRawMaterialVendorsAsync(itemId);
+                vendors = result.ToList();
+                _itemSupplierPrices[itemId] = vendors;
+            }
+
+            if (vendors == null || !vendors.Any()) return null;
+
+            var orderDate = _model.OrderDate ?? DateTime.Today;
+
+            var matchingVendor = vendors.FirstOrDefault(v => v.VendorAccountId == supplierId
+                && (!v.StartDate.HasValue || v.StartDate.Value <= orderDate)
+                && (!v.EndDate.HasValue || v.EndDate.Value >= orderDate));
+
+            if (matchingVendor == null)
+            {
+                matchingVendor = vendors.FirstOrDefault(v => v.VendorAccountId == supplierId);
+            }
+
+            if (matchingVendor != null && matchingVendor.PurchasePrice > 0)
+            {
+                return matchingVendor.PurchasePrice;
+            }
+        }
+        catch
+        {
+            // Ignore pricing fetch error
+        }
+
+        return null;
+    }
+
+    private async Task OnItemChanged(PurchaseOrderItemDto row, RawMaterialDto? item)
     {
         if (item != null)
         {
             row.ItemID = item.ItemId;
             row.ItemName = item.ItemName;
+            row.UnitId = item.PurchaseUnit;
+
+            var supplierId = _selectedVendor?.AccountId ?? _model.AccountID;
+            if (supplierId > 0)
+            {
+                var customPrice = await GetSupplierUnitPriceAsync(item.ItemId, supplierId);
+                if (customPrice.HasValue)
+                {
+                    row.Price = customPrice.Value;
+                }
+            }
         }
     }
 

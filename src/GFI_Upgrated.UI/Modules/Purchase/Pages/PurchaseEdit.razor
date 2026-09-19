@@ -209,6 +209,7 @@
     private double _totalAmount => _subtotal + (_model.Taxes ?? 0) + (_model.Shipping ?? 0) - (_model.Discount ?? 0);
 
     private List<PurchaseOrderDto> _allPendingPOs = new();
+    private Dictionary<long, List<RawMaterialVendorDto>> _itemSupplierPrices = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -298,7 +299,23 @@
 
         if (val != null)
         {
+            _model.AccountID = val.AccountId;
             _pendingPOs = _allPendingPOs.Where(x => x.AccountID == val.AccountId).ToList();
+
+            if (_model.Items != null)
+            {
+                foreach (var item in _model.Items)
+                {
+                    if (item.ItemID > 0)
+                    {
+                        var customPrice = await GetSupplierUnitPriceAsync(item.ItemID, val.AccountId);
+                        if (customPrice.HasValue)
+                        {
+                            item.UnitPrice = customPrice.Value;
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -386,7 +403,46 @@
 
     private RawMaterialDto? GetItemById(long? id) => id.HasValue ? _allItems.FirstOrDefault(x => x.ItemId == id.Value) : null;
 
-    private void OnItemChanged(PurchaseItemDto row, RawMaterialDto? item)
+    private async Task<double?> GetSupplierUnitPriceAsync(long itemId, long supplierId)
+    {
+        if (itemId <= 0 || supplierId <= 0) return null;
+
+        try
+        {
+            if (!_itemSupplierPrices.TryGetValue(itemId, out var vendors))
+            {
+                var result = await ApiClient.GetRawMaterialVendorsAsync(itemId);
+                vendors = result.ToList();
+                _itemSupplierPrices[itemId] = vendors;
+            }
+
+            if (vendors == null || !vendors.Any()) return null;
+
+            var recDate = _model.GoodsRecievedDate ?? DateTime.Today;
+
+            var matchingVendor = vendors.FirstOrDefault(v => v.VendorAccountId == supplierId
+                && (!v.StartDate.HasValue || v.StartDate.Value <= recDate)
+                && (!v.EndDate.HasValue || v.EndDate.Value >= recDate));
+
+            if (matchingVendor == null)
+            {
+                matchingVendor = vendors.FirstOrDefault(v => v.VendorAccountId == supplierId);
+            }
+
+            if (matchingVendor != null && matchingVendor.PurchasePrice > 0)
+            {
+                return matchingVendor.PurchasePrice;
+            }
+        }
+        catch
+        {
+            // Ignore pricing fetch error
+        }
+
+        return null;
+    }
+
+    private async Task OnItemChanged(PurchaseItemDto row, RawMaterialDto? item)
     {
         if (_isReadOnly) return;
         if (item != null)
@@ -401,6 +457,16 @@
             else
             {
                 row.ExpiryDate = null;
+            }
+
+            var supplierId = _selectedVendor?.AccountId ?? _model.AccountID;
+            if (supplierId > 0)
+            {
+                var customPrice = await GetSupplierUnitPriceAsync(item.ItemId, supplierId);
+                if (customPrice.HasValue)
+                {
+                    row.UnitPrice = customPrice.Value;
+                }
             }
         }
     }
