@@ -68,19 +68,19 @@
     @if (!_loading)
     {
         <!-- Recent Invoice Sales -->
-        <div class="col-lg-8 mb-4">
+        <div class="col-12 mb-4">
             <div class="card h-100">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <div>
                         <h5 class="card-title mb-0">Recent Invoice Sales</h5>
                         <small class="text-muted">Summarized per item name per year</small>
                     </div>
-                    <div style="width: 220px;">
+                    <div style="width: 260px;">
                         <MudTextField @bind-Value="_itemSearchString" Placeholder="Search Item or Year..." Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0" Immediate="true" Clearable="true"></MudTextField>
                     </div>
                 </div>
-                <div class="card-body">
-                    <MudTable Items="FilteredTotalSales" Hover="true" Dense="true" Striped="true" Elevation="0" Height="300px">
+                <div class="card-body pa-0">
+                    <MudTable Items="FilteredTotalSales" Hover="true" Dense="true" Striped="true" Elevation="0" Height="280px">
                         <HeaderContent>
                             <MudTh>Item Name</MudTh>
                             <MudTh Style="text-align: center;">Year</MudTh>
@@ -101,26 +101,109 @@
             </div>
         </div>
 
-        <!-- Annual Performance -->
-        <div class="col-lg-4 mb-4">
+        <!-- Sales Totals (Annual Performance) -->
+        <div class="col-12 mb-4">
             <div class="card h-100">
                 <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="card-title mb-0">Annual Performance</h5>
-                    <small class="text-muted">Sales aggregated by year</small>
+                    <div>
+                        <h5 class="card-title mb-0">Sales Totals (Annual Performance)</h5>
+                        <small class="text-muted">Local (SRD) vs. Export (USD) annual breakdown</small>
+                    </div>
                 </div>
-                <div class="card-body">
-                    <MudTable Items="_dashboardData.SalesPerYear" Hover="true" Dense="true" Striped="true" Elevation="0" Height="300px">
-                        <HeaderContent>
-                            <MudTh>Year</MudTh>
-                            <MudTh Style="text-align: right;">Revenue</MudTh>
-                            <MudTh Style="text-align: right;">Qty Sold</MudTh>
-                        </HeaderContent>
-                        <RowTemplate>
-                            <MudTd DataLabel="Year" Class="fw-bold">@context.Year</MudTd>
-                            <MudTd DataLabel="Revenue" Style="text-align: right;">@FormatCurrency(context.SalesAmount)</MudTd>
-                            <MudTd DataLabel="Qty Sold" Style="text-align: right;">@SessionState.FormatNumber(context.QuantitySold)</MudTd>
-                        </RowTemplate>
-                    </MudTable>
+                <div class="card-body pa-0" style="overflow-x: auto;">
+                    <table class="table table-bordered table-hover align-middle mb-0 text-nowrap" style="font-size: 0.88rem;">
+                        <thead class="text-center">
+                            <tr>
+                                <th rowspan="2" class="align-middle fw-bold" style="background-color: #32344f !important; color: #ffffff !important; border: 1px solid #444564 !important; width: 80px;">Y</th>
+                                <th colspan="3" class="fw-bold py-2" style="background-color: #696cff !important; color: #ffffff !important; border: 1px solid #5a5dc9 !important;">SRD (Local Sales)</th>
+                                <th colspan="3" class="fw-bold py-2" style="background-color: #28c76f !important; color: #ffffff !important; border: 1px solid #20a35b !important;">USD (Export Sales)</th>
+                                <th rowspan="2" class="align-middle fw-bold" style="background-color: #32344f !important; color: #ffffff !important; border: 1px solid #444564 !important;">Total Sales (SRD)</th>
+                            </tr>
+                            <tr style="font-size: 0.82rem;">
+                                <th style="background-color: #5356d6 !important; color: #ffffff !important; border: 1px solid #484ab9 !important; width: 120px;">#Ltr</th>
+                                <th style="background-color: #5356d6 !important; color: #ffffff !important; border: 1px solid #484ab9 !important; width: 120px;">#Fl</th>
+                                <th style="background-color: #5356d6 !important; color: #ffffff !important; border: 1px solid #484ab9 !important;">SRD Value</th>
+                                <th style="background-color: #1f9d55 !important; color: #ffffff !important; border: 1px solid #1a8347 !important; width: 120px;">#Ltr</th>
+                                <th style="background-color: #1f9d55 !important; color: #ffffff !important; border: 1px solid #1a8347 !important; width: 120px;">#Fl</th>
+                                <th style="background-color: #1f9d55 !important; color: #ffffff !important; border: 1px solid #1a8347 !important;">USD Value</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (_dashboardData.AnnualPerformance != null && _dashboardData.AnnualPerformance.Any())
+                            {
+                                @foreach (var row in _dashboardData.AnnualPerformance)
+                                {
+                                    <tr>
+                                        <td class="fw-bold text-center">@row.Year</td>
+                                        <td class="text-end">@SessionState.FormatNumber(row.SrdLiters)</td>
+                                        <td class="text-end">@SessionState.FormatNumber(row.SrdBottles)</td>
+                                        <td class="text-end fw-medium" style="color: #696cff;">$@SessionState.FormatNumber(row.SrdValue)</td>
+                                        <td class="text-end">@SessionState.FormatNumber(row.UsdLiters)</td>
+                                        <td class="text-end">@SessionState.FormatNumber(row.UsdBottles)</td>
+                                        <td class="text-end fw-medium text-success">$@SessionState.FormatNumber(row.UsdValue)</td>
+                                        <td class="text-end fw-bold text-dark">$@SessionState.FormatNumber(row.TotalSalesSrd) SRD</td>
+                                    </tr>
+                                }
+                            }
+                            else
+                            {
+                                <tr>
+                                    <td colspan="8" class="text-center text-muted pa-4">No performance records found.</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sales (Liters): per Taste per Year -->
+        <div class="col-12 mb-4">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="card-title mb-0">Sales (Liters): per Taste per Year</h5>
+                        <small class="text-muted">Volume (L) broken down by marinade/taste code</small>
+                    </div>
+                </div>
+                <div class="card-body pa-0" style="overflow-x: auto;">
+                    <table class="table table-bordered table-striped table-hover align-middle mb-0 text-nowrap" style="font-size: 0.88rem;">
+                        <thead class="text-center">
+                            <tr>
+                                <th class="fw-bold" style="background-color: #32344f !important; color: #ffffff !important; border: 1px solid #444564 !important; width: 80px;">Y</th>
+                                <th class="fw-bold" style="background-color: #696cff !important; color: #ffffff !important; border: 1px solid #5a5dc9 !important; width: 140px;">Total Ltr</th>
+                                @foreach (var tCode in _dashboardData.AllTasteCodes)
+                                {
+                                    <th class="fw-bold" style="background-color: #32344f !important; color: #ffffff !important; border: 1px solid #444564 !important;">@tCode</th>
+                                }
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (_dashboardData.SalesPerTastePerYear != null && _dashboardData.SalesPerTastePerYear.Any())
+                            {
+                                @foreach (var row in _dashboardData.SalesPerTastePerYear)
+                                {
+                                    <tr>
+                                        <td class="fw-bold text-center">@row.Year</td>
+                                        <td class="text-end fw-bold text-primary">@SessionState.FormatNumber(row.TotalLiters)</td>
+                                        @foreach (var tCode in _dashboardData.AllTasteCodes)
+                                        {
+                                            var val = row.TasteLiters.GetValueOrDefault(tCode, 0m);
+                                            <td class="text-end @(val > 0 ? "" : "text-muted opacity-50")">
+                                                @(val > 0 ? SessionState.FormatNumber(val) : "-")
+                                            </td>
+                                        }
+                                    </tr>
+                                }
+                            }
+                            else
+                            {
+                                <tr>
+                                    <td colspan="@(2 + (_dashboardData.AllTasteCodes?.Count ?? 0))" class="text-center text-muted pa-4">No taste volume records found.</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>

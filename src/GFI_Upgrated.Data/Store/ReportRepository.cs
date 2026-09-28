@@ -249,10 +249,49 @@ public sealed class ReportRepository : IReportRepository
         string whereClause = whereConditions.Any() ? "WHERE " + string.Join(" AND ", whereConditions) : "";
 
         string countSql = $@"
-            SELECT COUNT(1)
-            FROM Inv_ItemStockByBatch t5
-            LEFT JOIN W_MasterItem t3 ON t5.ItemId = t3.ItemID
-            {whereClause}";
+            SELECT COUNT(1) FROM (
+                SELECT 1 AS DummyCol
+                FROM (
+                    SELECT b.ItemStockByBatchId, b.StockById, b.IdFrom, b.ItemId, b.Quantity, b.Unit, b.BatchNo, b.ExpiryDate, b.WarehouseId, b.FinalQuantityLeft
+                    FROM dbo.Inv_ItemStockByBatch b
+                    UNION ALL
+                    SELECT bom.ItemStockByBatchID as ItemStockByBatchId, 
+                           CASE WHEN bom.IDFrom = 0 THEN 3 WHEN EXISTS (SELECT 1 FROM dbo.W_MasterItem i WHERE i.ItemID = bom.ItemId AND i.ItemTypeId = 2) THEN 2 ELSE 4 END as StockById, 
+                           bom.IDFrom as IdFrom, bom.ItemId, bom.Quantity, bom.Unit, bom.BatchNo, CAST(bom.ExpiryDate AS date) as ExpiryDate, bom.WarehouseId, bom.FinalQuantityLeft
+                    FROM dbo.Inv_ItemStockByBatchForBOM bom
+                    WHERE not exists (
+                        SELECT 1 FROM dbo.Inv_ItemStockByBatch b2
+                        WHERE b2.IdFrom = bom.IDFrom and b2.ItemId = bom.ItemId and b2.BatchNo = bom.BatchNo and b2.StockById = (CASE WHEN bom.IDFrom = 0 THEN 3 WHEN EXISTS (SELECT 1 FROM dbo.W_MasterItem i WHERE i.ItemID = bom.ItemId AND i.ItemTypeId = 2) THEN 2 ELSE 4 END)
+                    )
+                ) t5
+                LEFT JOIN W_MasterItem t3 ON t5.ItemId = t3.ItemID
+                LEFT JOIN W_MasterItemType it ON t3.ItemTypeId = it.ItemTypeId
+                LEFT JOIN W_MasterUnit mu ON t5.Unit = mu.UnitId
+                LEFT JOIN W_PurchaseChild t1 ON t5.IdFrom = t1.PurchaseItemID AND t5.StockById = 1
+                LEFT JOIN W_PurchaseMaster t2 ON t1.PurchaseID = t2.PurchaseID
+                LEFT JOIN A_MasterAccounts t4 ON t4.AccountId = t2.AccountID
+                LEFT JOIN W_Production prod ON t5.IdFrom = prod.ProductionId AND (t5.StockById = 2 OR t5.StockById = 4)
+                LEFT JOIN W_ItemStock stock ON t5.IdFrom = stock.StockID AND t5.StockById = 3
+                {whereClause}
+                GROUP BY 
+                    t5.BatchNo,
+                    t5.ExpiryDate,
+                    CASE
+                        WHEN t5.StockById = 1 THEN t2.GoodsRecievedDate
+                        WHEN t5.StockById = 2 OR t5.StockById = 4 THEN prod.CookingDate
+                        WHEN t5.StockById = 3 THEN stock.OpeningStockDate
+                    END,
+                    t3.ItemName,
+                    t3.ItemTypeId,
+                    it.ItemTypeName,
+                    CASE
+                        WHEN t5.StockById = 1 THEN t4.AccountName
+                        WHEN t5.StockById = 2 OR t5.StockById = 4 THEN 'Production'
+                        WHEN t5.StockById = 3 THEN 'Opening Stock'
+                        ELSE 'Manual Entry'
+                    END,
+                    mu.UnitName
+            ) AS grp";
 
         int totalRecords = 0;
         var items = new List<BatchWiseItemDto>();
@@ -271,7 +310,7 @@ public sealed class ReportRepository : IReportRepository
             int offset = (page - 1) * size;
             string dataSql = $@"
                 SELECT 
-                    t5.ItemStockByBatchId AS Id,
+                    MIN(t5.ItemStockByBatchId) AS Id,
                     t5.BatchNo,
                     t5.ExpiryDate,
                     CASE
@@ -288,9 +327,21 @@ public sealed class ReportRepository : IReportRepository
                         WHEN t5.StockById = 3 THEN 'Opening Stock'
                         ELSE 'Manual Entry'
                     END AS AccountName,
-                    t5.FinalQuantityLeft AS AvailableQty,
+                    SUM(CASE WHEN t5.FinalQuantityLeft < 0 THEN 0 ELSE t5.FinalQuantityLeft END) AS AvailableQty,
                     mu.UnitName
-                FROM Inv_ItemStockByBatch t5
+                FROM (
+                    SELECT b.ItemStockByBatchId, b.StockById, b.IdFrom, b.ItemId, b.Quantity, b.Unit, b.BatchNo, b.ExpiryDate, b.WarehouseId, b.FinalQuantityLeft
+                    FROM dbo.Inv_ItemStockByBatch b
+                    UNION ALL
+                    SELECT bom.ItemStockByBatchID as ItemStockByBatchId, 
+                           CASE WHEN bom.IDFrom = 0 THEN 3 WHEN EXISTS (SELECT 1 FROM dbo.W_MasterItem i WHERE i.ItemID = bom.ItemId AND i.ItemTypeId = 2) THEN 2 ELSE 4 END as StockById, 
+                           bom.IDFrom as IdFrom, bom.ItemId, bom.Quantity, bom.Unit, bom.BatchNo, CAST(bom.ExpiryDate AS date) as ExpiryDate, bom.WarehouseId, bom.FinalQuantityLeft
+                    FROM dbo.Inv_ItemStockByBatchForBOM bom
+                    WHERE not exists (
+                        SELECT 1 FROM dbo.Inv_ItemStockByBatch b2
+                        WHERE b2.IdFrom = bom.IDFrom and b2.ItemId = bom.ItemId and b2.BatchNo = bom.BatchNo and b2.StockById = (CASE WHEN bom.IDFrom = 0 THEN 3 WHEN EXISTS (SELECT 1 FROM dbo.W_MasterItem i WHERE i.ItemID = bom.ItemId AND i.ItemTypeId = 2) THEN 2 ELSE 4 END)
+                    )
+                ) t5
                 LEFT JOIN W_MasterItem t3 ON t5.ItemId = t3.ItemID
                 LEFT JOIN W_MasterItemType it ON t3.ItemTypeId = it.ItemTypeId
                 LEFT JOIN W_MasterUnit mu ON t5.Unit = mu.UnitId
@@ -300,7 +351,25 @@ public sealed class ReportRepository : IReportRepository
                 LEFT JOIN W_Production prod ON t5.IdFrom = prod.ProductionId AND (t5.StockById = 2 OR t5.StockById = 4)
                 LEFT JOIN W_ItemStock stock ON t5.IdFrom = stock.StockID AND t5.StockById = 3
                 {whereClause}
-                ORDER BY t5.ItemStockByBatchId {sortOrd}
+                GROUP BY 
+                    t5.BatchNo,
+                    t5.ExpiryDate,
+                    CASE
+                        WHEN t5.StockById = 1 THEN t2.GoodsRecievedDate
+                        WHEN t5.StockById = 2 OR t5.StockById = 4 THEN prod.CookingDate
+                        WHEN t5.StockById = 3 THEN stock.OpeningStockDate
+                    END,
+                    t3.ItemName,
+                    t3.ItemTypeId,
+                    it.ItemTypeName,
+                    CASE
+                        WHEN t5.StockById = 1 THEN t4.AccountName
+                        WHEN t5.StockById = 2 OR t5.StockById = 4 THEN 'Production'
+                        WHEN t5.StockById = 3 THEN 'Opening Stock'
+                        ELSE 'Manual Entry'
+                    END,
+                    mu.UnitName
+                ORDER BY MIN(t5.ItemStockByBatchId) {sortOrd}
                 OFFSET {offset} ROWS FETCH NEXT {size} ROWS ONLY";
 
             using (var dataCmd = new SqlCommand(dataSql, connection))

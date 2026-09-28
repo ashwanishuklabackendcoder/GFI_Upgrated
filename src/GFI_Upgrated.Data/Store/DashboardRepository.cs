@@ -134,7 +134,12 @@ public sealed class DashboardRepository : IDashboardRepository
     public async Task<List<DashboardBatchLookupDto>> GetProductionBatchesAsync(CancellationToken cancellationToken = default)
     {
         var list = new List<DashboardBatchLookupDto>();
-        const string query = "SELECT DISTINCT BatchNo FROM Inv_ItemStockByBatch WHERE ISNULL(BatchNo, '') <> '' ORDER BY BatchNo ASC";
+        const string query = @"
+            SELECT DISTINCT BatchNo FROM (
+                SELECT BatchNo FROM Inv_ItemStockByBatch WHERE ISNULL(BatchNo, '') <> ''
+                UNION
+                SELECT BatchNo FROM Inv_ItemStockByBatchForBOM WHERE ISNULL(BatchNo, '') <> ''
+            ) t ORDER BY BatchNo ASC";
         
         await using var connection = new SqlConnection(_connectionString);
         await using var command = new SqlCommand(query, connection)
@@ -200,6 +205,25 @@ public sealed class DashboardRepository : IDashboardRepository
             GROUP BY a.AccountName
             ORDER BY TotalAmount DESC";
 
+        // 5. Detailed Sales Query for Annual Performance & Sales Per Taste Per Year
+        const string detailedSalesQuery = @"
+            SELECT 
+                YEAR(m.InvoiceDate) AS [Year],
+                c.Quantity,
+                c.Amount,
+                m.CurrencyID,
+                mc.CurrencySymbol,
+                m.CurrencyConversion,
+                i.ItemName,
+                i.ItemCode,
+                i.ShortName
+            FROM A_InvoiceChild c
+            INNER JOIN A_InvoiceMaster m ON c.InvoiceID = m.InvoiceID
+            INNER JOIN W_MasterItem i ON c.ItemId = i.ItemID
+            LEFT JOIN A_MasterCurrency mc ON m.CurrencyID = mc.CurrencyID
+            WHERE m.InvoiceStatus = 'Submitted'
+            ORDER BY YEAR(m.InvoiceDate) DESC";
+
         await using (var connection = new SqlConnection(_connectionString))
         {
             await connection.OpenAsync(cancellationToken);
@@ -264,9 +288,129 @@ public sealed class DashboardRepository : IDashboardRepository
                     });
                 }
             }
+
+            // Fetch Detailed Sales for Annual Performance & Taste Reports
+            var salesRows = new List<(int Year, decimal Quantity, decimal Amount, bool IsUsd, decimal Liters, string TasteCode, decimal SrdAmount)>();
+            using (var cmd = new SqlCommand(detailedSalesQuery, connection))
+            await using (var reader = await cmd.ExecuteReaderAsync(cancellationToken))
+            {
+                while (await reader.ReadAsync(cancellationToken))
+                {
+                    int yr = Convert.ToInt32(reader["Year"]);
+                    decimal qty = Convert.ToDecimal(reader["Quantity"]);
+                    decimal amt = Convert.ToDecimal(reader["Amount"]);
+                    string symbol = reader["CurrencySymbol"]?.ToString() ?? string.Empty;
+                    double convRate = reader["CurrencyConversion"] != DBNull.Value ? Convert.ToDouble(reader["CurrencyConversion"]) : 1.0;
+                    if (convRate <= 0) convRate = 1.0;
+
+                    string itemName = reader["ItemName"]?.ToString() ?? string.Empty;
+                    string itemCode = reader["ItemCode"]?.ToString() ?? string.Empty;
+                    string shortName = reader["ShortName"]?.ToString() ?? string.Empty;
+
+                    bool isUsd = symbol.Contains("USD", StringComparison.OrdinalIgnoreCase) || symbol.Contains("$", StringComparison.OrdinalIgnoreCase);
+                    decimal volPerUnit = ParseItemVolumeLiters(shortName, itemCode, itemName);
+                    decimal liters = qty * volPerUnit;
+                    string taste = ParseTasteCode(shortName, itemCode, itemName);
+
+                    decimal srdAmount = isUsd ? (decimal)((double)amt * convRate) : amt;
+
+                    salesRows.Add((yr, qty, amt, isUsd, liters, taste, srdAmount));
+                }
+            }
+
+            // Build Annual Performance Report
+            var yearGroups = salesRows.GroupBy(r => r.Year).OrderByDescending(g => g.Key);
+            foreach (var g in yearGroups)
+            {
+                var srdItems = g.Where(r => !r.IsUsd).ToList();
+                var usdItems = g.Where(r => r.IsUsd).ToList();
+
+                result.AnnualPerformance.Add(new AnnualSalesPerformanceDto
+                {
+                    Year = g.Key,
+                    SrdBottles = srdItems.Sum(r => r.Quantity),
+                    SrdLiters = srdItems.Sum(r => r.Liters),
+                    SrdValue = srdItems.Sum(r => r.Amount),
+                    UsdBottles = usdItems.Sum(r => r.Quantity),
+                    UsdLiters = usdItems.Sum(r => r.Liters),
+                    UsdValue = usdItems.Sum(r => r.Amount),
+                    TotalSalesSrd = g.Sum(r => r.SrdAmount)
+                });
+            }
+
+            // Build Sales Per Taste Per Year Report
+            var allTastes = salesRows.Select(r => r.TasteCode).Where(t => t != "OTHER").Distinct().OrderBy(t => t).ToList();
+            if (salesRows.Any(r => r.TasteCode == "OTHER")) allTastes.Add("OTHER");
+            result.AllTasteCodes = allTastes;
+
+            foreach (var g in yearGroups)
+            {
+                var tasteMap = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
+                foreach (var t in allTastes) tasteMap[t] = 0m;
+
+                foreach (var r in g)
+                {
+                    if (tasteMap.ContainsKey(r.TasteCode))
+                    {
+                        tasteMap[r.TasteCode] += r.Liters;
+                    }
+                    else
+                    {
+                        tasteMap[r.TasteCode] = r.Liters;
+                    }
+                }
+
+                result.SalesPerTastePerYear.Add(new SalesPerTastePerYearDto
+                {
+                    Year = g.Key,
+                    TotalLiters = g.Sum(r => r.Liters),
+                    TasteLiters = tasteMap
+                });
+            }
         }
 
         return result;
+    }
+
+    private static decimal ParseItemVolumeLiters(string? shortName, string? itemCode, string? itemName)
+    {
+        var text = $"{shortName} {itemCode} {itemName}".ToLowerInvariant();
+
+        if (text.Contains("350ml") || text.Contains("350_ml")) return 0.35m;
+        if (text.Contains("250ml") || text.Contains("250_ml")) return 0.25m;
+        if (text.Contains("500ml") || text.Contains("500_ml")) return 0.50m;
+        if (text.Contains("750ml") || text.Contains("750_ml")) return 0.75m;
+        if (text.Contains("1000ml") || text.Contains("1000_ml") || text.Contains("1ltr") || text.Contains("1_ltr")) return 1.0m;
+        if (text.Contains("2ltr") || text.Contains("2_ltr")) return 2.0m;
+        if (text.Contains("4ltr") || text.Contains("4_ltr")) return 4.0m;
+        if (text.Contains("5ltr") || text.Contains("5_ltr")) return 5.0m;
+        if (text.Contains("10ltr") || text.Contains("10_ltr")) return 10.0m;
+        if (text.Contains("20ltr") || text.Contains("20_ltr")) return 20.0m;
+        if (text.Contains("200ltr") || text.Contains("200_ltr")) return 200.0m;
+
+        var match = System.Text.RegularExpressions.Regex.Match(text, @"(\d+(?:\.\d+)?)\s*(ml|ltr|liter|l)\b");
+        if (match.Success && decimal.TryParse(match.Groups[1].Value, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var num))
+        {
+            var unit = match.Groups[2].Value;
+            if (unit == "ml") return num / 1000m;
+            return num;
+        }
+
+        return 1.0m;
+    }
+
+    private static string ParseTasteCode(string? shortName, string? itemCode, string? itemName)
+    {
+        var str = !string.IsNullOrWhiteSpace(shortName) ? shortName : (!string.IsNullOrWhiteSpace(itemCode) ? itemCode : itemName);
+        if (string.IsNullOrWhiteSpace(str)) return "OTHER";
+
+        var parts = str.Trim().Split(new[] { '_', ' ', '-' }, StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length > 0)
+        {
+            var code = parts[0].ToUpperInvariant();
+            if (code.Length >= 2 && code.Length <= 5) return code;
+        }
+        return "OTHER";
     }
 
     private async Task<DataTable> ExecuteDataTableAsync(string storedProcedure, IEnumerable<SqlParameter> parameters, CancellationToken cancellationToken)

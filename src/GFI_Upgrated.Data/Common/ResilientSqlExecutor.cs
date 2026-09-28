@@ -81,7 +81,8 @@ namespace GFI_Upgrated.Data.Common
                 await using var connection = new SqlConnection(connectionString);
                 await using var command = new SqlCommand(storedProcedure, connection)
                 {
-                    CommandType = CommandType.StoredProcedure
+                    CommandType = CommandType.StoredProcedure,
+                    CommandTimeout = 120
                 };
 
                 foreach (var parameter in parameters)
@@ -105,7 +106,8 @@ namespace GFI_Upgrated.Data.Common
                 await using var connection = new SqlConnection(connectionString);
                 await using var command = new SqlCommand(storedProcedure, connection)
                 {
-                    CommandType = CommandType.StoredProcedure
+                    CommandType = CommandType.StoredProcedure,
+                    CommandTimeout = 120
                 };
 
                 foreach (var parameter in parameters)
@@ -127,7 +129,8 @@ namespace GFI_Upgrated.Data.Common
                 await using var connection = new SqlConnection(connectionString);
                 await using var command = new SqlCommand(sql, connection)
                 {
-                    CommandType = CommandType.Text
+                    CommandType = CommandType.Text,
+                    CommandTimeout = 120
                 };
 
                 foreach (var parameter in parameters)
@@ -151,7 +154,8 @@ namespace GFI_Upgrated.Data.Common
                 await using var connection = new SqlConnection(connectionString);
                 await using var command = new SqlCommand(sql, connection)
                 {
-                    CommandType = CommandType.Text
+                    CommandType = CommandType.Text,
+                    CommandTimeout = 120
                 };
 
                 foreach (var parameter in parameters)

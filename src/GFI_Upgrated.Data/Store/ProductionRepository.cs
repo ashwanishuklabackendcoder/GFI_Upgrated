@@ -57,7 +57,19 @@ public sealed class ProductionRepository : IProductionRepository
         {
             var table = await ExecuteDataTableAsync("W_ProductionSelectAll", parameters, cancellationToken);
             var row = table.AsEnumerable().FirstOrDefault();
-            return row == null ? null : MapProduction(row);
+            if (row == null) return null;
+
+            var dto = MapProduction(row);
+            if (string.IsNullOrWhiteSpace(dto.PackedCountryName) && !string.IsNullOrWhiteSpace(dto.PackedCountry))
+            {
+                var countries = await GetCountriesLookupAsync(cancellationToken);
+                var match = countries.FirstOrDefault(c => c.CountryId.ToString() == dto.PackedCountry || (c.CountryName != null && c.CountryName.Equals(dto.PackedCountry, StringComparison.OrdinalIgnoreCase)));
+                if (match != null)
+                {
+                    dto.PackedCountryName = match.CountryName;
+                }
+            }
+            return dto;
         }
         catch (Exception ex)
         {

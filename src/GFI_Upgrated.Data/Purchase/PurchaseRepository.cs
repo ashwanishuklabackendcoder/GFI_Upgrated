@@ -477,6 +477,8 @@ namespace GFI_Upgrated.Data.Purchase
                                     new SqlParameter("@ExpiryDate", SqlDbType.Date) { Value = (object?)item.ExpiryDate ?? DBNull.Value },
                                     new SqlParameter("@WarehouseId", SqlDbType.BigInt) { Value = (object?)item.WarehouseId ?? DBNull.Value },
                                     new SqlParameter("@IdFrom", SqlDbType.BigInt) { Value = purchaseItemId },
+                                    new SqlParameter("@CreatedBy", SqlDbType.NVarChar, 200) { Value = (object?)purchase.CreatedBy ?? DBNull.Value },
+                                    new SqlParameter("@UpdatedBy", SqlDbType.NVarChar, 200) { Value = (object?)purchase.UpdatedBy ?? DBNull.Value },
                                     new SqlParameter("@ReturnVal", SqlDbType.Int) { Direction = ParameterDirection.Output }
                                 };
 

@@ -347,7 +347,11 @@ public sealed class FinishedProductRepository : IFinishedProductRepository
                 BatchNo = row.SafeString("BatchNo"),
                 Amount = row.SafeDouble("Amount", "StockValue"),
                 StockById = row.Table.Columns.Contains("StockById") ? row.SafeInt("StockById") : 0,
-                ExpiryDate = row.SafeDateTime("ExpiryDate")
+                ExpiryDate = row.SafeDateTime("ExpiryDate"),
+                CreatedBy = row.SafeString("CreatedBy"),
+                CreatedDate = row.Table.Columns.Contains("CreatedDate") ? row.SafeDateTime("CreatedDate") : null,
+                ModifiedBy = row.SafeString("ModifiedBy"),
+                ModifiedDate = row.Table.Columns.Contains("ModifiedDate") ? row.SafeDateTime("ModifiedDate") : null
             });
         }
 
@@ -368,6 +372,7 @@ public sealed class FinishedProductRepository : IFinishedProductRepository
             new SqlParameter("@ExpiryDate", SqlDbType.DateTime) { Value = (object?)request.ExpiryDate ?? DBNull.Value },
             new SqlParameter("@StockById", SqlDbType.Int) { Value = 3 }, // Map as Opening Stock type
             new SqlParameter("@CreatedBy", SqlDbType.NVarChar, 100) { Value = request.CreatedBy },
+            new SqlParameter("@UpdatedBy", SqlDbType.NVarChar, 100) { Value = request.CreatedBy },
 
             new SqlParameter("@DeletedBatchIds", SqlDbType.NVarChar, -1) { Value = (object?)deletedBatchIds ?? DBNull.Value },
             new SqlParameter("@Amount", SqlDbType.Float) { Value = request.Amount },

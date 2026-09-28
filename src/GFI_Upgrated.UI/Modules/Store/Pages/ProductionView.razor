@@ -81,7 +81,7 @@ else
 
             <MudItem xs="12" sm="6" md="3">
                 <MudText Typo="Typo.caption" Color="Color.Secondary">Packed Country</MudText>
-                <MudText Typo="Typo.body1" Style="font-weight: 500;">@(string.IsNullOrWhiteSpace(_header.PackedCountryName) ? (string.IsNullOrWhiteSpace(_header.PackedCountry) ? "-" : _header.PackedCountry) : _header.PackedCountryName)</MudText>
+                <MudText Typo="Typo.body1" Style="font-weight: 500;">@_packedCountryName</MudText>
             </MudItem>
 
             <MudItem xs="12" sm="6" md="3">
@@ -208,6 +208,7 @@ else
     private string _warehouseName = string.Empty;
     private string _kettleName = string.Empty;
     private string _employeeNames = string.Empty;
+    private string _packedCountryName = string.Empty;
 
     protected override async Task OnInitializedAsync()
     {
@@ -224,10 +225,24 @@ else
             {
                 var boms = await ApiClient.GetBomsLookupAsync();
                 var whs = await ApiClient.GetWarehousesLookupAsync();
+                var countries = await ApiClient.GetCountriesLookupAsync();
                 
                 _bomName = boms.FirstOrDefault(b => b.BomId == _header.BomId)?.BomName ?? "Unknown";
                 _warehouseName = whs.FirstOrDefault(w => w.WarehouseId == _header.WarehouseId)?.WarehouseName ?? "Unknown";
                 _kettleName = _header.KettleNumber ?? "Unknown";
+
+                if (string.IsNullOrWhiteSpace(_header.PackedCountryName) && !string.IsNullOrWhiteSpace(_header.PackedCountry))
+                {
+                    var cMatch = countries.FirstOrDefault(c => c.CountryId.ToString() == _header.PackedCountry || (c.CountryName != null && c.CountryName.Equals(_header.PackedCountry, StringComparison.OrdinalIgnoreCase)));
+                    if (cMatch != null)
+                    {
+                        _header.PackedCountryName = cMatch.CountryName;
+                    }
+                }
+
+                _packedCountryName = !string.IsNullOrWhiteSpace(_header.PackedCountryName) 
+                    ? _header.PackedCountryName 
+                    : (!string.IsNullOrWhiteSpace(_header.PackedCountry) ? _header.PackedCountry : "-");
 
                 try
                 {

@@ -113,9 +113,13 @@ BEGIN
     DECLARE @Top INT = ((@CurrentPage - 1) * @RecordPerPage) + 1;        
     DECLARE @Bottom INT = @CurrentPage * @RecordPerPage;        
 
-    DECLARE @QualifiedSortColumn varchar(100) = @SortColumn
+    DECLARE @QualifiedSortColumn varchar(200) = @SortColumn
     IF @SortColumn = 'ItemStockByBatchId' OR @SortColumn = 'StockById' OR @SortColumn = 'IdFrom' OR @SortColumn = 'ItemId' OR @SortColumn = 'Quantity' OR @SortColumn = 'Unit' OR @SortColumn = 'BatchNo' OR @SortColumn = 'ExpiryDate' OR @SortColumn = 'WarehouseId' OR @SortColumn = 'FinalQuantityLeft' OR @SortColumn = 'Amount'
         SET @QualifiedSortColumn = 'Inv_ItemStockByBatch.' + @SortColumn
+    ELSE IF @SortColumn = 'IssuedStock'
+        SET @QualifiedSortColumn = 'ISNULL((SELECT SUM(u.Quantity) FROM dbo.Inv_ItemStockUsed u LEFT JOIN dbo.W_PreProcessing p ON u.UsedFor = 2 AND u.UsedForId = p.PreProcessingId LEFT JOIN dbo.W_Production pr ON u.UsedFor = 3 AND u.UsedForId = pr.ProductionId WHERE u.ItemStockByBatchId = Inv_ItemStockByBatch.ItemStockByBatchId AND (u.UsedFor = 1 OR (u.UsedFor = 2 AND ISNULL(p.IsComplete, 0) = 1) OR (u.UsedFor = 3 AND ISNULL(pr.IsComplete, 0) = 1))), 0)'
+    ELSE IF @SortColumn = 'StockValue'
+        SET @QualifiedSortColumn = 'CAST(ROUND((ISNULL(Inv_ItemStockByBatch.Amount, 0) / NULLIF(Inv_ItemStockByBatch.Quantity, 0)) * CASE WHEN Inv_ItemStockByBatch.FinalQuantityLeft < 0 THEN 0 ELSE Inv_ItemStockByBatch.FinalQuantityLeft END, 2) AS float)'
         
     SET @RecQuery='SELECT * FROM (
         SELECT ROW_NUMBER() OVER (ORDER BY ' + @QualifiedSortColumn + ' ' + @SortOrd + ') AS RowNumber, 
@@ -123,8 +127,15 @@ BEGIN
                Inv_ItemStockByBatch.ItemId, Inv_ItemStockByBatch.Quantity, Inv_ItemStockByBatch.Unit, Inv_ItemStockByBatch.BatchNo, 
                convert(varchar(12),Inv_ItemStockByBatch.ExpiryDate,106) ExpiryDate, Inv_ItemStockByBatch.WarehouseId, Inv_ItemStockByBatch.FinalQuantityLeft,
                ItemName, UnitName, WarehouseName,
-               (Inv_ItemStockByBatch.Quantity - Inv_ItemStockByBatch.FinalQuantityLeft) AS IssuedStock,
-               Inv_ItemStockByBatch.Amount AS StockValue
+               ISNULL((
+                   SELECT SUM(u.Quantity) 
+                   FROM dbo.Inv_ItemStockUsed u 
+                   LEFT JOIN dbo.W_PreProcessing p ON u.UsedFor = 2 AND u.UsedForId = p.PreProcessingId 
+                   LEFT JOIN dbo.W_Production pr ON u.UsedFor = 3 AND u.UsedForId = pr.ProductionId 
+                   WHERE u.ItemStockByBatchId = Inv_ItemStockByBatch.ItemStockByBatchId 
+                   AND (u.UsedFor = 1 OR (u.UsedFor = 2 AND ISNULL(p.IsComplete, 0) = 1) OR (u.UsedFor = 3 AND ISNULL(pr.IsComplete, 0) = 1))
+               ), 0) AS IssuedStock,
+               CAST(ROUND((ISNULL(Inv_ItemStockByBatch.Amount, 0) / NULLIF(Inv_ItemStockByBatch.Quantity, 0)) * CASE WHEN Inv_ItemStockByBatch.FinalQuantityLeft < 0 THEN 0 ELSE Inv_ItemStockByBatch.FinalQuantityLeft END, 2) AS float) AS StockValue
         FROM (
             SELECT b.ItemStockByBatchId, b.StockById, b.IdFrom, b.ItemId, b.Quantity, b.Unit, b.BatchNo, b.ExpiryDate, b.WarehouseId, 
                    b.FinalQuantityLeft, b.Amount 

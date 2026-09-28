@@ -235,6 +235,8 @@
                         <MudTh>Warehouse</MudTh>
                         <MudTh>Expiry</MudTh>
                         <MudTh>Source</MudTh>
+                        <MudTh>Created By</MudTh>
+                        <MudTh>Last Edited By</MudTh>
                         <MudTh Style="text-align: center;">Action</MudTh>
                     </HeaderContent>
                     <RowTemplate>
@@ -247,6 +249,20 @@
                             <MudChip T="string" Color="@(context.StockById == 1 ? Color.Info : (context.StockById == 2 || context.StockById == 4) ? Color.Warning : Color.Success)" Size="Size.Small">
                                 @(context.StockById == 1 ? "Purchase" : (context.StockById == 2 || context.StockById == 4) ? "Production / Make Plan" : "Opening Stock")
                             </MudChip>
+                        </MudTd>
+                        <MudTd DataLabel="Created By">
+                            @if (!string.IsNullOrEmpty(context.CreatedBy))
+                            {
+                                <div>@context.CreatedBy</div>
+                                @if (context.CreatedDate.HasValue) { <div style="font-size: 0.8em; color: gray;">@context.CreatedDate.Value.ToShortDateString() @context.CreatedDate.Value.ToShortTimeString()</div> }
+                            }
+                        </MudTd>
+                        <MudTd DataLabel="Last Edited By">
+                            @if (!string.IsNullOrEmpty(context.ModifiedBy))
+                            {
+                                <div>@context.ModifiedBy</div>
+                                @if (context.ModifiedDate.HasValue) { <div style="font-size: 0.8em; color: gray;">@context.ModifiedDate.Value.ToShortDateString() @context.ModifiedDate.Value.ToShortTimeString()</div> }
+                            }
                         </MudTd>
                         <MudTd Style="text-align: center;">
                             @if (context.StockById == 3 || context.StockById == 0)

@@ -228,6 +228,8 @@
                         <MudTh>Expiry</MudTh>
                         <MudTh>Amount (SRD)</MudTh>
                         <MudTh>Source</MudTh>
+                        <MudTh>Created By</MudTh>
+                        <MudTh>Last Edited By</MudTh>
                         <MudTh Style="text-align: center;">Action</MudTh>
                     </HeaderContent>
                     <RowTemplate>
@@ -240,6 +242,20 @@
                             <MudChip T="string" Color="@(context.StockById == 1 ? Color.Info : (context.StockById == 2 || context.StockById == 4) ? Color.Warning : Color.Success)" Size="Size.Small">
                                 @(context.StockById == 1 ? "Purchase" : (context.StockById == 2 || context.StockById == 4) ? "Production / Make Plan" : "Opening Stock")
                             </MudChip>
+                        </MudTd>
+                        <MudTd DataLabel="Created By">
+                            @if (!string.IsNullOrEmpty(context.CreatedBy))
+                            {
+                                <div>@context.CreatedBy</div>
+                                @if (context.CreatedDate.HasValue) { <div style="font-size: 0.8em; color: gray;">@context.CreatedDate.Value.ToShortDateString() @context.CreatedDate.Value.ToShortTimeString()</div> }
+                            }
+                        </MudTd>
+                        <MudTd DataLabel="Last Edited By">
+                            @if (!string.IsNullOrEmpty(context.ModifiedBy))
+                            {
+                                <div>@context.ModifiedBy</div>
+                                @if (context.ModifiedDate.HasValue) { <div style="font-size: 0.8em; color: gray;">@context.ModifiedDate.Value.ToShortDateString() @context.ModifiedDate.Value.ToShortTimeString()</div> }
+                            }
                         </MudTd>
                         <MudTd Style="text-align: center;">
                             @if (context.StockById == 3 || context.StockById == 0)
@@ -949,6 +965,23 @@
             });
     }
 
+    private bool IsBatchNumberCompatibleWithItem(string? batchNo, string? itemName)
+    {
+        if (string.IsNullOrWhiteSpace(batchNo) || string.IsNullOrWhiteSpace(itemName)) return true;
+        string b = batchNo.Trim();
+        string name = itemName.Trim();
+
+        if (b.StartsWith("IM_", StringComparison.OrdinalIgnoreCase) && !name.StartsWith("Indo marinade", StringComparison.OrdinalIgnoreCase)) return false;
+        if (b.StartsWith("BB_", StringComparison.OrdinalIgnoreCase) && !name.StartsWith("Barbeque Topping", StringComparison.OrdinalIgnoreCase)) return false;
+        if (b.StartsWith("ZZ_", StringComparison.OrdinalIgnoreCase) && !name.StartsWith("Zoet-Zout marinade", StringComparison.OrdinalIgnoreCase)) return false;
+        if (b.StartsWith("SB_", StringComparison.OrdinalIgnoreCase) && !name.StartsWith("Spicy Barbeque Topping", StringComparison.OrdinalIgnoreCase)) return false;
+        if (b.StartsWith("PI_", StringComparison.OrdinalIgnoreCase) && !name.StartsWith("Pikant", StringComparison.OrdinalIgnoreCase)) return false;
+        if (b.StartsWith("PL_", StringComparison.OrdinalIgnoreCase) && !name.StartsWith("Pikant Less", StringComparison.OrdinalIgnoreCase)) return false;
+        if (b.StartsWith("ZL_", StringComparison.OrdinalIgnoreCase) && !name.StartsWith("Zoet-Zout Less", StringComparison.OrdinalIgnoreCase)) return false;
+
+        return true;
+    }
+
     private async Task<bool> SaveBatch()
     {
         if (_batchModel.WarehouseId == 0)
@@ -960,6 +993,12 @@
         if (_batchModel.Quantity < 0)
         {
             Snackbar.Add("Quantity cannot be negative.", Severity.Warning);
+            return false;
+        }
+
+        if (!IsBatchNumberCompatibleWithItem(_batchModel.BatchNo, _model.ItemName))
+        {
+            Snackbar.Add($"Batch number '{_batchModel.BatchNo}' does not match product '{_model.ItemName}'. Please enter a valid batch number for this product.", Severity.Warning);
             return false;
         }
 

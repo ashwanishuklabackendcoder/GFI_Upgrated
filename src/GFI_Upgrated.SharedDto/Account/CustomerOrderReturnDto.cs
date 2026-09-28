@@ -26,9 +26,11 @@ namespace GFI_Upgrated.SharedDto.Account
     public class ItemStockByBatchForBOMDto
     {
         public long ItemStockByBatchID { get; set; }
+        public long ItemId { get; set; }
         public string? BatchNo { get; set; }
         public double FinalQuantityLeft { get; set; }
         public string? ExpiryDateBOM { get; set; }
+        public int StockById { get; set; }
     }
 
     public class ItemStockUsedForBOMDto

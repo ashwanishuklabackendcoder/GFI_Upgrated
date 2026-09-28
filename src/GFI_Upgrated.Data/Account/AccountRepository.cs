@@ -846,9 +846,11 @@ WHERE InvoiceID = @InvoiceID";
                 list.Add(new ItemStockByBatchForBOMDto
                 {
                     ItemStockByBatchID = Convert.ToInt64(row["ItemStockByBatchId"]),
+                    ItemId = row.Table.Columns.Contains("ItemId") && row["ItemId"] != DBNull.Value ? Convert.ToInt64(row["ItemId"]) : 0,
                     BatchNo = row["BatchNo"]?.ToString(),
                     FinalQuantityLeft = Convert.ToDouble(row["FinalQuantityLeft"] != DBNull.Value ? row["FinalQuantityLeft"] : 0.0),
-                    ExpiryDateBOM = row.Table.Columns.Contains("ExpiryDate") ? row["ExpiryDate"]?.ToString() : null
+                    ExpiryDateBOM = row.Table.Columns.Contains("ExpiryDate") ? row["ExpiryDate"]?.ToString() : null,
+                    StockById = row.Table.Columns.Contains("StockById") && row["StockById"] != DBNull.Value ? Convert.ToInt32(row["StockById"]) : 0
                 });
             }
             var consolidated = list
@@ -857,9 +859,11 @@ WHERE InvoiceID = @InvoiceID";
                 .Select(g => new ItemStockByBatchForBOMDto
                 {
                     ItemStockByBatchID = g.First().ItemStockByBatchID,
+                    ItemId = g.First().ItemId,
                     BatchNo = g.Key,
                     FinalQuantityLeft = g.Sum(x => x.FinalQuantityLeft),
-                    ExpiryDateBOM = g.FirstOrDefault(x => !string.IsNullOrEmpty(x.ExpiryDateBOM))?.ExpiryDateBOM
+                    ExpiryDateBOM = g.FirstOrDefault(x => !string.IsNullOrEmpty(x.ExpiryDateBOM))?.ExpiryDateBOM,
+                    StockById = g.First().StockById
                 })
                 .Where(b => b.FinalQuantityLeft > 0)
                 .ToList();

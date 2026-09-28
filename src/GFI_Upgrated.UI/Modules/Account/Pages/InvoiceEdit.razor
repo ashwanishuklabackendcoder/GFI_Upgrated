@@ -723,7 +723,13 @@
     {
         if (_itemBatches.TryGetValue(itemId, out var batches))
         {
-            return batches.Select(x => new SearchableSelect<ItemStockByBatchForBOMDto>.SelectItemDto<ItemStockByBatchForBOMDto>
+            // Strictly filter batches to match the selected item
+            var filtered = batches.Where(b => b.ItemId == itemId);
+
+            // Exclude Pre-Processing / Semi-Finished Product batches (StockById = 2) for sales invoices
+            filtered = filtered.Where(b => b.StockById != 2);
+
+            return filtered.Select(x => new SearchableSelect<ItemStockByBatchForBOMDto>.SelectItemDto<ItemStockByBatchForBOMDto>
             {
                 Value = x,
                 Text = $"{x.BatchNo} (Avail: {x.FinalQuantityLeft})"
