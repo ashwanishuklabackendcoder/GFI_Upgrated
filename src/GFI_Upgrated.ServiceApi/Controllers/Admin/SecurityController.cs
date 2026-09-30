@@ -871,19 +871,9 @@ public sealed class SecurityController : ControllerBase
         [FromQuery] string? loginName,
         [FromQuery] string? eventName,
         [FromQuery] string? eventModule,
-        [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 10,
-        [FromQuery] string sortCol = "DT",
-        [FromQuery] string sortOrd = "DESC",
+        [FromQuery] PagedRequest request,
         CancellationToken cancellationToken = default)
     {
-        var request = new PagedRequest
-        {
-            CurrentPage = page,
-            RecordPerPage = pageSize,
-            SortColumn = sortCol,
-            SortType = sortOrd
-        };
 
         var result = await _service.GetUserActivityLogsAsync(userName, loginName, eventName, eventModule, request, cancellationToken);
         return Ok(new ApiEnvelope<PagedResult<UserActivityLogDto>>
@@ -901,20 +891,9 @@ public sealed class SecurityController : ControllerBase
         [FromQuery] long? loginId,
         [FromQuery] DateTime? fromDate,
         [FromQuery] DateTime? toDate,
-        [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 10,
-        [FromQuery] string sortCol = "Z_UsersLoginsLog.LoginLogID",
-        [FromQuery] string sortOrd = "DESC",
+        [FromQuery] PagedRequest request,
         CancellationToken cancellationToken = default)
     {
-        var request = new PagedRequest
-        {
-            CurrentPage = page,
-            RecordPerPage = pageSize,
-            SortColumn = sortCol,
-            SortType = sortOrd
-        };
-
         var result = await _service.GetLoginLogsAsync(searchText, loginId, fromDate, toDate, request, cancellationToken);
         return Ok(new ApiEnvelope<PagedResult<LoginLogDto>>
         {
@@ -946,6 +925,7 @@ public sealed class SecurityController : ControllerBase
         {
             new Claim(ClaimTypes.NameIdentifier, user.LoginId.ToString()),
             new Claim(ClaimTypes.Name, user.LoginName),
+            new Claim("FullName", $"{user.FirstName} {user.LastName}".Trim()),
             new Claim(ClaimTypes.Role, user.RoleId.ToString()),
             new Claim("IsAdmin", user.IsAdmin.ToString().ToLower())
         };

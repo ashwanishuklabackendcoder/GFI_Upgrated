@@ -91,11 +91,14 @@ namespace GFI_Upgrated.Data.Common
                 }
 
                 await connection.OpenAsync(ct);
-                await using var reader = await command.ExecuteReaderAsync(ct);
-                var table = new DataTable();
-                table.Load(reader);
-                MapOutputParametersBack(parameters, command);
-                return table;
+                await using (var reader = await command.ExecuteReaderAsync(ct))
+                {
+                    var table = new DataTable();
+                    table.Load(reader);
+                    reader.Close(); // Explicitly close to populate output parameters
+                    MapOutputParametersBack(parameters, command);
+                    return table;
+                }
             }, cancellationToken);
         }
 
@@ -139,11 +142,14 @@ namespace GFI_Upgrated.Data.Common
                 }
 
                 await connection.OpenAsync(ct);
-                await using var reader = await command.ExecuteReaderAsync(ct);
-                var table = new DataTable();
-                table.Load(reader);
-                MapOutputParametersBack(parameters, command);
-                return table;
+                await using (var reader = await command.ExecuteReaderAsync(ct))
+                {
+                    var table = new DataTable();
+                    table.Load(reader);
+                    reader.Close(); // Explicitly close to populate output parameters
+                    MapOutputParametersBack(parameters, command);
+                    return table;
+                }
             }, cancellationToken);
         }
 

@@ -126,12 +126,34 @@
     [SupplyParameterFromQuery]
     public bool? FromItemStock { get; set; }
 
+    [SupplyParameterFromQuery]
+    public string? BatchNo { get; set; }
+
+    [SupplyParameterFromQuery]
+    public long? ItemTypeId { get; set; }
+
+    [SupplyParameterFromQuery]
+    public bool? InStockOnly { get; set; }
+
+    private void UpdateUrl()
+    {
+        var uri = Navigation.GetUriWithQueryParameters(new Dictionary<string, object?>
+        {
+            { "ItemId", _selectedItem?.ItemId },
+            { "BatchNo", string.IsNullOrEmpty(_batchNumber) ? null : _batchNumber },
+            { "ItemTypeId", _selectedItemTypeId == 0 ? null : _selectedItemTypeId },
+            { "InStockOnly", _inStockOnly ? true : (bool?)null }
+        });
+        Navigation.NavigateTo(uri, replace: true);
+    }
+
     private void BackToItemStock()
     {
         Navigation.NavigateTo($"/store/reportitemstock?itemId={ItemId}");
     }
 
     private bool _loading;
+    private bool _isInitialized = false;
     private string _currentSortDirection = "DESC";
     private List<RawMaterialDto> _items = new();
 
@@ -152,34 +174,70 @@
             {
                 _selectedItem = _items.FirstOrDefault(x => x.ItemId == ItemId.Value);
             }
+
+            if (!string.IsNullOrEmpty(BatchNo))
+            {
+                _batchNumber = BatchNo;
+            }
+
+            if (ItemTypeId.HasValue)
+            {
+                _selectedItemTypeId = ItemTypeId.Value;
+            }
+
+            if (InStockOnly.HasValue)
+            {
+                _inStockOnly = InStockOnly.Value;
+            }
         }
         catch (Exception ex)
         {
             Snackbar.Add($"Error loading items: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isInitialized = true;
+            if (_table != null)
+            {
+                await _table.ReloadServerData();
+            }
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && _isInitialized && _table != null)
+        {
+            // Just in case it was already initialized before first render
+            await _table.ReloadServerData();
         }
     }
 
     private async Task OnBatchNumberChanged(string val)
     {
         _batchNumber = val;
+        UpdateUrl();
         if (_table != null) await _table.ReloadServerData();
     }
 
     private async Task OnItemChanged(RawMaterialDto? val)
     {
         _selectedItem = val;
+        UpdateUrl();
         if (_table != null) await _table.ReloadServerData();
     }
 
     private async Task OnItemTypeChanged(long? val)
     {
         _selectedItemTypeId = val;
+        UpdateUrl();
         if (_table != null) await _table.ReloadServerData();
     }
 
     private async Task OnInStockOnlyChanged(bool val)
     {
         _inStockOnly = val;
+        UpdateUrl();
         if (_table != null) await _table.ReloadServerData();
     }
 
@@ -208,6 +266,11 @@
 
     private async Task<TableData<BatchWiseItemDto>> LoadServerDataAsync(TableState state, CancellationToken cancellationToken)
     {
+        if (!_isInitialized)
+        {
+            return new TableData<BatchWiseItemDto> { Items = Array.Empty<BatchWiseItemDto>(), TotalItems = 0 };
+        }
+
         _loading = true;
         try
         {
