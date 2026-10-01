@@ -7,7 +7,6 @@ using System.Collections.Generic;
 using System.Data;
 using System.Linq;
 using System.Threading.Tasks;
-using System.Transactions;
 
 namespace GFI_Upgrated.Data.Account
 {
@@ -986,10 +985,6 @@ WHERE InvoiceID = @InvoiceID";
 
         public async Task<bool> ProcessInvoiceStockAllocationAsync(long invoiceId, string invoiceStatus, List<InvoiceItemDto> items)
         {
-            using var scope = new TransactionScope(TransactionScopeOption.Required, 
-                new TransactionOptions { IsolationLevel = System.Transactions.IsolationLevel.ReadCommitted }, 
-                TransactionScopeAsyncFlowOption.Enabled);
-
             // First, always revert any existing stock deduction for this invoice ID
             await RevertInvoiceStockAsync(invoiceId);
 
@@ -997,7 +992,6 @@ WHERE InvoiceID = @InvoiceID";
             // No stock will be deducted for any other status (Draft, Paid, Unpaid, etc.).
             if (!string.Equals(invoiceStatus, "Submitted", StringComparison.OrdinalIgnoreCase))
             {
-                scope.Complete();
                 return true;
             }
 
@@ -1043,7 +1037,6 @@ WHERE InvoiceID = @InvoiceID";
                 }
             }
 
-            scope.Complete();
             return true;
         }
 

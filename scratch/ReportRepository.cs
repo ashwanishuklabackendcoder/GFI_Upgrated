@@ -293,7 +293,21 @@ public sealed class ReportRepository : IReportRepository
                     mu.UnitName
             ) AS grp";
 
-        int offset = (page - 1) * size;
+        int totalRecords = 0;
+        var items = new List<BatchWiseItemDto>();
+
+        await using (var connection = new SqlConnection(_connectionString))
+        {
+            await connection.OpenAsync(cancellationToken);
+
+            using (var countCmd = new SqlCommand(countSql, connection))
+            {
+                foreach (var p in parameters) countCmd.Parameters.Add((SqlParameter)((ICloneable)p).Clone());
+                var countRes = await countCmd.ExecuteScalarAsync(cancellationToken);
+                totalRecords = countRes != null && countRes != DBNull.Value ? Convert.ToInt32(countRes) : 0;
+            }
+
+            int offset = (page - 1) * size;
             string dataSql = $@"
                 SELECT 
                     MIN(t5.ItemStockByBatchId) AS Id,
@@ -358,50 +372,30 @@ public sealed class ReportRepository : IReportRepository
                 ORDER BY MIN(t5.ItemStockByBatchId) {sortOrd}
                 OFFSET {offset} ROWS FETCH NEXT {size} ROWS ONLY";
 
-            
-        int totalRecords = 0;
-        var items = new List<BatchWiseItemDto>();
-
-        var countTask = Task.Run(async () => 
-        {
-            await using var conn = new SqlConnection(_connectionString);
-            await conn.OpenAsync(cancellationToken);
-            using var countCmd = new SqlCommand(countSql, conn);
-            foreach (var p in parameters) countCmd.Parameters.Add((SqlParameter)((ICloneable)p).Clone());
-            var countRes = await countCmd.ExecuteScalarAsync(cancellationToken);
-            return countRes != null && countRes != DBNull.Value ? Convert.ToInt32(countRes) : 0;
-        });
-
-        var dataTask = Task.Run(async () => 
-        {
-            var resultItems = new List<BatchWiseItemDto>();
-            await using var conn = new SqlConnection(_connectionString);
-            await conn.OpenAsync(cancellationToken);
-            using var dataCmd = new SqlCommand(dataSql, conn);
-            foreach (var p in parameters) dataCmd.Parameters.Add((SqlParameter)((ICloneable)p).Clone());
-            await using var reader = await dataCmd.ExecuteReaderAsync(cancellationToken);
-            while (await reader.ReadAsync(cancellationToken))
+            using (var dataCmd = new SqlCommand(dataSql, connection))
             {
-                resultItems.Add(new BatchWiseItemDto
+                foreach (var p in parameters) dataCmd.Parameters.Add((SqlParameter)((ICloneable)p).Clone());
+                await using (var reader = await dataCmd.ExecuteReaderAsync(cancellationToken))
                 {
-                    Id = Convert.ToInt64(reader["Id"]),
-                    BatchNo = reader["BatchNo"]?.ToString(),
-                    ProcessingDate = reader["ProcessingDate"] != DBNull.Value ? Convert.ToDateTime(reader["ProcessingDate"]).ToString("yyyy-MM-dd") : null,
-                    ExpiryDate = reader["ExpiryDate"] != DBNull.Value ? Convert.ToDateTime(reader["ExpiryDate"]).ToString("yyyy-MM-dd") : null,
-                    ItemName = reader["ItemName"]?.ToString(),
-                    AccountName = reader["AccountName"]?.ToString(),
-                    AvailableQty = reader["AvailableQty"] != DBNull.Value ? Convert.ToDouble(reader["AvailableQty"]) : 0,
-                    UnitName = reader["UnitName"]?.ToString(),
-                    ItemTypeId = reader["ItemTypeId"] != DBNull.Value ? Convert.ToInt64(reader["ItemTypeId"]) : 0,
-                    ItemTypeName = reader["ItemTypeName"]?.ToString()
-                });
+                    while (await reader.ReadAsync(cancellationToken))
+                    {
+                        items.Add(new BatchWiseItemDto
+                        {
+                            Id = Convert.ToInt64(reader["Id"]),
+                            BatchNo = reader["BatchNo"]?.ToString(),
+                            ProcessingDate = reader["ProcessingDate"] != DBNull.Value ? Convert.ToDateTime(reader["ProcessingDate"]).ToString("yyyy-MM-dd") : null,
+                            ExpiryDate = reader["ExpiryDate"] != DBNull.Value ? Convert.ToDateTime(reader["ExpiryDate"]).ToString("yyyy-MM-dd") : null,
+                            ItemName = reader["ItemName"]?.ToString(),
+                            AccountName = reader["AccountName"]?.ToString(),
+                            AvailableQty = reader["AvailableQty"] != DBNull.Value ? Convert.ToDouble(reader["AvailableQty"]) : 0,
+                            UnitName = reader["UnitName"]?.ToString(),
+                            ItemTypeId = reader["ItemTypeId"] != DBNull.Value ? Convert.ToInt64(reader["ItemTypeId"]) : 0,
+                            ItemTypeName = reader["ItemTypeName"]?.ToString()
+                        });
+                    }
+                }
             }
-            return resultItems;
-        });
-
-        await Task.WhenAll(countTask, dataTask);
-        totalRecords = countTask.Result;
-        items = dataTask.Result;
+        }
 
         return new PagedResult<BatchWiseItemDto>
         {
