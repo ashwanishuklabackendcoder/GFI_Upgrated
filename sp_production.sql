@@ -1,4 +1,4 @@
-CREATE PROCEDURE [dbo].[Inv_ItemStockPreProcessingAndProductModify] 
+﻿CREATE PROCEDURE [dbo].[Inv_ItemStockPreProcessingAndProductModify] 
     @UsedFor int, 
     @UsedForId bigint, --PreProcessingID/ProductID 
     @CreatedBy nvarchar(200), 
@@ -32,7 +32,7 @@ BEGIN
             IF NOT EXISTS (SELECT 1 FROM dbo.W_ItemStock WHERE ItemID = @BomItemId) 
             BEGIN 
                 INSERT INTO W_ItemStock (OpeningQuantity, PurchasedQuantity, ProducedQuantity, ItemID, UnitId, IssuedQuantity, CreatedBy, FinalStock, OpeningStockDate, RemovedQuantity) 
-                SELECT 0, 0, @BomItemQty, B.ItemId, B.UnitId, 0, @CreatedBy, @BomItemQty, GETDATE(), 0
+                SELECT 0, 0, @BomItemQty, B.ItemId, B.UnitId, 0, @CreatedBy, @BomItemQty, GETUTCDATE(), 0
                 FROM W_Production P 
                 INNER JOIN W_MasterBom B ON P.BomId = B.BomId 
                 WHERE P.ProductionId = @UsedForId;
@@ -65,7 +65,7 @@ BEGIN
             IF NOT EXISTS (SELECT 1 FROM dbo.W_ItemStock WHERE ItemID = @BomItemId) 
             BEGIN 
                 INSERT INTO W_ItemStock (OpeningQuantity, PurchasedQuantity, ProducedQuantity, ItemID, UnitId, IssuedQuantity, CreatedBy, FinalStock, OpeningStockDate, RemovedQuantity) 
-                SELECT 0, 0, @BomItemQty, P.ItemId, P.UnitMade, 0, @CreatedBy, @BomItemQty, GETDATE(), 0
+                SELECT 0, 0, @BomItemQty, P.ItemId, P.UnitMade, 0, @CreatedBy, @BomItemQty, GETUTCDATE(), 0
                 FROM W_PreProcessing P 
                 WHERE P.PreProcessingId = @UsedForId;
             END 

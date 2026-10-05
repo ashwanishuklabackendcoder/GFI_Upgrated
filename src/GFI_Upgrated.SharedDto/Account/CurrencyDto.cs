@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 
 namespace GFI_Upgrated.SharedDto.Account
 {
@@ -8,6 +8,6 @@ namespace GFI_Upgrated.SharedDto.Account
         public string CurrencySymbol { get; set; } = string.Empty;
         public string CurrencyString { get; set; } = string.Empty;
         public string CurrencySubString { get; set; } = string.Empty;
-        public DateTime CreatedDate { get; set; } = DateTime.Now;
+        public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
     }
 }

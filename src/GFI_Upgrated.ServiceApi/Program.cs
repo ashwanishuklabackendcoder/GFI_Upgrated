@@ -255,13 +255,13 @@ app.UseCors("AllowUi");
 
 app.UseSerilogRequestLogging();
 
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
+// Enable Swagger in Development and Production for API documentation
+app.UseSwagger();
+app.UseSwaggerUI(c =>
 {
-    app.UseDeveloperExceptionPage();
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "GFI Upgrated API v1");
+    c.RoutePrefix = "swagger";
+});
 
 app.UseHttpsRedirection();
 
@@ -269,7 +269,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
-app.MapGet("/", () => Results.Redirect("/swagger"));
+app.MapGet("/", () => Results.Ok(new { Status = "Online", Message = "GFI Upgrated Service API is running.", Timestamp = DateTime.UtcNow }));
 app.MapHealthChecks("/health");
 
 app.Run();

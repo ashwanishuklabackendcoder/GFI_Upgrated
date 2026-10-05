@@ -24,6 +24,14 @@ public sealed class AdminSecurityApiClient : ApiClientBase
     public async Task<bool> ResetPasswordWithOtpAsync(string email, string otp, string newPassword, CancellationToken cancellationToken = default)
         => await PostEnvelopeAsync<object, bool>($"api/admin/security/forgot-password/reset?email={Uri.EscapeDataString(email)}&otp={Uri.EscapeDataString(otp)}&newPassword={Uri.EscapeDataString(newPassword)}", new object(), cancellationToken);
 
+    
+    public async Task<CommonResponseDto> ChangeProfileAsync(ChangeProfileRequestDto request, CancellationToken cancellationToken = default)
+    {
+        var data = await PostEnvelopeAsync<ChangeProfileRequestDto, CommonResponseDto>("api/admin/security/change-profile", request, cancellationToken);
+        if (data != null) return data;
+        return new CommonResponseDto { Status = false, Message = "Unknown error occurred" };
+    }
+
     public async Task<bool> ChangePasswordAsync(ChangePasswordRequest request, CancellationToken cancellationToken = default)
         => await PostEnvelopeAsync<ChangePasswordRequest, bool>("api/admin/security/change-password", request, cancellationToken);
 
@@ -221,5 +229,39 @@ public sealed class AdminSecurityApiClient : ApiClientBase
     public async Task<bool> ResendStaffLoginAsync(long staffId, CancellationToken cancellationToken = default)
     {
         return await PostEnvelopeAsync<object, bool>($"api/admin/security/staff/resend-login/{staffId}", new object(), cancellationToken);
+    }
+
+    public async Task<GeneralSettingsDto?> GetGeneralSettingsAsync(CancellationToken cancellationToken = default)
+        => await GetEnvelopeAsync<GeneralSettingsDto>("api/admin/general-settings", cancellationToken);
+
+    public async Task<bool> SaveGeneralSettingsAsync(UpdateGeneralSettingsRequest request, CancellationToken cancellationToken = default)
+        => await PostEnvelopeAsync<UpdateGeneralSettingsRequest, bool>("api/admin/general-settings", request, cancellationToken);
+
+    public async Task<string?> UploadLogoAsync(Stream contentStream, string fileName, string logoType, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            using var content = new MultipartFormDataContent();
+            var streamContent = new StreamContent(contentStream);
+            content.Add(streamContent, "file", fileName);
+
+            var requestMessage = new HttpRequestMessage(HttpMethod.Post, $"api/admin/general-settings/upload-logo?logoType={Uri.EscapeDataString(logoType)}")
+            {
+                Content = content
+            };
+
+            AddAuthHeader();
+            var response = await _httpClient.SendAsync(requestMessage, cancellationToken);
+            if (response.IsSuccessStatusCode)
+            {
+                var envelope = await response.Content.ReadFromJsonAsync<ApiEnvelope<string>>(cancellationToken: cancellationToken);
+                return envelope?.Data;
+            }
+        }
+        catch
+        {
+            // Ignore
+        }
+        return null;
     }
 }

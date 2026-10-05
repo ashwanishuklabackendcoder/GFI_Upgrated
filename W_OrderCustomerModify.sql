@@ -1,4 +1,4 @@
-Text                                                                                                                                                                                                                                                           
+﻿Text                                                                                                                                                                                                                                                           
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 CREATE   PROCEDURE [dbo].[W_OrderCustomerModify]              
                                                                                                                                                                                                
@@ -44,7 +44,7 @@ Begin
                                                                                                                                                                                                                                           
 insert into W_OrderCustomer(CustomerID,OrderNo,OrderDate,SentDate,CreatedDate,CreatedBy,Remarks,DocumentUpload)   
                                                                                                                                            
-values (@CustomerID,@OrderNo,@OrderDate,@SentDate,getdate(),@CreatedBy,@Remarks,@UploadedFile)  
+values (@CustomerID,@OrderNo,@OrderDate,@SentDate,GETUTCDATE(),@CreatedBy,@Remarks,@UploadedFile)  
                                                                                                                                                              
       
                                                                                                                                                                                                                                                        

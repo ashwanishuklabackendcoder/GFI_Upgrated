@@ -1,4 +1,4 @@
-@page "/admin/drop-down-values/{DropDownMasterId:long}"
+﻿@page "/admin/drop-down-values/{DropDownMasterId:long}"
 @inject GFI_Upgrated.UI.State.AppSessionState SessionState
 @inject NavigationManager Navigation
 @inject AdminSecurityApiClient ApiClient
@@ -181,7 +181,7 @@
             csv.AppendLine(ToCsvLine(item));
         }
 
-        await JS.InvokeVoidAsync("gfiDownloadTextFile", $"dropdown-values-{DropDownMasterId}-{DateTime.Now:yyyyMMddHHmmss}.csv", csv.ToString(), "text/csv;charset=utf-8");
+        await JS.InvokeVoidAsync("gfiDownloadTextFile", $"dropdown-values-{DropDownMasterId}-{DateTime.UtcNow:yyyyMMddHHmmss}.csv", csv.ToString(), "text/csv;charset=utf-8");
     }
 
     private void Back() => Navigation.NavigateTo("/admin/drop-down-editor");

@@ -1,4 +1,4 @@
-@page "/admin/drop-down-editor"
+﻿@page "/admin/drop-down-editor"
 @inject GFI_Upgrated.UI.State.AppSessionState SessionState
 @inject NavigationManager Navigation
 @inject AdminSecurityApiClient ApiClient
@@ -113,7 +113,7 @@
             csv.AppendLine(ToCsvLine(item));
         }
 
-        await JS.InvokeVoidAsync("gfiDownloadTextFile", $"dropdown-masters-{DateTime.Now:yyyyMMddHHmmss}.csv", csv.ToString(), "text/csv;charset=utf-8");
+        await JS.InvokeVoidAsync("gfiDownloadTextFile", $"dropdown-masters-{DateTime.UtcNow:yyyyMMddHHmmss}.csv", csv.ToString(), "text/csv;charset=utf-8");
     }
 
     private async Task OpenValuesAsync(long masterId)

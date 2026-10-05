@@ -1,0 +1,75 @@
+@using GFI_Upgrated.SharedDto.AdminSecurity
+@using GFI_Upgrated.UI.Services
+@using GFI_Upgrated.UI.State
+@using MudBlazor
+@inject AdminSecurityApiClient ApiClient
+@inject AppSessionState SessionState
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        <MudForm @ref="_form" IsValid="@_isValid">
+            <MudTextField @bind-Value="_model.LoginName" For="@(() => _model.LoginName)" Label="Login Name" Required="true" RequiredError="Login Name is required!" Class="mb-3" />
+            <MudTextField @bind-Value="_model.FirstName" For="@(() => _model.FirstName)" Label="First Name" Required="true" RequiredError="First Name is required!" Class="mb-3" />
+            <MudTextField @bind-Value="_model.LastName" For="@(() => _model.LastName)" Label="Last Name" Required="true" RequiredError="Last Name is required!" Class="mb-3" />
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" OnClick="Submit" Disabled="@_isSubmitting">Save Profile</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] IMudDialogInstance MudDialog { get; set; } = default!;
+
+    private MudForm _form = default!;
+    private bool _isValid;
+    private bool _isSubmitting;
+    private ChangeProfileRequestDto _model = new();
+
+    protected override void OnInitialized()
+    {
+        if (SessionState.CurrentUser != null)
+        {
+            _model.LoginName = SessionState.CurrentUser.LoginName ?? string.Empty;
+            _model.FirstName = SessionState.CurrentUser.FirstName ?? string.Empty;
+            _model.LastName = SessionState.CurrentUser.LastName ?? string.Empty;
+        }
+    }
+
+    private void Cancel()
+    {
+        MudDialog.Cancel();
+    }
+
+    private async Task Submit()
+    {
+        await _form.Validate();
+        if (_form.IsValid)
+        {
+            _isSubmitting = true;
+            try
+            {
+                var result = await ApiClient.ChangeProfileAsync(_model);
+                if (result.Status)
+                {
+                    Snackbar.Add(result.Message, Severity.Success);
+                    MudDialog.Close(DialogResult.Ok(true));
+                }
+                else
+                {
+                    Snackbar.Add(result.Message, Severity.Error);
+                }
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+            }
+            finally
+            {
+                _isSubmitting = false;
+            }
+        }
+    }
+}

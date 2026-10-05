@@ -13,6 +13,8 @@ public interface IReportRepository
     Task<PagedResult<BatchWiseItemDto>> GetBatchWiseItemsByBatchNoAsync(string batchNo, int page, int size, string sortType, CancellationToken cancellationToken = default);
     
     Task<PagedResult<BatchWiseItemDto>> GetBatchWiseItemsByItemAsync(long itemId, int page, int size, string sortType, CancellationToken cancellationToken = default);
+
+    Task<PagedResult<BatchWiseItemDto>> GetBatchWiseItemsPagedAsync(string? batchNo, long? itemId, long? itemTypeId, bool inStockOnly, int page, int size, string sortType, CancellationToken cancellationToken = default);
     
     Task<PagedResult<ItemStockByBatchReportDto>> GetItemStockByBatchReportAsync(long? itemStockByBatchId, long? stockById, long? itemId, int page, int size, string sortCol, string sortOrd, CancellationToken cancellationToken = default);
 }

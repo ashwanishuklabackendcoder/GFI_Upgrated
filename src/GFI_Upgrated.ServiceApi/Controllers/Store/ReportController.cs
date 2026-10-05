@@ -133,6 +133,29 @@ public sealed class ReportController : ControllerBase
         }
     }
 
+    [HttpGet("batch-wise/paged")]
+    public async Task<ActionResult<ApiEnvelope<PagedResult<BatchWiseItemDto>>>> GetBatchWiseItemsPaged([FromQuery] string? batchNo, [FromQuery] long? itemId, [FromQuery] long? itemTypeId, [FromQuery] bool inStockOnly, [FromQuery] int page, [FromQuery] int size, [FromQuery] string sortType, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await _service.GetBatchWiseItemsPagedAsync(batchNo, itemId, itemTypeId, inStockOnly, page, size, sortType, cancellationToken);
+            return Ok(new ApiEnvelope<PagedResult<BatchWiseItemDto>>
+            {
+                Success = true,
+                Message = "Paged batch-wise items report loaded successfully.",
+                Data = result
+            });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new ApiEnvelope<PagedResult<BatchWiseItemDto>>
+            {
+                Success = false,
+                Message = $"Error loading paged batch-wise items report: {ex.Message}"
+            });
+        }
+    }
+
     [HttpGet("stock-by-batch")]
     public async Task<ActionResult<ApiEnvelope<PagedResult<ItemStockByBatchReportDto>>>> GetItemStockByBatchReport([FromQuery] long? itemStockByBatchId, [FromQuery] long? stockById, [FromQuery] long? itemId, [FromQuery] int page, [FromQuery] int size, [FromQuery] string sortCol, [FromQuery] string sortOrd, CancellationToken cancellationToken)
     {

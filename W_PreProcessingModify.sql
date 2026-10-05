@@ -1,4 +1,4 @@
-Text                                                                                                                                                                                                                                                           
+﻿Text                                                                                                                                                                                                                                                           
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 CREATE PROCEDURE [dbo].[W_PreProcessingModify]              
                                                                                                                                                                                                  
@@ -64,7 +64,7 @@ where BomId=@BomId
                                                                                                                                                                
 SET @Expiry = DATEADD(DAY, ISNULL(@TentativeExpiryDays, 365), @ProcessingDate); 
                                                                                                                                                                              
-IF @Expiry IS NULL SET @Expiry = ISNULL(@ExpiryDate, GETDATE());
+IF @Expiry IS NULL SET @Expiry = ISNULL(@ExpiryDate, GETUTCDATE());
                                                                                                                                                                                              
 		
                                                                                                                                                                                                                                                            

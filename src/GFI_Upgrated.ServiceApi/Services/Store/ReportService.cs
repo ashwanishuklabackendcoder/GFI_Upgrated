@@ -11,6 +11,7 @@ public interface IReportService
     Task<IEnumerable<ItemStockTraceabilityDto>> GetBatchTraceabilityAsync(string batchNo, CancellationToken cancellationToken = default);
     Task<PagedResult<BatchWiseItemDto>> GetBatchWiseItemsByBatchNoAsync(string batchNo, int page, int size, string sortType, CancellationToken cancellationToken = default);
     Task<PagedResult<BatchWiseItemDto>> GetBatchWiseItemsByItemAsync(long itemId, int page, int size, string sortType, CancellationToken cancellationToken = default);
+    Task<PagedResult<BatchWiseItemDto>> GetBatchWiseItemsPagedAsync(string? batchNo, long? itemId, long? itemTypeId, bool inStockOnly, int page, int size, string sortType, CancellationToken cancellationToken = default);
     Task<PagedResult<ItemStockByBatchReportDto>> GetItemStockByBatchReportAsync(long? itemStockByBatchId, long? stockById, long? itemId, int page, int size, string sortCol, string sortOrd, CancellationToken cancellationToken = default);
 }
 
@@ -37,6 +38,9 @@ public sealed class ReportService : IReportService
 
     public Task<PagedResult<BatchWiseItemDto>> GetBatchWiseItemsByItemAsync(long itemId, int page, int size, string sortType, CancellationToken cancellationToken = default)
         => _repository.GetBatchWiseItemsByItemAsync(itemId, page, size, sortType, cancellationToken);
+
+    public Task<PagedResult<BatchWiseItemDto>> GetBatchWiseItemsPagedAsync(string? batchNo, long? itemId, long? itemTypeId, bool inStockOnly, int page, int size, string sortType, CancellationToken cancellationToken = default)
+        => _repository.GetBatchWiseItemsPagedAsync(batchNo, itemId, itemTypeId, inStockOnly, page, size, sortType, cancellationToken);
 
     public Task<PagedResult<ItemStockByBatchReportDto>> GetItemStockByBatchReportAsync(long? itemStockByBatchId, long? stockById, long? itemId, int page, int size, string sortCol, string sortOrd, CancellationToken cancellationToken = default)
         => _repository.GetItemStockByBatchReportAsync(itemStockByBatchId, stockById, itemId, page, size, sortCol, sortOrd, cancellationToken);

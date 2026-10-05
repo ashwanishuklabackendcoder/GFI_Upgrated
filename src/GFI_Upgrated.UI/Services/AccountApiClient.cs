@@ -132,6 +132,9 @@ public sealed class AccountApiClient : ApiClientBase
     public async Task<bool> DeleteInvoiceItemAsync(string ids, CancellationToken cancellationToken = default)
         => await DeleteEnvelopeAsync<bool>($"api/account/invoices/item?ids={ids}", cancellationToken);
 
+    public async Task<bool> AllocateInvoiceStockAsync(long invoiceId, string invoiceStatus, List<InvoiceItemDto> items, CancellationToken cancellationToken = default)
+        => await PostEnvelopeAsync<List<InvoiceItemDto>, bool>($"api/account/invoices/{invoiceId}/allocate-stock?invoiceStatus={Uri.EscapeDataString(invoiceStatus ?? "")}", items, cancellationToken);
+
     public async Task<double?> GetBatchCostPriceAsync(long batchId, CancellationToken cancellationToken = default)
         => await GetEnvelopeAsync<double?>($"api/account/invoices/batch-cost?batchId={batchId}", cancellationToken);
 

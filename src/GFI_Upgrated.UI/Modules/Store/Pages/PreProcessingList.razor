@@ -72,11 +72,11 @@
                 <MudStack Row="true" Spacing="1" Justify="Justify.Center" AlignItems="AlignItems.Center">
                     @if (_canUpdate)
                     {
-                        <MudTooltip Text="Edit Header">
-                            <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Size="Size.Small" OnClick="@(() => OnEdit(context))" />
-                        </MudTooltip>
                         <MudTooltip Text="Copy Details">
                             <MudIconButton Icon="@Icons.Material.Filled.ContentCopy" Color="Color.Info" Size="Size.Small" OnClick="@(() => OnCopy(context))" Disabled="!_canInsert" />
+                        </MudTooltip>
+                        <MudTooltip Text="Edit Header">
+                            <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Primary" Size="Size.Small" OnClick="@(() => OnEdit(context))" />
                         </MudTooltip>
                         <MudTooltip Text="Manage Ingredients">
                             <MudIconButton Icon="@Icons.Material.Filled.FactCheck" Color="Color.Warning" Size="Size.Small" OnClick="@(() => OnManageItems(context))" />
@@ -190,8 +190,7 @@
 
     private void OnView(PreProcessingDto dto)
     {
-        // For now, View might just navigate to Manage Items or a Read-Only view
-        Navigation.NavigateTo($"/store/preprocessing/items/{dto.PreProcessingId}");
+        Navigation.NavigateTo($"/store/preprocessing/view/{dto.PreProcessingId}");
     }
 
     private async Task OnDelete(PreProcessingDto dto)

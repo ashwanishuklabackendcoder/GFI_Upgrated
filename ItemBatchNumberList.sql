@@ -126,7 +126,7 @@ BEGIN
  FROM Inv_ItemStockByBatch t5
  
  LEFT JOIN W_MasterItem t3 ON t5.ItemId = t3.ItemID
- LEFT JOIN W_MasterUnit mu ON t5.Unit = mu.UnitId
+ LEFT JOIN W_MasterUnit mu ON ISNULL(t3.PurchaseUnit, t5.Unit) = mu.UnitId
  
  LEFT JOIN W_PurchaseChild t1 ON t5.IdFrom = t1.PurchaseItemID AND t5.StockById = 1
  

@@ -1,4 +1,4 @@
-@page "/store/reports/batch-wise-items/traceability/{BatchNo}"
+﻿@page "/store/reports/batch-wise-items/traceability/{BatchNo}"
 @page "/admin/reports/batch-wise-items/traceability/{BatchNo}"
 @using System.Text
 @using GFI_Upgrated.SharedDto.Store
@@ -165,7 +165,7 @@
             var typeName = (item.TransactionType ?? "").Replace("\"", "\"\"");
             sb.AppendLine($"\"{refName}\",\"{item.TransactionDate?.ToString("MM/dd/yyyy") ?? "N/A"}\",\"{itemName}\",\"{typeName}\",\"{(item.InQty > 0 ? $"{SessionState.FormatNumber(item.InQty)} {item.UnitName}" : "-")}\",\"{(item.OutQty > 0 ? $"{SessionState.FormatNumber(item.OutQty)} {item.UnitName}" : "-")}\",\"{SessionState.FormatNumber(item.TotalValue)}\"");
         }
-        await JS.InvokeVoidAsync("gfiDownloadTextFile", $"batch-traceability-{BatchNo.Replace(" ", "").Replace("|", "-")}-{DateTime.Now:yyyyMMddHHmmss}.csv", sb.ToString(), "text/csv;charset=utf-8");
+        await JS.InvokeVoidAsync("gfiDownloadTextFile", $"batch-traceability-{BatchNo.Replace(" ", "").Replace("|", "-")}-{DateTime.UtcNow:yyyyMMddHHmmss}.csv", sb.ToString(), "text/csv;charset=utf-8");
         Snackbar.Add("Data exported as CSV.", Severity.Success);
     }
 

@@ -1,4 +1,4 @@
-Text                                                                                                                                                                                                                                                           
+﻿Text                                                                                                                                                                                                                                                           
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 CREATE PROCEDURE [dbo].[Inv_ItemStockByBatchModify]       
                                                                                                                                                                                                    
@@ -19,6 +19,8 @@ CREATE PROCEDURE [dbo].[Inv_ItemStockByBatchModify]
 @WarehouseId bigint ,    
                                                                                                                                                                                                                                     
 @IdFrom bigint=0,
+@CreatedBy nvarchar(200) = null,
+@UpdatedBy nvarchar(200) = null,
                                                                                                                                                                                                                                             
 @Amount float=0,    
                                                                                                                                                                                                                                          
@@ -90,13 +92,13 @@ IF @ItemStockByBatchId = 0
                                                                                                                                                                                                                                                            
   if(@ExpiryDate is null)
                                                                                                                                                                                                                                     
-    SET @ExpiryDate = DATEADD(DAY, isnull(@TentativeExpiryDays, 365), isnull(@GoodReceiveDate, getdate()));     
+    SET @ExpiryDate = DATEADD(DAY, isnull(@TentativeExpiryDays, 365), isnull(@GoodReceiveDate, GETUTCDATE()));     
                                                                                                                                              
     
                                                                                                                                                                                                                                                          
   if(isnull(@BatchNo,'')='')  
                                                                                                                                                                                                                                
-    SET @BatchNo = @ShortName +' | ' + FORMAT(isnull(@GoodReceiveDate, getdate()), 'yyMMdd') ;    
+    SET @BatchNo = @ShortName +' | ' + FORMAT(isnull(@GoodReceiveDate, GETUTCDATE()), 'yyMMdd') ;    
                                                                                                                                                            
     
                                                                                                                                                                                                                                                          

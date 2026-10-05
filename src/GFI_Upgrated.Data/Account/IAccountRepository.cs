@@ -44,6 +44,7 @@ namespace GFI_Upgrated.Data.Account
         Task<long> SaveInvoiceItemAsync(InvoiceItemDto item);
         Task<bool> DeleteInvoiceAsync(string ids);
         Task<bool> DeleteInvoiceItemAsync(string ids);
+        Task<bool> ProcessInvoiceStockAllocationAsync(long invoiceId, string invoiceStatus, List<InvoiceItemDto> items);
         #endregion
 
         #region Customer Order Return

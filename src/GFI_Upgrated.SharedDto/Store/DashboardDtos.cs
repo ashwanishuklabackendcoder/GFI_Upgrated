@@ -48,7 +48,7 @@ public class DashboardBatchLookupDto
 public class SalesSummaryDto
 {
     public string ItemName { get; set; } = string.Empty;
-    public DateTime? TransactionDate { get; set; }
+    public int Year { get; set; }
     public decimal Quantity { get; set; }
     public decimal TotalAmount { get; set; }
 }
@@ -74,10 +74,32 @@ public class SalesPerCustomerDto
     public decimal QuantitySold { get; set; }
 }
 
+public class AnnualSalesPerformanceDto
+{
+    public int Year { get; set; }
+    public decimal SrdBottles { get; set; }
+    public decimal SrdLiters { get; set; }
+    public decimal SrdValue { get; set; }
+    public decimal UsdBottles { get; set; }
+    public decimal UsdLiters { get; set; }
+    public decimal UsdValue { get; set; }
+    public decimal TotalSalesSrd { get; set; }
+}
+
+public class SalesPerTastePerYearDto
+{
+    public int Year { get; set; }
+    public decimal TotalLiters { get; set; }
+    public Dictionary<string, decimal> TasteLiters { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+}
+
 public class SalesDashboardDto
 {
     public List<SalesSummaryDto> TotalSales { get; set; } = new();
     public List<SalesPerYearDto> SalesPerYear { get; set; } = new();
+    public List<AnnualSalesPerformanceDto> AnnualPerformance { get; set; } = new();
+    public List<SalesPerTastePerYearDto> SalesPerTastePerYear { get; set; } = new();
+    public List<string> AllTasteCodes { get; set; } = new();
     public List<SalesPerCustomerGroupDto> SalesPerCustomerGroup { get; set; } = new();
     public List<SalesPerCustomerDto> SalesPerCustomer { get; set; } = new();
 }

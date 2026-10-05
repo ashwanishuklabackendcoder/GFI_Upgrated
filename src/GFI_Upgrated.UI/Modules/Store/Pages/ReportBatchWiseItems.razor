@@ -1,4 +1,4 @@
-@page "/store/reports/batch-wise-items"
+﻿@page "/store/reports/batch-wise-items"
 @page "/admin/reports/batch-wise-items"
 @page "/store/reportbatchwiseitems"
 @page "/admin/reportbatchwiseitems"
@@ -32,15 +32,26 @@
         </MudMenu>
     </MudStack>
    
-    <MudGrid Class="mb-4 no-print" Spacing="2">
-        <MudItem xs="12" md="4">
+    <MudGrid Class="mb-4 no-print" Spacing="2" AlignItems="AlignItems.Center">
+        <MudItem xs="12" sm="6" md="3">
             <MudTextField T="string" Label="Batch No." Value="_batchNumber" ValueChanged="OnBatchNumberChanged" 
-                          Variant="Variant.Outlined" Placeholder=" " Clearable="true" />
+                          Variant="Variant.Outlined" Placeholder="Search Batch No." Clearable="true" Immediate="true" />
         </MudItem>
-        <MudItem xs="12" md="4">
-            <SearchableSelect T="RawMaterialDto" Label="Item" Value="@_selectedItem" ValueChanged="OnItemChanged" Variant="Variant.Outlined" Items="@GetItemSelects()" />
+        <MudItem xs="12" sm="6" md="3">
+            <SearchableSelect T="RawMaterialDto" Label="Item" Value="@_selectedItem" ValueChanged="OnItemChanged" Variant="Variant.Outlined" Items="@GetItemSelects()" Clearable="true" />
         </MudItem>
-        <MudItem xs="12" md="2" Class="d-flex align-end">
+        <MudItem xs="12" sm="6" md="2">
+            <MudSelect T="long?" Label="Item Type" Value="_selectedItemTypeId" ValueChanged="OnItemTypeChanged" Variant="Variant.Outlined">
+                <MudSelectItem Value="@((long?)0)">All Types</MudSelectItem>
+                <MudSelectItem Value="@((long?)3)">Raw Material</MudSelectItem>
+                <MudSelectItem Value="@((long?)2)">Semi-Finished</MudSelectItem>
+                <MudSelectItem Value="@((long?)1)">Finished Product</MudSelectItem>
+            </MudSelect>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="2">
+            <MudCheckBox T="bool" Value="_inStockOnly" ValueChanged="OnInStockOnlyChanged" Color="Color.Primary" Label="In-Stock Only" Class="mt-2" />
+        </MudItem>
+        <MudItem xs="12" md="2" Class="d-flex align-center">
             <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="OnSearch" FullWidth="true" Class="py-3">
                 Search
             </MudButton>
@@ -51,12 +62,13 @@
         <div style="text-align: center; border-bottom: 2px solid #333; padding-bottom: 12px; margin-bottom: 16px;">
             <h2 style="margin: 0; font-size: 24px; font-weight: bold; color: #111;">GFI</h2>
             <h3 style="margin: 4px 0 0; font-size: 18px; color: #555;">Batch Number Wise Items</h3>
-            <p style="margin: 4px 0 0; font-size: 12px; color: #777;">Generated on: @DateTime.Now.ToString("g")</p>
+            <p style="margin: 4px 0 0; font-size: 12px; color: #777;">Generated on: @DateTime.UtcNow.ToString("g")</p>
         </div>
         <div style="font-size: 14px; margin-bottom: 16px;">
             <strong>Filters Applied:</strong><br />
             Batch Number: @(string.IsNullOrWhiteSpace(_batchNumber) ? "Any" : _batchNumber) | 
-            Item: @(_selectedItem?.ItemName ?? "Any Item")
+            Item: @(_selectedItem?.ItemName ?? "Any Item") |
+            In-Stock Only: @(_inStockOnly ? "Yes" : "No")
         </div>
     </div>
 
@@ -64,16 +76,18 @@
         <HeaderContent>
             <MudTh>Batch No.</MudTh>
             <MudTh>Item Name</MudTh>
+            <MudTh>Item Type</MudTh>
             <MudTh>Entry From</MudTh>
             <MudTh Style="text-align: right;">Available Qty.</MudTh>
             <MudTh>Processing Date</MudTh>
             <MudTh>Expiry Date</MudTh>
         </HeaderContent>
         <RowTemplate>
-              <MudTd DataLabel="Batch No.">
-                  <a href="@($"/store/reports/batch-wise-items/traceability/{Uri.EscapeDataString(context.BatchNo ?? string.Empty)}")" style="color:var(--mud-palette-primary); text-decoration:none;">@context.BatchNo</a>
-              </MudTd>
+            <MudTd DataLabel="Batch No.">
+                <a href="@($"/store/reports/batch-wise-items/traceability/{Uri.EscapeDataString(context.BatchNo ?? string.Empty)}")" style="color:var(--mud-palette-primary); text-decoration:none;">@context.BatchNo</a>
+            </MudTd>
             <MudTd DataLabel="Item Name">@context.ItemName</MudTd>
+            <MudTd DataLabel="Item Type">@(string.IsNullOrWhiteSpace(context.ItemTypeName) ? "-" : context.ItemTypeName)</MudTd>
             <MudTd DataLabel="Account Name">@context.AccountName</MudTd>
             <MudTd DataLabel="Available Qty." Style="text-align: right; font-weight: bold;">@FormatQty(context.AvailableQty, context.UnitName)</MudTd>
             <MudTd DataLabel="Processing Date">@SessionState.FormatDate(context.ProcessingDate)</MudTd>
@@ -83,7 +97,7 @@
             <MudTablePager Class="no-print" />
         </PagerContent>
         <NoRecordsContent>
-            <MudText Class="pa-4">No batch items found. Please enter a Batch Number or select an Item to search.</MudText>
+            <MudText Class="pa-4">No batch items found. Try changing filters or search criteria.</MudText>
         </NoRecordsContent>
     </MudTable>
 </MudPaper>
@@ -93,12 +107,6 @@
 
     private string? _searchString;
 
-    private async Task OnSearchTextChanged(string text)
-    {
-        _searchString = text;
-        if (_table is not null) await _table.ReloadServerData();
-    }
-
     private string FormatQty(double qty, string? unitName)
     {
         if (qty == 0) return "0";
@@ -106,10 +114,11 @@
         return string.IsNullOrWhiteSpace(unitName) ? formattedVal : $"{formattedVal} {unitName}";
     }
 
-
     private MudTable<BatchWiseItemDto>? _table;
     private string _batchNumber = "";
     private RawMaterialDto? _selectedItem;
+    private long? _selectedItemTypeId = 0;
+    private bool _inStockOnly = false;
 
     [SupplyParameterFromQuery]
     public long? ItemId { get; set; }
@@ -117,12 +126,34 @@
     [SupplyParameterFromQuery]
     public bool? FromItemStock { get; set; }
 
+    [SupplyParameterFromQuery]
+    public string? BatchNo { get; set; }
+
+    [SupplyParameterFromQuery]
+    public long? ItemTypeId { get; set; }
+
+    [SupplyParameterFromQuery]
+    public bool? InStockOnly { get; set; }
+
+    private void UpdateUrl()
+    {
+        var uri = Navigation.GetUriWithQueryParameters(new Dictionary<string, object?>
+        {
+            { "ItemId", _selectedItem?.ItemId },
+            { "BatchNo", string.IsNullOrEmpty(_batchNumber) ? null : _batchNumber },
+            { "ItemTypeId", _selectedItemTypeId == 0 ? null : _selectedItemTypeId },
+            { "InStockOnly", _inStockOnly ? true : (bool?)null }
+        });
+        Navigation.NavigateTo(uri, replace: true);
+    }
+
     private void BackToItemStock()
     {
         Navigation.NavigateTo($"/store/reportitemstock?itemId={ItemId}");
     }
 
     private bool _loading;
+    private bool _isInitialized = false;
     private string _currentSortDirection = "DESC";
     private List<RawMaterialDto> _items = new();
 
@@ -142,56 +173,100 @@
             if (ItemId.HasValue && ItemId.Value > 0)
             {
                 _selectedItem = _items.FirstOrDefault(x => x.ItemId == ItemId.Value);
-                if (_table != null)
-                {
-                    await _table.ReloadServerData();
-                }
+            }
+
+            if (!string.IsNullOrEmpty(BatchNo))
+            {
+                _batchNumber = BatchNo;
+            }
+
+            if (ItemTypeId.HasValue)
+            {
+                _selectedItemTypeId = ItemTypeId.Value;
+            }
+
+            if (InStockOnly.HasValue)
+            {
+                _inStockOnly = InStockOnly.Value;
             }
         }
         catch (Exception ex)
         {
             Snackbar.Add($"Error loading items: {ex.Message}", Severity.Error);
         }
+        finally
+        {
+            _isInitialized = true;
+            if (_table != null)
+            {
+                await _table.ReloadServerData();
+            }
+        }
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (firstRender && ItemId.HasValue && ItemId.Value > 0 && _table != null)
+        if (firstRender && _isInitialized && _table != null)
         {
+            // Just in case it was already initialized before first render
             await _table.ReloadServerData();
         }
     }
 
-    private void OnBatchNumberChanged(string val)
+    private async Task OnBatchNumberChanged(string val)
     {
         _batchNumber = val;
-        if (!string.IsNullOrEmpty(val))
-        {
-            _selectedItem = null;
-        }
+        UpdateUrl();
+        if (_table != null) await _table.ReloadServerData();
     }
 
-    private void OnItemChanged(RawMaterialDto? val)
+    private async Task OnItemChanged(RawMaterialDto? val)
     {
         _selectedItem = val;
-        if (val != null)
-        {
-            _batchNumber = "";
-        }
+        UpdateUrl();
+        if (_table != null) await _table.ReloadServerData();
+    }
+
+    private async Task OnItemTypeChanged(long? val)
+    {
+        _selectedItemTypeId = val;
+        UpdateUrl();
+        if (_table != null) await _table.ReloadServerData();
+    }
+
+    private async Task OnInStockOnlyChanged(bool val)
+    {
+        _inStockOnly = val;
+        UpdateUrl();
+        if (_table != null) await _table.ReloadServerData();
     }
 
     private IEnumerable<SearchableSelect<RawMaterialDto>.SelectItemDto<RawMaterialDto>> GetItemSelects()
     {
-        return (_items ?? new List<RawMaterialDto>()).Select(x => new SearchableSelect<RawMaterialDto>.SelectItemDto<RawMaterialDto>
+        var list = new List<SearchableSelect<RawMaterialDto>.SelectItemDto<RawMaterialDto>>
         {
-            Value = x,
-            Text = x.ItemName ?? ""
-        });
+            new SearchableSelect<RawMaterialDto>.SelectItemDto<RawMaterialDto>
+            {
+                Value = null,
+                Text = "-- All Items --"
+            }
+        };
+
+        if (_items != null)
+        {
+            list.AddRange(_items.Select(x => new SearchableSelect<RawMaterialDto>.SelectItemDto<RawMaterialDto>
+            {
+                Value = x,
+                Text = x.ItemName ?? ""
+            }));
+        }
+
+        return list;
     }
 
     private async Task<TableData<BatchWiseItemDto>> LoadServerDataAsync(TableState state, CancellationToken cancellationToken)
     {
-        if (string.IsNullOrWhiteSpace(_batchNumber) && _selectedItem == null)
+        if (!_isInitialized)
         {
             return new TableData<BatchWiseItemDto> { Items = Array.Empty<BatchWiseItemDto>(), TotalItems = 0 };
         }
@@ -199,22 +274,17 @@
         _loading = true;
         try
         {
-            PagedResult<BatchWiseItemDto> result;
             _currentSortDirection = state.SortDirection == SortDirection.Ascending ? "ASC" : "DESC";
 
-            if (!string.IsNullOrWhiteSpace(_batchNumber))
-            {
-                result = await ApiClient.GetBatchWiseItemsByBatchNoAsync(_batchNumber, state.Page + 1, state.PageSize, _currentSortDirection, cancellationToken);
-            }
-            else
-            {
-                result = await ApiClient.GetBatchWiseItemsByItemAsync(_selectedItem!.ItemId, state.Page + 1, state.PageSize, _currentSortDirection, cancellationToken);
-            }
-
-            if (result.CurrentPage != state.Page + 1 && _table != null)
-            {
-                _table.NavigateTo(result.CurrentPage - 1);
-            }
+            var result = await ApiClient.GetBatchWiseItemsPagedAsync(
+                _batchNumber, 
+                _selectedItem?.ItemId, 
+                _selectedItemTypeId, 
+                _inStockOnly, 
+                state.Page + 1, 
+                state.PageSize, 
+                _currentSortDirection, 
+                cancellationToken);
 
             return new TableData<BatchWiseItemDto>
             {
@@ -240,18 +310,16 @@
 
     private async Task<List<BatchWiseItemDto>> GetAllDataAsync()
     {
-        if (string.IsNullOrWhiteSpace(_batchNumber) && _selectedItem == null) return new();
         try
         {
-            PagedResult<BatchWiseItemDto> result;
-            if (!string.IsNullOrWhiteSpace(_batchNumber))
-            {
-                result = await ApiClient.GetBatchWiseItemsByBatchNoAsync(_batchNumber, 1, 1000000, _currentSortDirection);
-            }
-            else
-            {
-                result = await ApiClient.GetBatchWiseItemsByItemAsync(_selectedItem!.ItemId, 1, 1000000, _currentSortDirection);
-            }
+            var result = await ApiClient.GetBatchWiseItemsPagedAsync(
+                _batchNumber, 
+                _selectedItem?.ItemId, 
+                _selectedItemTypeId, 
+                _inStockOnly, 
+                1, 
+                1000000, 
+                _currentSortDirection);
             return result.Items.ToList();
         }
         catch (Exception ex)
@@ -292,7 +360,7 @@
             var accName = (item.AccountName ?? "").Replace("\"", "\"\"");
             sb.AppendLine($"\"{item.BatchNo}\",\"{name}\",\"{accName}\",\"{FormatQty(item.AvailableQty, item.UnitName)}\",\"{item.ProcessingDate}\",\"{item.ExpiryDate}\"");
         }
-        await JS.InvokeVoidAsync("gfiDownloadTextFile", $"batch-wise-items-report-{DateTime.Now:yyyyMMddHHmmss}.csv", sb.ToString(), "text/csv;charset=utf-8");
+        await JS.InvokeVoidAsync("gfiDownloadTextFile", $"batch-wise-items-report-{DateTime.UtcNow:yyyyMMddHHmmss}.csv", sb.ToString(), "text/csv;charset=utf-8");
         Snackbar.Add("Report data exported as CSV.", Severity.Success);
     }
 

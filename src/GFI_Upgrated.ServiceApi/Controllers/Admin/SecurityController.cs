@@ -1,4 +1,4 @@
-using GFI_Upgrated.ServiceApi.Services;
+﻿using GFI_Upgrated.ServiceApi.Services;
 using GFI_Upgrated.SharedDto.AdminSecurity;
 using GFI_Upgrated.SharedDto.Common;
 using Microsoft.AspNetCore.Mvc;
@@ -74,7 +74,7 @@ public sealed class SecurityController : ControllerBase
                 {
                     UserName = $"{result.FirstName} {result.LastName}".Trim(),
                     LoginName = result.LoginName,
-                    DT = DateTime.Now,
+                    DT = DateTime.UtcNow,
                     EventName = "Login",
                     EventModule = "Security",
                     RefKey = result.LoginId.ToString(),
@@ -170,6 +170,36 @@ public sealed class SecurityController : ControllerBase
         catch (Exception ex)
         {
             return StatusCode(500, new ApiEnvelope<bool> { Success = false, Message = $"Server Error: {ex.Message}" });
+        }
+    }
+
+    [HttpPost("change-profile")]
+    public async Task<ActionResult<ApiEnvelope<GFI_Upgrated.SharedDto.Common.CommonResponseDto>>> ChangeProfile([FromBody] GFI_Upgrated.SharedDto.AdminSecurity.ChangeProfileRequestDto model, CancellationToken cancellationToken)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(new ApiEnvelope<GFI_Upgrated.SharedDto.Common.CommonResponseDto> { Success = false, Message = "Invalid request payload." });
+
+        // Get the logged in user's LoginId
+        long loginId = 0;
+        var loginIdClaim = User.Claims.FirstOrDefault(c => c.Type == "LoginId" || c.Type == System.Security.Claims.ClaimTypes.NameIdentifier);
+        if (loginIdClaim != null && long.TryParse(loginIdClaim.Value, out var parsedId))
+        {
+            loginId = parsedId;
+        }
+
+        if (loginId == 0)
+        {
+            return Unauthorized(new ApiEnvelope<GFI_Upgrated.SharedDto.Common.CommonResponseDto> { Success = false, Message = "Unauthorized" });
+        }
+
+        var result = await _service.ChangeProfileAsync(loginId, model, cancellationToken);
+        if (result.Status)
+        {
+            return Ok(new ApiEnvelope<GFI_Upgrated.SharedDto.Common.CommonResponseDto> { Success = true, Message = result.Message, Data = result });
+        }
+        else
+        {
+            return BadRequest(new ApiEnvelope<GFI_Upgrated.SharedDto.Common.CommonResponseDto> { Success = false, Message = result.Message, Data = result });
         }
     }
 
@@ -841,19 +871,9 @@ public sealed class SecurityController : ControllerBase
         [FromQuery] string? loginName,
         [FromQuery] string? eventName,
         [FromQuery] string? eventModule,
-        [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 10,
-        [FromQuery] string sortCol = "DT",
-        [FromQuery] string sortOrd = "DESC",
+        [FromQuery] PagedRequest request,
         CancellationToken cancellationToken = default)
     {
-        var request = new PagedRequest
-        {
-            CurrentPage = page,
-            RecordPerPage = pageSize,
-            SortColumn = sortCol,
-            SortType = sortOrd
-        };
 
         var result = await _service.GetUserActivityLogsAsync(userName, loginName, eventName, eventModule, request, cancellationToken);
         return Ok(new ApiEnvelope<PagedResult<UserActivityLogDto>>
@@ -871,20 +891,9 @@ public sealed class SecurityController : ControllerBase
         [FromQuery] long? loginId,
         [FromQuery] DateTime? fromDate,
         [FromQuery] DateTime? toDate,
-        [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 10,
-        [FromQuery] string sortCol = "Z_UsersLoginsLog.LoginLogID",
-        [FromQuery] string sortOrd = "DESC",
+        [FromQuery] PagedRequest request,
         CancellationToken cancellationToken = default)
     {
-        var request = new PagedRequest
-        {
-            CurrentPage = page,
-            RecordPerPage = pageSize,
-            SortColumn = sortCol,
-            SortType = sortOrd
-        };
-
         var result = await _service.GetLoginLogsAsync(searchText, loginId, fromDate, toDate, request, cancellationToken);
         return Ok(new ApiEnvelope<PagedResult<LoginLogDto>>
         {
@@ -916,6 +925,7 @@ public sealed class SecurityController : ControllerBase
         {
             new Claim(ClaimTypes.NameIdentifier, user.LoginId.ToString()),
             new Claim(ClaimTypes.Name, user.LoginName),
+            new Claim("FullName", $"{user.FirstName} {user.LastName}".Trim()),
             new Claim(ClaimTypes.Role, user.RoleId.ToString()),
             new Claim("IsAdmin", user.IsAdmin.ToString().ToLower())
         };

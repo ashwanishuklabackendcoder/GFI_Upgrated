@@ -1,0 +1,283 @@
+@page "/admin/general-settings"
+@using GFI_Upgrated.SharedDto.AdminSecurity
+@using GFI_Upgrated.UI.Services
+@using GFI_Upgrated.UI.State
+@inject AdminSecurityApiClient ApiClient
+@inject AppSessionState SessionState
+@inject ISnackbar Snackbar
+@inject IJSRuntime JS
+@inject NavigationManager Navigation
+
+<PageTitle>General Settings - System Configuration</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="my-4">
+    <MudText Typo="Typo.h5" Class="mb-1" Style="font-weight: 700;">General Master Settings</MudText>
+    <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-6">
+        Configure system-wide settings including Company Details, Logos, Currency, Date Format, and Decimal Digits.
+    </MudText>
+
+    @if (_loading)
+    {
+        <MudStack AlignItems="AlignItems.Center" Class="pa-12">
+            <MudProgressCircular Color="Color.Primary" Size="Size.Large" Indeterminate="true" />
+            <MudText Typo="Typo.body1" Class="mt-3">Loading settings...</MudText>
+        </MudStack>
+    }
+    else
+    {
+        <EditForm Model="_model" OnValidSubmit="SaveSettingsAsync">
+            <MudGrid>
+                <!-- Company Details Card -->
+                <MudItem xs="12" md="6">
+                    <MudCard Elevation="2" Class="pa-4 h-100">
+                        <MudCardHeader>
+                            <CardHeaderAvatar>
+                                <MudIcon Icon="@Icons.Material.Filled.Business" Color="Color.Primary" Size="Size.Large" />
+                            </CardHeaderAvatar>
+                            <CardHeaderContent>
+                                <MudText Typo="Typo.h6">Company Details</MudText>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">Appears on Invoices, Reports, and System Headers</MudText>
+                            </CardHeaderContent>
+                        </MudCardHeader>
+                        <MudCardContent>
+                            <MudStack Spacing="3">
+                                <MudTextField @bind-Value="_model.CompanyName" Label="Company Name" Variant="Variant.Outlined" HelperText="Main company or trade name" />
+                                <MudTextField @bind-Value="_model.CompanyAddress" Label="Company Address" Variant="Variant.Outlined" Lines="3" HelperText="Street address, city, tax/VAT info" />
+                            </MudStack>
+                        </MudCardContent>
+                    </MudCard>
+                </MudItem>
+
+                <!-- Formatting Settings Card -->
+                <MudItem xs="12" md="6">
+                    <MudCard Elevation="2" Class="pa-4 h-100">
+                        <MudCardHeader>
+                            <CardHeaderAvatar>
+                                <MudIcon Icon="@Icons.Material.Filled.Settings" Color="Color.Primary" Size="Size.Large" />
+                            </CardHeaderAvatar>
+                            <CardHeaderContent>
+                                <MudText Typo="Typo.h6">System Preferences</MudText>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">Controls numbers, dates, and default currency</MudText>
+                            </CardHeaderContent>
+                        </MudCardHeader>
+                        <MudCardContent>
+                            <MudStack Spacing="3">
+                                <MudTextField @bind-Value="_model.DefaultCurrency" Label="Default Currency Code" Variant="Variant.Outlined" HelperText="e.g. SRD, USD, EUR" />
+                                <MudSelect T="string" @bind-Value="_model.DateFormat" Label="Date Format" Variant="Variant.Outlined">
+                                    <MudSelectItem Value="@("MM/DD/YYYY")">MM/DD/YYYY (USA Format)</MudSelectItem>
+                                    <MudSelectItem Value="@("DD/MM/YYYY")">DD/MM/YYYY (International Format)</MudSelectItem>
+                                </MudSelect>
+                                <MudNumericField @bind-Value="_model.DecimalDigits" Label="Decimal Digits" Variant="Variant.Outlined" Min="0" Max="6" HelperText="Number of decimal places shown across the system" />
+                            </MudStack>
+                        </MudCardContent>
+                    </MudCard>
+                </MudItem>
+
+                <!-- Branding & Logos Card -->
+                <MudItem xs="12">
+                    <MudCard Elevation="2" Class="pa-4 mt-2">
+                        <MudCardHeader>
+                            <CardHeaderAvatar>
+                                <MudIcon Icon="@Icons.Material.Filled.Image" Color="Color.Primary" Size="Size.Large" />
+                            </CardHeaderAvatar>
+                            <CardHeaderContent>
+                                <MudText Typo="Typo.h6">Branding & System Logos</MudText>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">Upload custom logos or specify relative image paths</MudText>
+                            </CardHeaderContent>
+                        </MudCardHeader>
+                        <MudCardContent>
+                            <MudGrid>
+                                <!-- Main Company Logo -->
+                                <MudItem xs="12" md="4">
+                                    <MudPaper Class="pa-4 d-flex flex-column align-center text-center" Outlined="true">
+                                        <MudText Typo="Typo.subtitle2" Class="mb-2">Main Company Logo (Invoice)</MudText>
+                                        <div style="height: 90px; display: flex; align-items: center; justify-content: center; width: 100%; border: 1px dashed #ccc; border-radius: 6px; padding: 8px; background: #fafafa;">
+                                            @if (!string.IsNullOrWhiteSpace(_model.CompanyLogo))
+                                            {
+                                                <img src="@_model.CompanyLogo" alt="Company Logo" style="max-height: 75px; max-width: 100%; object-fit: contain;" />
+                                            }
+                                            else
+                                            {
+                                                <MudText Typo="Typo.caption" Color="Color.Secondary">No Logo Set</MudText>
+                                            }
+                                        </div>
+                                        <MudTextField @bind-Value="_model.CompanyLogo" Label="Logo URL Path" Variant="Variant.Outlined" Dense="true" Class="mt-3 w-100" />
+                                        <InputFile id="companyLogoInput" OnChange="@(e => UploadLogoAsync(e, "company"))" style="display:none;" accept="image/*" />
+                                        <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.CloudUpload" Size="Size.Small" Class="mt-2" HtmlTag="label" for="companyLogoInput">
+                                            Upload Logo
+                                        </MudButton>
+                                    </MudPaper>
+                                </MudItem>
+
+                                <!-- Topbar Logo -->
+                                <MudItem xs="12" md="4">
+                                    <MudPaper Class="pa-4 d-flex flex-column align-center text-center" Outlined="true">
+                                        <MudText Typo="Typo.subtitle2" Class="mb-2">Topbar Header Logo</MudText>
+                                        <div style="height: 90px; display: flex; align-items: center; justify-content: center; width: 100%; border: 1px dashed #ccc; border-radius: 6px; padding: 8px; background: #2f3349;">
+                                            @if (!string.IsNullOrWhiteSpace(_model.TopbarLogo))
+                                            {
+                                                <img src="@_model.TopbarLogo" alt="Topbar Logo" style="max-height: 75px; max-width: 100%; object-fit: contain;" />
+                                            }
+                                            else
+                                            {
+                                                <MudText Typo="Typo.caption" Color="Color.Secondary">No Logo Set</MudText>
+                                            }
+                                        </div>
+                                        <MudTextField @bind-Value="_model.TopbarLogo" Label="Logo URL Path" Variant="Variant.Outlined" Dense="true" Class="mt-3 w-100" />
+                                        <InputFile id="topbarLogoInput" OnChange="@(e => UploadLogoAsync(e, "topbar"))" style="display:none;" accept="image/*" />
+                                        <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.CloudUpload" Size="Size.Small" Class="mt-2" HtmlTag="label" for="topbarLogoInput">
+                                            Upload Logo
+                                        </MudButton>
+                                    </MudPaper>
+                                </MudItem>
+
+                                <!-- Login Page Logo -->
+                                <MudItem xs="12" md="4">
+                                    <MudPaper Class="pa-4 d-flex flex-column align-center text-center" Outlined="true">
+                                        <MudText Typo="Typo.subtitle2" Class="mb-2">Login Page Logo</MudText>
+                                        <div style="height: 90px; display: flex; align-items: center; justify-content: center; width: 100%; border: 1px dashed #ccc; border-radius: 6px; padding: 8px; background: #fafafa;">
+                                            @if (!string.IsNullOrWhiteSpace(_model.LoginPageLogo))
+                                            {
+                                                <img src="@_model.LoginPageLogo" alt="Login Logo" style="max-height: 75px; max-width: 100%; object-fit: contain;" />
+                                            }
+                                            else
+                                            {
+                                                <MudText Typo="Typo.caption" Color="Color.Secondary">No Logo Set</MudText>
+                                            }
+                                        </div>
+                                        <MudTextField @bind-Value="_model.LoginPageLogo" Label="Logo URL Path" Variant="Variant.Outlined" Dense="true" Class="mt-3 w-100" />
+                                        <InputFile id="loginLogoInput" OnChange="@(e => UploadLogoAsync(e, "login"))" style="display:none;" accept="image/*" />
+                                        <MudButton Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.CloudUpload" Size="Size.Small" Class="mt-2" HtmlTag="label" for="loginLogoInput">
+                                            Upload Logo
+                                        </MudButton>
+                                    </MudPaper>
+                                </MudItem>
+                            </MudGrid>
+                        </MudCardContent>
+                    </MudCard>
+                </MudItem>
+
+                <!-- Actions -->
+                <MudItem xs="12" Class="d-flex justify-end mt-4">
+                    <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" StartIcon="@Icons.Material.Filled.Save" Disabled="_saving">
+                        @if (_saving)
+                        {
+                            <MudProgressCircular Size="Size.Small" Indeterminate="true" Class="mr-2" />
+                            <span>Saving...</span>
+                        }
+                        else
+                        {
+                            <span>Save General Settings</span>
+                        }
+                    </MudButton>
+                </MudItem>
+            </MudGrid>
+        </EditForm>
+    }
+</MudContainer>
+
+@code {
+    private bool _loading = true;
+    private bool _saving = false;
+    private UpdateGeneralSettingsRequest _model = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadSettingsAsync();
+    }
+
+    private async Task LoadSettingsAsync()
+    {
+        _loading = true;
+        try
+        {
+            var res = await ApiClient.GetGeneralSettingsAsync();
+            if (res != null)
+            {
+                _model = new UpdateGeneralSettingsRequest
+                {
+                    CompanyName = res.CompanyName,
+                    CompanyAddress = res.CompanyAddress,
+                    CompanyLogo = res.CompanyLogo,
+                    TopbarLogo = res.TopbarLogo,
+                    LoginPageLogo = res.LoginPageLogo,
+                    DefaultCurrency = res.DefaultCurrency,
+                    DateFormat = res.DateFormat,
+                    DecimalDigits = res.DecimalDigits
+                };
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Failed to load general settings: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private async Task UploadLogoAsync(InputFileChangeEventArgs e, string logoType)
+    {
+        var file = e.File;
+        if (file == null) return;
+
+        try
+        {
+            using var stream = file.OpenReadStream(maxAllowedSize: 10 * 1024 * 1024);
+            var path = await ApiClient.UploadLogoAsync(stream, file.Name, logoType);
+            if (!string.IsNullOrWhiteSpace(path))
+            {
+                if (logoType == "company") _model.CompanyLogo = path;
+                else if (logoType == "topbar") _model.TopbarLogo = path;
+                else if (logoType == "login") _model.LoginPageLogo = path;
+
+                Snackbar.Add("Logo uploaded successfully!", Severity.Success);
+                StateHasChanged();
+            }
+            else
+            {
+                Snackbar.Add("Failed to upload logo image.", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Upload error: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task SaveSettingsAsync()
+    {
+        _saving = true;
+        try
+        {
+            var success = await ApiClient.SaveGeneralSettingsAsync(_model);
+            if (success)
+            {
+                // Update local storage and session state
+                await JS.InvokeVoidAsync("localStorage.setItem", "CompanyName", _model.CompanyName);
+                await JS.InvokeVoidAsync("localStorage.setItem", "CompanyAddress", _model.CompanyAddress);
+                await JS.InvokeVoidAsync("localStorage.setItem", "CompanyLogo", _model.CompanyLogo);
+                await JS.InvokeVoidAsync("localStorage.setItem", "TopbarLogo", _model.TopbarLogo);
+                await JS.InvokeVoidAsync("localStorage.setItem", "LoginPageLogo", _model.LoginPageLogo);
+                await JS.InvokeVoidAsync("localStorage.setItem", "DefaultCurrency", _model.DefaultCurrency);
+                await JS.InvokeVoidAsync("localStorage.setItem", "DateFormat", _model.DateFormat);
+                await JS.InvokeVoidAsync("localStorage.setItem", "DecimalDigits", _model.DecimalDigits.ToString());
+
+                Snackbar.Add("General settings saved successfully!", Severity.Success);
+            }
+            else
+            {
+                Snackbar.Add("Failed to save settings.", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Save error: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+}

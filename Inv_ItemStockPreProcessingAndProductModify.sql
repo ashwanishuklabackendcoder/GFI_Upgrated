@@ -1,4 +1,4 @@
-ALTER PROCEDURE [dbo].[Inv_ItemStockPreProcessingAndProductModify] 
+﻿ALTER PROCEDURE [dbo].[Inv_ItemStockPreProcessingAndProductModify] 
                                                                                                                                                                                          
     @UsedFor int, 
                                                                                                                                                                                                                                            
@@ -20,6 +20,19 @@ BEGIN
                                                                                                                                                                                                                                      
     
                                                                                                                                                                                                                                                          
+    -- 1. Validate ingredient stock availability BEFORE performing any stock updates
+    IF EXISTS (
+        SELECT 1 
+        FROM dbo.Inv_ItemStockByBatch b 
+        INNER JOIN dbo.Inv_ItemStockUsed u ON b.ItemStockByBatchId = u.ItemStockByBatchId 
+        WHERE u.UsedFor = @UsedFor AND u.UsedForId = @UsedForId
+        AND (b.FinalQuantityLeft - u.Quantity) < 0
+    )
+    BEGIN
+        RAISERROR('Insufficient stock available for one or more batch ingredients. Finalization aborted.', 16, 1);
+        RETURN;
+    END
+
     DECLARE @BomItemId INT, @BomItemQty FLOAT = 0;
                                                                                                                                                                                                            
     
@@ -66,7 +79,7 @@ BEGIN
                                                                                                                                                                                                                                            
                 INSERT INTO W_ItemStock (OpeningQuantity, PurchasedQuantity, ProducedQuantity, ItemID, UnitId, IssuedQuantity, CreatedBy, FinalStock, OpeningStockDate, RemovedQuantity) 
                                                                     
-                SELECT 0, 0, @BomItemQty, B.ItemId, B.UnitId, 0, @CreatedBy, @BomItemQty, GETDATE(), 0
+                SELECT 0, 0, @BomItemQty, B.ItemId, B.UnitId, 0, @CreatedBy, @BomItemQty, GETUTCDATE(), 0
                                                                                                                                                        
                 FROM W_Production P 
                                                                                                                                                                                                                          
@@ -132,7 +145,7 @@ BEGIN
                                                                                                                                                                                                                                            
                 INSERT INTO W_ItemStock (OpeningQuantity, PurchasedQuantity, ProducedQuantity, ItemID, UnitId, IssuedQuantity, CreatedBy, FinalStock, OpeningStockDate, RemovedQuantity) 
                                                                     
-                SELECT 0, 0, @BomItemQty, P.ItemId, P.UnitMade, 0, @CreatedBy, @BomItemQty, GETDATE(), 0
+                SELECT 0, 0, @BomItemQty, P.ItemId, P.UnitMade, 0, @CreatedBy, @BomItemQty, GETUTCDATE(), 0
                                                                                                                                                      
                 FROM W_PreProcessing P 
                                                                                                                                                                                                                       
@@ -162,18 +175,6 @@ BEGIN
                                                                                                                                                                                                                                                              
     -- Deduct Ingredient Stock on Finalize
                                                                                                                                                                                                                    
-    IF EXISTS (
-        SELECT 1 
-        FROM dbo.Inv_ItemStockByBatch b 
-        INNER JOIN dbo.Inv_ItemStockUsed u ON b.ItemStockByBatchId = u.ItemStockByBatchId 
-        WHERE u.UsedFor = @UsedFor AND u.UsedForId = @UsedForId
-        AND b.FinalQuantityLeft - u.Quantity < 0
-    )
-    BEGIN
-        RAISERROR('Insufficient stock available for one or more ingredients.', 16, 1);
-        RETURN;
-    END
-
     UPDATE b 
                                                                                                                                                                                                                                                 
     SET b.FinalQuantityLeft = b.FinalQuantityLeft - u.Quantity 

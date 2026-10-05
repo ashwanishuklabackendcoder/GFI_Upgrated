@@ -1,4 +1,4 @@
-@page "/acc/customerorderlist/new"
+﻿@page "/acc/customerorderlist/new"
 @page "/acc/customerorderlist/edit/{Id:long}"
 @using GFI_Upgrated.SharedDto.Account
 @using GFI_Upgrated.SharedDto.Store
@@ -220,7 +220,7 @@
         try
         {
             _order.CreatedBy = SessionState.CurrentUserAuditName ?? "System";
-            _order.CreatedDate = DateTime.Now;
+            _order.CreatedDate = DateTime.UtcNow;
 
             // 1. Save main order
             var orderId = await ApiClient.SaveCustomerOrderAsync(_order);

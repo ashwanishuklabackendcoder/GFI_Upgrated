@@ -25,7 +25,9 @@
             <div class="w-px-400 mx-auto">
                 <!-- Logo -->
                 <div class="app-brand justify-content-center mb-5">
-                    <img src="assets/img/branding/nuvotrace-new-logo.jpg" alt="@LocalizationState.Text("Login.SystemTitle", "NUVOTRACE")" class="auth-brand-logo" style="max-height: 80px; width: auto; margin: 0 auto;" />
+                    <a href="https://nuvotrace.com/" target="_blank" class="app-brand-link d-flex align-items-center gap-2">
+                        <img src="@(string.IsNullOrWhiteSpace(SessionState.LoginPageLogo) ? "assets/img/branding/nuvotrace-custom-logo.png" : SessionState.LoginPageLogo)" alt="@(string.IsNullOrWhiteSpace(SessionState.CompanyName) ? LocalizationState.Text("Login.SystemTitle", "NUVOTRACE") : SessionState.CompanyName)" class="auth-brand-logo" style="max-height: 180px; max-width: 100%; width: auto; margin: 0 auto;" />
+                    </a>
                 </div>
                 
                 <div class="text-center mb-4">
@@ -321,7 +323,7 @@
             await LocalizationState.InitializeAsync(SessionState, ApiClient, JSRuntime);
             
             // Dynamic redirection based on database-assigned dashboard
-            var target = !string.IsNullOrWhiteSpace(result.DashboardPath) ? result.DashboardPath : "/admin";
+            var target = !string.IsNullOrWhiteSpace(result.DashboardPath) ? result.DashboardPath : "/blank";
             Navigation.NavigateTo(target);
         }
         catch (Exception ex)

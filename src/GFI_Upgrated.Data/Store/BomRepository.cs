@@ -1,4 +1,4 @@
-using GFI_Upgrated.SharedDto.Store;
+﻿using GFI_Upgrated.SharedDto.Store;
 using Microsoft.Data.SqlClient;
 using System;
 using System.Collections.Generic;
@@ -275,7 +275,7 @@ public sealed class BomRepository : IBomRepository
             new SqlParameter("@Quantity", SqlDbType.Float) { Value = request.Quantity },
             new SqlParameter("@UnitId", SqlDbType.Int) { Value = (int)request.UnitId },
             new SqlParameter("@ExtraExpensesPerPiece", SqlDbType.Float) { Value = request.ExtraExpensesPerPiece },
-            new SqlParameter("@CreatedDate", SqlDbType.DateTime) { Value = DateTime.Now },
+            new SqlParameter("@CreatedDate", SqlDbType.DateTime) { Value = DateTime.UtcNow },
             new SqlParameter("@CreatedBy", SqlDbType.NVarChar, 100) { Value = request.CreatedBy },
             new SqlParameter("@ItemTypeId", SqlDbType.Int) { Value = (int)request.ItemTypeId },
             new SqlParameter("@ReturnVal", SqlDbType.Int) { Direction = ParameterDirection.Output }
@@ -295,7 +295,7 @@ public sealed class BomRepository : IBomRepository
                     new SqlParameter("@ItemId", SqlDbType.BigInt) { Value = item.ItemID },
                     new SqlParameter("@Quantity", SqlDbType.Float) { Value = item.Quantity },
                     new SqlParameter("@UnitId", SqlDbType.Int) { Value = (int)item.UnitId },
-                    new SqlParameter("@CreatedDate", SqlDbType.DateTime) { Value = DateTime.Now },
+                    new SqlParameter("@CreatedDate", SqlDbType.DateTime) { Value = DateTime.UtcNow },
                     new SqlParameter("@CreatedBy", SqlDbType.VarChar, 200) { Value = request.CreatedBy },
                     new SqlParameter("@ReturnVal", SqlDbType.Int) { Direction = ParameterDirection.Output }
                 };

@@ -1,4 +1,4 @@
-using GFI_Upgrated.ServiceApi.Infrastructure;
+﻿using GFI_Upgrated.ServiceApi.Infrastructure;
 using GFI_Upgrated.ServiceApi.Services;
 using GFI_Upgrated.ServiceApi.Services.Purchase;
 using GFI_Upgrated.SharedDto.Common;
@@ -222,7 +222,7 @@ namespace GFI_Upgrated.ServiceApi.Controllers.Purchase
                 {
                     UserName = dto.CreatedBy ?? "System",
                     LoginName = dto.CreatedBy ?? "System",
-                    DT = DateTime.Now,
+                    DT = DateTime.UtcNow,
                     EventName = isEdit ? "UPDATE" : "INSERT",
                     EventModule = "Purchase",
                     RefKey = id.ToString(),
@@ -244,7 +244,7 @@ namespace GFI_Upgrated.ServiceApi.Controllers.Purchase
                 {
                     UserName = deletedBy,
                     LoginName = deletedBy,
-                    DT = DateTime.Now,
+                    DT = DateTime.UtcNow,
                     EventName = "DELETE",
                     EventModule = "Purchase",
                     RefKey = ids,

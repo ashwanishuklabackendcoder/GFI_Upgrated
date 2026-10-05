@@ -618,6 +618,28 @@ public sealed class StoreApiClient : ApiClientBase
                ?? new PagedResult<BatchWiseItemDto>();
     }
 
+    public async Task<PagedResult<BatchWiseItemDto>> GetBatchWiseItemsPagedAsync(string? batchNo, long? itemId, long? itemTypeId, bool inStockOnly, int page, int size, string sortType, CancellationToken cancellationToken = default)
+    {
+        var queryParams = new List<string>
+        {
+            $"page={page}",
+            $"size={size}",
+            $"sortType={Uri.EscapeDataString(sortType ?? "DESC")}",
+            $"inStockOnly={inStockOnly}"
+        };
+
+        if (!string.IsNullOrWhiteSpace(batchNo))
+            queryParams.Add($"batchNo={Uri.EscapeDataString(batchNo.Trim())}");
+        if (itemId.HasValue && itemId.Value > 0)
+            queryParams.Add($"itemId={itemId.Value}");
+        if (itemTypeId.HasValue && itemTypeId.Value > 0)
+            queryParams.Add($"itemTypeId={itemTypeId.Value}");
+
+        string url = $"api/store/reports/batch-wise/paged?{string.Join("&", queryParams)}";
+        return await GetEnvelopeAsync<PagedResult<BatchWiseItemDto>>(url, cancellationToken)
+               ?? new PagedResult<BatchWiseItemDto>();
+    }
+
     public async Task<PagedResult<ItemStockByBatchReportDto>> GetItemStockByBatchReportAsync(long? itemStockByBatchId, long? stockById, long? itemId, int page, int size, string sortCol, string sortOrd, CancellationToken cancellationToken = default)
     {
         var query = new List<string>

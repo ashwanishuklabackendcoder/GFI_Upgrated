@@ -1,4 +1,4 @@
-using GFI_Upgrated.SharedDto.Store;
+﻿using GFI_Upgrated.SharedDto.Store;
 using Microsoft.Data.SqlClient;
 using System;
 using System.Collections.Generic;
@@ -136,7 +136,7 @@ public sealed class RawMaterialRepository : IRawMaterialRepository
             new SqlParameter("@IsEditable", SqlDbType.Bit) { Value = true },
             new SqlParameter("@Description", SqlDbType.NVarChar, 1000) { Value = (object?)request.Description ?? DBNull.Value },
             new SqlParameter("@StorageDetails", SqlDbType.NVarChar, 1000) { Value = (object?)request.StorageDetails ?? DBNull.Value },
-            new SqlParameter("@CreatedDate", SqlDbType.DateTime) { Value = DateTime.Now },
+            new SqlParameter("@CreatedDate", SqlDbType.DateTime) { Value = DateTime.UtcNow },
             new SqlParameter("@CreatedBy", SqlDbType.NVarChar, 100) { Value = request.CreatedBy },
             new SqlParameter("@Tags", SqlDbType.NVarChar, 500) { Value = (object?)request.Tags ?? DBNull.Value },
             new SqlParameter("@TentativeExpiryDays", SqlDbType.Int) { Value = request.TentativeExpiryDays },
@@ -271,7 +271,7 @@ public sealed class RawMaterialRepository : IRawMaterialRepository
             new SqlParameter("@StatusId", SqlDbType.Int) { Value = request.StatusId },
             new SqlParameter("@PurchasePrice", SqlDbType.Float) { Value = request.PurchasePrice },
             new SqlParameter("@PurchaseUnit", SqlDbType.Decimal) { Value = request.PurchaseUnit > 0 ? request.PurchaseUnit : DBNull.Value },
-            new SqlParameter("@CreatedDate", SqlDbType.DateTime) { Value = DateTime.Now },
+            new SqlParameter("@CreatedDate", SqlDbType.DateTime) { Value = DateTime.UtcNow },
             new SqlParameter("@CreatedBy", SqlDbType.NVarChar, 100) { Value = request.CreatedBy },
             new SqlParameter("@StartDate", SqlDbType.Date) { Value = (object?)request.StartDate ?? DBNull.Value },
             new SqlParameter("@EndDate", SqlDbType.Date) { Value = (object?)request.EndDate ?? DBNull.Value },
@@ -344,9 +344,13 @@ public sealed class RawMaterialRepository : IRawMaterialRepository
                 UnitId = row.Table.Columns.Contains("Unit") ? row.SafeInt("Unit") : row.SafeInt("UnitId"),
                 UnitName = row.SafeString("UnitName"),
                 BatchNo = row.SafeString("BatchNo") + (patchError != null ? $" [Err: {patchError}]" : ""),
-                Amount = row.SafeDouble("Amount"),
+                Amount = row.SafeDouble("Amount", "StockValue"),
                 StockById = row.Table.Columns.Contains("StockById") ? row.SafeInt("StockById") : 0,
-                ExpiryDate = row.SafeDateTime("ExpiryDate")
+                ExpiryDate = row.SafeDateTime("ExpiryDate"),
+                CreatedBy = row.SafeString("CreatedBy"),
+                CreatedDate = row.Table.Columns.Contains("CreatedDate") ? row.SafeDateTime("CreatedDate") : null,
+                ModifiedBy = row.SafeString("ModifiedBy"),
+                ModifiedDate = row.Table.Columns.Contains("ModifiedDate") ? row.SafeDateTime("ModifiedDate") : null
             });
         }
 
@@ -367,6 +371,7 @@ public sealed class RawMaterialRepository : IRawMaterialRepository
             new SqlParameter("@ExpiryDate", SqlDbType.DateTime) { Value = (object?)request.ExpiryDate ?? DBNull.Value },
             new SqlParameter("@StockById", SqlDbType.Int) { Value = 3 }, // Raw Material stock type
             new SqlParameter("@CreatedBy", SqlDbType.NVarChar, 100) { Value = request.CreatedBy },
+            new SqlParameter("@UpdatedBy", SqlDbType.NVarChar, 100) { Value = request.CreatedBy },
             new SqlParameter("@DeletedBatchIds", SqlDbType.NVarChar, -1) { Value = (object?)deletedBatchIds ?? DBNull.Value },
             new SqlParameter("@Amount", SqlDbType.Float) { Value = request.Amount },
             new SqlParameter("@ReturnVal", SqlDbType.Int) { Direction = ParameterDirection.Output }

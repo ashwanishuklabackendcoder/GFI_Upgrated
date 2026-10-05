@@ -286,6 +286,21 @@ namespace GFI_Upgrated.ServiceApi.Controllers.Account
             return Ok(new ApiEnvelope<long> { Success = id > 0, Data = id, Message = id > 0 ? "Invoice item saved." : "Failed to save." });
         }
 
+        [HttpPost("invoices/{invoiceId}/allocate-stock")]
+        [RequirePermission("Accounts", "_Invoice", "insert")]
+        public async Task<ActionResult<ApiEnvelope<bool>>> AllocateInvoiceStock(long invoiceId, [FromQuery] string invoiceStatus, [FromBody] List<InvoiceItemDto> items)
+        {
+            try
+            {
+                var success = await _service.ProcessInvoiceStockAllocationAsync(invoiceId, invoiceStatus, items);
+                return Ok(new ApiEnvelope<bool> { Success = success, Data = success });
+            }
+            catch (Exception ex)
+            {
+                return Ok(new ApiEnvelope<bool> { Success = false, Data = false, Message = ex.Message });
+            }
+        }
+
         [HttpDelete("invoices")]
         [RequirePermission("Accounts", "_Invoice", "delete")]
         public async Task<ActionResult<ApiEnvelope<bool>>> DeleteInvoices([FromQuery] string ids)

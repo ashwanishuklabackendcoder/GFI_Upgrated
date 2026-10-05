@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Mvc.Filters;
+﻿using Microsoft.AspNetCore.Mvc.Filters;
 using System.Security.Claims;
 using System.Text.Json;
 using GFI_Upgrated.SharedDto.AdminSecurity;
@@ -41,7 +41,8 @@ public class UserActivityLoggingFilter : IAsyncActionFilter
         try
         {
             var user = context.HttpContext.User;
-            var userName = user.Identity?.Name 
+            var userName = user.FindFirst("FullName")?.Value
+                         ?? user.Identity?.Name 
                          ?? user.FindFirst(ClaimTypes.Name)?.Value 
                          ?? user.FindFirst("LoginName")?.Value 
                          ?? "System";
@@ -130,7 +131,7 @@ public class UserActivityLoggingFilter : IAsyncActionFilter
             {
                 UserName = userName,
                 LoginId = loginId,
-                DT = DateTime.Now,
+                DT = DateTime.UtcNow,
                 EventName = eventName,
                 EventModule = controllerName,
                 RefKey = refKey,

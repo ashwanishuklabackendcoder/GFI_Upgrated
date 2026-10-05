@@ -1,4 +1,4 @@
-ALTER PROCEDURE [dbo].[Inv_ItemStockByBatchModifyFromMaster]                  
+﻿ALTER PROCEDURE [dbo].[Inv_ItemStockByBatchModifyFromMaster]                  
                                                                                                                                                                               
 @ItemStockByBatchId bigint = 0,                  
                                                                                                                                                                                                             
@@ -208,7 +208,7 @@ BEGIN
                                                                                                                                                                                                                              
                     @Quantity, 
                                                                                                                                                                                                                               
-                    GETDATE(), 
+                    GETUTCDATE(), 
                                                                                                                                                                                                                               
                     0
                                                                                                                                                                                                                                         
@@ -384,7 +384,7 @@ BEGIN
                                                                                                                                                                                                                              
                     @Quantity, 
                                                                                                                                                                                                                               
-                    GETDATE(), 
+                    GETUTCDATE(), 
                                                                                                                                                                                                                               
                     0
                                                                                                                                                                                                                                         

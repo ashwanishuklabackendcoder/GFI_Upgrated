@@ -57,7 +57,19 @@ public sealed class ProductionRepository : IProductionRepository
         {
             var table = await ExecuteDataTableAsync("W_ProductionSelectAll", parameters, cancellationToken);
             var row = table.AsEnumerable().FirstOrDefault();
-            return row == null ? null : MapProduction(row);
+            if (row == null) return null;
+
+            var dto = MapProduction(row);
+            if (string.IsNullOrWhiteSpace(dto.PackedCountryName) && !string.IsNullOrWhiteSpace(dto.PackedCountry))
+            {
+                var countries = await GetCountriesLookupAsync(cancellationToken);
+                var match = countries.FirstOrDefault(c => c.CountryId.ToString() == dto.PackedCountry || (c.CountryName != null && c.CountryName.Equals(dto.PackedCountry, StringComparison.OrdinalIgnoreCase)));
+                if (match != null)
+                {
+                    dto.PackedCountryName = match.CountryName;
+                }
+            }
+            return dto;
         }
         catch (Exception ex)
         {
@@ -163,8 +175,11 @@ public sealed class ProductionRepository : IProductionRepository
                 double quantity = 0;
                 long itemId = 0;
                 
+                long usedForId = 0;
+                int usedFor = 0;
+                
                 var querySelect = @"
-                    SELECT u.ItemStockByBatchId, u.Quantity, b.ItemId 
+                    SELECT u.ItemStockByBatchId, u.Quantity, b.ItemId, u.UsedFor, u.UsedForId 
                     FROM dbo.Inv_ItemStockUsed u
                     INNER JOIN dbo.Inv_ItemStockByBatch b ON u.ItemStockByBatchId = b.ItemStockByBatchId
                     WHERE u.ItemStockUsedID = @ItemStockUsedID";
@@ -179,11 +194,28 @@ public sealed class ProductionRepository : IProductionRepository
                             batchId = Convert.ToInt64(reader["ItemStockByBatchId"]);
                             quantity = Convert.ToDouble(reader["Quantity"]);
                             itemId = Convert.ToInt64(reader["ItemId"]);
+                            usedFor = Convert.ToInt32(reader["UsedFor"]);
+                            usedForId = Convert.ToInt64(reader["UsedForId"]);
                         }
                     }
                 }
                 
-                if (batchId > 0 && quantity > 0 && itemId > 0)
+                bool shouldUpdateStock = true;
+                if (usedFor == 3)
+                {
+                    var checkQuery = "SELECT ISNULL(IsComplete, 0) FROM dbo.W_Production WHERE ProductionId = @UsedForId";
+                    await using (var cmdCheck = new SqlCommand(checkQuery, connection, (SqlTransaction)transaction))
+                    {
+                        cmdCheck.Parameters.Add(new SqlParameter("@UsedForId", SqlDbType.BigInt) { Value = usedForId });
+                        var isComplete = Convert.ToInt32(await cmdCheck.ExecuteScalarAsync(cancellationToken) ?? 0);
+                        if (isComplete == 0)
+                        {
+                            shouldUpdateStock = false;
+                        }
+                    }
+                }
+                
+                if (batchId > 0 && quantity > 0 && itemId > 0 && shouldUpdateStock)
                 {
                     var updateBatch = @"
                         UPDATE dbo.Inv_ItemStockByBatch 
@@ -244,17 +276,41 @@ public sealed class ProductionRepository : IProductionRepository
             new SqlParameter("@ReturnVal", SqlDbType.Int) { Direction = ParameterDirection.Output }
         };
 
-        await ExecuteNonQueryAsync("Inv_ItemStockPreProcessingAndProductModify", parameters, cancellationToken);
-        
-        // Explicitly persist IsComplete status to 1 on the production header
-        var updateQuery = "UPDATE dbo.W_Production SET IsComplete = 1 WHERE ProductionId = @ProductionId";
+        //await ExecuteNonQueryAsync("Inv_ItemStockPreProcessingAndProductModify", parameters, cancellationToken);
+
+        //// Explicitly persist IsComplete status to 1 on the production header
+        //var updateQuery = "UPDATE dbo.W_Production SET IsComplete = 1 WHERE ProductionId = @ProductionId";
+        //await using var connection = new SqlConnection(_connectionString);
+        //await using var command = new SqlCommand(updateQuery, connection);
+        //command.Parameters.AddWithValue("@ProductionId", productionId);
+        //await connection.OpenAsync(cancellationToken);
+        //await command.ExecuteNonQueryAsync(cancellationToken);
+
+        //return Convert.ToInt32(parameters[^1].Value ?? 0);
         await using var connection = new SqlConnection(_connectionString);
-        await using var command = new SqlCommand(updateQuery, connection);
-        command.Parameters.AddWithValue("@ProductionId", productionId);
         await connection.OpenAsync(cancellationToken);
-        await command.ExecuteNonQueryAsync(cancellationToken);
-        
-        return Convert.ToInt32(parameters[^1].Value ?? 0);
+        await using var transaction = await connection.BeginTransactionAsync(cancellationToken);
+        try
+        {
+            // 1. Execute SP within transaction
+            await ExecuteNonQueryAsync("Inv_ItemStockPreProcessingAndProductModify", parameters, cancellationToken);
+
+            // 2. Persist IsComplete status within same transaction
+            var updateQuery = "UPDATE dbo.W_Production SET IsComplete = 1 WHERE ProductionId = @ProductionId";
+            await using (var command = new SqlCommand(updateQuery, connection, (SqlTransaction)transaction))
+            {
+                command.Parameters.AddWithValue("@ProductionId", productionId);
+                await command.ExecuteNonQueryAsync(cancellationToken);
+            }
+            await transaction.CommitAsync(cancellationToken);
+            return Convert.ToInt32(parameters[^1].Value ?? 0);
+        }
+        catch
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            throw;
+        }
+
     }
 
     public async Task<IReadOnlyList<CountryLookupDto>> GetCountriesLookupAsync(CancellationToken cancellationToken = default)

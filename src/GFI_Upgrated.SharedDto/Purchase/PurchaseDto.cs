@@ -23,6 +23,9 @@ namespace GFI_Upgrated.SharedDto.Purchase
         public DateTime? CreatedDate { get; set; }
         public string? CreatedBy { get; set; }
         public string? UpdatedBy { get; set; }
+        public DateTime? UpdatedDate { get; set; }
+        public string Status { get; set; } = "Draft";
+        public bool IsFinalized { get; set; }
         public string? FileName { get; set; }
         public string? Narration { get; set; }
 
@@ -46,6 +49,8 @@ namespace GFI_Upgrated.SharedDto.Purchase
         public string? Description { get; set; }
         public DateTime? CreatedDate { get; set; }
         public string? CreatedBy { get; set; }
+        public DateTime? UpdatedDate { get; set; }
+        public string? UpdatedBy { get; set; }
 
         // Joined fields for UI
         public string? ItemName { get; set; }

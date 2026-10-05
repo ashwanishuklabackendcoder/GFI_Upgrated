@@ -15,7 +15,7 @@
     <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-4">
         <MudStack Spacing="0">
             <MudText Typo="Typo.h5">Sales Invoices</MudText>
-            <MudText Typo="Typo.body2" Color="Color.Secondary">Manage customer sales invoices, amounts, and payment statuses.</MudText>
+           @*  <MudText Typo="Typo.body2" Color="Color.Secondary">Manage customer sales invoices, amounts, and payment statuses.</MudText> *@
         </MudStack>
         @if (_canInsert)
         {
@@ -49,8 +49,8 @@
                 @SessionState.FormatCurrency(context.TotalAmount)
             </MudTd>
             <MudTd DataLabel="Status" Style="text-align: center;">
-                <MudChip T="string" Color="@(context.IsPaid == true || context.InvoiceStatus == "Paid" ? Color.Success : Color.Warning)" Size="Size.Small" Variant="Variant.Text">
-                    @(context.IsPaid == true || context.InvoiceStatus == "Paid" ? "Paid" : "Unpaid")
+                <MudChip T="string" Color="@(context.IsPaid == true || string.Equals(context.InvoiceStatus, "Paid", StringComparison.OrdinalIgnoreCase) ? Color.Success : Color.Warning)" Size="Size.Small" Variant="Variant.Filled" Style="font-weight: 600;">
+                    @(context.IsPaid == true || string.Equals(context.InvoiceStatus, "Paid", StringComparison.OrdinalIgnoreCase) ? "Paid" : "Unpaid")
                 </MudChip>
             </MudTd>
             <MudTd DataLabel="Action" Style="text-align: center;">
@@ -184,6 +184,7 @@
             if (success)
             {
                 Snackbar.Add("Invoice deleted successfully.", Severity.Success);
+                _cachedItems = null;
                 if (_table is not null) await _table.ReloadServerData();
             }
             else
