@@ -1,4 +1,4 @@
-@page "/store/reports/item-stock-by-batch"
+﻿@page "/store/reports/item-stock-by-batch"
 @page "/admin/reports/item-stock-by-batch"
 @page "/store/itemstocklist"
 @page "/admin/itemstocklist"
@@ -47,7 +47,7 @@
         <div style="text-align: center; border-bottom: 2px solid #333; padding-bottom: 12px; margin-bottom: 16px;">
             <h2 style="margin: 0; font-size: 24px; font-weight: bold; color: #111;">GFI</h2>
             <h3 style="margin: 4px 0 0; font-size: 18px; color: #555;">Item Stock By Batch</h3>
-            <p style="margin: 4px 0 0; font-size: 12px; color: #777;">Generated on: @DateTime.Now.ToString("g")</p>
+            <p style="margin: 4px 0 0; font-size: 12px; color: #777;">Generated on: @DateTime.UtcNow.ToString("g")</p>
         </div>
         <div style="font-size: 14px; margin-bottom: 16px;">
             <strong>Filters Applied:</strong><br />
@@ -258,7 +258,7 @@
             var whName = (item.WarehouseName ?? "").Replace("\"", "\"\"");
             sb.AppendLine($"{item.ItemStockByBatchId},\"{itemName}\",\"{batchNo}\",{item.Quantity},\"{unitName}\",{item.IssuedStock},{item.FinalQuantityLeft},\"{expDate}\",{item.StockValue},\"{sourceName}\",\"{whName}\"");
         }
-        await JS.InvokeVoidAsync("gfiDownloadTextFile", $"item-stock-by-batch-{DateTime.Now:yyyyMMddHHmmss}.csv", sb.ToString(), "text/csv;charset=utf-8");
+        await JS.InvokeVoidAsync("gfiDownloadTextFile", $"item-stock-by-batch-{DateTime.UtcNow:yyyyMMddHHmmss}.csv", sb.ToString(), "text/csv;charset=utf-8");
         Snackbar.Add("Report data exported as CSV.", Severity.Success);
     }
     private async Task ExportToPrintAsync()

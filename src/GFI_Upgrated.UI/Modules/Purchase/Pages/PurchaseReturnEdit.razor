@@ -1,4 +1,4 @@
-@page "/store/purchase-return/new"
+﻿@page "/store/purchase-return/new"
 @using GFI_Upgrated.SharedDto.Purchase
 @using GFI_Upgrated.SharedDto.Store
 @using GFI_Upgrated.SharedDto.AdminSecurity
@@ -210,7 +210,7 @@
                     Quantity = r.Quantity,
                     Description = _meta.Description,
                     CreatedBy = SessionState.CurrentUserAuditName ?? "System",
-                    CreatedDate = DateTime.Now
+                    CreatedDate = DateTime.UtcNow
                 };
 
                 await ApiClient.SavePurchaseReturnAsync(dto);

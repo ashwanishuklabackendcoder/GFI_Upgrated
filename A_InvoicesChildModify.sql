@@ -1,4 +1,4 @@
-Text                                                                                                                                                                                                                                                           
+﻿Text                                                                                                                                                                                                                                                           
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 CREATE PROCEDURE [dbo].[A_InvoicesChildModify]            
                                                                                                                                                                                                    
@@ -96,7 +96,7 @@ Else
            IF @NewItemStockByBatchId IS NOT NULL
            BEGIN
                DECLARE @DummyReturn INT
-               DECLARE @Now DATETIME = GETDATE()
+               DECLARE @Now DATETIME = GETUTCDATE()
                EXEC dbo.Inv_ItemStockUsedModify 
                    @ItemStockUsedID = @ItemStockUsedID,
                    @ItemStockByBatchId = @NewItemStockByBatchId,

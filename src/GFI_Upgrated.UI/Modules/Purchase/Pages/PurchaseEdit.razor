@@ -84,8 +84,8 @@
 
                 <MudTable Items="_model.Items" Hover="true" Dense="true" Striped="true" Bordered="true" Elevation="0" Context="itemContext">
                     <HeaderContent>
-                        <MudTh>Item</MudTh>
-                        <MudTh Style="width: 100px;">Qty.</MudTh>
+                        <MudTh Style="width: 300px;">Item</MudTh>
+                        <MudTh Style="width: 150px;">Qty.</MudTh>
                         <MudTh Style="width: 120px;">Unit</MudTh>
                         <MudTh Style="width: 120px;">Price</MudTh>
                         <MudTh>Batch No.</MudTh>
@@ -194,7 +194,7 @@
 @code {
     [Parameter] public long Id { get; set; }
 
-    private PurchaseDto _model = new() { GoodsRecievedDate = DateTime.Now };
+    private PurchaseDto _model = new() { GoodsRecievedDate = DateTime.UtcNow };
     private AccountLookupDto? _selectedVendor;
     private PurchaseOrderDto? _selectedPO;
     private List<AccountLookupDto> _vendors = new();
@@ -228,7 +228,7 @@
         else
         {
             _model.CreatedBy = SessionState.CurrentUserAuditName ?? "System";
-            _model.VoucherNumber = $"GRN-{DateTime.Now:yyyyMMdd-HHmm}";
+            _model.VoucherNumber = $"GRN-{DateTime.UtcNow:yyyyMMdd-HHmm}";
         }
     }
 

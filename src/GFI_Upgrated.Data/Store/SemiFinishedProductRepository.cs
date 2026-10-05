@@ -1,4 +1,4 @@
-using GFI_Upgrated.SharedDto.Store;
+﻿using GFI_Upgrated.SharedDto.Store;
 using Microsoft.Data.SqlClient;
 using System;
 using System.Collections.Generic;
@@ -126,7 +126,7 @@ public sealed class SemiFinishedProductRepository : ISemiFinishedProductReposito
     {
         var parameters = new[]
         {
-            new SqlParameter("@CreatedDate", SqlDbType.DateTime) { Value = DateTime.Now },
+            new SqlParameter("@CreatedDate", SqlDbType.DateTime) { Value = DateTime.UtcNow },
             new SqlParameter("@IsActive", SqlDbType.Bit) { Value = request.IsActive },
             new SqlParameter("@IsEditable", SqlDbType.Bit) { Value = true },
             new SqlParameter("@ItemID", SqlDbType.BigInt) { Value = request.ItemId },
@@ -275,7 +275,7 @@ public sealed class SemiFinishedProductRepository : ISemiFinishedProductReposito
             new SqlParameter("@StatusId", SqlDbType.Int) { Value = request.StatusId },
             new SqlParameter("@PurchasePrice", SqlDbType.Float) { Value = request.PurchasePrice },
             new SqlParameter("@PurchaseUnit", SqlDbType.Decimal) { Value = request.PurchaseUnit > 0 ? request.PurchaseUnit : DBNull.Value },
-            new SqlParameter("@CreatedDate", SqlDbType.DateTime) { Value = DateTime.Now },
+            new SqlParameter("@CreatedDate", SqlDbType.DateTime) { Value = DateTime.UtcNow },
             new SqlParameter("@CreatedBy", SqlDbType.NVarChar, 100) { Value = request.CreatedBy },
             new SqlParameter("@StartDate", SqlDbType.Date) { Value = (object?)request.StartDate ?? DBNull.Value },
             new SqlParameter("@EndDate", SqlDbType.Date) { Value = (object?)request.EndDate ?? DBNull.Value },

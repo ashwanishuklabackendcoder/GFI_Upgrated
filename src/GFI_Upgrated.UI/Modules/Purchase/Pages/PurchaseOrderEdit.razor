@@ -1,4 +1,4 @@
-@page "/admin/purchase-order/new"
+﻿@page "/admin/purchase-order/new"
 @page "/admin/purchase-order/edit/{Id:long}"
 @using GFI_Upgrated.SharedDto.Purchase
 @using GFI_Upgrated.SharedDto.Store
@@ -118,7 +118,7 @@
 @code {
     [Parameter] public long Id { get; set; }
 
-    private PurchaseOrderDto _model = new() { OrderDate = DateTime.Now };
+    private PurchaseOrderDto _model = new() { OrderDate = DateTime.UtcNow };
     private AccountLookupDto? _selectedVendor;
     private PurchaseRequestDto? _selectedPR;
     private List<AccountLookupDto> _vendors = new();
@@ -148,7 +148,7 @@
         else
         {
             _model.CreatedBy = SessionState.CurrentUserAuditName ?? "System";
-            _model.VoucherNumber = $"PO-{DateTime.Now:yyyyMMdd-HHmm}";
+            _model.VoucherNumber = $"PO-{DateTime.UtcNow:yyyyMMdd-HHmm}";
         }
     }
 

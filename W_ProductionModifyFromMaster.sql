@@ -1,4 +1,4 @@
-Text                                                                                                                                                                                                                                                           
+﻿Text                                                                                                                                                                                                                                                           
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 CREATE PROCEDURE [dbo].[W_ProductionModifyFromMaster]     
                                                                                                                                                                                                    
@@ -100,7 +100,7 @@ BEGIN
                                                                                                                                                                                                                  
             WHERE IdFrom IN (SELECT Id FROM @DeletedTable)
                                                                                                                                                                                                    
-            AND StockById = 3
+            AND StockById = 4
                                                                                                                                                                                                                                 
 
                                                                                                                                                                                                                                                              
@@ -154,7 +154,7 @@ BEGIN
                                                                                                                                            
             VALUES     
                                                                                                                                                                                                                                       
-            (3, @ReturnVal, @ItemId, @BomQty, @FillingPerBottleUnit, @BatchNumberMade, @ExpiryDate, @WarehouseId, @BomQty)      
+            (4, @ReturnVal, @ItemId, @BomQty, @FillingPerBottleUnit, @BatchNumberMade, @ExpiryDate, @WarehouseId, @BomQty)      
                                                                                                                              
 
                                                                                                                                                                                                                                                              
@@ -174,7 +174,7 @@ BEGIN
                                                                                                        
                 VALUES    
                                                                                                                                                                                                                                    
-                (@BomQty, 0, @ItemId, @FillingPerBottleUnit, 0, @CreatedBy, @BomQty, GETDATE(), 0)    
+                (@BomQty, 0, @ItemId, @FillingPerBottleUnit, 0, @CreatedBy, @BomQty, GETUTCDATE(), 0)    
                                                                                                                                                        
             END        
                                                                                                                                                                                                                                       
@@ -278,7 +278,7 @@ BEGIN
                                                                                                                                                                                                           
                 WHERE IdFrom = @ProductionId    
                                                                                                                                                                                                              
-                AND StockById = 3    
+                AND StockById = 4    
                                                                                                                                                                                                                         
 
                                                                                                                                                                                                                                                              
@@ -304,7 +304,7 @@ BEGIN
                                                                                                        
                     VALUES    
                                                                                                                                                                                                                                
-                    (@BomQty, 0, @ItemID, @FillingPerBottleUnit, 0, @CreatedBy, @BomQty, GETDATE(), 0)    
+                    (@BomQty, 0, @ItemID, @FillingPerBottleUnit, 0, @CreatedBy, @BomQty, GETUTCDATE(), 0)    
                                                                                                                                                    
                 END    
                                                                                                                                                                                                                                       
@@ -349,3 +349,4 @@ BEGIN
     END CATCH    
                                                                                                                                                                                                                                             
 END                                                                                                                                                                                                                                                            
+

@@ -1,4 +1,4 @@
-ALTER PROCEDURE [dbo].[Inv_ItemStockByBatchModifyFromMaster]                  
+﻿ALTER PROCEDURE [dbo].[Inv_ItemStockByBatchModifyFromMaster]                  
                                                                                                                                                                               
 @ItemStockByBatchId bigint = 0,                  
                                                                                                                                                                                                             
@@ -18,7 +18,8 @@ ALTER PROCEDURE [dbo].[Inv_ItemStockByBatchModifyFromMaster]
                                                                                                                                                                                                                
 @StockById int = 1,                 
                                                                                                                                                                                                                          
-@CreatedBy nvarchar(200),                  
+@CreatedBy nvarchar(200),
+@UpdatedBy nvarchar(100) = null,                  
                                                                                                                                                                                                                   
 @DeletedBatchIds nvarchar(max) = null,                
                                                                                                                                                                                                        
@@ -150,11 +151,11 @@ BEGIN
                                                                                                                                                                                                                                                              
             INSERT INTO Inv_ItemStockByBatch
                                                                                                                                                                                                                  
-            (StockById, IdFrom, ItemId, Quantity, Unit, BatchNo, ExpiryDate, WarehouseId, FinalQuantityLeft, Amount)     
+            (StockById, IdFrom, ItemId, Quantity, Unit, BatchNo, ExpiryDate, WarehouseId, FinalQuantityLeft, Amount, CreatedBy, CreatedDate)     
                                                                                                                                     
             VALUES 
                                                                                                                                                                                                                                           
-            (@StockById, ISNULL(@IdFrom,0), @ItemId, @Quantity, @ActualUnitId, @BatchNo, @ExpiryDate, @ActualWarehouseId, @Quantity, @Amount)    
+            (@StockById, ISNULL(@IdFrom,0), @ItemId, @Quantity, @ActualUnitId, @BatchNo, @ExpiryDate, @ActualWarehouseId, @Quantity, @Amount, @CreatedBy, GETUTCDATE())    
                                                                                                             
 
                                                                                                                                                                                                                                                              
@@ -208,7 +209,7 @@ BEGIN
                                                                                                                                                                                                                              
                     @Quantity, 
                                                                                                                                                                                                                               
-                    GETDATE(), 
+                    GETUTCDATE(), 
                                                                                                                                                                                                                               
                     0
                                                                                                                                                                                                                                         
@@ -296,7 +297,7 @@ BEGIN
                                                                                                                                                                                                                     
                 WarehouseId = @ActualWarehouseId,
                                                                                                                                                                                                             
-                Amount = @Amount
+                Amount = @Amount, ModifiedBy = @UpdatedBy, ModifiedDate = GETUTCDATE()
                                                                                                                                                                                                                              
             WHERE ItemStockByBatchId = @ItemStockByBatchId    
                                                                                                                                                                                                
@@ -384,7 +385,7 @@ BEGIN
                                                                                                                                                                                                                              
                     @Quantity, 
                                                                                                                                                                                                                               
-                    GETDATE(), 
+                    GETUTCDATE(), 
                                                                                                                                                                                                                               
                     0
                                                                                                                                                                                                                                         

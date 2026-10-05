@@ -1,4 +1,4 @@
-@page "/admin/invoice/new"
+﻿@page "/admin/invoice/new"
 @page "/admin/invoice/edit/{Id:long}"
 @using GFI_Upgrated.SharedDto.Account
 @using GFI_Upgrated.SharedDto.Store
@@ -558,7 +558,7 @@
         try
         {
             _invoice.CreatedBy = SessionState.CurrentUserAuditName ?? "System";
-            _invoice.CreatedDate = DateTime.Now;
+            _invoice.CreatedDate = DateTime.UtcNow;
             _invoice.TotalAmount = CalculateTotalAmount();
 
             if (_invoice.IsPaid == true)

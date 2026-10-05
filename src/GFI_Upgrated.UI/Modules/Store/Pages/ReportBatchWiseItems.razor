@@ -1,4 +1,4 @@
-@page "/store/reports/batch-wise-items"
+﻿@page "/store/reports/batch-wise-items"
 @page "/admin/reports/batch-wise-items"
 @page "/store/reportbatchwiseitems"
 @page "/admin/reportbatchwiseitems"
@@ -62,7 +62,7 @@
         <div style="text-align: center; border-bottom: 2px solid #333; padding-bottom: 12px; margin-bottom: 16px;">
             <h2 style="margin: 0; font-size: 24px; font-weight: bold; color: #111;">GFI</h2>
             <h3 style="margin: 4px 0 0; font-size: 18px; color: #555;">Batch Number Wise Items</h3>
-            <p style="margin: 4px 0 0; font-size: 12px; color: #777;">Generated on: @DateTime.Now.ToString("g")</p>
+            <p style="margin: 4px 0 0; font-size: 12px; color: #777;">Generated on: @DateTime.UtcNow.ToString("g")</p>
         </div>
         <div style="font-size: 14px; margin-bottom: 16px;">
             <strong>Filters Applied:</strong><br />
@@ -360,7 +360,7 @@
             var accName = (item.AccountName ?? "").Replace("\"", "\"\"");
             sb.AppendLine($"\"{item.BatchNo}\",\"{name}\",\"{accName}\",\"{FormatQty(item.AvailableQty, item.UnitName)}\",\"{item.ProcessingDate}\",\"{item.ExpiryDate}\"");
         }
-        await JS.InvokeVoidAsync("gfiDownloadTextFile", $"batch-wise-items-report-{DateTime.Now:yyyyMMddHHmmss}.csv", sb.ToString(), "text/csv;charset=utf-8");
+        await JS.InvokeVoidAsync("gfiDownloadTextFile", $"batch-wise-items-report-{DateTime.UtcNow:yyyyMMddHHmmss}.csv", sb.ToString(), "text/csv;charset=utf-8");
         Snackbar.Add("Report data exported as CSV.", Severity.Success);
     }
 

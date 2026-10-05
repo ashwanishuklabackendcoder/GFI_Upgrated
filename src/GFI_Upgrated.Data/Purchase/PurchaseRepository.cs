@@ -67,7 +67,7 @@ namespace GFI_Upgrated.Data.Purchase
                 new SqlParameter("@CheckedBy", SqlDbType.BigInt) { Value = (object)request.CheckedBy ?? DBNull.Value },
                 new SqlParameter("@ConfirmedBy", SqlDbType.BigInt) { Value = (object)request.ConfirmedBy ?? DBNull.Value },
                 new SqlParameter("@ConfirmationDate", SqlDbType.Date) { Value = (object)request.ConfirmationDate ?? DBNull.Value },
-                new SqlParameter("@CreatedDate", SqlDbType.DateTime) { Value = request.CreatedDate ?? DateTime.Now },
+                new SqlParameter("@CreatedDate", SqlDbType.DateTime) { Value = request.CreatedDate ?? DateTime.UtcNow },
                 new SqlParameter("@CreatedBy", SqlDbType.NVarChar, 400) { Value = request.CreatedBy ?? "" },
                 new SqlParameter("@Remarks", SqlDbType.NVarChar, 2000) { Value = request.Remarks ?? "" },
                 new SqlParameter("@DocumentUpload", SqlDbType.NVarChar, 1000) { Value = request.DocumentUpload ?? "" },
@@ -176,7 +176,7 @@ namespace GFI_Upgrated.Data.Purchase
                 new SqlParameter("@TaxAmount3", SqlDbType.Float) { Value = (object)order.TaxAmount3 ?? 0 },
                 new SqlParameter("@DiscountPercent", SqlDbType.Float) { Value = (object)order.DiscountPercent ?? 0 },
                 new SqlParameter("@DiscountAmount", SqlDbType.Float) { Value = (object)order.DiscountAmount ?? 0 },
-                new SqlParameter("@CreatedDate", SqlDbType.DateTime) { Value = order.CreatedDate ?? DateTime.Now },
+                new SqlParameter("@CreatedDate", SqlDbType.DateTime) { Value = order.CreatedDate ?? DateTime.UtcNow },
                 new SqlParameter("@CreatedBy", SqlDbType.NVarChar, 200) { Value = order.CreatedBy ?? "" },
                 new SqlParameter("@CheckedBy", SqlDbType.BigInt) { Value = (object)order.CheckedBy ?? DBNull.Value },
                 new SqlParameter("@ConfirmedBy", SqlDbType.BigInt) { Value = (object)order.ConfirmedBy ?? DBNull.Value },
@@ -322,7 +322,7 @@ namespace GFI_Upgrated.Data.Purchase
 
                 // Standardize Status string
                 purchase.Status = purchase.IsFinalized ? "Finalized" : "Draft";
-                DateTime now = DateTime.Now;
+                DateTime now = DateTime.UtcNow;
 
                 var parameters = new[]
                 {
@@ -425,6 +425,9 @@ namespace GFI_Upgrated.Data.Purchase
                             new SqlParameter("@CreatedBy", SqlDbType.NVarChar, 400) { Value = purchase.CreatedBy ?? "" },
                             new SqlParameter("@UpdatedBy", SqlDbType.NVarChar, 400) { Value = purchase.UpdatedBy ?? "" },
                             new SqlParameter("@UpdatedDate", SqlDbType.DateTime) { Value = item.PurchaseItemID > 0 ? (object)now : DBNull.Value },
+                            new SqlParameter("@BatchNo", SqlDbType.NVarChar, 50) { Value = (object?)item.BatchNo ?? DBNull.Value },
+                            new SqlParameter("@ExpiryDate", SqlDbType.Date) { Value = (object?)item.ExpiryDate ?? DBNull.Value },
+                            new SqlParameter("@WarehouseId", SqlDbType.BigInt) { Value = (object?)item.WarehouseId ?? DBNull.Value },
                             new SqlParameter("@ReturnVal", SqlDbType.Int) { Direction = ParameterDirection.Output }
                         };
 
@@ -567,7 +570,7 @@ namespace GFI_Upgrated.Data.Purchase
                 new SqlParameter("@ReturnDate", SqlDbType.Date) { Value = (object)@return.ReturnDate ?? DBNull.Value },
                 new SqlParameter("@ReturnReason", SqlDbType.BigInt) { Value = (object)@return.ReturnReason ?? DBNull.Value },
                 new SqlParameter("@Quantity", SqlDbType.Float) { Value = @return.Quantity },
-                new SqlParameter("@CreatedDate", SqlDbType.DateTime) { Value = @return.CreatedDate ?? DateTime.Now },
+                new SqlParameter("@CreatedDate", SqlDbType.DateTime) { Value = @return.CreatedDate ?? DateTime.UtcNow },
                 new SqlParameter("@CreatedBy", SqlDbType.NVarChar, 400) { Value = @return.CreatedBy ?? "" },
                 new SqlParameter("@Description", SqlDbType.NVarChar, 4000) { Value = @return.Description ?? "" },
                 new SqlParameter("@ReturnVal", SqlDbType.Int) { Direction = ParameterDirection.Output }
@@ -660,7 +663,7 @@ namespace GFI_Upgrated.Data.Purchase
                 new SqlParameter("@PurchasePrice", SqlDbType.NVarChar) { Value = dto.PurchasePrice ?? "" },
                 new SqlParameter("@ReasonFor", SqlDbType.NVarChar) { Value = dto.ReasonFor?.ToString() ?? "" },
                 new SqlParameter("@RemovalDate", SqlDbType.Date) { Value = (object)dto.RemovalDate ?? DBNull.Value },
-                new SqlParameter("@CreatedDate", SqlDbType.DateTime) { Value = dto.CreatedDate ?? DateTime.Now },
+                new SqlParameter("@CreatedDate", SqlDbType.DateTime) { Value = dto.CreatedDate ?? DateTime.UtcNow },
                 new SqlParameter("@CreatedBy", SqlDbType.NVarChar) { Value = dto.CreatedBy ?? "" },
                 new SqlParameter("@Ramarks", SqlDbType.NVarChar) { Value = dto.Remarks ?? "" },
                 new SqlParameter("@ReturnVal", SqlDbType.Int) { Direction = ParameterDirection.Output }
@@ -827,7 +830,10 @@ namespace GFI_Upgrated.Data.Purchase
             CreatedDate = row.SafeDateTime("CreatedDate"),
             CreatedBy = row.SafeString("CreatedBy"),
             UpdatedDate = row.Table.Columns.Contains("UpdatedDate") ? row.SafeDateTime("UpdatedDate") : null,
-            UpdatedBy = row.Table.Columns.Contains("UpdatedBy") ? row.SafeString("UpdatedBy") : null
+            UpdatedBy = row.Table.Columns.Contains("UpdatedBy") ? row.SafeString("UpdatedBy") : null,
+            BatchNo = row.Table.Columns.Contains("BatchNo") ? row.SafeString("BatchNo") : null,
+            ExpiryDate = row.Table.Columns.Contains("ExpiryDate") ? row.SafeDateTime("ExpiryDate") : null,
+            WarehouseId = row.Table.Columns.Contains("WarehouseId") ? row.SafeLongNullable("WarehouseId") : null
         };
 
         private PurchaseReturnDto MapPurchaseReturn(DataRow row) => new()

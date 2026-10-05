@@ -266,7 +266,7 @@ public sealed class ReportRepository : IReportRepository
                 ) t5
                 LEFT JOIN W_MasterItem t3 ON t5.ItemId = t3.ItemID
                 LEFT JOIN W_MasterItemType it ON t3.ItemTypeId = it.ItemTypeId
-                LEFT JOIN W_MasterUnit mu ON t5.Unit = mu.UnitId
+                LEFT JOIN W_MasterUnit mu ON ISNULL(t3.PurchaseUnit, t5.Unit) = mu.UnitId
                 LEFT JOIN W_PurchaseChild t1 ON t5.IdFrom = t1.PurchaseItemID AND t5.StockById = 1
                 LEFT JOIN W_PurchaseMaster t2 ON t1.PurchaseID = t2.PurchaseID
                 LEFT JOIN A_MasterAccounts t4 ON t4.AccountId = t2.AccountID
@@ -330,7 +330,7 @@ public sealed class ReportRepository : IReportRepository
                 ) t5
                 LEFT JOIN W_MasterItem t3 ON t5.ItemId = t3.ItemID
                 LEFT JOIN W_MasterItemType it ON t3.ItemTypeId = it.ItemTypeId
-                LEFT JOIN W_MasterUnit mu ON t5.Unit = mu.UnitId
+                LEFT JOIN W_MasterUnit mu ON ISNULL(t3.PurchaseUnit, t5.Unit) = mu.UnitId
                 LEFT JOIN W_PurchaseChild t1 ON t5.IdFrom = t1.PurchaseItemID AND t5.StockById = 1
                 LEFT JOIN W_PurchaseMaster t2 ON t1.PurchaseID = t2.PurchaseID
                 LEFT JOIN A_MasterAccounts t4 ON t4.AccountId = t2.AccountID

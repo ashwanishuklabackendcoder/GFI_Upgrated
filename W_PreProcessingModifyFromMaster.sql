@@ -1,4 +1,4 @@
-Text                                                                                                                                                                                                                                                           
+﻿Text                                                                                                                                                                                                                                                           
 ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 CREATE PROCEDURE [dbo].[W_PreProcessingModifyFromMaster]        
                                                                                                                                                                                              
@@ -208,7 +208,7 @@ BEGIN
                                                                                                      
                 VALUES      
                                                                                                                                                                                                                                  
-                (@BomQty, 0, @ItemId, @UnitMade, 0, @CreatedBy, @BomQty, GETDATE(), 0)      
+                (@BomQty, 0, @ItemId, @UnitMade, 0, @CreatedBy, @BomQty, GETUTCDATE(), 0)      
                                                                                                                                                                  
             END          
                                                                                                                                                                                                                                     
@@ -336,7 +336,7 @@ BEGIN
                                                                                                      
                     VALUES      
                                                                                                                                                                                                                              
-                    (@BomQty, 0, @ItemID, @UnitMade, 0, @CreatedBy, @BomQty, GETDATE(), 0)      
+                    (@BomQty, 0, @ItemID, @UnitMade, 0, @CreatedBy, @BomQty, GETUTCDATE(), 0)      
                                                                                                                                                              
                 END      
                                                                                                                                                                                                                                     

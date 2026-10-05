@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.ComponentModel.DataAnnotations;
 
 namespace GFI_Upgrated.SharedDto.Account
@@ -31,7 +31,7 @@ namespace GFI_Upgrated.SharedDto.Account
         public string? Remark { get; set; }
         public long? CountryID { get; set; }
         public string? CountryName { get; set; }
-        public DateTime CreatedDate { get; set; } = DateTime.Now;
+        public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
         public string? CreatedBy { get; set; }
     }
 }

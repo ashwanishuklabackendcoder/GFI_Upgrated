@@ -1,4 +1,4 @@
-using System.Data;
+﻿using System.Data;
 using System.Text.Json;
 using System.Text;
 using GFI_Upgrated.SharedDto.AdminSecurity;
@@ -90,10 +90,10 @@ public sealed class AdminSecurityRepository : IAdminSecurityRepository
                 (SELECT COUNT(*) FROM Z_UsersLogins WHERE IsActive = 1) AS TotalUsers,
                 (SELECT COUNT(*) FROM Z_UsersLogins WHERE IsActive = 0) AS InactiveUsers,
                 (SELECT COUNT(*) FROM Z_UsersRoles) AS TotalRoles,
-                (SELECT COUNT(*) FROM Z_UsersLoginsLog WHERE LoginDateTime >= DATEADD(day, -7, GETDATE())) AS ActiveLogins7Days,
-                (SELECT COUNT(*) FROM Z_UsersLoginsLog WHERE LoginDateTime >= DATEADD(day, -14, GETDATE()) AND LoginDateTime < DATEADD(day, -7, GETDATE())) AS ActiveLoginsPrevious7Days,
-                (SELECT COUNT(*) FROM Z_UsersActivityLog WHERE DT >= DATEADD(day, -7, GETDATE())) AS ActivityLogs7Days,
-                (SELECT COUNT(*) FROM Z_UsersActivityLog WHERE DT >= DATEADD(day, -14, GETDATE()) AND DT < DATEADD(day, -7, GETDATE())) AS ActivityLogsPrevious7Days
+                (SELECT COUNT(*) FROM Z_UsersLoginsLog WHERE LoginDateTime >= DATEADD(day, -7, GETUTCDATE())) AS ActiveLogins7Days,
+                (SELECT COUNT(*) FROM Z_UsersLoginsLog WHERE LoginDateTime >= DATEADD(day, -14, GETUTCDATE()) AND LoginDateTime < DATEADD(day, -7, GETUTCDATE())) AS ActiveLoginsPrevious7Days,
+                (SELECT COUNT(*) FROM Z_UsersActivityLog WHERE DT >= DATEADD(day, -7, GETUTCDATE())) AS ActivityLogs7Days,
+                (SELECT COUNT(*) FROM Z_UsersActivityLog WHERE DT >= DATEADD(day, -14, GETUTCDATE()) AND DT < DATEADD(day, -7, GETUTCDATE())) AS ActivityLogsPrevious7Days
         ";
 
         await using var command = new SqlCommand(query, connection);
@@ -124,7 +124,7 @@ public sealed class AdminSecurityRepository : IAdminSecurityRepository
                 COUNT(*) AS Value,
                 MIN(CAST(LoginDateTime AS DATE)) as MinDate
             FROM Z_UsersLoginsLog
-            WHERE LoginDateTime >= DATEADD(day, -7, GETDATE())
+            WHERE LoginDateTime >= DATEADD(day, -7, GETUTCDATE())
             GROUP BY FORMAT(LoginDateTime, 'ddd')
             ORDER BY MinDate
         ";
@@ -1812,7 +1812,7 @@ public sealed class AdminSecurityRepository : IAdminSecurityRepository
         var parameters = new List<SqlParameter>
         {
             new("@UserName", SqlDbType.NVarChar, 200) { Value = !string.IsNullOrEmpty(log.UserName) ? log.UserName : "System" },
-            new("@DT", SqlDbType.DateTime) { Value = log.DT ?? DateTime.Now },
+            new("@DT", SqlDbType.DateTime) { Value = log.DT ?? DateTime.UtcNow },
             new("@EventName", SqlDbType.NVarChar, 500) { Value = !string.IsNullOrEmpty(log.EventName) ? log.EventName : "Activity" },
             new("@EventModule", SqlDbType.NVarChar, 500) { Value = !string.IsNullOrEmpty(log.EventModule) ? log.EventModule : "System" },
             new("@RefKey", SqlDbType.NVarChar, 500) { Value = !string.IsNullOrEmpty(log.RefKey) ? log.RefKey : "0" },

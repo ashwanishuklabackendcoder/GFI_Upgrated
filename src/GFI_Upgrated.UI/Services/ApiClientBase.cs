@@ -1,7 +1,8 @@
-using System.Net.Http.Json;
+﻿using System.Net.Http.Json;
 using System.Text.Json;
 using GFI_Upgrated.SharedDto.Common;
 using GFI_Upgrated.UI.State;
+using GFI_Upgrated.UI.Helpers;
 
 namespace GFI_Upgrated.UI.Services;
 
@@ -12,7 +13,8 @@ public abstract class ApiClientBase
 
     protected static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
     {
-        PropertyNameCaseInsensitive = true
+        PropertyNameCaseInsensitive = true,
+        Converters = { new UtcToLocalDateTimeConverter() }
     };
 
     protected ApiClientBase(HttpClient httpClient, AppSessionState sessionState)
@@ -198,3 +200,4 @@ public abstract class ApiClientBase
         throw new ApiException($"An unexpected error occurred (HTTP {(int)response.StatusCode}).");
     }
 }
+

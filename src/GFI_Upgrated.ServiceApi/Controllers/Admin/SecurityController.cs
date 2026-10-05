@@ -1,4 +1,4 @@
-using GFI_Upgrated.ServiceApi.Services;
+﻿using GFI_Upgrated.ServiceApi.Services;
 using GFI_Upgrated.SharedDto.AdminSecurity;
 using GFI_Upgrated.SharedDto.Common;
 using Microsoft.AspNetCore.Mvc;
@@ -74,7 +74,7 @@ public sealed class SecurityController : ControllerBase
                 {
                     UserName = $"{result.FirstName} {result.LastName}".Trim(),
                     LoginName = result.LoginName,
-                    DT = DateTime.Now,
+                    DT = DateTime.UtcNow,
                     EventName = "Login",
                     EventModule = "Security",
                     RefKey = result.LoginId.ToString(),

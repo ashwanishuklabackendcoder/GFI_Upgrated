@@ -1,4 +1,4 @@
-@page "/store/purchase-request/new"
+﻿@page "/store/purchase-request/new"
 @page "/store/purchase-request/edit/{Id:long}"
 @using GFI_Upgrated.SharedDto.Purchase
 @using GFI_Upgrated.SharedDto.Store
@@ -90,7 +90,7 @@
 @code {
     [Parameter] public long Id { get; set; }
 
-    private PurchaseRequestDto _model = new() { CreatedDate = DateTime.Now };
+    private PurchaseRequestDto _model = new() { CreatedDate = DateTime.UtcNow };
     private List<StaffLookupDto> _staffList = new();
     private List<UnitDto> _units = new();
     private List<RawMaterialDto> _allItems = new();
@@ -114,7 +114,7 @@
         {
             _model.CreatedBy = SessionState.CurrentUserAuditName ?? "System";
             _model.RequestedBy = null; // Force user to select a valid staff member to prevent database foreign key errors
-            _model.RequestNumber = $"PR-{DateTime.Now:yyyyMMdd-HHmm}";
+            _model.RequestNumber = $"PR-{DateTime.UtcNow:yyyyMMdd-HHmm}";
         }
     }
 

@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Mvc.Filters;
+﻿using Microsoft.AspNetCore.Mvc.Filters;
 using System.Security.Claims;
 using System.Text.Json;
 using GFI_Upgrated.SharedDto.AdminSecurity;
@@ -131,7 +131,7 @@ public class UserActivityLoggingFilter : IAsyncActionFilter
             {
                 UserName = userName,
                 LoginId = loginId,
-                DT = DateTime.Now,
+                DT = DateTime.UtcNow,
                 EventName = eventName,
                 EventModule = controllerName,
                 RefKey = refKey,

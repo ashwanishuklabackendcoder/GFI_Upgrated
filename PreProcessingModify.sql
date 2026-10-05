@@ -1,4 +1,4 @@
-ALTER    PROCEDURE [dbo].[Inv_ItemStockPreProcessingAndProductModify]       
+﻿ALTER    PROCEDURE [dbo].[Inv_ItemStockPreProcessingAndProductModify]       
                                                                                                                                                                                 
    
                                                                                                                                                                                                                                                           
@@ -90,7 +90,7 @@ Begin
                                                                                                                                                                                                                                                      
 insert into W_ItemStock(OpeningQuantity,PurchasedQuantity,ItemID,UnitId,IssuedQuantity,CreatedBy,FinalStock,OpeningStockDate,RemovedQuantity)  
                                                                                                               
-Select 0,(isnull(B.Quantity,0)*isnull(P.BomQty,0)),B.ItemId,B.UnitId,0,@CreatedBy,(isnull(B.Quantity,0)*isnull(P.BomQty,0)),GetDate(),0
+Select 0,(isnull(B.Quantity,0)*isnull(P.BomQty,0)),B.ItemId,B.UnitId,0,@CreatedBy,(isnull(B.Quantity,0)*isnull(P.BomQty,0)),GETUTCDATE(),0
                                                                                                                       
 from W_Production P
                                                                                                                                                                                                                                           
@@ -170,7 +170,7 @@ Begin
                                                                                                                                                                                                                                                      
 insert into W_ItemStock(OpeningQuantity,PurchasedQuantity,ItemID,UnitId,IssuedQuantity,CreatedBy,FinalStock,OpeningStockDate,RemovedQuantity)  
                                                                                                               
-Select 0,(isnull(B.Quantity,0)*isnull(P.BomQty,0)),B.ItemId,B.UnitId,0,@CreatedBy,(isnull(B.Quantity,0)*isnull(P.BomQty,0)),GetDate(),0
+Select 0,(isnull(B.Quantity,0)*isnull(P.BomQty,0)),B.ItemId,B.UnitId,0,@CreatedBy,(isnull(B.Quantity,0)*isnull(P.BomQty,0)),GETUTCDATE(),0
                                                                                                                       
 from W_PreProcessing P
                                                                                                                                                                                                                                        

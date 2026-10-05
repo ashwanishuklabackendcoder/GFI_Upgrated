@@ -1,4 +1,4 @@
-using GFI_Upgrated.SharedDto.Store;
+﻿using GFI_Upgrated.SharedDto.Store;
 using Microsoft.Data.SqlClient;
 using System;
 using System.Collections.Generic;
@@ -136,7 +136,7 @@ public sealed class RawMaterialRepository : IRawMaterialRepository
             new SqlParameter("@IsEditable", SqlDbType.Bit) { Value = true },
             new SqlParameter("@Description", SqlDbType.NVarChar, 1000) { Value = (object?)request.Description ?? DBNull.Value },
             new SqlParameter("@StorageDetails", SqlDbType.NVarChar, 1000) { Value = (object?)request.StorageDetails ?? DBNull.Value },
-            new SqlParameter("@CreatedDate", SqlDbType.DateTime) { Value = DateTime.Now },
+            new SqlParameter("@CreatedDate", SqlDbType.DateTime) { Value = DateTime.UtcNow },
             new SqlParameter("@CreatedBy", SqlDbType.NVarChar, 100) { Value = request.CreatedBy },
             new SqlParameter("@Tags", SqlDbType.NVarChar, 500) { Value = (object?)request.Tags ?? DBNull.Value },
             new SqlParameter("@TentativeExpiryDays", SqlDbType.Int) { Value = request.TentativeExpiryDays },
@@ -271,7 +271,7 @@ public sealed class RawMaterialRepository : IRawMaterialRepository
             new SqlParameter("@StatusId", SqlDbType.Int) { Value = request.StatusId },
             new SqlParameter("@PurchasePrice", SqlDbType.Float) { Value = request.PurchasePrice },
             new SqlParameter("@PurchaseUnit", SqlDbType.Decimal) { Value = request.PurchaseUnit > 0 ? request.PurchaseUnit : DBNull.Value },
-            new SqlParameter("@CreatedDate", SqlDbType.DateTime) { Value = DateTime.Now },
+            new SqlParameter("@CreatedDate", SqlDbType.DateTime) { Value = DateTime.UtcNow },
             new SqlParameter("@CreatedBy", SqlDbType.NVarChar, 100) { Value = request.CreatedBy },
             new SqlParameter("@StartDate", SqlDbType.Date) { Value = (object?)request.StartDate ?? DBNull.Value },
             new SqlParameter("@EndDate", SqlDbType.Date) { Value = (object?)request.EndDate ?? DBNull.Value },

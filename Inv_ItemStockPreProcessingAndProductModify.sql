@@ -1,4 +1,4 @@
-ALTER PROCEDURE [dbo].[Inv_ItemStockPreProcessingAndProductModify] 
+﻿ALTER PROCEDURE [dbo].[Inv_ItemStockPreProcessingAndProductModify] 
                                                                                                                                                                                          
     @UsedFor int, 
                                                                                                                                                                                                                                            
@@ -79,7 +79,7 @@ BEGIN
                                                                                                                                                                                                                                            
                 INSERT INTO W_ItemStock (OpeningQuantity, PurchasedQuantity, ProducedQuantity, ItemID, UnitId, IssuedQuantity, CreatedBy, FinalStock, OpeningStockDate, RemovedQuantity) 
                                                                     
-                SELECT 0, 0, @BomItemQty, B.ItemId, B.UnitId, 0, @CreatedBy, @BomItemQty, GETDATE(), 0
+                SELECT 0, 0, @BomItemQty, B.ItemId, B.UnitId, 0, @CreatedBy, @BomItemQty, GETUTCDATE(), 0
                                                                                                                                                        
                 FROM W_Production P 
                                                                                                                                                                                                                          
@@ -145,7 +145,7 @@ BEGIN
                                                                                                                                                                                                                                            
                 INSERT INTO W_ItemStock (OpeningQuantity, PurchasedQuantity, ProducedQuantity, ItemID, UnitId, IssuedQuantity, CreatedBy, FinalStock, OpeningStockDate, RemovedQuantity) 
                                                                     
-                SELECT 0, 0, @BomItemQty, P.ItemId, P.UnitMade, 0, @CreatedBy, @BomItemQty, GETDATE(), 0
+                SELECT 0, 0, @BomItemQty, P.ItemId, P.UnitMade, 0, @CreatedBy, @BomItemQty, GETUTCDATE(), 0
                                                                                                                                                      
                 FROM W_PreProcessing P 
                                                                                                                                                                                                                       
