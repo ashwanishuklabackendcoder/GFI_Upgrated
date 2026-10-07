@@ -245,6 +245,11 @@ BEGIN
     LEFT JOIN W_MasterItem mi ON b.ItemId = mi.ItemID
     LEFT JOIN W_MasterUnit mu ON ISNULL(mi.PurchaseUnit, b.Unit) = mu.UnitId
     WHERE b.ItemId = @ItemId
+    AND (
+        (u.UsedFor = 2 AND EXISTS (SELECT 1 FROM dbo.W_PreProcessing pp WHERE pp.PreProcessingId = u.UsedForId AND pp.IsComplete = 1))
+        OR (u.UsedFor = 3 AND EXISTS (SELECT 1 FROM dbo.W_Production p WHERE p.ProductionId = u.UsedForId AND p.IsComplete = 1))
+        OR (u.UsedFor NOT IN (2, 3))
+    )
 
     ORDER BY BatchNo, TransactionType DESC
 END
@@ -337,6 +342,11 @@ BEGIN
     LEFT JOIN W_MasterItem mi ON b.ItemId = mi.ItemID
     LEFT JOIN W_MasterUnit mu ON ISNULL(mi.PurchaseUnit, b.Unit) = mu.UnitId
     WHERE b.BatchNo = @BatchNo
+    AND (
+        (u.UsedFor = 2 AND EXISTS (SELECT 1 FROM dbo.W_PreProcessing pp WHERE pp.PreProcessingId = u.UsedForId AND pp.IsComplete = 1))
+        OR (u.UsedFor = 3 AND EXISTS (SELECT 1 FROM dbo.W_Production p WHERE p.ProductionId = u.UsedForId AND p.IsComplete = 1))
+        OR (u.UsedFor NOT IN (2, 3))
+    )
 
     ORDER BY TransactionDate ASC, TransactionType DESC
 END
