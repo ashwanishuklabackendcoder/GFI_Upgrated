@@ -1,5 +1,4 @@
-﻿
-@page "/store/reportitemstock"
+﻿@page "/store/reportitemstock"
 
 @using GFI_Upgrated.SharedDto.Store
 @using GFI_Upgrated.SharedDto.Common
@@ -70,7 +69,7 @@
         </div>
     </div>
 
-    @if (_items.Any())
+    @if (_isInitialized)
     {
         <MudTable RowsPerPage="25" T="ItemStockReportDto" @ref="_table" ServerData="LoadServerDataAsync" Hover="true" Dense="true" Striped="true" Bordered="true" Loading="_loading">
             <HeaderContent>
@@ -118,7 +117,7 @@
     private List<ItemStockReportDto>? _cachedItems;
 
     private string? _searchString;
-
+    private bool _isInitialized = false;
     private async Task OnSearchTextChanged(string text)
     {
         _searchString = text;
@@ -186,6 +185,10 @@
         catch (Exception ex)
         {
             Snackbar.Add($"Error loading filters: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isInitialized = true;
         }
     }
 
