@@ -37,11 +37,13 @@ public class ExceptionHandlingMiddleware
         // Handle specific SQL Exceptions for constraint violations
         if (exception is SqlException sqlEx)
         {
+            // Set default SQL error status
             statusCode = HttpStatusCode.BadRequest;
             
             // 547 = Foreign Key violation (usually trying to delete a record in use)
             if (sqlEx.Number == 547)
             {
+                statusCode = HttpStatusCode.OK; // Return 200 OK for soft warnings
                 if (sqlEx.Message.Contains("DELETE"))
                 {
                     message = "This record cannot be deleted because it is currently in use by other records in the system.";
@@ -54,6 +56,7 @@ public class ExceptionHandlingMiddleware
             // 2601 or 2627 = Unique Index/Constraint violation
             else if (sqlEx.Number == 2601 || sqlEx.Number == 2627)
             {
+                statusCode = HttpStatusCode.OK; // Return 200 OK for soft warnings
                 message = "This record already exists. Please ensure the information is unique.";
             }
             else
@@ -82,7 +85,11 @@ public class ExceptionHandlingMiddleware
             Data = null
         };
 
-        var options = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+        var options = new JsonSerializerOptions 
+        { 
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
+        };
         return context.Response.WriteAsync(JsonSerializer.Serialize(envelope, options));
     }
 }

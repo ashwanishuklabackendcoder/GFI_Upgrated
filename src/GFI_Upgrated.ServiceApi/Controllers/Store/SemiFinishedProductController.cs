@@ -43,6 +43,9 @@ public class SemiFinishedProductController : ControllerBase
     [HttpDelete("{id:long}")]
     public async Task<ActionResult<ApiEnvelope<bool>>> DeleteSemiFinishedProduct(long id, [FromQuery] string deletedBy, CancellationToken cancellationToken)
     {
+        var dto = await _service.GetSemiFinishedProductByIdAsync(id, cancellationToken);
+        if (dto != null) HttpContext.Items["EntityName"] = dto.ItemName;
+
         var result = await _service.DeleteSemiFinishedProductAsync(id, deletedBy, cancellationToken);
         if (result)
         {
@@ -50,7 +53,7 @@ public class SemiFinishedProductController : ControllerBase
         }
         else
         {
-            return Ok(new ApiEnvelope<bool> { Success = false, Message = "Cannot delete semi-finished product because it is currently linked to transactions, recipes (BOM), or stock batches.", Data = false });
+            return Ok(new ApiEnvelope<bool> { Success = false, Message = "This record cannot be deleted because it is currently in use by other records in the system.", Data = false });
         }
     }
 
@@ -110,3 +113,4 @@ public class SemiFinishedProductController : ControllerBase
         return Ok(new ApiEnvelope<IReadOnlyList<CurrencyLookupDto>> { Success = true, Data = result });
     }
 }
+

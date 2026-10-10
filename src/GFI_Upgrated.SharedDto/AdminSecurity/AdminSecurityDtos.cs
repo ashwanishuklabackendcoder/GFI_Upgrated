@@ -27,6 +27,9 @@ public sealed class LoginResultDto
     public string? DashboardPath { get; set; }
     public long LanguageId { get; set; }
     public string? CultureName { get; set; }
+
+    public string? EmailIDOfficial { get; set; }
+
     public string Token { get; set; } = string.Empty;
     public IReadOnlyList<MenuDto> Menus { get; set; } = Array.Empty<MenuDto>();
     public int DecimalDigits { get; set; } = 2;

@@ -21,8 +21,6 @@ public sealed class ItemTypeController : ControllerBase
     [HttpGet]
     public async Task<ActionResult<ApiEnvelope<PagedResult<ItemTypeDto>>>> GetItemTypes([FromQuery] PagedRequest request, [FromQuery] string? searchText, CancellationToken cancellationToken)
     {
-        try
-        {
             var result = await _service.GetItemTypesAsync(request, searchText, cancellationToken);
             return Ok(new ApiEnvelope<PagedResult<ItemTypeDto>>
             {
@@ -30,22 +28,11 @@ public sealed class ItemTypeController : ControllerBase
                 Message = "Item Types loaded successfully.",
                 Data = result
             });
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, new ApiEnvelope<PagedResult<ItemTypeDto>>
-            {
-                Success = false,
-                Message = $"Error loading item types: {ex.Message}"
-            });
-        }
     }
 
     [HttpGet("{id:long}")]
     public async Task<ActionResult<ApiEnvelope<ItemTypeDto>>> GetItemTypeById(long id, CancellationToken cancellationToken)
     {
-        try
-        {
             var result = await _service.GetItemTypeByIdAsync(id, cancellationToken);
             return Ok(new ApiEnvelope<ItemTypeDto>
             {
@@ -53,15 +40,6 @@ public sealed class ItemTypeController : ControllerBase
                 Message = result is null ? "Item Type not found." : "Item Type loaded successfully.",
                 Data = result
             });
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, new ApiEnvelope<ItemTypeDto>
-            {
-                Success = false,
-                Message = $"Error loading item type: {ex.Message}"
-            });
-        }
     }
 
     [HttpPost]
@@ -73,8 +51,6 @@ public sealed class ItemTypeController : ControllerBase
             return Ok(new ApiEnvelope<int> { Success = false, Message = message });
         }
 
-        try
-        {
             var id = await _service.SaveItemTypeAsync(request, cancellationToken);
             return Ok(new ApiEnvelope<int>
             {
@@ -82,45 +58,26 @@ public sealed class ItemTypeController : ControllerBase
                 Message = id > 0 ? "Item Type saved successfully." : (id == -1 ? "Item Type name already exists." : "Item Type save failed."),
                 Data = id
             });
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, new ApiEnvelope<int>
-            {
-                Success = false,
-                Message = $"Error saving item type: {ex.Message}"
-            });
-        }
     }
 
     [HttpDelete("{id:long}")]
     public async Task<ActionResult<ApiEnvelope<int>>> DeleteItemType(long id, [FromQuery] string? updatedBy, CancellationToken cancellationToken)
     {
-        try
-        {
+            var dto = await _service.GetItemTypeByIdAsync(id, cancellationToken);
+            if (dto != null) HttpContext.Items["EntityName"] = dto.ItemTypeName;
+
             var result = await _service.DeleteItemTypeAsync(id, updatedBy ?? "System", cancellationToken);
             return Ok(new ApiEnvelope<int>
             {
                 Success = result > 0,
-                Message = result > 0 ? "Item Type deleted successfully." : "Cannot delete Item Type because it is currently linked to items or is not editable.",
+                Message = result > 0 ? "Item Type deleted successfully." : "This record cannot be deleted because it is currently in use by other records in the system.",
                 Data = result
             });
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, new ApiEnvelope<int>
-            {
-                Success = false,
-                Message = $"Error deleting item type: {ex.Message}"
-            });
-        }
     }
 
     [HttpGet("parent-types-lookup")]
     public async Task<ActionResult<ApiEnvelope<IReadOnlyList<ParentTypeLookupDto>>>> GetParentTypesLookup(CancellationToken cancellationToken)
     {
-        try
-        {
             var result = await _service.GetParentTypesLookupAsync(cancellationToken);
             return Ok(new ApiEnvelope<IReadOnlyList<ParentTypeLookupDto>>
             {
@@ -128,14 +85,6 @@ public sealed class ItemTypeController : ControllerBase
                 Message = "Parent types loaded successfully.",
                 Data = result
             });
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, new ApiEnvelope<IReadOnlyList<ParentTypeLookupDto>>
-            {
-                Success = false,
-                Message = $"Error loading parent types: {ex.Message}"
-            });
-        }
     }
 }
+

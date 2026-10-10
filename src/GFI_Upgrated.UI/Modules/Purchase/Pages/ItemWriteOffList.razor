@@ -112,7 +112,7 @@
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+            Snackbar.Add(ex.Message, Severity.Warning);
             return new TableData<ItemWriteOffDto> { Items = Array.Empty<ItemWriteOffDto>(), TotalItems = 0 };
         }
         finally { _loading = false; }
@@ -144,7 +144,7 @@
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+            Snackbar.Add(ex.Message, Severity.Warning);
         }
     }
 }

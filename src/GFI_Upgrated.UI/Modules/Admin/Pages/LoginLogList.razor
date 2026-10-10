@@ -19,10 +19,10 @@
             <MudTextField T="string" Value="@_searchText" ValueChanged="@OnSearchTextChanged" Label="Search IP, OS, Browser, Login..." Variant="Variant.Outlined" Dense="true" Clearable="true" Placeholder="e.g. 192.168.1.1, Windows, Chrome, admin" />
         </MudItem>
         <MudItem xs="12" sm="4" md="3">
-            <MudDatePicker DateFormat="@SessionState.DatePickerFormat" Placeholder="@SessionState.DatePickerFormat" Editable="true"                         Label="@($"From Date ({SessionState.DateFormat})")" @bind-Date="_fromDate" Variant="Variant.Outlined" Dense="true" Clearable="true" />
+            <MudDatePicker DateFormat="@SessionState.DatePickerFormat" Placeholder="@SessionState.DatePickerFormat" Editable="true" Label="@($"From Date ({SessionState.DateFormat})")" @bind-Date="_fromDate" Variant="Variant.Outlined" Dense="true" Clearable="true" />
         </MudItem>
         <MudItem xs="12" sm="4" md="3">
-            <MudDatePicker DateFormat="@SessionState.DatePickerFormat" Placeholder="@SessionState.DatePickerFormat" Editable="true"                         Label="@($"To Date ({SessionState.DateFormat})")" @bind-Date="_toDate" Variant="Variant.Outlined" Dense="true" Clearable="true" />
+            <MudDatePicker DateFormat="@SessionState.DatePickerFormat" Placeholder="@SessionState.DatePickerFormat" Editable="true" Label="@($"To Date ({SessionState.DateFormat})")" @bind-Date="_toDate" Variant="Variant.Outlined" Dense="true" Clearable="true" />
         </MudItem>
         <MudItem xs="12" sm="4" md="2" Class="d-flex gap-2">
             
@@ -35,25 +35,23 @@
     <MudTable RowsPerPage="25" T="LoginLogDto" @ref="_table" ServerData="LoadServerDataAsync" Hover="true" Dense="true" Striped="true" Bordered="true" Loading="_loading">
         <HeaderContent>
             <MudTh Style="display:none;"><MudTableSortLabel SortLabel="Z_UsersLoginsLog.LoginLogID" T="LoginLogDto" InitialDirection="SortDirection.Descending">Log ID</MudTableSortLabel></MudTh>
-            <MudTh><MudTableSortLabel SortLabel="MasterName" T="LoginLogDto">User Name</MudTableSortLabel></MudTh>
-            <MudTh><MudTableSortLabel SortLabel="LoginName" T="LoginLogDto">Login Name</MudTableSortLabel></MudTh>
+@*             <MudTh><MudTableSortLabel SortLabel="MasterName" T="LoginLogDto">User Name</MudTableSortLabel></MudTh>
+ *@            <MudTh><MudTableSortLabel SortLabel="LoginName" T="LoginLogDto">Login Name</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel SortLabel="IpAddress" T="LoginLogDto">IP Address</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel SortLabel="BrowserName" T="LoginLogDto">Browser</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel SortLabel="OperatingSystem" T="LoginLogDto">OS</MudTableSortLabel></MudTh>
-            <MudTh><MudTableSortLabel SortLabel="ComputerName" T="LoginLogDto">Computer Name</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel SortLabel="LoginDateTime" T="LoginLogDto">Login At</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel SortLabel="LogoutDateTime" T="LoginLogDto">Logout At</MudTableSortLabel></MudTh>
         </HeaderContent>
         <RowTemplate>
             <MudTd DataLabel="Log ID" Style="display:none;">@context.LoginLogID</MudTd>
-            <MudTd DataLabel="User Name">@context.MasterName</MudTd>
-            <MudTd DataLabel="Login Name">@context.LoginName</MudTd>
+@*             <MudTd DataLabel="User Name">@(string.IsNullOrWhiteSpace(context.UserName) ? context.LoginName : context.UserName)</MudTd>
+ *@         <MudTd DataLabel="Login Name">@context.LoginName</MudTd>
             <MudTd DataLabel="IP Address">@context.IpAddress</MudTd>
             <MudTd DataLabel="Browser">@context.BrowserName</MudTd>
             <MudTd DataLabel="OS">@context.OperatingSystem</MudTd>
-            <MudTd DataLabel="Computer Name">@context.ComputerName</MudTd>
-            <MudTd DataLabel="Login At">@context.LoginDateTime?.ToString("dd/MM/yyyy HH:mm:ss")</MudTd>
-            <MudTd DataLabel="Logout At">@context.LogoutDateTime?.ToString("dd/MM/yyyy HH:mm:ss")</MudTd>
+            <MudTd DataLabel="Login At">@context.LoginDateTime?.ToString("dd/MM/yyyy HH:mm")</MudTd>
+            <MudTd DataLabel="Logout At">@context.LogoutDateTime?.ToString("dd/MM/yyyy HH:mm")</MudTd>
         </RowTemplate>
         <PagerContent>
             <MudTablePager />
@@ -106,7 +104,7 @@
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+            Snackbar.Add(ex.Message, Severity.Warning);
             return new TableData<LoginLogDto> { Items = Array.Empty<LoginLogDto>(), TotalItems = 0 };
         }
         finally
@@ -128,4 +126,6 @@
         _table?.ReloadServerData();
     }
 }
+
+
 

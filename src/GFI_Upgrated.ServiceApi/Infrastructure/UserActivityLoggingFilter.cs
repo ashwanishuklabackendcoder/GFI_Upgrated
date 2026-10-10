@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc.Filters;
+using Microsoft.AspNetCore.Mvc.Filters;
 using System.Security.Claims;
 using System.Text.Json;
 using GFI_Upgrated.SharedDto.AdminSecurity;
@@ -38,6 +38,20 @@ public class UserActivityLoggingFilter : IAsyncActionFilter
             return;
         }
 
+        // Check if the result is an ApiEnvelope and Success is false
+        if (resultContext.Result is Microsoft.AspNetCore.Mvc.ObjectResult objResult)
+        {
+            var value = objResult.Value;
+            if (value != null)
+            {
+                var successProp = value.GetType().GetProperty("Success");
+                if (successProp != null && successProp.GetValue(value) is bool success && !success)
+                {
+                    return; // Action failed logically, do not log
+                }
+            }
+        }
+
         try
         {
             var user = context.HttpContext.User;
@@ -55,30 +69,81 @@ public class UserActivityLoggingFilter : IAsyncActionFilter
                 loginId = parsedLoginId;
             }
 
+            var controllerName = context.RouteData.Values["controller"]?.ToString() ?? "System";
+            var actionName = context.RouteData.Values["action"]?.ToString() ?? "Action";
+
+            bool isUpdate = (method == "PUT" || method == "PATCH");
+            if (method == "POST")
+            {
+                foreach (var arg in context.ActionArguments.Values)
+                {
+                    if (arg == null || arg is string) continue;
+                    var type = arg.GetType();
+                    // Look for common ID property names
+                    var idPropNames = new[] { "Id", $"{controllerName}Id", "ItemId", "ItemCatId", "BomId" }; // Added common ones
+                    foreach (var propName in idPropNames)
+                    {
+                        var prop = type.GetProperty(propName, System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.IgnoreCase);
+                        if (prop != null)
+                        {
+                            // if it has an ID > 0, and it's the primary entity, it's an update
+                            // Note: For things like PreProcessing where BomId > 0, we need to be careful if PreProcessingId == 0.
+                            // Let's specifically check for the exact ID matching the controller or generic 'Id' or 'ItemId'.
+                            if (propName.Equals($"{controllerName}Id", StringComparison.OrdinalIgnoreCase) || 
+                                propName.Equals("Id", StringComparison.OrdinalIgnoreCase) ||
+                                propName.Equals("ItemId", StringComparison.OrdinalIgnoreCase) ||
+                                propName.Equals("ItemCatId", StringComparison.OrdinalIgnoreCase) ||
+                                propName.Equals("AlmirahShelfID", StringComparison.OrdinalIgnoreCase))
+                            {
+                                var val = prop.GetValue(arg);
+                                if (val is long lVal && lVal > 0) isUpdate = true;
+                                if (val is int iVal && iVal > 0) isUpdate = true;
+                                if (isUpdate) break;
+                            }
+                        }
+                    }
+                    if (isUpdate) break;
+                }
+            }
+
             var eventName = method switch
             {
-                "POST" => "INSERT",
+                "POST" => isUpdate ? "UPDATE" : "INSERT",
                 "PUT" or "PATCH" => "UPDATE",
                 "DELETE" => "DELETE",
                 _ => method
             };
 
-            var controllerName = context.RouteData.Values["controller"]?.ToString() ?? "System";
-            var actionName = context.RouteData.Values["action"]?.ToString() ?? "Action";
-
             // Extract proper record name/value from request arguments
             string? entityName = null;
-            foreach (var arg in context.ActionArguments.Values)
+            
+            if (context.HttpContext.Items.TryGetValue("EntityName", out var customEntity) && customEntity is string sCustom)
             {
-                if (arg == null) continue;
-                entityName = ExtractItemName(arg);
-                if (!string.IsNullOrWhiteSpace(entityName)) break;
+                entityName = sCustom;
+            }
+            
+            if (string.IsNullOrWhiteSpace(entityName))
+            {
+                foreach (var arg in context.ActionArguments)
+                {
+                    if (arg.Value == null) continue;
+                    
+                    if (arg.Key.Equals("updatedBy", StringComparison.OrdinalIgnoreCase) ||
+                        arg.Key.Equals("createdBy", StringComparison.OrdinalIgnoreCase) ||
+                        arg.Key.Equals("deletedBy", StringComparison.OrdinalIgnoreCase))
+                    {
+                        continue;
+                    }
+
+                    entityName = ExtractItemName(arg.Value);
+                    if (!string.IsNullOrWhiteSpace(entityName)) break;
+                }
             }
 
             // Build clean user-friendly Remark text showing proper values without IDs
             var friendlyAction = method switch
             {
-                "POST" => "Created new",
+                "POST" => isUpdate ? "Updated" : "Created new",
                 "PUT" or "PATCH" => "Updated",
                 "DELETE" => "Deleted",
                 _ => method
@@ -101,6 +166,8 @@ public class UserActivityLoggingFilter : IAsyncActionFilter
                 "Kettle" => "Kettle Record",
                 "Almirah" => "Almirah Record",
                 "Status" => "Status Record",
+                "Production" => "Production Record",
+                "PreProcessing" => "Pre-Processing Record",
                 _ => controllerName
             };
 
@@ -163,7 +230,8 @@ public class UserActivityLoggingFilter : IAsyncActionFilter
             "StaffName", "StaffFirstName", "LoginName", "UserName",
             "RawMaterialName", "ProductName", "FinishedProductName", "SemiFinishedProductName",
             "CategoryName", "ItemCategoryName", "BrandName", "UnitName", "RoleName",
-            "ItemName", "Name", "Title", "Code"
+            "ItemName", "Name", "Title", "Code", "BatchNo", "BatchNumberMade",
+            "RequestNumber", "VoucherNumber", "InvoiceNo", "InvoiceNumber", "OrderNumber", "OrderNo"
         };
 
         foreach (var propName in propNames)

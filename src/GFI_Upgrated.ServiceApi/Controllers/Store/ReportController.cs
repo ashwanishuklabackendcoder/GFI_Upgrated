@@ -21,8 +21,6 @@ public sealed class ReportController : ControllerBase
     [HttpGet("item-stock")]
     public async Task<ActionResult<ApiEnvelope<PagedResult<ItemStockReportDto>>>> GetItemStockReport([FromQuery] ItemStockReportRequest request, CancellationToken cancellationToken)
     {
-        try
-        {
             var result = await _service.GetItemStockReportAsync(request, cancellationToken);
             return Ok(new ApiEnvelope<PagedResult<ItemStockReportDto>>
             {
@@ -30,22 +28,11 @@ public sealed class ReportController : ControllerBase
                 Message = "Item stock report loaded successfully.",
                 Data = result
             });
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, new ApiEnvelope<PagedResult<ItemStockReportDto>>
-            {
-                Success = false,
-                Message = $"Error loading item stock report: {ex.Message}"
-            });
-        }
     }
 
     [HttpGet("item-stock-traceability")]
     public async Task<ActionResult<ApiEnvelope<IEnumerable<ItemStockTraceabilityDto>>>> GetItemStockTraceability([FromQuery] long itemId, CancellationToken cancellationToken)
     {
-        try
-        {
             var result = await _service.GetItemStockTraceabilityAsync(itemId, cancellationToken);
             return Ok(new ApiEnvelope<IEnumerable<ItemStockTraceabilityDto>>
             {
@@ -53,22 +40,11 @@ public sealed class ReportController : ControllerBase
                 Message = "Item stock traceability loaded successfully.",
                 Data = result
             });
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, new ApiEnvelope<IEnumerable<ItemStockTraceabilityDto>>
-            {
-                Success = false,
-                Message = $"Error loading item stock traceability: {ex.Message}"
-            });
-        }
     }
 
     [HttpGet("batch-traceability")]
     public async Task<ActionResult<ApiEnvelope<IEnumerable<ItemStockTraceabilityDto>>>> GetBatchTraceability([FromQuery] string batchNo, CancellationToken cancellationToken)
     {
-        try
-        {
             var result = await _service.GetBatchTraceabilityAsync(batchNo, cancellationToken);
             return Ok(new ApiEnvelope<IEnumerable<ItemStockTraceabilityDto>>
             {
@@ -76,22 +52,11 @@ public sealed class ReportController : ControllerBase
                 Message = "Batch traceability loaded successfully.",
                 Data = result
             });
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, new ApiEnvelope<IEnumerable<ItemStockTraceabilityDto>>
-            {
-                Success = false,
-                Message = $"Error loading batch traceability: {ex.Message}"
-            });
-        }
     }
 
     [HttpGet("batch-wise/by-number")]
     public async Task<ActionResult<ApiEnvelope<PagedResult<BatchWiseItemDto>>>> GetBatchWiseItemsByBatchNo([FromQuery] string batchNo, [FromQuery] int page, [FromQuery] int size, [FromQuery] string sortType, CancellationToken cancellationToken)
     {
-        try
-        {
             var result = await _service.GetBatchWiseItemsByBatchNoAsync(batchNo, page, size, sortType, cancellationToken);
             return Ok(new ApiEnvelope<PagedResult<BatchWiseItemDto>>
             {
@@ -99,22 +64,11 @@ public sealed class ReportController : ControllerBase
                 Message = "Batch-wise items report by batch number loaded successfully.",
                 Data = result
             });
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, new ApiEnvelope<PagedResult<BatchWiseItemDto>>
-            {
-                Success = false,
-                Message = $"Error loading batch-wise items report by batch number: {ex.Message}"
-            });
-        }
     }
 
     [HttpGet("batch-wise/by-item")]
     public async Task<ActionResult<ApiEnvelope<PagedResult<BatchWiseItemDto>>>> GetBatchWiseItemsByItem([FromQuery] long itemId, [FromQuery] int page, [FromQuery] int size, [FromQuery] string sortType, CancellationToken cancellationToken)
     {
-        try
-        {
             var result = await _service.GetBatchWiseItemsByItemAsync(itemId, page, size, sortType, cancellationToken);
             return Ok(new ApiEnvelope<PagedResult<BatchWiseItemDto>>
             {
@@ -122,22 +76,11 @@ public sealed class ReportController : ControllerBase
                 Message = "Batch-wise items report by item loaded successfully.",
                 Data = result
             });
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, new ApiEnvelope<PagedResult<BatchWiseItemDto>>
-            {
-                Success = false,
-                Message = $"Error loading batch-wise items report by item: {ex.Message}"
-            });
-        }
     }
 
     [HttpGet("batch-wise/paged")]
     public async Task<ActionResult<ApiEnvelope<PagedResult<BatchWiseItemDto>>>> GetBatchWiseItemsPaged([FromQuery] string? batchNo, [FromQuery] long? itemId, [FromQuery] long? itemTypeId, [FromQuery] bool inStockOnly, [FromQuery] int page, [FromQuery] int size, [FromQuery] string sortType, CancellationToken cancellationToken)
     {
-        try
-        {
             var result = await _service.GetBatchWiseItemsPagedAsync(batchNo, itemId, itemTypeId, inStockOnly, page, size, sortType, cancellationToken);
             return Ok(new ApiEnvelope<PagedResult<BatchWiseItemDto>>
             {
@@ -145,22 +88,11 @@ public sealed class ReportController : ControllerBase
                 Message = "Paged batch-wise items report loaded successfully.",
                 Data = result
             });
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, new ApiEnvelope<PagedResult<BatchWiseItemDto>>
-            {
-                Success = false,
-                Message = $"Error loading paged batch-wise items report: {ex.Message}"
-            });
-        }
     }
 
     [HttpGet("stock-by-batch")]
     public async Task<ActionResult<ApiEnvelope<PagedResult<ItemStockByBatchReportDto>>>> GetItemStockByBatchReport([FromQuery] long? itemStockByBatchId, [FromQuery] long? stockById, [FromQuery] long? itemId, [FromQuery] int page, [FromQuery] int size, [FromQuery] string sortCol, [FromQuery] string sortOrd, CancellationToken cancellationToken)
     {
-        try
-        {
             var result = await _service.GetItemStockByBatchReportAsync(itemStockByBatchId, stockById, itemId, page, size, sortCol, sortOrd, cancellationToken);
             return Ok(new ApiEnvelope<PagedResult<ItemStockByBatchReportDto>>
             {
@@ -168,14 +100,6 @@ public sealed class ReportController : ControllerBase
                 Message = "Item stock by batch report loaded successfully.",
                 Data = result
             });
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, new ApiEnvelope<PagedResult<ItemStockByBatchReportDto>>
-            {
-                Success = false,
-                Message = $"Error loading item stock by batch report: {ex.Message}"
-            });
-        }
     }
 }
+

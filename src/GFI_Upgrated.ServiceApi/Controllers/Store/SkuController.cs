@@ -21,8 +21,6 @@ public sealed class SkuController : ControllerBase
     [HttpGet]
     public async Task<ActionResult<ApiEnvelope<PagedResult<SkuDto>>>> GetSkus([FromQuery] PagedRequest request, [FromQuery] string? searchText, CancellationToken cancellationToken)
     {
-        try
-        {
             var result = await _service.GetSkusAsync(request, searchText, cancellationToken);
             return Ok(new ApiEnvelope<PagedResult<SkuDto>>
             {
@@ -30,22 +28,11 @@ public sealed class SkuController : ControllerBase
                 Message = "SKUs loaded successfully.",
                 Data = result
             });
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, new ApiEnvelope<PagedResult<SkuDto>>
-            {
-                Success = false,
-                Message = $"Error loading SKUs: {ex.Message}"
-            });
-        }
     }
 
     [HttpGet("{id:long}")]
     public async Task<ActionResult<ApiEnvelope<SkuDto>>> GetSkuById(long id, CancellationToken cancellationToken)
     {
-        try
-        {
             var result = await _service.GetSkuByIdAsync(id, cancellationToken);
             return Ok(new ApiEnvelope<SkuDto>
             {
@@ -53,15 +40,6 @@ public sealed class SkuController : ControllerBase
                 Message = result is null ? "SKU not found." : "SKU loaded successfully.",
                 Data = result
             });
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, new ApiEnvelope<SkuDto>
-            {
-                Success = false,
-                Message = $"Error loading SKU: {ex.Message}"
-            });
-        }
     }
 
     [HttpPost]
@@ -73,8 +51,6 @@ public sealed class SkuController : ControllerBase
             return Ok(new ApiEnvelope<int> { Success = false, Message = message });
         }
 
-        try
-        {
             var id = await _service.SaveSkuAsync(request, cancellationToken);
             return Ok(new ApiEnvelope<int>
             {
@@ -82,45 +58,26 @@ public sealed class SkuController : ControllerBase
                 Message = id > 0 ? "SKU saved successfully." : (id == -1 ? "SKU name already exists." : "SKU save failed."),
                 Data = id
             });
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, new ApiEnvelope<int>
-            {
-                Success = false,
-                Message = $"Error saving SKU: {ex.Message}"
-            });
-        }
     }
 
     [HttpDelete("{id:long}")]
     public async Task<ActionResult<ApiEnvelope<int>>> DeleteSku(long id, [FromQuery] string? updatedBy, CancellationToken cancellationToken)
     {
-        try
-        {
+            var dto = await _service.GetSkuByIdAsync(id, cancellationToken);
+            if (dto != null) HttpContext.Items["EntityName"] = dto.SkuName;
+
             var result = await _service.DeleteSkuAsync(id, updatedBy ?? "System", cancellationToken);
             return Ok(new ApiEnvelope<int>
             {
                 Success = result > 0,
-                Message = result > 0 ? "SKU deleted successfully." : (result == -1 ? "Cannot delete SKU because it is currently linked to production records." : "SKU delete failed."),
+                Message = result > 0 ? "SKU deleted successfully." : "This record cannot be deleted because it is currently in use by other records in the system.",
                 Data = result
             });
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, new ApiEnvelope<int>
-            {
-                Success = false,
-                Message = $"Error deleting SKU: {ex.Message}"
-            });
-        }
     }
 
     [HttpGet("units-lookup")]
     public async Task<ActionResult<ApiEnvelope<IReadOnlyList<UnitLookupDto>>>> GetUnitsLookup(CancellationToken cancellationToken)
     {
-        try
-        {
             var result = await _service.GetUnitsLookupAsync(cancellationToken);
             return Ok(new ApiEnvelope<IReadOnlyList<UnitLookupDto>>
             {
@@ -128,14 +85,6 @@ public sealed class SkuController : ControllerBase
                 Message = "Units loaded successfully.",
                 Data = result
             });
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, new ApiEnvelope<IReadOnlyList<UnitLookupDto>>
-            {
-                Success = false,
-                Message = $"Error loading units: {ex.Message}"
-            });
-        }
     }
 }
+

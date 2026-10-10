@@ -21,8 +21,6 @@ public sealed class ItemCategoryController : ControllerBase
     [HttpGet]
     public async Task<ActionResult<ApiEnvelope<PagedResult<ItemCategoryDto>>>> GetItemCategories([FromQuery] PagedRequest request, [FromQuery] string? searchText, CancellationToken cancellationToken)
     {
-        try
-        {
             var result = await _service.GetItemCategoriesAsync(request, searchText, cancellationToken);
             return Ok(new ApiEnvelope<PagedResult<ItemCategoryDto>>
             {
@@ -30,22 +28,11 @@ public sealed class ItemCategoryController : ControllerBase
                 Message = "Item Categories loaded successfully.",
                 Data = result
             });
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, new ApiEnvelope<PagedResult<ItemCategoryDto>>
-            {
-                Success = false,
-                Message = $"Error loading item categories: {ex.Message}"
-            });
-        }
     }
 
     [HttpGet("{id:long}")]
     public async Task<ActionResult<ApiEnvelope<ItemCategoryDto>>> GetItemCategoryById(long id, CancellationToken cancellationToken)
     {
-        try
-        {
             var result = await _service.GetItemCategoryByIdAsync(id, cancellationToken);
             return Ok(new ApiEnvelope<ItemCategoryDto>
             {
@@ -53,15 +40,6 @@ public sealed class ItemCategoryController : ControllerBase
                 Message = result is null ? "Item Category not found." : "Item Category loaded successfully.",
                 Data = result
             });
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, new ApiEnvelope<ItemCategoryDto>
-            {
-                Success = false,
-                Message = $"Error loading item category: {ex.Message}"
-            });
-        }
     }
 
     [HttpPost]
@@ -73,8 +51,6 @@ public sealed class ItemCategoryController : ControllerBase
             return Ok(new ApiEnvelope<int> { Success = false, Message = message });
         }
 
-        try
-        {
             var id = await _service.SaveItemCategoryAsync(request, cancellationToken);
             return Ok(new ApiEnvelope<int>
             {
@@ -82,45 +58,26 @@ public sealed class ItemCategoryController : ControllerBase
                 Message = id > 0 ? "Item Category saved successfully." : (id == -1 ? "Item Category name already exists." : "Item Category save failed."),
                 Data = id
             });
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, new ApiEnvelope<int>
-            {
-                Success = false,
-                Message = $"Error saving item category: {ex.Message}"
-            });
-        }
     }
 
     [HttpDelete("{id:long}")]
     public async Task<ActionResult<ApiEnvelope<int>>> DeleteItemCategory(long id, [FromQuery] string? updatedBy, CancellationToken cancellationToken)
     {
-        try
-        {
+            var dto = await _service.GetItemCategoryByIdAsync(id, cancellationToken);
+            if (dto != null) HttpContext.Items["EntityName"] = dto.ItemCatName;
+
             var result = await _service.DeleteItemCategoryAsync(id, updatedBy ?? "System", cancellationToken);
             return Ok(new ApiEnvelope<int>
             {
                 Success = result > 0,
-                Message = result > 0 ? "Item Category deleted successfully." : (result == -1 ? "Cannot delete Item Category because it is currently linked to items." : "Item Category delete failed."),
+                Message = result > 0 ? "Item Category deleted successfully." : "This record cannot be deleted because it is currently in use by other records in the system.",
                 Data = result
             });
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, new ApiEnvelope<int>
-            {
-                Success = false,
-                Message = $"Error deleting item category: {ex.Message}"
-            });
-        }
     }
 
     [HttpGet("parent-categories-lookup")]
     public async Task<ActionResult<ApiEnvelope<IReadOnlyList<ParentCategoryLookupDto>>>> GetParentCategoriesLookup(CancellationToken cancellationToken)
     {
-        try
-        {
             var result = await _service.GetParentCategoriesLookupAsync(cancellationToken);
             return Ok(new ApiEnvelope<IReadOnlyList<ParentCategoryLookupDto>>
             {
@@ -128,14 +85,6 @@ public sealed class ItemCategoryController : ControllerBase
                 Message = "Parent categories loaded successfully.",
                 Data = result
             });
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, new ApiEnvelope<IReadOnlyList<ParentCategoryLookupDto>>
-            {
-                Success = false,
-                Message = $"Error loading parent categories: {ex.Message}"
-            });
-        }
     }
 }
+

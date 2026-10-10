@@ -1,4 +1,4 @@
-﻿using System.Data;
+using System.Data;
 using System.Text.Json;
 using System.Text;
 using GFI_Upgrated.SharedDto.AdminSecurity;
@@ -9,6 +9,7 @@ namespace GFI_Upgrated.Data.AdminSecurity;
 
 public interface IAdminSecurityRepository
 {
+    Task LogoutAsync(long loginId, CancellationToken cancellationToken = default);
     Task<LoginResultDto?> LoginAsync(LoginRequest request, CancellationToken cancellationToken = default);
     Task<PagedResult<RoleDto>> GetRolesAsync(PagedRequest request, string? searchText, CancellationToken cancellationToken = default);
     Task<RoleDto?> GetRoleByIdAsync(long roleId, CancellationToken cancellationToken = default);
@@ -140,6 +141,13 @@ public sealed class AdminSecurityRepository : IAdminSecurityRepository
         }
 
         return dto;
+    }
+
+    public async Task LogoutAsync(long loginId, CancellationToken cancellationToken = default)
+    {
+        var query = "UPDATE Z_UsersLoginsLog SET LogoutDateTime = GETUTCDATE() WHERE LoginLogID = (SELECT TOP 1 LoginLogID FROM Z_UsersLoginsLog WHERE LoginID = @LoginID ORDER BY LoginLogID DESC) AND LogoutDateTime IS NULL";
+        var parameters = new[] { new SqlParameter("@LoginID", SqlDbType.BigInt) { Value = loginId } };
+        await ExecuteNonQueryRawAsync(query, parameters, cancellationToken);
     }
 
     public async Task<LoginResultDto?> LoginAsync(LoginRequest request, CancellationToken cancellationToken = default)
@@ -341,6 +349,7 @@ public sealed class AdminSecurityRepository : IAdminSecurityRepository
             LoginName = row.SafeString("LoginName"),
             FirstName = row.SafeString("FirstName"),
             LastName = row.SafeString("LastName"),
+            EmailIDOfficial = row.SafeString("EmailIDOfficial"),
             RoleId = roleId,
             RoleName = !string.IsNullOrWhiteSpace(roleNameFromDb) ? roleNameFromDb : row.SafeString("RoleName"),
             IsAdmin = isAdmin,
@@ -1743,7 +1752,7 @@ public sealed class AdminSecurityRepository : IAdminSecurityRepository
         var items = table.AsEnumerable().Select(row => new UserActivityLogDto
         {
             LogId = row.SafeLong("LogID"),
-            UserName = row.SafeString("UserName"),
+            UserName = !string.IsNullOrWhiteSpace(row.SafeString("UserName")) ? row.SafeString("UserName") : (!string.IsNullOrWhiteSpace(row.SafeString("StaffFirstName", "FirstName")) ? (row.SafeString("StaffFirstName", "FirstName") + " " + row.SafeString("StaffLastName", "LastName")).Trim() : row.SafeString("LoginName")),
             LoginName = row.SafeString("LoginName"),
             DT = row.Table.Columns.Contains("DT") && row["DT"] != DBNull.Value ? Convert.ToDateTime(row["DT"]) : null,
             EventName = row.SafeString("EventName"),
@@ -1787,7 +1796,7 @@ public sealed class AdminSecurityRepository : IAdminSecurityRepository
         {
             LoginLogID = row.SafeLong("LoginLogID"),
             LoginName = row.SafeString("LoginName"),
-            UserName = row.SafeString("UserName"),
+            UserName = !string.IsNullOrWhiteSpace(row.SafeString("UserName")) ? row.SafeString("UserName") : (!string.IsNullOrWhiteSpace(row.SafeString("StaffFirstName", "FirstName")) ? (row.SafeString("StaffFirstName", "FirstName") + " " + row.SafeString("StaffLastName", "LastName")).Trim() : row.SafeString("LoginName")),
             MasterName = row.SafeString("MasterName"),
             LoginType = row.SafeString("LoginType"),
             IpAddress = row.SafeString("IpAddress"),
@@ -1910,10 +1919,11 @@ public sealed class AdminSecurityRepository : IAdminSecurityRepository
             }, cancellationToken);
 
             long staffId = loginTable.Rows[0].Field<long>("StaffId");
-            await ExecuteNonQueryRawAsync("UPDATE Hr_StaffMaster SET StaffFirstName = @FirstName, StaffLastName = @LastName WHERE StaffId = @StaffId", new[]
+            await ExecuteNonQueryRawAsync("UPDATE Hr_StaffMaster SET StaffFirstName = @FirstName,EmailIDOfficial=@EmailIDOfficial, StaffLastName = @LastName WHERE StaffId = @StaffId", new[]
             {
                 new Microsoft.Data.SqlClient.SqlParameter("@FirstName", System.Data.SqlDbType.VarChar) { Value = request.FirstName },
                 new Microsoft.Data.SqlClient.SqlParameter("@LastName", System.Data.SqlDbType.VarChar) { Value = request.LastName },
+                new Microsoft.Data.SqlClient.SqlParameter("@EmailIDOfficial", System.Data.SqlDbType.VarChar) { Value = request.EmailIDOfficial },
                 new Microsoft.Data.SqlClient.SqlParameter("@StaffId", System.Data.SqlDbType.BigInt) { Value = staffId }
             }, cancellationToken);
 
@@ -2366,5 +2376,10 @@ internal static class DataRowExtensions
         return string.Empty;
     }
 }
+
+
+
+
+
 
 

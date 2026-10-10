@@ -50,6 +50,9 @@ public class BomController : ControllerBase
     [HttpDelete("{id:long}")]
     public async Task<ActionResult<ApiEnvelope<bool>>> DeleteBom(long id, [FromQuery] string deletedBy, CancellationToken cancellationToken)
     {
+        var dto = await _service.GetBomByIdAsync(id, cancellationToken);
+        if (dto != null) HttpContext.Items["EntityName"] = dto.BomName;
+
         var result = await _service.DeleteBomAsync(id, deletedBy, cancellationToken);
         if (result)
         {
@@ -57,7 +60,7 @@ public class BomController : ControllerBase
         }
         else
         {
-            return Ok(new ApiEnvelope<bool> { Success = false, Message = "Cannot delete BOM because it is currently linked to production entries or other records.", Data = false });
+            return Ok(new ApiEnvelope<bool> { Success = false, Message = "This record cannot be deleted because it is currently in use by other records in the system.", Data = false });
         }
     }
 
@@ -75,3 +78,4 @@ public class BomController : ControllerBase
         return Ok(new ApiEnvelope<IReadOnlyList<RawMaterialDto>> { Success = true, Data = result });
     }
 }
+

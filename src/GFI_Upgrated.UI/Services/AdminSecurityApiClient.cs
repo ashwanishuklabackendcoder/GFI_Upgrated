@@ -12,6 +12,11 @@ public sealed class AdminSecurityApiClient : ApiClientBase
     {
     }
 
+    public async Task LogoutAsync(CancellationToken cancellationToken = default)
+    {
+        await PostEnvelopeAsync<object, bool>("api/admin/security/logout", new { }, cancellationToken);
+    }
+
     public async Task<LoginResultDto?> LoginAsync(LoginRequest request, CancellationToken cancellationToken = default)
         => await PostEnvelopeAsync<LoginRequest, LoginResultDto>("api/admin/security/login", request, cancellationToken);
 
@@ -265,3 +270,4 @@ public sealed class AdminSecurityApiClient : ApiClientBase
         return null;
     }
 }
+
