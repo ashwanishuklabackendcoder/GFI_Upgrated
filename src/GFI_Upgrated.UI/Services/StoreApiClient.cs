@@ -512,9 +512,9 @@ public sealed class StoreApiClient : ApiClientBase
         => await DeleteEnvelopeAsync<bool>($"api/purchase/orders?ids={ids}&deletedBy={Uri.EscapeDataString(deletedBy)}", cancellationToken);
 
     // Purchase (GRN) Methods
-    public async Task<PagedResult<PurchaseDto>> GetPurchasesAsync(long? purchaseId, string? voucherNumber, string? invoiceNo, long? accountId, int page = 1, int pageSize = 10, CancellationToken cancellationToken = default)
+    public async Task<PagedResult<PurchaseDto>> GetPurchasesAsync(long? purchaseId, string? voucherNumber, string? invoiceNo, long? accountId, int page = 1, int pageSize = 10, string sortCol = "PurchaseID", string sortOrd = "DESC", CancellationToken cancellationToken = default)
     {
-        var query = $"api/purchase/grn?page={page}&pageSize={pageSize}";
+        var query = $"api/purchase/grn?page={page}&pageSize={pageSize}&sortCol={Uri.EscapeDataString(sortCol)}&sortOrd={Uri.EscapeDataString(sortOrd)}";
         if (purchaseId.HasValue) query += $"&purchaseId={purchaseId}";
         if (!string.IsNullOrEmpty(voucherNumber)) query += $"&voucherNumber={Uri.EscapeDataString(voucherNumber)}";
         if (!string.IsNullOrEmpty(invoiceNo)) query += $"&invoiceNo={Uri.EscapeDataString(invoiceNo)}";

@@ -24,7 +24,7 @@
 
     <MudTable RowsPerPage="25" T="PurchaseDto" @ref="_table" ServerData="LoadServerDataAsync" Hover="true" Dense="true" Striped="true" Bordered="true" Loading="_loading">
         <HeaderContent>
-            <MudTh><MudTableSortLabel SortLabel="VendorName" T="PurchaseDto">Supplier</MudTableSortLabel></MudTh>
+            <MudTh><MudTableSortLabel SortLabel="AccountName" T="PurchaseDto">Supplier</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel SortLabel="GoodsRecievedDate" T="PurchaseDto">Received Date</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel SortLabel="VoucherNumber" T="PurchaseDto">Voucher #</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel SortLabel="InvoiceNo" T="PurchaseDto">Invoice #</MudTableSortLabel></MudTh>
@@ -47,7 +47,15 @@
                     <MudChip T="string" Color="Color.Warning" Size="Size.Small" Icon="@Icons.Material.Filled.Drafts">Draft</MudChip>
                 }
             </MudTd>
-            <MudTd DataLabel="Total Amount">@SessionState.FormatCurrency(context.TotalAmount)</MudTd>
+            <MudTd DataLabel="Total Amount">
+                @((!string.IsNullOrEmpty(context.CurrencySymbol) ? context.CurrencySymbol : SessionState.DefaultCurrency) + " " + SessionState.FormatNumber(context.TotalAmount))
+                @if (context.CurrencyConversion.HasValue && context.CurrencyConversion.Value > 0 && Math.Abs(context.CurrencyConversion.Value - 1.0) > 0.0001)
+                {
+                    <MudText Typo="Typo.caption" Color="Color.Secondary" Style="display:block;">
+                        (Rate: @SessionState.FormatNumber(context.CurrencyConversion.Value))
+                    </MudText>
+                }
+            </MudTd>
             <MudTd DataLabel="Action" Style="text-align: center;">
                 <MudStack Row="true" Justify="Justify.Center" Spacing="1">
                     <MudIconButton Icon="@Icons.Material.Filled.Visibility" Color="Color.Info" Size="Size.Small" OnClick="@(() => OnView(context.PurchaseID))" Title="View Purchase" />
@@ -64,14 +72,12 @@
             </MudTd>
         </RowTemplate>
         <PagerContent>
-            <MudTablePager />
+            <MudTablePager PageSizeOptions="new int[]{10, 25, 50, 100}" />
         </PagerContent>
     </MudTable>
 </MudPaper>
 
 @code {
-    private List<PurchaseDto>? _cachedItems;
-
     private async Task OnSearchTextChanged(string text)
     {
         _search = text;
@@ -113,27 +119,24 @@
         _loading = true;
         try
         {
-            if (_cachedItems == null)
-            {
-                var result = await ApiClient.GetPurchasesAsync(
-                    null, 
-                    _search, 
-                    null, 
-                    null,
-                    state.Page + 1, 
-                    state.PageSize, 
-                    cancellationToken);
-                _cachedItems = result.Items.ToList();
-            }
+            var sortCol = string.IsNullOrWhiteSpace(state.SortLabel) ? "PurchaseID" : state.SortLabel;
+            var sortOrd = state.SortDirection == SortDirection.Ascending ? "ASC" : "DESC";
 
-            var filtered = _cachedItems.FilterAllColumns(_search);
-            var sorted = filtered.SortAllColumns(state.SortLabel ?? "1", state.SortDirection == SortDirection.Ascending ? "ASC" : "DESC");
-            var itemsList = sorted.ToList();
+            var result = await ApiClient.GetPurchasesAsync(
+                null, 
+                _search, 
+                null, 
+                null,
+                state.Page + 1, 
+                state.PageSize, 
+                sortCol,
+                sortOrd,
+                cancellationToken);
 
             return new TableData<PurchaseDto>
             {
-                TotalItems = itemsList.Count,
-                Items = itemsList.Skip(state.Page * state.PageSize).Take(state.PageSize).ToArray()
+                TotalItems = result.TotalRecord,
+                Items = result.Items
             };
         }
         catch (Exception ex)
@@ -174,7 +177,6 @@
             if (success)
             {
                 Snackbar.Add("Goods Receipt deleted and inventory stock reverted successfully.", Severity.Success);
-                _cachedItems = null;
                 if (_table is not null) await _table.ReloadServerData();
             }
             else

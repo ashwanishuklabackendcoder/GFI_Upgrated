@@ -32,6 +32,10 @@ namespace GFI_Upgrated.SharedDto.Purchase
         // Joined fields for UI
         public string? VendorName { get; set; }
         public string? PONumber { get; set; }
+        public long? CurrencyID { get; set; }
+        public double? CurrencyConversion { get; set; } = 1.0;
+        public string? CurrencyName { get; set; }
+        public string? CurrencySymbol { get; set; }
 
         public List<PurchaseItemDto> Items { get; set; } = new();
     }
