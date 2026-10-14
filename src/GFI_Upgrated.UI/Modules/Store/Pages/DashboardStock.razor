@@ -11,7 +11,12 @@
 <PageTitle>Stock Dashboard</PageTitle>
 
 <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-4">
-    <MudText Typo="Typo.h4" Class="mb-6 font-weight-bold">Stock Dashboard</MudText>
+    <div class="d-flex justify-space-between align-center mb-6">
+        <div>
+            <MudText Typo="Typo.h4" Class="font-weight-bold">Stock Dashboard</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">Inventory status, quarterly stock usage run rates, and stock valuations</MudText>
+        </div>
+    </div>
 
     @if (_loading)
     {
@@ -21,6 +26,227 @@
     }
     else
     {
+        <!-- Summary KPI Cards -->
+        <MudGrid Class="mb-6">
+            <!-- Total Current Stock Value -->
+            <MudItem xs="12" sm="6" md="3">
+                <MudCard Elevation="3" Class="rounded-lg h-100 border-t-4 border-solid border-amber-500">
+                    <MudCardContent Class="pa-4">
+                        <div class="d-flex justify-space-between align-center">
+                            <div>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary" Class="text-uppercase font-weight-bold">Total Stock Value</MudText>
+                                <MudText Typo="Typo.h5" Class="font-weight-bold mt-1 text-amber">@FormatCurrency(_dashboardData.UsageMetrics.TotalCurrentStockValue)</MudText>
+                            </div>
+                            <MudAvatar Color="Color.Warning" Variant="Variant.Filled" Size="Size.Medium">
+                                <MudIcon Icon="@Icons.Material.Filled.AccountBalanceWallet" />
+                            </MudAvatar>
+                        </div>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-2 d-block">Current available inventory</MudText>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+
+            <!-- This Quarter Used -->
+            <MudItem xs="12" sm="6" md="3">
+                <MudCard Elevation="3" Class="rounded-lg h-100 border-t-4 border-solid border-blue-500">
+                    <MudCardContent Class="pa-4">
+                        <div class="d-flex justify-space-between align-center">
+                            <div>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary" Class="text-uppercase font-weight-bold">This Quarter (@_dashboardData.UsageMetrics.ThisQuarterLabel)</MudText>
+                                <MudText Typo="Typo.h5" Class="font-weight-bold mt-1 text-primary">@FormatCurrency(_dashboardData.UsageMetrics.ThisQuarterTotalUsedValue)</MudText>
+                            </div>
+                            <MudAvatar Color="Color.Primary" Variant="Variant.Filled" Size="Size.Medium">
+                                <MudIcon Icon="@Icons.Material.Filled.TrendingUp" />
+                            </MudAvatar>
+                        </div>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-2 d-block">Used: <b>@SessionState.FormatNumber(_dashboardData.UsageMetrics.ThisQuarterTotalUsedQty)</b> units</MudText>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+
+            <!-- Last Quarter Used -->
+            <MudItem xs="12" sm="6" md="3">
+                <MudCard Elevation="3" Class="rounded-lg h-100 border-t-4 border-solid border-emerald-500">
+                    <MudCardContent Class="pa-4">
+                        <div class="d-flex justify-space-between align-center">
+                            <div>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary" Class="text-uppercase font-weight-bold">Last Quarter (@_dashboardData.UsageMetrics.LastQuarterLabel)</MudText>
+                                <MudText Typo="Typo.h5" Class="font-weight-bold mt-1 text-success">@FormatCurrency(_dashboardData.UsageMetrics.LastQuarterTotalUsedValue)</MudText>
+                            </div>
+                            <MudAvatar Color="Color.Success" Variant="Variant.Filled" Size="Size.Medium">
+                                <MudIcon Icon="@Icons.Material.Filled.History" />
+                            </MudAvatar>
+                        </div>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-2 d-block">Used: <b>@SessionState.FormatNumber(_dashboardData.UsageMetrics.LastQuarterTotalUsedQty)</b> units</MudText>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+
+            <!-- Last 12 Months Used -->
+            <MudItem xs="12" sm="6" md="3">
+                <MudCard Elevation="3" Class="rounded-lg h-100 border-t-4 border-solid border-purple-500">
+                    <MudCardContent Class="pa-4">
+                        <div class="d-flex justify-space-between align-center">
+                            <div>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary" Class="text-uppercase font-weight-bold">Last 12 Months</MudText>
+                                <MudText Typo="Typo.h5" Class="font-weight-bold mt-1 text-purple">@FormatCurrency(_dashboardData.UsageMetrics.Last12MonthsTotalUsedValue)</MudText>
+                            </div>
+                            <MudAvatar Color="Color.Secondary" Variant="Variant.Filled" Size="Size.Medium">
+                                <MudIcon Icon="@Icons.Material.Filled.CalendarMonth" />
+                            </MudAvatar>
+                        </div>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary" Class="mt-2 d-block">Used: <b>@SessionState.FormatNumber(_dashboardData.UsageMetrics.Last12MonthsTotalUsedQty)</b> units</MudText>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+        </MudGrid>
+
+        <!-- Stock Usage & Value Per Item Overview Card -->
+        <MudCard Elevation="3" Class="rounded-lg mb-6 border-t-4 border-solid border-indigo-500">
+            <MudCardHeader>
+                <CardHeaderAvatar>
+                    <MudIcon Icon="@Icons.Material.Filled.Analytics" Color="Color.Primary" />
+                </CardHeaderAvatar>
+                <CardHeaderContent>
+                    <MudText Typo="Typo.h6">Stock Usage & Valuation Overview (Per Item)</MudText>
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">Overview of average stock used and stock value per item for This Quarter, Last Quarter, and Last 12 Months</MudText>
+                </CardHeaderContent>
+                <CardHeaderActions>
+                    <div class="d-flex align-center gap-3 mt-1">
+                        <MudButtonGroup Size="Size.Small" Variant="Variant.Outlined" Color="Color.Primary">
+                            <MudButton Variant="@(_selectedPeriodTab == "all" ? Variant.Filled : Variant.Outlined)" OnClick="@(() => _selectedPeriodTab = "all")">All Periods</MudButton>
+                            <MudButton Variant="@(_selectedPeriodTab == "thisQ" ? Variant.Filled : Variant.Outlined)" OnClick="@(() => _selectedPeriodTab = "thisQ")">This Quarter</MudButton>
+                            <MudButton Variant="@(_selectedPeriodTab == "lastQ" ? Variant.Filled : Variant.Outlined)" OnClick="@(() => _selectedPeriodTab = "lastQ")">Last Quarter</MudButton>
+                            <MudButton Variant="@(_selectedPeriodTab == "l12m" ? Variant.Filled : Variant.Outlined)" OnClick="@(() => _selectedPeriodTab = "l12m")">Last 12 Months</MudButton>
+                        </MudButtonGroup>
+                        <MudTextField @bind-Value="_usageSearchString" Placeholder="Search item or code..." Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Small" Immediate="true" Clearable="true" Margin="Margin.Dense" Style="width: 240px;" />
+                    </div>
+                </CardHeaderActions>
+            </MudCardHeader>
+            <MudCardContent Class="pa-0">
+                <MudTable Items="FilteredUsageOverviews" Hover="true" Dense="true" Striped="true" Elevation="0" Height="480px" FixedHeader="true" Class="stock-usage-table">
+                    <HeaderContent>
+                        <MudTh Class="th-item">Item</MudTh>
+                        <MudTh Style="text-align: right;" Class="th-stock">Current Stock</MudTh>
+                        <MudTh Style="text-align: right;" Class="th-stock">Current Value</MudTh>
+
+                        @if (_selectedPeriodTab == "all" || _selectedPeriodTab == "thisQ")
+                        {
+                            <MudTh Style="text-align: right;" Class="th-this-q">
+                                <div>This Qtr Used</div>
+                                <div class="header-subtext">(@_dashboardData.UsageMetrics.ThisQuarterLabel)</div>
+                            </MudTh>
+                            <MudTh Style="text-align: right;" Class="th-this-q">
+                                <div>Avg / Month</div>
+                                <div class="header-subtext">(This Qtr)</div>
+                            </MudTh>
+                            <MudTh Style="text-align: right;" Class="th-this-q">
+                                <div>Stock Value Used</div>
+                                <div class="header-subtext">(This Qtr)</div>
+                            </MudTh>
+                        }
+
+                        @if (_selectedPeriodTab == "all" || _selectedPeriodTab == "lastQ")
+                        {
+                            <MudTh Style="text-align: right;" Class="th-last-q">
+                                <div>Last Qtr Used</div>
+                                <div class="header-subtext">(@_dashboardData.UsageMetrics.LastQuarterLabel)</div>
+                            </MudTh>
+                            <MudTh Style="text-align: right;" Class="th-last-q">
+                                <div>Avg / Month</div>
+                                <div class="header-subtext">(Last Qtr)</div>
+                            </MudTh>
+                            <MudTh Style="text-align: right;" Class="th-last-q">
+                                <div>Stock Value Used</div>
+                                <div class="header-subtext">(Last Qtr)</div>
+                            </MudTh>
+                        }
+
+                        @if (_selectedPeriodTab == "all" || _selectedPeriodTab == "l12m")
+                        {
+                            <MudTh Style="text-align: right;" Class="th-12m">
+                                <div>12M Used</div>
+                                <div class="header-subtext">(Trailing)</div>
+                            </MudTh>
+                            <MudTh Style="text-align: right;" Class="th-12m">
+                                <div>Avg / Month</div>
+                                <div class="header-subtext">(12M)</div>
+                            </MudTh>
+                            <MudTh Style="text-align: right;" Class="th-12m">
+                                <div>Stock Value Used</div>
+                                <div class="header-subtext">(12M)</div>
+                            </MudTh>
+                        }
+                    </HeaderContent>
+                    <RowTemplate>
+                        <MudTd DataLabel="Item">
+                            <div class="font-weight-medium">@context.ItemName</div>
+                            @if (!string.IsNullOrWhiteSpace(context.ItemCode))
+                            {
+                                <small class="text-muted">Code: @context.ItemCode</small>
+                            }
+                        </MudTd>
+                        <MudTd DataLabel="Current Stock" Style="text-align: right;">
+                            <span class="font-weight-bold">@SessionState.FormatNumber(context.CurrentStock)</span>
+                            @if (!string.IsNullOrWhiteSpace(context.UnitName))
+                            {
+                                <small class="text-muted ml-1">@context.UnitName</small>
+                            }
+                        </MudTd>
+                        <MudTd DataLabel="Current Value" Style="text-align: right;" Class="font-weight-bold text-amber">
+                            @FormatCurrency(context.CurrentStockValue)
+                        </MudTd>
+
+                        @if (_selectedPeriodTab == "all" || _selectedPeriodTab == "thisQ")
+                        {
+                            <MudTd DataLabel="This Qtr Used" Style="text-align: right;">
+                                @SessionState.FormatNumber(context.ThisQuarterStockUsed)
+                            </MudTd>
+                            <MudTd DataLabel="This Qtr Avg/Month" Style="text-align: right;" Class="text-primary font-weight-medium">
+                                @SessionState.FormatNumber(context.ThisQuarterAvgMonthlyUsed)
+                            </MudTd>
+                            <MudTd DataLabel="This Qtr Value" Style="text-align: right;" Class="text-primary font-weight-bold">
+                                @FormatCurrency(context.ThisQuarterStockValueUsed)
+                            </MudTd>
+                        }
+
+                        @if (_selectedPeriodTab == "all" || _selectedPeriodTab == "lastQ")
+                        {
+                            <MudTd DataLabel="Last Qtr Used" Style="text-align: right;">
+                                @SessionState.FormatNumber(context.LastQuarterStockUsed)
+                            </MudTd>
+                            <MudTd DataLabel="Last Qtr Avg/Month" Style="text-align: right;" Class="text-success font-weight-medium">
+                                @SessionState.FormatNumber(context.LastQuarterAvgMonthlyUsed)
+                            </MudTd>
+                            <MudTd DataLabel="Last Qtr Value" Style="text-align: right;" Class="text-success font-weight-bold">
+                                @FormatCurrency(context.LastQuarterStockValueUsed)
+                            </MudTd>
+                        }
+
+                        @if (_selectedPeriodTab == "all" || _selectedPeriodTab == "l12m")
+                        {
+                            <MudTd DataLabel="12M Used" Style="text-align: right;">
+                                @SessionState.FormatNumber(context.Last12MonthsStockUsed)
+                            </MudTd>
+                            <MudTd DataLabel="12M Avg/Month" Style="text-align: right;" Class="text-purple font-weight-medium">
+                                @SessionState.FormatNumber(context.Last12MonthsAvgMonthlyUsed)
+                            </MudTd>
+                            <MudTd DataLabel="12M Value" Style="text-align: right;" Class="text-purple font-weight-bold">
+                                @FormatCurrency(context.Last12MonthsStockValueUsed)
+                            </MudTd>
+                        }
+                    </RowTemplate>
+                    <NoRecordsContent>
+                        <MudText Class="pa-4 text-center" Color="Color.Secondary">No item stock usage records found.</MudText>
+                    </NoRecordsContent>
+                    <PagerContent>
+                        <MudTablePager PageSizeOptions="new int[] { 10, 25, 50, 100 }" />
+                    </PagerContent>
+                </MudTable>
+            </MudCardContent>
+        </MudCard>
+
+        <!-- Existing Critical and Reorder Stock Level Cards -->
         <MudGrid>
             <!-- Critical Stock Level Card -->
             <MudItem xs="12" md="6">
@@ -132,8 +358,57 @@
     .red-text {
         color: #ef4444;
     }
-    .amber-text {
+    .amber-text, .text-amber {
         color: #f59e0b;
+    }
+    .text-purple {
+        color: #8b5cf6;
+    }
+
+    /* Fixed Header Solid Opaque Styling */
+    .stock-usage-table .mud-table-container {
+        overflow-x: auto;
+    }
+    .stock-usage-table .mud-table-head th {
+        position: sticky !important;
+        top: 0 !important;
+        z-index: 10 !important;
+        background-color: #ffffff !important;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+        white-space: nowrap;
+        vertical-align: middle;
+    }
+    .stock-usage-table th.th-item {
+        background-color: #f8fafc !important;
+        color: #334155 !important;
+        border-bottom: 2px solid #cbd5e1 !important;
+    }
+    .stock-usage-table th.th-stock {
+        background-color: #fffbeb !important;
+        color: #92400e !important;
+        border-bottom: 2px solid #f59e0b !important;
+    }
+    .stock-usage-table th.th-this-q {
+        background-color: #eff6ff !important;
+        color: #1e40af !important;
+        border-bottom: 2px solid #3b82f6 !important;
+    }
+    .stock-usage-table th.th-last-q {
+        background-color: #f0fdf4 !important;
+        color: #166534 !important;
+        border-bottom: 2px solid #10b981 !important;
+    }
+    .stock-usage-table th.th-12m {
+        background-color: #f5f3ff !important;
+        color: #6b21a8 !important;
+        border-bottom: 2px solid #8b5cf6 !important;
+    }
+    .header-subtext {
+        font-size: 0.72rem;
+        font-weight: normal;
+        opacity: 0.85;
+        line-height: 1.1;
+        margin-top: 2px;
     }
 </style>
 
@@ -144,6 +419,32 @@
     private bool _rawBatchLoading = false;
     private bool _rawBatchInStockOnly = true;
     private List<BatchWiseItemDto> _rawMaterialBatchItems = new();
+
+    private string _usageSearchString = string.Empty;
+    private string _selectedPeriodTab = "all";
+
+    private string FormatCurrency(decimal amount) => $"${SessionState.FormatNumber(amount)}";
+
+    private IEnumerable<ItemStockUsageOverviewDto> FilteredUsageOverviews
+    {
+        get
+        {
+            if (_dashboardData?.ItemUsageOverviews == null)
+                return Enumerable.Empty<ItemStockUsageOverviewDto>();
+
+            var list = _dashboardData.ItemUsageOverviews.AsEnumerable();
+
+            if (!string.IsNullOrWhiteSpace(_usageSearchString))
+            {
+                var term = _usageSearchString.Trim();
+                list = list.Where(x =>
+                    (!string.IsNullOrEmpty(x.ItemName) && x.ItemName.Contains(term, StringComparison.OrdinalIgnoreCase)) ||
+                    (!string.IsNullOrEmpty(x.ItemCode) && x.ItemCode.Contains(term, StringComparison.OrdinalIgnoreCase)));
+            }
+
+            return list;
+        }
+    }
 
     protected override async Task OnInitializedAsync()
     {

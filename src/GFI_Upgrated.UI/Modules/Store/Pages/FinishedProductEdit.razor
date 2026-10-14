@@ -3,9 +3,11 @@
 @page "/admin/finished-products/new"
 @page "/admin/finished-products/edit/{Id:long}"
 @using GFI_Upgrated.SharedDto.Store
+@using GFI_Upgrated.SharedDto.AdminSecurity
 @using GFI_Upgrated.UI.Services
 @using GFI_Upgrated.UI.State
 @inject StoreApiClient ApiClient
+@inject AdminSecurityApiClient SecurityApiClient
 @inject ISnackbar Snackbar
 @inject NavigationManager Navigation
 @inject GFI_Upgrated.UI.State.AppSessionState SessionState
@@ -140,7 +142,7 @@
                     <MudText Typo="Typo.subtitle1" Class="mb-2" Style="display:none;">Add/Edit Product Price</MudText>
                     <MudGrid>
                         <MudItem xs="12" md="4">
-                            <SearchableSelect T="AccountLookupDto" Label="Customers" Value="@(_accounts.FirstOrDefault(x => x.AccountId == _vendorModel.VendorAccountId))" ValueChanged="@((AccountLookupDto val) => { _vendorModel.VendorAccountId = (int)(val?.AccountId ?? 0); })" Items="@GetAccountSelects()" Variant="Variant.Outlined" Required="true" />
+                            <SearchableSelect T="LookupItemDto" Label="Stakeholder Type" Value="@(_stakeholderTypes.FirstOrDefault(x => x.Value == _vendorModel.StakeholderTypeId))" ValueChanged="@((LookupItemDto val) => { _vendorModel.StakeholderTypeId = (int?)(val?.Value); })" Items="@GetStakeholderTypeSelects()" Variant="Variant.Outlined" Required="true" />
                         </MudItem>
                         <MudItem xs="12" md="4">
                             <MudNumericField @bind-Value="_vendorModel.PurchasePrice" Label="Price" Variant="Variant.Outlined" Format="@($"N{SessionState.DecimalDigits}")" Min="0" />
@@ -168,14 +170,14 @@
 
                 <MudTable Items="_vendors" Hover="true" Dense="true" Striped="true" Bordered="true" Elevation="0">
                     <HeaderContent>
-                        <MudTh>Customer</MudTh>
+                        <MudTh>Stakeholder Type</MudTh>
                         <MudTh>Price</MudTh>
                         <MudTh>Currency</MudTh>
                         <MudTh>Date Range</MudTh>
                         <MudTh Style="text-align: center;">Action</MudTh>
                     </HeaderContent>
                     <RowTemplate>
-                        <MudTd DataLabel="Account">@context.VendorName</MudTd>
+                        <MudTd DataLabel="Stakeholder Type">@(!string.IsNullOrEmpty(context.StakeholderTypeName) ? context.StakeholderTypeName : context.VendorName)</MudTd>
                         <MudTd DataLabel="Price">@SessionState.FormatNumber(context.PurchasePrice)</MudTd>
                         <MudTd DataLabel="Currency">@(_currencies.FirstOrDefault(c => c.CurrencyId == context.CurrencyId)?.CurrencyName ?? "N/A")</MudTd>
                         <MudTd DataLabel="Dates">@(context.StartDate?.ToShortDateString() ?? "-") to @(context.EndDate?.ToShortDateString() ?? "-")</MudTd>
@@ -484,6 +486,7 @@
     private List<BrandDto> _brands = new();
     private List<StatusDto> _statuses = new();
     private List<AccountLookupDto> _accounts = new();
+    private IReadOnlyList<LookupItemDto> _stakeholderTypes = Array.Empty<LookupItemDto>();
     private List<WarehouseLookupDto> _warehouses = new();
     private List<CurrencyLookupDto> _currencies = new();
     private List<FinishedProductVendorDto> _vendors = new();
@@ -551,6 +554,7 @@
             _statuses = statuses.Items.Where(x => x.IsActive).OrderBy(x => x.StatusName).ToList();
 
             _accounts = (await ApiClient.GetAccountsLookupAsync()).OrderBy(x => x.AccountName).ToList();
+            _stakeholderTypes = (await SecurityApiClient.GetMasterDropdownAsync(6)).OrderBy(x => x.Text).ToList();
             _warehouses = (await ApiClient.GetWarehousesLookupAsync()).OrderBy(x => x.WarehouseName).ToList();
             _currencies = (await ApiClient.GetCurrenciesLookupAsync()).OrderBy(x => x.CurrencyName).ToList();
         }
@@ -723,7 +727,7 @@
         }
         else if (_activeTabIndex == 2)
         {
-            if (_vendorModel.VendorAccountId != 0)
+            if ((_vendorModel.StakeholderTypeId ?? 0) != 0)
             {
                 saveSuccess = await SaveVendor();
             }
@@ -810,9 +814,16 @@
 
     private async Task<bool> SaveVendor()
     {
-        if (_vendorModel.VendorAccountId == 0)
+        if ((_vendorModel.StakeholderTypeId ?? 0) <= 0)
         {
-            Snackbar.Add("Please select an account.", Severity.Warning);
+            Snackbar.Add("Please select a stakeholder type.", Severity.Warning);
+            return false;
+        }
+
+        // Ensure only one price per stakeholder type for this product
+        if (_vendors.Any(v => v.StakeholderTypeId == _vendorModel.StakeholderTypeId && v.ItemVendorId != _vendorModel.ItemVendorId))
+        {
+            Snackbar.Add("Pricing for this stakeholder type already exists. Only one price per stakeholder type is allowed.", Severity.Warning);
             return false;
         }
 
@@ -865,7 +876,13 @@
             _vendorModel.CreatedBy = SessionState.CurrentUserAuditName ?? "System";
             if (_vendorModel.PurchaseUnit == 0) _vendorModel.PurchaseUnit = (decimal)_model.PurchaseUnit;
 
-            await ApiClient.SaveFinishedProductVendorAsync(_vendorModel);
+            var returnId = await ApiClient.SaveFinishedProductVendorAsync(_vendorModel);
+            if (returnId == -1)
+            {
+                Snackbar.Add("Pricing for this stakeholder type already exists. Only one price per stakeholder type is allowed.", Severity.Warning);
+                return false;
+            }
+
             Snackbar.Add("Pricing saved successfully.", Severity.Success);
             _vendors = (await ApiClient.GetFinishedProductVendorsAsync(Id)).ToList();
             ResetVendorForm();
@@ -889,6 +906,8 @@
             ItemVendorId = vendor.ItemVendorId,
             ItemId = vendor.ItemId,
             VendorAccountId = vendor.VendorAccountId,
+            StakeholderTypeId = vendor.StakeholderTypeId,
+            StakeholderTypeName = vendor.StakeholderTypeName,
             StatusId = vendor.StatusId,
             PurchasePrice = vendor.PurchasePrice,
             PurchaseUnit = vendor.PurchaseUnit,
@@ -908,7 +927,8 @@
 
     private async Task DeleteVendor(FinishedProductVendorDto vendor)
     {
-        var confirmed = await JS.InvokeAsync<bool>("confirm", $"Are you sure you want to delete pricing for '{vendor.VendorName}'?");
+        var displayName = !string.IsNullOrEmpty(vendor.StakeholderTypeName) ? vendor.StakeholderTypeName : vendor.VendorName;
+        var confirmed = await JS.InvokeAsync<bool>("confirm", $"Are you sure you want to delete pricing for '{displayName}'?");
         if (!confirmed) return;
 
         _savingVendor = true;
@@ -934,6 +954,15 @@
             _savingVendor = false;
             StateHasChanged();
         }
+    }
+
+    private IEnumerable<SearchableSelect<LookupItemDto>.SelectItemDto<LookupItemDto>> GetStakeholderTypeSelects()
+    {
+        return (_stakeholderTypes ?? Array.Empty<LookupItemDto>()).Select(x => new SearchableSelect<LookupItemDto>.SelectItemDto<LookupItemDto>
+        {
+            Value = x,
+            Text = x.Text ?? ""
+        });
     }
 
     private IEnumerable<SearchableSelect<AccountLookupDto>.SelectItemDto<AccountLookupDto>> GetAccountSelects()

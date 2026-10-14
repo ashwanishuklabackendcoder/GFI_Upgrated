@@ -355,9 +355,9 @@
         _invoice.Items.Remove(item);
     }
 
-    private async Task<double?> GetCustomerUnitPriceAsync(long itemId, long customerId)
+    private async Task<double?> GetStakeholderUnitPriceAsync(long itemId, int? stakeholderTypeId, long customerId = 0)
     {
-        if (itemId <= 0 || customerId <= 0) return null;
+        if (itemId <= 0) return null;
 
         try
         {
@@ -372,20 +372,40 @@
 
             var invoiceDate = _invoice.InvoiceDate ?? DateTime.Today;
 
-            // Find price matching Customer Account ID and valid date range
-            var matchingVendor = vendors.FirstOrDefault(v => v.VendorAccountId == customerId 
-                && (!v.StartDate.HasValue || v.StartDate.Value <= invoiceDate)
-                && (!v.EndDate.HasValue || v.EndDate.Value >= invoiceDate));
-
-            // Fallback: match by Customer Account ID without date constraint if date-restricted record not found
-            if (matchingVendor == null)
+            // 1. Primary match: by Stakeholder Type with date constraint
+            if (stakeholderTypeId.HasValue && stakeholderTypeId.Value > 0)
             {
-                matchingVendor = vendors.FirstOrDefault(v => v.VendorAccountId == customerId);
+                var matchingStakeholder = vendors.FirstOrDefault(v => v.StakeholderTypeId == stakeholderTypeId.Value 
+                    && (!v.StartDate.HasValue || v.StartDate.Value <= invoiceDate)
+                    && (!v.EndDate.HasValue || v.EndDate.Value >= invoiceDate));
+
+                if (matchingStakeholder == null)
+                {
+                    matchingStakeholder = vendors.FirstOrDefault(v => v.StakeholderTypeId == stakeholderTypeId.Value);
+                }
+
+                if (matchingStakeholder != null && matchingStakeholder.PurchasePrice > 0)
+                {
+                    return matchingStakeholder.PurchasePrice;
+                }
             }
 
-            if (matchingVendor != null && matchingVendor.PurchasePrice > 0)
+            // 2. Fallback: match by Customer Account ID if legacy account pricing exists
+            if (customerId > 0)
             {
-                return matchingVendor.PurchasePrice;
+                var matchingVendor = vendors.FirstOrDefault(v => v.VendorAccountId == customerId 
+                    && (!v.StartDate.HasValue || v.StartDate.Value <= invoiceDate)
+                    && (!v.EndDate.HasValue || v.EndDate.Value >= invoiceDate));
+
+                if (matchingVendor == null)
+                {
+                    matchingVendor = vendors.FirstOrDefault(v => v.VendorAccountId == customerId);
+                }
+
+                if (matchingVendor != null && matchingVendor.PurchasePrice > 0)
+                {
+                    return matchingVendor.PurchasePrice;
+                }
             }
         }
         catch
@@ -411,7 +431,8 @@
 
             if (_invoice.AccountID > 0)
             {
-                var customPrice = await GetCustomerUnitPriceAsync(val, _invoice.AccountID);
+                var customer = _customers.FirstOrDefault(c => c.AccountId == _invoice.AccountID);
+                var customPrice = await GetStakeholderUnitPriceAsync(val, customer?.StakeholderType, _invoice.AccountID);
                 if (customPrice.HasValue)
                 {
                     row.UnitPrice = customPrice.Value;
@@ -660,11 +681,14 @@
         
         if (customerId > 0 && _invoice.Items != null)
         {
+            var customer = _customers.FirstOrDefault(c => c.AccountId == customerId);
+            var stakeholderTypeId = customer?.StakeholderType;
+
             foreach (var item in _invoice.Items)
             {
                 if (item.ItemId > 0)
                 {
-                    var customPrice = await GetCustomerUnitPriceAsync(item.ItemId, customerId);
+                    var customPrice = await GetStakeholderUnitPriceAsync(item.ItemId, stakeholderTypeId, customerId);
                     if (customPrice.HasValue)
                     {
                         item.UnitPrice = customPrice.Value;

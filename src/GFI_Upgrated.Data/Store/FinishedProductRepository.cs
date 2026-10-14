@@ -1,4 +1,4 @@
-﻿using GFI_Upgrated.SharedDto.Store;
+using GFI_Upgrated.SharedDto.Store;
 using Microsoft.Data.SqlClient;
 using System;
 using System.Collections.Generic;
@@ -251,6 +251,8 @@ public sealed class FinishedProductRepository : IFinishedProductRepository
                 ItemId = row.SafeLong("ItemId"),
                 VendorAccountId = row.SafeInt("VendorAccountId"),
                 VendorName = row.SafeString("AccountName"),
+                StakeholderTypeId = row.SafeInt("StakeholderTypeId") > 0 ? row.SafeInt("StakeholderTypeId") : null,
+                StakeholderTypeName = row.SafeString("StakeholderTypeName"),
                 StatusId = row.SafeInt("StatusId"),
                 PurchasePrice = row.SafeDouble("PurchasePrice"),
                 PurchaseUnit = (decimal)row.SafeDouble("PurchaseUnit"),
@@ -272,7 +274,7 @@ public sealed class FinishedProductRepository : IFinishedProductRepository
         {
             new SqlParameter("@ItemVendorId", SqlDbType.BigInt) { Value = request.ItemVendorId },
             new SqlParameter("@ItemId", SqlDbType.Int) { Value = request.ItemId },
-            new SqlParameter("@VendorAccountId", SqlDbType.Int) { Value = request.VendorAccountId },
+            new SqlParameter("@VendorAccountId", SqlDbType.Int) { Value = request.VendorAccountId > 0 ? (object)request.VendorAccountId : DBNull.Value },
             new SqlParameter("@StatusId", SqlDbType.Int) { Value = request.StatusId },
             new SqlParameter("@PurchasePrice", SqlDbType.Float) { Value = request.PurchasePrice },
             new SqlParameter("@PurchaseUnit", SqlDbType.Decimal) { Value = request.PurchaseUnit > 0 ? request.PurchaseUnit : DBNull.Value },
@@ -284,6 +286,7 @@ public sealed class FinishedProductRepository : IFinishedProductRepository
             new SqlParameter("@BrandId", SqlDbType.BigInt) { Value = request.BrandId > 0 ? request.BrandId : DBNull.Value },
             new SqlParameter("@CurrencyID", SqlDbType.BigInt) { Value = request.CurrencyId },
             new SqlParameter("@PurchaseQuantity", SqlDbType.Float) { Value = request.PurchaseQuantity },
+            new SqlParameter("@StakeholderTypeId", SqlDbType.Int) { Value = (object?)request.StakeholderTypeId ?? DBNull.Value },
             new SqlParameter("@ReturnVal", SqlDbType.Int) { Direction = ParameterDirection.Output }
         };
 

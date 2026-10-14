@@ -25,8 +25,9 @@ public sealed class DashboardRepository : IDashboardRepository
 
         var criticalTask = ExecuteDataTableAsync("ItemStockAlert", new[] { new SqlParameter("@value", SqlDbType.Int) { Value = 1 } }, cancellationToken);
         var reorderTask = ExecuteDataTableAsync("ItemStockAlert", new[] { new SqlParameter("@value", SqlDbType.Int) { Value = 2 } }, cancellationToken);
+        var usageTask = LoadStockUsageOverviewAsync(cancellationToken);
 
-        await Task.WhenAll(criticalTask, reorderTask);
+        await Task.WhenAll(criticalTask, reorderTask, usageTask);
 
         foreach (DataRow row in criticalTask.Result.Rows)
         {
@@ -48,7 +49,161 @@ public sealed class DashboardRepository : IDashboardRepository
             });
         }
 
+        result.ItemUsageOverviews = usageTask.Result;
+
+        var now = DateTime.Now;
+        int curQuarter = (now.Month - 1) / 3 + 1;
+        int curYear = now.Year;
+        int lastQuarter = curQuarter == 1 ? 4 : curQuarter - 1;
+        int lastQuarterYear = curQuarter == 1 ? curYear - 1 : curYear;
+
+        result.UsageMetrics = new StockUsageSummaryMetricsDto
+        {
+            TotalCurrentStockValue = result.ItemUsageOverviews.Sum(x => x.CurrentStockValue),
+            ThisQuarterTotalUsedQty = result.ItemUsageOverviews.Sum(x => x.ThisQuarterStockUsed),
+            ThisQuarterTotalUsedValue = result.ItemUsageOverviews.Sum(x => x.ThisQuarterStockValueUsed),
+            LastQuarterTotalUsedQty = result.ItemUsageOverviews.Sum(x => x.LastQuarterStockUsed),
+            LastQuarterTotalUsedValue = result.ItemUsageOverviews.Sum(x => x.LastQuarterStockValueUsed),
+            Last12MonthsTotalUsedQty = result.ItemUsageOverviews.Sum(x => x.Last12MonthsStockUsed),
+            Last12MonthsTotalUsedValue = result.ItemUsageOverviews.Sum(x => x.Last12MonthsStockValueUsed),
+            ThisQuarterLabel = $"Q{curQuarter} {curYear}",
+            LastQuarterLabel = $"Q{lastQuarter} {lastQuarterYear}",
+            Last12MonthsLabel = "Last 12 Months"
+        };
+
         return result;
+    }
+
+    private async Task<List<ItemStockUsageOverviewDto>> LoadStockUsageOverviewAsync(CancellationToken cancellationToken)
+    {
+        var list = new List<ItemStockUsageOverviewDto>();
+
+        const string query = @"
+            DECLARE @Now DATETIME = GETDATE();
+            DECLARE @CurYear INT = YEAR(@Now);
+            DECLARE @CurQuarter INT = DATEPART(QUARTER, @Now);
+
+            -- Current Quarter start/end
+            DECLARE @ThisQStart DATETIME = DATEFROMPARTS(@CurYear, (@CurQuarter - 1) * 3 + 1, 1);
+            DECLARE @ThisQEnd DATETIME = DATEADD(DAY, -1, DATEADD(MONTH, 3, @ThisQStart));
+
+            -- Last Quarter start/end
+            DECLARE @LastQStart DATETIME = DATEADD(MONTH, -3, @ThisQStart);
+            DECLARE @LastQEnd DATETIME = DATEADD(DAY, -1, @ThisQStart);
+
+            -- Last 12 Months start
+            DECLARE @L12MStart DATETIME = DATEADD(YEAR, -1, @Now);
+
+            -- Months elapsed in current quarter (at least 1 to prevent div by 0)
+            DECLARE @ThisQMonths INT = MONTH(@Now) - ((@CurQuarter - 1) * 3);
+            IF @ThisQMonths < 1 SET @ThisQMonths = 1;
+
+            WITH BatchCost AS (
+                SELECT 
+                    b.ItemStockByBatchId,
+                    b.ItemId,
+                    b.Quantity,
+                    b.FinalQuantityLeft,
+                    b.StockById,
+                    b.IdFrom,
+                    COALESCE(
+                        NULLIF(CASE WHEN b.Quantity > 0 THEN b.Amount / b.Quantity ELSE 0 END, 0),
+                        latestPurchase.UnitPrice,
+                        0
+                    ) AS UnitCost
+                FROM dbo.Inv_ItemStockByBatch b
+                OUTER APPLY (
+                    SELECT TOP 1 pc.UnitPrice 
+                    FROM dbo.W_PurchaseChild pc 
+                    WHERE pc.ItemID = b.ItemId AND pc.UnitPrice > 0 
+                    ORDER BY pc.PurchaseItemID DESC
+                ) latestPurchase
+            ),
+            CurrentStockSummary AS (
+                SELECT 
+                    b.ItemId,
+                    SUM(b.FinalQuantityLeft) AS CurrentStock,
+                    SUM(b.FinalQuantityLeft * b.UnitCost) AS CurrentStockValue
+                FROM BatchCost b
+                WHERE b.FinalQuantityLeft > 0
+                AND (
+                    b.StockById NOT IN (2, 4)
+                    OR (b.StockById = 2 AND EXISTS (SELECT 1 FROM dbo.W_PreProcessing pp WHERE pp.PreProcessingId = b.IdFrom AND pp.IsComplete = 1))
+                    OR (b.StockById = 4 AND EXISTS (SELECT 1 FROM dbo.W_Production p WHERE p.ProductionId = b.IdFrom AND p.IsComplete = 1))
+                )
+                GROUP BY b.ItemId
+            ),
+            UsageSummary AS (
+                SELECT 
+                    b.ItemId,
+                    -- This Quarter
+                    SUM(CASE WHEN u.CreatedDate >= @ThisQStart AND u.CreatedDate <= @ThisQEnd THEN u.Quantity ELSE 0 END) AS ThisQQty,
+                    SUM(CASE WHEN u.CreatedDate >= @ThisQStart AND u.CreatedDate <= @ThisQEnd THEN u.Quantity * b.UnitCost ELSE 0 END) AS ThisQVal,
+                    -- Last Quarter
+                    SUM(CASE WHEN u.CreatedDate >= @LastQStart AND u.CreatedDate <= @LastQEnd THEN u.Quantity ELSE 0 END) AS LastQQty,
+                    SUM(CASE WHEN u.CreatedDate >= @LastQStart AND u.CreatedDate <= @LastQEnd THEN u.Quantity * b.UnitCost ELSE 0 END) AS LastQVal,
+                    -- Last 12 Months
+                    SUM(CASE WHEN u.CreatedDate >= @L12MStart AND u.CreatedDate <= @Now THEN u.Quantity ELSE 0 END) AS L12MQty,
+                    SUM(CASE WHEN u.CreatedDate >= @L12MStart AND u.CreatedDate <= @Now THEN u.Quantity * b.UnitCost ELSE 0 END) AS L12MVal
+                FROM dbo.Inv_ItemStockUsed u
+                INNER JOIN BatchCost b ON u.ItemStockByBatchId = b.ItemStockByBatchId
+                WHERE u.CreatedDate >= @L12MStart
+                GROUP BY b.ItemId
+            )
+            SELECT 
+                i.ItemID,
+                i.ItemName,
+                ISNULL(i.ItemCode, '') AS ItemCode,
+                ISNULL(mu.UnitName, '') AS UnitName,
+                ISNULL(cs.CurrentStock, 0) AS CurrentStock,
+                ISNULL(cs.CurrentStockValue, 0) AS CurrentStockValue,
+                -- This Quarter
+                ISNULL(us.ThisQQty, 0) AS ThisQuarterStockUsed,
+                ISNULL(us.ThisQQty, 0) / CAST(@ThisQMonths AS decimal(18, 4)) AS ThisQuarterAvgMonthlyUsed,
+                ISNULL(us.ThisQVal, 0) AS ThisQuarterStockValueUsed,
+                -- Last Quarter
+                ISNULL(us.LastQQty, 0) AS LastQuarterStockUsed,
+                ISNULL(us.LastQQty, 0) / 3.0 AS LastQuarterAvgMonthlyUsed,
+                ISNULL(us.LastQVal, 0) AS LastQuarterStockValueUsed,
+                -- Last 12 Months
+                ISNULL(us.L12MQty, 0) AS Last12MonthsStockUsed,
+                ISNULL(us.L12MQty, 0) / 12.0 AS Last12MonthsAvgMonthlyUsed,
+                ISNULL(us.L12MVal, 0) AS Last12MonthsStockValueUsed
+            FROM dbo.W_MasterItem i
+            LEFT JOIN dbo.W_MasterUnit mu ON i.PurchaseUnit = mu.UnitId
+            LEFT JOIN CurrentStockSummary cs ON i.ItemID = cs.ItemId
+            LEFT JOIN UsageSummary us ON i.ItemID = us.ItemId
+            WHERE ISNULL(cs.CurrentStock, 0) > 0 OR ISNULL(us.L12MQty, 0) > 0
+            ORDER BY ISNULL(us.L12MVal, 0) DESC, i.ItemName ASC;";
+
+        await using var connection = new SqlConnection(_connectionString);
+        await connection.OpenAsync(cancellationToken);
+        await using var cmd = new SqlCommand(query, connection);
+        await using var reader = await cmd.ExecuteReaderAsync(cancellationToken);
+
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            list.Add(new ItemStockUsageOverviewDto
+            {
+                ItemId = Convert.ToInt64(reader["ItemID"]),
+                ItemName = reader["ItemName"]?.ToString() ?? string.Empty,
+                ItemCode = reader["ItemCode"]?.ToString() ?? string.Empty,
+                UnitName = reader["UnitName"]?.ToString() ?? string.Empty,
+                CurrentStock = Convert.ToDecimal(reader["CurrentStock"]),
+                CurrentStockValue = Convert.ToDecimal(reader["CurrentStockValue"]),
+                ThisQuarterStockUsed = Convert.ToDecimal(reader["ThisQuarterStockUsed"]),
+                ThisQuarterAvgMonthlyUsed = Convert.ToDecimal(reader["ThisQuarterAvgMonthlyUsed"]),
+                ThisQuarterStockValueUsed = Convert.ToDecimal(reader["ThisQuarterStockValueUsed"]),
+                LastQuarterStockUsed = Convert.ToDecimal(reader["LastQuarterStockUsed"]),
+                LastQuarterAvgMonthlyUsed = Convert.ToDecimal(reader["LastQuarterAvgMonthlyUsed"]),
+                LastQuarterStockValueUsed = Convert.ToDecimal(reader["LastQuarterStockValueUsed"]),
+                Last12MonthsStockUsed = Convert.ToDecimal(reader["Last12MonthsStockUsed"]),
+                Last12MonthsAvgMonthlyUsed = Convert.ToDecimal(reader["Last12MonthsAvgMonthlyUsed"]),
+                Last12MonthsStockValueUsed = Convert.ToDecimal(reader["Last12MonthsStockValueUsed"])
+            });
+        }
+
+        return list;
     }
 
     public async Task<ProductionDashboardDto> GetProductionDashboardAsync(string batchNo, CancellationToken cancellationToken = default)

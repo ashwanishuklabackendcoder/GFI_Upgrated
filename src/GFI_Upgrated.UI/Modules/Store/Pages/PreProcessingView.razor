@@ -251,7 +251,7 @@ else
                             {
                                 foreach (var batch in batches.Where(b => b.FinalQuantityLeft > 0))
                                 {
-                                    if (remainingNeeded <= 0) break;
+                                    if (Math.Round(remainingNeeded, 4) <= 0) break;
 
                                     double allocated = Math.Min(remainingNeeded, batch.FinalQuantityLeft);
                                     if (allocated <= 0 && remainingNeeded > 0)
@@ -274,7 +274,7 @@ else
                                     remainingNeeded -= allocated;
                                 }
 
-                                if (remainingNeeded > 0)
+                                if (Math.Round(remainingNeeded, 4) > 0)
                                 {
                                     _items.Add(new PreProcessingItemDto
                                     {

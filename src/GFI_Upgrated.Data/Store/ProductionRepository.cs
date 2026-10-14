@@ -267,50 +267,45 @@ public sealed class ProductionRepository : IProductionRepository
 
     public async Task<int> FinalizeStockUpdateAsync(long productionId, string updatedBy, CancellationToken cancellationToken = default)
     {
-        var parameters = new[]
-        {
-            new SqlParameter("@UsedFor", SqlDbType.Int) { Value = 3 }, // 3 = Production
-            new SqlParameter("@UsedForId", SqlDbType.BigInt) { Value = productionId },
-            new SqlParameter("@CreatedBy", SqlDbType.NVarChar, 200) { Value = updatedBy },
-            new SqlParameter("@CreatedDate", SqlDbType.DateTime) { Value = DateTime.UtcNow },
-            new SqlParameter("@ReturnVal", SqlDbType.Int) { Direction = ParameterDirection.Output }
-        };
+        var returnValParam = new SqlParameter("@ReturnVal", SqlDbType.Int) { Direction = ParameterDirection.Output };
 
-        //await ExecuteNonQueryAsync("Inv_ItemStockPreProcessingAndProductModify", parameters, cancellationToken);
-
-        //// Explicitly persist IsComplete status to 1 on the production header
-        //var updateQuery = "UPDATE dbo.W_Production SET IsComplete = 1 WHERE ProductionId = @ProductionId";
-        //await using var connection = new SqlConnection(_connectionString);
-        //await using var command = new SqlCommand(updateQuery, connection);
-        //command.Parameters.AddWithValue("@ProductionId", productionId);
-        //await connection.OpenAsync(cancellationToken);
-        //await command.ExecuteNonQueryAsync(cancellationToken);
-
-        //return Convert.ToInt32(parameters[^1].Value ?? 0);
         await using var connection = new SqlConnection(_connectionString);
         await connection.OpenAsync(cancellationToken);
-        await using var transaction = await connection.BeginTransactionAsync(cancellationToken);
+        await using var transaction = (SqlTransaction)await connection.BeginTransactionAsync(cancellationToken);
         try
         {
-            // 1. Execute SP within transaction
-            await ExecuteNonQueryAsync("Inv_ItemStockPreProcessingAndProductModify", parameters, cancellationToken);
-
-            // 2. Persist IsComplete status within same transaction
-            var updateQuery = "UPDATE dbo.W_Production SET IsComplete = 1 WHERE ProductionId = @ProductionId";
-            await using (var command = new SqlCommand(updateQuery, connection, (SqlTransaction)transaction))
+            // 1. Execute the finalize SP on the SAME connection + transaction so that if it
+            //    fails, the IsComplete flag is never set to 1 (atomic: all-or-nothing).
+            await using (var spCmd = new SqlCommand("Inv_ItemStockPreProcessingAndProductModify", connection, transaction)
             {
-                command.Parameters.AddWithValue("@ProductionId", productionId);
-                await command.ExecuteNonQueryAsync(cancellationToken);
+                CommandType = CommandType.StoredProcedure
+            })
+            {
+                spCmd.Parameters.AddWithValue("@UsedFor", 3); // 3 = Production
+                spCmd.Parameters.AddWithValue("@UsedForId", productionId);
+                spCmd.Parameters.Add(new SqlParameter("@CreatedBy", SqlDbType.NVarChar, 200) { Value = updatedBy });
+                spCmd.Parameters.AddWithValue("@CreatedDate", DateTime.UtcNow);
+                spCmd.Parameters.Add(returnValParam);
+                await spCmd.ExecuteNonQueryAsync(cancellationToken);
             }
+
+            // 2. Mark production as complete — only commits if SP above succeeded.
+            await using (var updateCmd = new SqlCommand(
+                "UPDATE dbo.W_Production SET IsComplete = 1 WHERE ProductionId = @ProductionId",
+                connection, transaction))
+            {
+                updateCmd.Parameters.AddWithValue("@ProductionId", productionId);
+                await updateCmd.ExecuteNonQueryAsync(cancellationToken);
+            }
+
             await transaction.CommitAsync(cancellationToken);
-            return Convert.ToInt32(parameters[^1].Value ?? 0);
+            return Convert.ToInt32(returnValParam.Value ?? 0);
         }
         catch
         {
             await transaction.RollbackAsync(cancellationToken);
             throw;
         }
-
     }
 
     public async Task<IReadOnlyList<CountryLookupDto>> GetCountriesLookupAsync(CancellationToken cancellationToken = default)

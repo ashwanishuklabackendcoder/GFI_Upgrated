@@ -401,12 +401,12 @@ public sealed class PreProcessingRepository : IPreProcessingRepository
             // Using Inv_ItemStockByBatchList which is similar to SelectAll but supports filtering
             var table = await ExecuteDataTableAsync("Inv_ItemStockByBatchList", parameters, cancellationToken);
             return table.AsEnumerable()
-                .Where(r => r.SafeDouble("FinalQuantityLeft") > 0)
+                .Where(r => Math.Round(r.SafeDouble("FinalQuantityLeft"), 4) > 0)
                 .Select(r => new AvailableBatchDto
                 {
                     ItemStockByBatchId = r.SafeLong("ItemStockByBatchId"),
                     BatchNo = r.SafeString("BatchNo"),
-                    FinalQuantityLeft = r.SafeDouble("FinalQuantityLeft"),
+                    FinalQuantityLeft = Math.Round(r.SafeDouble("FinalQuantityLeft"), 4),
                     ExpiryDate = r.SafeString("ExpiryDate"),
                     WarehouseName = r.SafeString("WarehouseName"),
                     UnitId = r.Table.Columns.Contains("Unit") && r["Unit"] != DBNull.Value ? Convert.ToInt64(r["Unit"]) : 0,

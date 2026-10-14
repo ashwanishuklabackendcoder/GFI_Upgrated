@@ -91,9 +91,9 @@
         if (_newItem.ItemStockByBatchId == 0) { Snackbar.Add("Please select a batch.", Severity.Warning); return; }
         
         var batch = _availableBatches.FirstOrDefault(b => b.ItemStockByBatchId == _newItem.ItemStockByBatchId);
-        if (batch != null && _newItem.Quantity > batch.FinalQuantityLeft)
+        if (batch != null && Math.Round(_newItem.Quantity, 4) > Math.Round(batch.FinalQuantityLeft, 4))
         {
-            Snackbar.Add($"Quantity exceeds available batch stock ({batch.FinalQuantityLeft}).", Severity.Warning);
+            Snackbar.Add($"Quantity exceeds available batch stock ({SessionState.FormatNumber(batch.FinalQuantityLeft)}).", Severity.Warning);
             return;
         }
 

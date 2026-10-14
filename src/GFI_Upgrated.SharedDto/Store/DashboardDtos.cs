@@ -17,10 +17,51 @@ public class ReorderStockItemDto
     public decimal ReorderLevelQuantity { get; set; }
 }
 
+public class ItemStockUsageOverviewDto
+{
+    public long ItemId { get; set; }
+    public string ItemName { get; set; } = string.Empty;
+    public string ItemCode { get; set; } = string.Empty;
+    public string UnitName { get; set; } = string.Empty;
+    public decimal CurrentStock { get; set; }
+    public decimal CurrentStockValue { get; set; }
+
+    // This Quarter
+    public decimal ThisQuarterStockUsed { get; set; }
+    public decimal ThisQuarterAvgMonthlyUsed { get; set; }
+    public decimal ThisQuarterStockValueUsed { get; set; }
+
+    // Last Quarter
+    public decimal LastQuarterStockUsed { get; set; }
+    public decimal LastQuarterAvgMonthlyUsed { get; set; }
+    public decimal LastQuarterStockValueUsed { get; set; }
+
+    // Last 12 Months
+    public decimal Last12MonthsStockUsed { get; set; }
+    public decimal Last12MonthsAvgMonthlyUsed { get; set; }
+    public decimal Last12MonthsStockValueUsed { get; set; }
+}
+
+public class StockUsageSummaryMetricsDto
+{
+    public decimal TotalCurrentStockValue { get; set; }
+    public decimal ThisQuarterTotalUsedQty { get; set; }
+    public decimal ThisQuarterTotalUsedValue { get; set; }
+    public decimal LastQuarterTotalUsedQty { get; set; }
+    public decimal LastQuarterTotalUsedValue { get; set; }
+    public decimal Last12MonthsTotalUsedQty { get; set; }
+    public decimal Last12MonthsTotalUsedValue { get; set; }
+    public string ThisQuarterLabel { get; set; } = string.Empty;
+    public string LastQuarterLabel { get; set; } = string.Empty;
+    public string Last12MonthsLabel { get; set; } = string.Empty;
+}
+
 public class StockDashboardDto
 {
     public List<CriticalStockItemDto> CriticalStockItems { get; set; } = new();
     public List<ReorderStockItemDto> ReorderStockItems { get; set; } = new();
+    public StockUsageSummaryMetricsDto UsageMetrics { get; set; } = new();
+    public List<ItemStockUsageOverviewDto> ItemUsageOverviews { get; set; } = new();
 }
 
 public class ProductionDashboardItemDto
