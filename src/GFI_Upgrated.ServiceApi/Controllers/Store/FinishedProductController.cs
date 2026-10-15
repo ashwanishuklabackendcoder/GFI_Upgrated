@@ -43,6 +43,9 @@ public class FinishedProductController : ControllerBase
     [HttpDelete("{id:long}")]
     public async Task<ActionResult<ApiEnvelope<bool>>> DeleteFinishedProduct(long id, [FromQuery] string deletedBy, CancellationToken cancellationToken)
     {
+        var dto = await _service.GetFinishedProductByIdAsync(id, cancellationToken);
+        if (dto != null) HttpContext.Items["EntityName"] = dto.ItemName;
+
         var result = await _service.DeleteFinishedProductAsync(id, deletedBy, cancellationToken);
         return Ok(new ApiEnvelope<bool> { Success = true, Message = "Item deleted successfully.", Data = result });
     }
@@ -110,3 +113,4 @@ public class FinishedProductController : ControllerBase
         return Ok(new ApiEnvelope<IReadOnlyList<CurrencyLookupDto>> { Success = true, Data = result });
     }
 }
+

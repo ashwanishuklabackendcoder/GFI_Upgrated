@@ -21,8 +21,6 @@ public sealed class StatusController : ControllerBase
     [HttpGet]
     public async Task<ActionResult<ApiEnvelope<PagedResult<StatusDto>>>> GetStatuses([FromQuery] PagedRequest request, [FromQuery] string? searchText, CancellationToken cancellationToken)
     {
-        try
-        {
             var result = await _service.GetStatusesAsync(request, searchText, cancellationToken);
             return Ok(new ApiEnvelope<PagedResult<StatusDto>>
             {
@@ -30,22 +28,11 @@ public sealed class StatusController : ControllerBase
                 Message = "Statuses loaded successfully.",
                 Data = result
             });
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, new ApiEnvelope<PagedResult<StatusDto>>
-            {
-                Success = false,
-                Message = $"Error loading statuses: {ex.Message}"
-            });
-        }
     }
 
     [HttpGet("{id:long}")]
     public async Task<ActionResult<ApiEnvelope<StatusDto>>> GetStatusById(long id, CancellationToken cancellationToken)
     {
-        try
-        {
             var result = await _service.GetStatusByIdAsync(id, cancellationToken);
             return Ok(new ApiEnvelope<StatusDto>
             {
@@ -53,15 +40,6 @@ public sealed class StatusController : ControllerBase
                 Message = result is null ? "Status not found." : "Status loaded successfully.",
                 Data = result
             });
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, new ApiEnvelope<StatusDto>
-            {
-                Success = false,
-                Message = $"Error loading status: {ex.Message}"
-            });
-        }
     }
 
     [HttpPost]
@@ -73,8 +51,6 @@ public sealed class StatusController : ControllerBase
             return Ok(new ApiEnvelope<int> { Success = false, Message = message });
         }
 
-        try
-        {
             var id = await _service.SaveStatusAsync(request, cancellationToken);
             return Ok(new ApiEnvelope<int>
             {
@@ -82,37 +58,21 @@ public sealed class StatusController : ControllerBase
                 Message = id > 0 ? "Status saved successfully." : (id == -1 ? "Status name already exists." : "Status save failed."),
                 Data = id
             });
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, new ApiEnvelope<int>
-            {
-                Success = false,
-                Message = $"Error saving status: {ex.Message}"
-            });
-        }
     }
 
     [HttpDelete("{id:long}")]
     public async Task<ActionResult<ApiEnvelope<int>>> DeleteStatus(long id, [FromQuery] string? updatedBy, CancellationToken cancellationToken)
     {
-        try
-        {
+            var dto = await _service.GetStatusByIdAsync(id, cancellationToken);
+            if (dto != null) HttpContext.Items["EntityName"] = dto.StatusName;
+
             var result = await _service.DeleteStatusAsync(id, updatedBy ?? "System", cancellationToken);
             return Ok(new ApiEnvelope<int>
             {
                 Success = result > 0,
-                Message = result > 0 ? "Status deleted successfully." : (result == -1 ? "Cannot delete Status because it is currently linked to items or vendors." : "Status delete failed."),
+                Message = result > 0 ? "Status deleted successfully." : "This record cannot be deleted because it is currently in use by other records in the system.",
                 Data = result
             });
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, new ApiEnvelope<int>
-            {
-                Success = false,
-                Message = $"Error deleting status: {ex.Message}"
-            });
-        }
     }
 }
+

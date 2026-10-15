@@ -21,8 +21,6 @@ public sealed class BrandController : ControllerBase
     [HttpGet]
     public async Task<ActionResult<ApiEnvelope<PagedResult<BrandDto>>>> GetBrands([FromQuery] PagedRequest request, [FromQuery] string? searchText, CancellationToken cancellationToken)
     {
-        try
-        {
             var result = await _service.GetBrandsAsync(request, searchText, cancellationToken);
             return Ok(new ApiEnvelope<PagedResult<BrandDto>>
             {
@@ -30,15 +28,6 @@ public sealed class BrandController : ControllerBase
                 Message = "Brands loaded successfully.",
                 Data = result
             });
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, new ApiEnvelope<PagedResult<BrandDto>>
-            {
-                Success = false,
-                Message = $"Debug Error: {ex.Message} | Stack: {ex.StackTrace}"
-            });
-        }
     }
 
     [HttpGet("{id:long}")]
@@ -74,12 +63,16 @@ public sealed class BrandController : ControllerBase
     [HttpDelete("{id:long}")]
     public async Task<ActionResult<ApiEnvelope<int>>> DeleteBrand(long id, [FromQuery] string? updatedBy, CancellationToken cancellationToken)
     {
+        var dto = await _service.GetBrandByIdAsync(id, cancellationToken);
+        if (dto != null) HttpContext.Items["EntityName"] = dto.BrandName;
+
         var result = await _service.DeleteBrandAsync(id, updatedBy ?? "System", cancellationToken);
         return Ok(new ApiEnvelope<int>
         {
             Success = result > 0,
-            Message = result > 0 ? "Brand deleted successfully." : (result == -1 ? "Cannot delete brand because it is currently in use by other items." : "Brand delete failed."),
+            Message = result > 0 ? "Brand deleted successfully." : "This record cannot be deleted because it is currently in use by other records in the system.",
             Data = result
         });
     }
 }
+

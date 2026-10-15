@@ -21,8 +21,6 @@ public sealed class KettleController : ControllerBase
     [HttpGet]
     public async Task<ActionResult<ApiEnvelope<PagedResult<KettleDto>>>> GetKettles([FromQuery] PagedRequest request, [FromQuery] string? searchText, CancellationToken cancellationToken)
     {
-        try
-        {
             var result = await _service.GetKettlesAsync(request, searchText, cancellationToken);
             return Ok(new ApiEnvelope<PagedResult<KettleDto>>
             {
@@ -30,22 +28,11 @@ public sealed class KettleController : ControllerBase
                 Message = "Kettles loaded successfully.",
                 Data = result
             });
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, new ApiEnvelope<PagedResult<KettleDto>>
-            {
-                Success = false,
-                Message = $"Error loading kettles: {ex.Message}"
-            });
-        }
     }
 
     [HttpGet("{id:long}")]
     public async Task<ActionResult<ApiEnvelope<KettleDto>>> GetKettleById(long id, CancellationToken cancellationToken)
     {
-        try
-        {
             var result = await _service.GetKettleByIdAsync(id, cancellationToken);
             return Ok(new ApiEnvelope<KettleDto>
             {
@@ -53,15 +40,6 @@ public sealed class KettleController : ControllerBase
                 Message = result is null ? "Kettle not found." : "Kettle loaded successfully.",
                 Data = result
             });
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, new ApiEnvelope<KettleDto>
-            {
-                Success = false,
-                Message = $"Error loading kettle: {ex.Message}"
-            });
-        }
     }
 
     [HttpPost]
@@ -73,8 +51,6 @@ public sealed class KettleController : ControllerBase
             return Ok(new ApiEnvelope<int> { Success = false, Message = message });
         }
 
-        try
-        {
             var id = await _service.SaveKettleAsync(request, cancellationToken);
             return Ok(new ApiEnvelope<int>
             {
@@ -82,37 +58,21 @@ public sealed class KettleController : ControllerBase
                 Message = id > 0 ? "Kettle saved successfully." : (id == -1 ? "Kettle number already exists." : "Kettle save failed."),
                 Data = id
             });
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, new ApiEnvelope<int>
-            {
-                Success = false,
-                Message = $"Error saving kettle: {ex.Message}"
-            });
-        }
     }
 
     [HttpDelete("{id:long}")]
     public async Task<ActionResult<ApiEnvelope<int>>> DeleteKettle(long id, [FromQuery] string? updatedBy, CancellationToken cancellationToken)
     {
-        try
-        {
+            var dto = await _service.GetKettleByIdAsync(id, cancellationToken);
+            if (dto != null) HttpContext.Items["EntityName"] = dto.KettleNumber;
+
             var result = await _service.DeleteKettleAsync(id, updatedBy ?? "System", cancellationToken);
             return Ok(new ApiEnvelope<int>
             {
                 Success = result > 0,
-                Message = result > 0 ? "Kettle deleted successfully." : (result == -1 ? "Cannot delete Kettle because it is currently linked to production records." : "Kettle delete failed."),
+                Message = result > 0 ? "Kettle deleted successfully." : "This record cannot be deleted because it is currently in use by other records in the system.",
                 Data = result
             });
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, new ApiEnvelope<int>
-            {
-                Success = false,
-                Message = $"Error deleting kettle: {ex.Message}"
-            });
-        }
     }
 }
+

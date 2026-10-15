@@ -165,7 +165,7 @@
         }
         catch (Exception ex)
         {
-            Snackbar.Add(ex.Message, Severity.Error);
+            Snackbar.Add(ex.Message, Severity.Warning);
             return new TableData<ProductionDto> { TotalItems = 0, Items = Array.Empty<ProductionDto>() };
         }
     }
@@ -209,7 +209,7 @@
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+            Snackbar.Add(ex.Message, Severity.Warning);
         }
     }
 }

@@ -92,6 +92,8 @@ public class FinishedProductVendorDto
     public long ItemId { get; set; }
     public int VendorAccountId { get; set; }
     public string? VendorName { get; set; }
+    public int? StakeholderTypeId { get; set; }
+    public string? StakeholderTypeName { get; set; }
     public int StatusId { get; set; }
     public double PurchasePrice { get; set; }
     public decimal PurchaseUnit { get; set; }

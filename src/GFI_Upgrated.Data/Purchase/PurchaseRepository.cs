@@ -345,6 +345,8 @@ namespace GFI_Upgrated.Data.Purchase
                     new SqlParameter("@Narration", SqlDbType.NVarChar, 4000) { Value = purchase.Narration ?? "" },
                     new SqlParameter("@Status", SqlDbType.NVarChar, 50) { Value = purchase.Status },
                     new SqlParameter("@IsFinalized", SqlDbType.Bit) { Value = purchase.IsFinalized },
+                    new SqlParameter("@CurrencyID", SqlDbType.BigInt) { Value = (object?)purchase.CurrencyID ?? DBNull.Value },
+                    new SqlParameter("@CurrencyConversion", SqlDbType.Float) { Value = purchase.CurrencyConversion ?? 1.0 },
                     new SqlParameter("@ReturnVal", SqlDbType.Int) { Direction = ParameterDirection.Output }
                 };
 
@@ -810,7 +812,11 @@ namespace GFI_Upgrated.Data.Purchase
             Status = row.Table.Columns.Contains("Status") ? (row.SafeString("Status") ?? "Draft") : "Draft",
             IsFinalized = row.Table.Columns.Contains("IsFinalized") ? row.SafeBool("IsFinalized") : false,
             FileName = row.SafeString("FileName"),
-            Narration = row.SafeString("Narration")
+            Narration = row.SafeString("Narration"),
+            CurrencyID = row.Table.Columns.Contains("CurrencyID") ? row.SafeLongNullable("CurrencyID") : null,
+            CurrencyConversion = row.Table.Columns.Contains("CurrencyConversion") && row["CurrencyConversion"] != DBNull.Value ? Convert.ToDouble(row["CurrencyConversion"]) : 1.0,
+            CurrencySymbol = row.Table.Columns.Contains("CurrencySymbol") ? row.SafeString("CurrencySymbol") : null,
+            CurrencyName = row.Table.Columns.Contains("CurrencyName") ? row.SafeString("CurrencyName") : null
         };
 
         private PurchaseItemDto MapPurchaseItem(DataRow row) => new()

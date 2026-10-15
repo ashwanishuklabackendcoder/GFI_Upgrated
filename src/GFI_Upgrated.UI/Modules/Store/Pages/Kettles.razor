@@ -124,7 +124,7 @@
         }
         catch (Exception ex)
         {
-            Snackbar.Add(ex.Message, Severity.Error);
+            Snackbar.Add(ex.Message, Severity.Warning);
             return new TableData<KettleDto> { TotalItems = 0, Items = Array.Empty<KettleDto>() };
         }
     }
@@ -160,7 +160,7 @@
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+            Snackbar.Add(ex.Message, Severity.Warning);
         }
     }
 }

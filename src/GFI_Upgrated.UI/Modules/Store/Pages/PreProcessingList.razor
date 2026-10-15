@@ -170,7 +170,7 @@
         }
         catch (Exception ex)
         {
-            Snackbar.Add(ex.Message, Severity.Error);
+            Snackbar.Add(ex.Message, Severity.Warning);
             return new TableData<PreProcessingDto> { TotalItems = 0, Items = Array.Empty<PreProcessingDto>() };
         }
     }
@@ -214,7 +214,7 @@
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+            Snackbar.Add(ex.Message, Severity.Warning);
         }
     }
 
@@ -256,7 +256,7 @@
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+            Snackbar.Add(ex.Message, Severity.Warning);
         }
     }
 }

@@ -21,8 +21,6 @@ public sealed class WarehouseController : ControllerBase
     [HttpGet]
     public async Task<ActionResult<ApiEnvelope<PagedResult<WarehouseDto>>>> GetWarehouses([FromQuery] PagedRequest request, [FromQuery] string? searchText, CancellationToken cancellationToken)
     {
-        try
-        {
             var result = await _service.GetWarehousesAsync(request, searchText, cancellationToken);
             return Ok(new ApiEnvelope<PagedResult<WarehouseDto>>
             {
@@ -30,22 +28,11 @@ public sealed class WarehouseController : ControllerBase
                 Message = "Warehouses loaded successfully.",
                 Data = result
             });
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, new ApiEnvelope<PagedResult<WarehouseDto>>
-            {
-                Success = false,
-                Message = $"Error loading warehouses: {ex.Message}"
-            });
-        }
     }
 
     [HttpGet("{id:long}")]
     public async Task<ActionResult<ApiEnvelope<WarehouseDto>>> GetWarehouseById(long id, CancellationToken cancellationToken)
     {
-        try
-        {
             var result = await _service.GetWarehouseByIdAsync(id, cancellationToken);
             return Ok(new ApiEnvelope<WarehouseDto>
             {
@@ -53,15 +40,6 @@ public sealed class WarehouseController : ControllerBase
                 Message = result is null ? "Warehouse not found." : "Warehouse loaded successfully.",
                 Data = result
             });
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, new ApiEnvelope<WarehouseDto>
-            {
-                Success = false,
-                Message = $"Error loading warehouse: {ex.Message}"
-            });
-        }
     }
 
     [HttpPost]
@@ -73,8 +51,6 @@ public sealed class WarehouseController : ControllerBase
             return Ok(new ApiEnvelope<int> { Success = false, Message = message });
         }
 
-        try
-        {
             var id = await _service.SaveWarehouseAsync(request, cancellationToken);
             return Ok(new ApiEnvelope<int>
             {
@@ -82,37 +58,21 @@ public sealed class WarehouseController : ControllerBase
                 Message = id > 0 ? "Warehouse saved successfully." : (id == -1 ? "Warehouse name already exists." : "Warehouse save failed."),
                 Data = id
             });
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, new ApiEnvelope<int>
-            {
-                Success = false,
-                Message = $"Error saving warehouse: {ex.Message}"
-            });
-        }
     }
 
     [HttpDelete("{id:long}")]
     public async Task<ActionResult<ApiEnvelope<int>>> DeleteWarehouse(long id, [FromQuery] string? updatedBy, CancellationToken cancellationToken)
     {
-        try
-        {
+            var dto = await _service.GetWarehouseByIdAsync(id, cancellationToken);
+            if (dto != null) HttpContext.Items["EntityName"] = dto.WarehouseName;
+
             var result = await _service.DeleteWarehouseAsync(id, updatedBy ?? "System", cancellationToken);
             return Ok(new ApiEnvelope<int>
             {
                 Success = result > 0,
-                Message = result > 0 ? "Warehouse deleted successfully." : (result == -1 ? "Cannot delete Warehouse because it is currently linked to production, preprocessing, or shelves." : "Warehouse delete failed."),
+                Message = result > 0 ? "Warehouse deleted successfully." : "This record cannot be deleted because it is currently in use by other records in the system.",
                 Data = result
             });
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, new ApiEnvelope<int>
-            {
-                Success = false,
-                Message = $"Error deleting warehouse: {ex.Message}"
-            });
-        }
     }
 }
+

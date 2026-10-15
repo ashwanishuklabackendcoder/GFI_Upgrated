@@ -6,6 +6,7 @@ namespace GFI_Upgrated.ServiceApi.Services;
 
 public interface IAdminSecurityService
 {
+    Task LogoutAsync(long loginId, CancellationToken cancellationToken = default);
     Task<LoginResultDto?> LoginAsync(LoginRequest request, CancellationToken cancellationToken = default);
     Task<PagedResult<RoleDto>> GetRolesAsync(PagedRequest request, string? searchText, CancellationToken cancellationToken = default);
     Task<RoleDto?> GetRoleByIdAsync(long roleId, CancellationToken cancellationToken = default);
@@ -76,6 +77,8 @@ public sealed class AdminSecurityService : IAdminSecurityService
     {
         return _repository.GetAdminDashboardMetricsAsync(cancellationToken);
     }
+
+    public Task LogoutAsync(long loginId, CancellationToken cancellationToken = default) => _repository.LogoutAsync(loginId, cancellationToken);
 
     public Task<LoginResultDto?> LoginAsync(LoginRequest request, CancellationToken cancellationToken = default)
         => _repository.LoginAsync(request, cancellationToken);
@@ -269,3 +272,6 @@ public sealed class AdminSecurityService : IAdminSecurityService
     public Task<UserDto?> GetUserByStaffIdAsync(long staffId, CancellationToken cancellationToken = default)
         => _repository.GetUserByStaffIdAsync(staffId, cancellationToken);
 }
+
+
+

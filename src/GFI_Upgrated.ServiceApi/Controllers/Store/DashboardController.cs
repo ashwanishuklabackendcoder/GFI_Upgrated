@@ -25,8 +25,6 @@ public sealed class DashboardController : ControllerBase
     [HttpGet("stock")]
     public async Task<ActionResult<ApiEnvelope<StockDashboardDto>>> GetStockDashboard(CancellationToken cancellationToken)
     {
-        try
-        {
             var data = await _repository.GetStockDashboardAsync(cancellationToken);
             return Ok(new ApiEnvelope<StockDashboardDto>
             {
@@ -34,22 +32,11 @@ public sealed class DashboardController : ControllerBase
                 Message = "Stock dashboard loaded successfully.",
                 Data = data
             });
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, new ApiEnvelope<StockDashboardDto>
-            {
-                Success = false,
-                Message = $"Error loading stock dashboard: {ex.Message}"
-            });
-        }
     }
 
     [HttpGet("production")]
     public async Task<ActionResult<ApiEnvelope<ProductionDashboardDto>>> GetProductionDashboard([FromQuery] string? batchNo, CancellationToken cancellationToken)
     {
-        try
-        {
             var data = await _repository.GetProductionDashboardAsync(batchNo ?? string.Empty, cancellationToken);
             return Ok(new ApiEnvelope<ProductionDashboardDto>
             {
@@ -57,22 +44,11 @@ public sealed class DashboardController : ControllerBase
                 Message = "Production dashboard loaded successfully.",
                 Data = data
             });
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, new ApiEnvelope<ProductionDashboardDto>
-            {
-                Success = false,
-                Message = $"Error loading production dashboard: {ex.Message}"
-            });
-        }
     }
 
     [HttpGet("production/batches")]
     public async Task<ActionResult<ApiEnvelope<List<DashboardBatchLookupDto>>>> GetProductionBatches(CancellationToken cancellationToken)
     {
-        try
-        {
             var data = await _repository.GetProductionBatchesAsync(cancellationToken);
             return Ok(new ApiEnvelope<List<DashboardBatchLookupDto>>
             {
@@ -80,22 +56,11 @@ public sealed class DashboardController : ControllerBase
                 Message = "Production batches loaded successfully.",
                 Data = data
             });
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, new ApiEnvelope<List<DashboardBatchLookupDto>>
-            {
-                Success = false,
-                Message = $"Error loading production batches: {ex.Message}"
-            });
-        }
     }
 
     [HttpGet("sales")]
     public async Task<ActionResult<ApiEnvelope<SalesDashboardDto>>> GetSalesDashboard(CancellationToken cancellationToken)
     {
-        try
-        {
             var data = await _repository.GetSalesDashboardAsync(cancellationToken);
             return Ok(new ApiEnvelope<SalesDashboardDto>
             {
@@ -103,14 +68,6 @@ public sealed class DashboardController : ControllerBase
                 Message = "Sales dashboard loaded successfully.",
                 Data = data
             });
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, new ApiEnvelope<SalesDashboardDto>
-            {
-                Success = false,
-                Message = $"Error loading sales dashboard: {ex.Message}"
-            });
-        }
     }
 }
+

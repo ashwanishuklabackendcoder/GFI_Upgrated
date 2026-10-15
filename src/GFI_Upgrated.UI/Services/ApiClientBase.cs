@@ -1,4 +1,4 @@
-﻿using System.Net.Http.Json;
+using System.Net.Http.Json;
 using System.Text.Json;
 using GFI_Upgrated.SharedDto.Common;
 using GFI_Upgrated.UI.State;
@@ -45,6 +45,7 @@ public abstract class ApiClientBase
             if (string.IsNullOrWhiteSpace(payload)) return default;
 
             var envelope = JsonSerializer.Deserialize<ApiEnvelope<T>>(payload, JsonOptions);
+            if (envelope is { Success: false }) throw new ApiException(envelope.Message ?? "Operation failed.");
             return envelope is { Success: true } ? envelope.Data : default;
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -71,6 +72,7 @@ public abstract class ApiClientBase
             if (string.IsNullOrWhiteSpace(payload)) return default!;
 
             var envelope = JsonSerializer.Deserialize<ApiEnvelope<TResponse>>(payload, JsonOptions);
+            if (envelope is { Success: false }) throw new ApiException(envelope.Message ?? "Operation failed.");
             return envelope is { Success: true, Data: not null } ? envelope.Data : default!;
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
@@ -97,6 +99,7 @@ public abstract class ApiClientBase
             if (string.IsNullOrWhiteSpace(payload)) return default!;
 
             var envelope = JsonSerializer.Deserialize<ApiEnvelope<TResponse>>(payload, JsonOptions);
+            if (envelope is { Success: false }) throw new ApiException(envelope.Message ?? "Operation failed.");
             return envelope is { Success: true, Data: not null } ? envelope.Data : default!;
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)

@@ -307,10 +307,6 @@
 
         try
         {
-            _model.IpAddress = "127.0.0.1";
-            _model.Browser = "Blazor WebAssembly";
-            _model.OperatingSystem = "Windows";
-            _model.ComputerName = "LocalBrowser";
 
             var result = await ApiClient.LoginAsync(_model);
             if (result is null)
@@ -336,3 +332,4 @@
         }
     }
 }
+

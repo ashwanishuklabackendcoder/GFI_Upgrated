@@ -107,7 +107,7 @@
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+            Snackbar.Add(ex.Message, Severity.Warning);
             return new TableData<PurchaseReturnDto> { Items = Array.Empty<PurchaseReturnDto>(), TotalItems = 0 };
         }
         finally { _loading = false; }
@@ -137,7 +137,7 @@
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+            Snackbar.Add(ex.Message, Severity.Warning);
         }
     }
 }

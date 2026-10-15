@@ -125,7 +125,7 @@ OnClearButtonClick="OnSearch" Adornment="Adornment.Start" AdornmentIcon="@Icons.
         }
         catch (Exception ex)
         {
-            Snackbar.Add(ex.Message, Severity.Error);
+            Snackbar.Add(ex.Message, Severity.Warning);
             return new TableData<SkuDto> { TotalItems = 0, Items = Array.Empty<SkuDto>() };
         }
     }
@@ -190,7 +190,7 @@ OnClearButtonClick="OnSearch" Adornment="Adornment.Start" AdornmentIcon="@Icons.
             }
             catch (Exception ex)
             {
-                Snackbar.Add(ex.Message, Severity.Error);
+                Snackbar.Add(ex.Message, Severity.Warning);
             }
         }
     }

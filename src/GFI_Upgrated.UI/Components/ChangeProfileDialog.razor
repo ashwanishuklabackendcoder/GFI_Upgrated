@@ -10,6 +10,7 @@
     <DialogContent>
         <MudForm @ref="_form" IsValid="@_isValid">
             <MudTextField @bind-Value="_model.LoginName" For="@(() => _model.LoginName)" Label="Login Name" Required="true" RequiredError="Login Name is required!" Class="mb-3" />
+            <MudTextField @bind-Value="_model.EmailIDOfficial" For="@(() => _model.EmailIDOfficial)" Label="Email" Required="true" RequiredError="Email is required!" Class="mb-3" />
             <MudTextField @bind-Value="_model.FirstName" For="@(() => _model.FirstName)" Label="First Name" Required="true" RequiredError="First Name is required!" Class="mb-3" />
             <MudTextField @bind-Value="_model.LastName" For="@(() => _model.LastName)" Label="Last Name" Required="true" RequiredError="Last Name is required!" Class="mb-3" />
         </MudForm>
@@ -35,6 +36,7 @@
             _model.LoginName = SessionState.CurrentUser.LoginName ?? string.Empty;
             _model.FirstName = SessionState.CurrentUser.FirstName ?? string.Empty;
             _model.LastName = SessionState.CurrentUser.LastName ?? string.Empty;
+            _model.EmailIDOfficial = SessionState.CurrentUser.EmailIDOfficial ?? string.Empty;
         }
     }
 
@@ -64,7 +66,7 @@
             }
             catch (Exception ex)
             {
-                Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+                Snackbar.Add(ex.Message, Severity.Warning);
             }
             finally
             {

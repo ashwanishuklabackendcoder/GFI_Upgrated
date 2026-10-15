@@ -21,8 +21,6 @@ public sealed class PreProcessingController : ControllerBase
     [HttpGet("list")]
     public async Task<ActionResult<ApiEnvelope<PagedResult<PreProcessingDto>>>> GetPreProcessingList([FromQuery] PreProcessingListRequest request, CancellationToken cancellationToken)
     {
-        try
-        {
             var result = await _service.GetPreProcessingListAsync(request, cancellationToken);
             return Ok(new ApiEnvelope<PagedResult<PreProcessingDto>>
             {
@@ -30,15 +28,6 @@ public sealed class PreProcessingController : ControllerBase
                 Message = "Pre-Processing records loaded successfully.",
                 Data = result
             });
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, new ApiEnvelope<PagedResult<PreProcessingDto>>
-            {
-                Success = false,
-                Message = $"Error loading pre-processing list: {ex.Message}"
-            });
-        }
     }
 
     [HttpGet("{id:long}")]
@@ -63,6 +52,16 @@ public sealed class PreProcessingController : ControllerBase
         }
 
         var id = await _service.SavePreProcessingAsync(request, cancellationToken);
+        
+        if (id > 0)
+        {
+            var dto = await _service.GetPreProcessingByIdAsync(id, cancellationToken);
+            if (dto != null)
+            {
+                HttpContext.Items["EntityName"] = $"{dto.BomName} (Batch: {dto.BatchNumberMade})";
+            }
+        }
+
         return Ok(new ApiEnvelope<int>
         {
             Success = id > 0,
@@ -74,6 +73,12 @@ public sealed class PreProcessingController : ControllerBase
     [HttpDelete("{id:long}")]
     public async Task<ActionResult<ApiEnvelope<int>>> DeletePreProcessing(long id, [FromQuery] string? updatedBy, CancellationToken cancellationToken)
     {
+        var dto = await _service.GetPreProcessingByIdAsync(id, cancellationToken);
+        if (dto != null)
+        {
+            HttpContext.Items["EntityName"] = $"{dto.BomName} (Batch: {dto.BatchNumberMade})";
+        }
+
         var result = await _service.DeletePreProcessingAsync(id, updatedBy ?? "System", cancellationToken);
         return Ok(new ApiEnvelope<int>
         {
@@ -110,8 +115,6 @@ public sealed class PreProcessingController : ControllerBase
     [HttpDelete("items/{itemStockUsedId:long}")]
     public async Task<ActionResult<ApiEnvelope<int>>> DeletePreProcessingItem(long itemStockUsedId, CancellationToken cancellationToken)
     {
-        try
-        {
             var result = await _service.DeletePreProcessingItemAsync(itemStockUsedId, cancellationToken);
             return Ok(new ApiEnvelope<int>
             {
@@ -119,22 +122,11 @@ public sealed class PreProcessingController : ControllerBase
                 Message = result > 0 ? "Item deleted successfully." : "Item delete failed.",
                 Data = result
             });
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, new ApiEnvelope<int>
-            {
-                Success = false,
-                Message = $"Error deleting item: {ex.Message}"
-            });
-        }
     }
 
     [HttpPost("{id:long}/finalize")]
     public async Task<ActionResult<ApiEnvelope<int>>> FinalizeStockUpdate(long id, [FromQuery] string? updatedBy, CancellationToken cancellationToken)
     {
-        try
-        {
             var result = await _service.FinalizeStockUpdateAsync(id, updatedBy ?? "System", cancellationToken);
             return Ok(new ApiEnvelope<int>
             {
@@ -142,15 +134,6 @@ public sealed class PreProcessingController : ControllerBase
                 Message = result > 0 ? "Stock finalized successfully." : "Stock finalization failed.",
                 Data = result
             });
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, new ApiEnvelope<int>
-            {
-                Success = false,
-                Message = $"Error finalizing stock: {ex.Message}"
-            });
-        }
     }
 
     [HttpGet("bom/{bomId:long}/items")]
@@ -201,3 +184,4 @@ public sealed class PreProcessingController : ControllerBase
         });
     }
 }
+

@@ -22,8 +22,6 @@ public sealed class ProductionController : ControllerBase
     [HttpGet("list")]
     public async Task<ActionResult<ApiEnvelope<PagedResult<ProductionDto>>>> GetProductionList([FromQuery] ProductionListRequest request, CancellationToken cancellationToken)
     {
-        try
-        {
             var result = await _service.GetProductionListAsync(request, cancellationToken);
             return Ok(new ApiEnvelope<PagedResult<ProductionDto>>
             {
@@ -31,22 +29,11 @@ public sealed class ProductionController : ControllerBase
                 Message = "Production records loaded successfully.",
                 Data = result
             });
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, new ApiEnvelope<PagedResult<ProductionDto>>
-            {
-                Success = false,
-                Message = $"Error loading production list: {ex.Message}"
-            });
-        }
     }
 
     [HttpGet("{id:long}")]
     public async Task<ActionResult<ApiEnvelope<ProductionDto>>> GetProductionById(long id, CancellationToken cancellationToken)
     {
-        try
-        {
             var result = await _service.GetProductionByIdAsync(id, cancellationToken);
             return Ok(new ApiEnvelope<ProductionDto>
             {
@@ -54,15 +41,6 @@ public sealed class ProductionController : ControllerBase
                 Message = result is null ? "Production record not found." : "Production record loaded successfully.",
                 Data = result
             });
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, new ApiEnvelope<ProductionDto>
-            {
-                Success = false,
-                Message = $"Error loading production details: {ex.Message}"
-            });
-        }
     }
 
     [HttpPost("save")]
@@ -74,31 +52,34 @@ public sealed class ProductionController : ControllerBase
             return Ok(new ApiEnvelope<int> { Success = false, Message = message });
         }
 
-        try
-        {
             var id = await _service.SaveProductionAsync(request, cancellationToken);
+            
+            if (id > 0)
+            {
+                var dto = await _service.GetProductionByIdAsync(id, cancellationToken);
+                if (dto != null)
+                {
+                    HttpContext.Items["EntityName"] = $"{dto.BomName} (Batch: {dto.BatchNo})";
+                }
+            }
+
             return Ok(new ApiEnvelope<int>
             {
                 Success = id > 0,
                 Message = id > 0 ? "Production record saved successfully." : "Production record save failed.",
                 Data = id
             });
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, new ApiEnvelope<int>
-            {
-                Success = false,
-                Message = $"Error saving production record: {ex.Message}"
-            });
-        }
     }
 
     [HttpDelete("{id:long}")]
     public async Task<ActionResult<ApiEnvelope<int>>> DeleteProduction(long id, [FromQuery] string? updatedBy, CancellationToken cancellationToken)
     {
-        try
-        {
+            var dto = await _service.GetProductionByIdAsync(id, cancellationToken);
+            if (dto != null)
+            {
+                HttpContext.Items["EntityName"] = $"{dto.BomName} (Batch: {dto.BatchNo})";
+            }
+
             var result = await _service.DeleteProductionAsync(id, updatedBy ?? "System", cancellationToken);
             return Ok(new ApiEnvelope<int>
             {
@@ -106,22 +87,11 @@ public sealed class ProductionController : ControllerBase
                 Message = result > 0 ? "Production record deleted successfully." : "Production record delete failed.",
                 Data = result
             });
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, new ApiEnvelope<int>
-            {
-                Success = false,
-                Message = $"Error deleting production record: {ex.Message}"
-            });
-        }
     }
 
     [HttpGet("{id:long}/items")]
     public async Task<ActionResult<ApiEnvelope<IReadOnlyList<PreProcessingItemDto>>>> GetProductionItems(long id, CancellationToken cancellationToken)
     {
-        try
-        {
             var result = await _service.GetProductionItemsAsync(id, cancellationToken);
             return Ok(new ApiEnvelope<IReadOnlyList<PreProcessingItemDto>>
             {
@@ -129,22 +99,11 @@ public sealed class ProductionController : ControllerBase
                 Message = "Production items loaded successfully.",
                 Data = result
             });
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, new ApiEnvelope<IReadOnlyList<PreProcessingItemDto>>
-            {
-                Success = false,
-                Message = $"Error loading production items: {ex.Message}"
-            });
-        }
     }
 
     [HttpPost("items/save")]
     public async Task<ActionResult<ApiEnvelope<int>>> SaveProductionItem([FromBody] SavePreProcessingItemRequest request, CancellationToken cancellationToken)
     {
-        try
-        {
             var id = await _service.SaveProductionItemAsync(request, cancellationToken);
             return Ok(new ApiEnvelope<int>
             {
@@ -152,22 +111,11 @@ public sealed class ProductionController : ControllerBase
                 Message = id > 0 ? "Item saved successfully." : "Item save failed.",
                 Data = id
             });
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, new ApiEnvelope<int>
-            {
-                Success = false,
-                Message = $"Error saving production item: {ex.Message}"
-            });
-        }
     }
 
     [HttpDelete("items/{itemStockUsedId:long}")]
     public async Task<ActionResult<ApiEnvelope<int>>> DeleteProductionItem(long itemStockUsedId, CancellationToken cancellationToken)
     {
-        try
-        {
             var result = await _service.DeleteProductionItemAsync(itemStockUsedId, cancellationToken);
             return Ok(new ApiEnvelope<int>
             {
@@ -175,22 +123,11 @@ public sealed class ProductionController : ControllerBase
                 Message = result > 0 ? "Item deleted successfully." : "Item delete failed.",
                 Data = result
             });
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, new ApiEnvelope<int>
-            {
-                Success = false,
-                Message = $"Error deleting item: {ex.Message}"
-            });
-        }
     }
 
     [HttpPost("{id:long}/finalize")]
     public async Task<ActionResult<ApiEnvelope<int>>> FinalizeStockUpdate(long id, [FromQuery] string? updatedBy, CancellationToken cancellationToken)
     {
-        try
-        {
             var result = await _service.FinalizeStockUpdateAsync(id, updatedBy ?? "System", cancellationToken);
             return Ok(new ApiEnvelope<int>
             {
@@ -198,22 +135,11 @@ public sealed class ProductionController : ControllerBase
                 Message = result > 0 ? "Stock finalized successfully." : "Stock finalization failed.",
                 Data = result
             });
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, new ApiEnvelope<int>
-            {
-                Success = false,
-                Message = $"Error committing production stock: {ex.Message}"
-            });
-        }
     }
 
     [HttpGet("countries-lookup")]
     public async Task<ActionResult<ApiEnvelope<IReadOnlyList<CountryLookupDto>>>> GetCountriesLookup(CancellationToken cancellationToken)
     {
-        try
-        {
             var result = await _service.GetCountriesLookupAsync(cancellationToken);
             return Ok(new ApiEnvelope<IReadOnlyList<CountryLookupDto>>
             {
@@ -221,22 +147,11 @@ public sealed class ProductionController : ControllerBase
                 Message = "Countries lookup loaded successfully.",
                 Data = result
             });
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, new ApiEnvelope<IReadOnlyList<CountryLookupDto>>
-            {
-                Success = false,
-                Message = $"Error loading countries lookup: {ex.Message}"
-            });
-        }
     }
 
     [HttpGet("skus-lookup")]
     public async Task<ActionResult<ApiEnvelope<IReadOnlyList<SkuLookupDto>>>> GetSkusLookup(CancellationToken cancellationToken)
     {
-        try
-        {
             var result = await _service.GetSkusLookupAsync(cancellationToken);
             return Ok(new ApiEnvelope<IReadOnlyList<SkuLookupDto>>
             {
@@ -244,22 +159,11 @@ public sealed class ProductionController : ControllerBase
                 Message = "SKUs lookup loaded successfully.",
                 Data = result
             });
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, new ApiEnvelope<IReadOnlyList<SkuLookupDto>>
-            {
-                Success = false,
-                Message = $"Error loading SKUs lookup: {ex.Message}"
-            });
-        }
     }
 
     [HttpGet("kettles-lookup")]
     public async Task<ActionResult<ApiEnvelope<IReadOnlyList<KettleLookupDto>>>> GetKettlesLookup(CancellationToken cancellationToken)
     {
-        try
-        {
             var result = await _service.GetKettlesLookupAsync(cancellationToken);
             return Ok(new ApiEnvelope<IReadOnlyList<KettleLookupDto>>
             {
@@ -267,14 +171,6 @@ public sealed class ProductionController : ControllerBase
                 Message = "Kettles lookup loaded successfully.",
                 Data = result
             });
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, new ApiEnvelope<IReadOnlyList<KettleLookupDto>>
-            {
-                Success = false,
-                Message = $"Error loading kettles lookup: {ex.Message}"
-            });
-        }
     }
 }
+

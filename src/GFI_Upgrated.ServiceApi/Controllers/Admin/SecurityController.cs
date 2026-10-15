@@ -1,4 +1,5 @@
-﻿using GFI_Upgrated.ServiceApi.Services;
+using Microsoft.AspNetCore.Authorization;
+using GFI_Upgrated.ServiceApi.Services;
 using GFI_Upgrated.SharedDto.AdminSecurity;
 using GFI_Upgrated.SharedDto.Common;
 using Microsoft.AspNetCore.Mvc;
@@ -27,6 +28,18 @@ public sealed class SecurityController : ControllerBase
         _configuration = configuration;
         _actionDescriptorCollectionProvider = actionDescriptorCollectionProvider;
         _memoryCache = memoryCache;
+    }
+
+        [HttpPost("logout")]
+    [Authorize]
+    public async Task<ActionResult<ApiEnvelope<bool>>> Logout(CancellationToken cancellationToken)
+    {
+        var loginIdClaim = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+        if (long.TryParse(loginIdClaim, out var loginId))
+        {
+            await _service.LogoutAsync(loginId, cancellationToken);
+        }
+        return Ok(new ApiEnvelope<bool> { Success = true, Message = "Logged out successfully.", Data = true });
     }
 
     [HttpPost("login")]
@@ -1085,4 +1098,7 @@ public sealed class SecurityController : ControllerBase
         }
     }
 }
+
+
+
 

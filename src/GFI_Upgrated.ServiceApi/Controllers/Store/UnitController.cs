@@ -21,8 +21,6 @@ public sealed class UnitController : ControllerBase
     [HttpGet]
     public async Task<ActionResult<ApiEnvelope<PagedResult<UnitDto>>>> GetUnits([FromQuery] PagedRequest request, [FromQuery] string? searchText, CancellationToken cancellationToken)
     {
-        try
-        {
             var result = await _service.GetUnitsAsync(request, searchText, cancellationToken);
             return Ok(new ApiEnvelope<PagedResult<UnitDto>>
             {
@@ -30,22 +28,11 @@ public sealed class UnitController : ControllerBase
                 Message = "Units loaded successfully.",
                 Data = result
             });
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, new ApiEnvelope<PagedResult<UnitDto>>
-            {
-                Success = false,
-                Message = $"Error loading units: {ex.Message}"
-            });
-        }
     }
 
     [HttpGet("{id:long}")]
     public async Task<ActionResult<ApiEnvelope<UnitDto>>> GetUnitById(long id, CancellationToken cancellationToken)
     {
-        try
-        {
             var result = await _service.GetUnitByIdAsync(id, cancellationToken);
             return Ok(new ApiEnvelope<UnitDto>
             {
@@ -53,15 +40,6 @@ public sealed class UnitController : ControllerBase
                 Message = result is null ? "Unit not found." : "Unit loaded successfully.",
                 Data = result
             });
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, new ApiEnvelope<UnitDto>
-            {
-                Success = false,
-                Message = $"Error loading unit: {ex.Message}"
-            });
-        }
     }
 
     [HttpPost]
@@ -73,8 +51,6 @@ public sealed class UnitController : ControllerBase
             return Ok(new ApiEnvelope<int> { Success = false, Message = message });
         }
 
-        try
-        {
             var id = await _service.SaveUnitAsync(request, cancellationToken);
             return Ok(new ApiEnvelope<int>
             {
@@ -82,45 +58,26 @@ public sealed class UnitController : ControllerBase
                 Message = id > 0 ? "Unit saved successfully." : (id == -1 ? "Unit name already exists." : "Unit save failed."),
                 Data = id
             });
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, new ApiEnvelope<int>
-            {
-                Success = false,
-                Message = $"Error saving unit: {ex.Message}"
-            });
-        }
     }
 
     [HttpDelete("{id:long}")]
     public async Task<ActionResult<ApiEnvelope<int>>> DeleteUnit(long id, [FromQuery] string? updatedBy, CancellationToken cancellationToken)
     {
-        try
-        {
+            var dto = await _service.GetUnitByIdAsync(id, cancellationToken);
+            if (dto != null) HttpContext.Items["EntityName"] = dto.UnitName;
+
             var result = await _service.DeleteUnitAsync(id, updatedBy ?? "System", cancellationToken);
             return Ok(new ApiEnvelope<int>
             {
                 Success = result > 0,
-                Message = result > 0 ? "Unit deleted successfully." : (result == -1 ? "Cannot delete Unit because it is currently linked to SKUs or BOMs." : "Unit delete failed."),
+                Message = result > 0 ? "Unit deleted successfully." : "This record cannot be deleted because it is currently in use by other records in the system.",
                 Data = result
             });
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, new ApiEnvelope<int>
-            {
-                Success = false,
-                Message = $"Error deleting unit: {ex.Message}"
-            });
-        }
     }
 
     [HttpGet("base-units-lookup")]
     public async Task<ActionResult<ApiEnvelope<IReadOnlyList<BaseUnitLookupDto>>>> GetBaseUnitsLookup(CancellationToken cancellationToken)
     {
-        try
-        {
             var result = await _service.GetBaseUnitsLookupAsync(cancellationToken);
             return Ok(new ApiEnvelope<IReadOnlyList<BaseUnitLookupDto>>
             {
@@ -128,14 +85,6 @@ public sealed class UnitController : ControllerBase
                 Message = "Base units loaded successfully.",
                 Data = result
             });
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, new ApiEnvelope<IReadOnlyList<BaseUnitLookupDto>>
-            {
-                Success = false,
-                Message = $"Error loading base units: {ex.Message}"
-            });
-        }
     }
 }
+

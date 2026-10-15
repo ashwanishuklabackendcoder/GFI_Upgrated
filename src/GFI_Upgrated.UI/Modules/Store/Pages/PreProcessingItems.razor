@@ -277,11 +277,11 @@
                             _rows.Add(row);
 
                             remainingNeeded -= allocated;
-                            if (remainingNeeded <= 0) break;
+                            if (Math.Round(remainingNeeded, 4) <= 0) break;
                         }
 
                         // If there is still remainder needed, add an extra row with the remainder
-                        if (remainingNeeded > 0)
+                        if (Math.Round(remainingNeeded, 4) > 0)
                         {
                             _hasMissingStock = true;
                             var row = new ConsumptionRow
@@ -324,7 +324,7 @@
         }
         catch (Exception ex)
         {
-            Snackbar.Add(ex.Message, Severity.Error);
+            Snackbar.Add(ex.Message, Severity.Warning);
         }
     }
 
@@ -476,7 +476,7 @@
                 // If this is an existing run, FinalQuantityLeft was not deducted yet (since IsComplete=0). 
                 // So FinalQuantityLeft represents the original available amount. 
                 // We must strictly block if total requested exceeds it.
-                if (totalRequestedBaseQty > batch.FinalQuantityLeft)
+                if (Math.Round(totalRequestedBaseQty, 4) > Math.Round(batch.FinalQuantityLeft, 4))
                 {
                     Snackbar.Add($"Cannot save: Total quantity requested for batch '{batch.BatchNo}' ({SessionState.FormatNumber(totalRequestedBaseQty)}) exceeds the available stock ({SessionState.FormatNumber(batch.FinalQuantityLeft)}).", Severity.Error);
                     return false;
@@ -570,7 +570,7 @@
         }
         catch (Exception ex)
         {
-            Snackbar.Add(ex.Message, Severity.Error);
+            Snackbar.Add(ex.Message, Severity.Warning);
         }
         finally
         {

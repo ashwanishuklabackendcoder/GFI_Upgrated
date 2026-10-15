@@ -78,7 +78,15 @@
                     <MudText Typo="Typo.caption" Color="Color.Secondary">PO Number</MudText>
                     <MudText Typo="Typo.body1">@(_model.PONumber ?? "-")</MudText>
                 </MudItem>
-                <MudItem xs="12" sm="6" md="6">
+                <MudItem xs="12" sm="6" md="3">
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">Currency</MudText>
+                    <MudText Typo="Typo.body1">@(!string.IsNullOrEmpty(_model.CurrencySymbol) ? $"{_model.CurrencySymbol} ({_model.CurrencyName})" : SessionState.DefaultCurrency)</MudText>
+                </MudItem>
+                <MudItem xs="12" sm="6" md="3">
+                    <MudText Typo="Typo.caption" Color="Color.Secondary">Exchange Rate (to Base)</MudText>
+                    <MudText Typo="Typo.body1">@SessionState.FormatNumber(_model.CurrencyConversion ?? 1.0)</MudText>
+                </MudItem>
+                <MudItem xs="12" sm="12" md="12">
                     <MudText Typo="Typo.caption" Color="Color.Secondary">Narration</MudText>
                     <MudText Typo="Typo.body1">@(_model.Narration ?? "-")</MudText>
                 </MudItem>
@@ -132,8 +140,15 @@
                             <MudDivider />
                             <MudStack Row="true" Justify="Justify.SpaceBetween">
                                 <MudText Typo="Typo.subtitle1"><b>Total Amount</b></MudText>
-                                <MudText Typo="Typo.subtitle1"><b>@SessionState.FormatNumber(_model.TotalAmount)</b></MudText>
+                                <MudText Typo="Typo.subtitle1"><b>@((!string.IsNullOrEmpty(_model.CurrencySymbol) ? _model.CurrencySymbol : SessionState.DefaultCurrency) + " " + SessionState.FormatNumber(_model.TotalAmount))</b></MudText>
                             </MudStack>
+                            @if (_model.CurrencyConversion.HasValue && _model.CurrencyConversion.Value > 0 && Math.Abs(_model.CurrencyConversion.Value - 1.0) > 0.0001)
+                            {
+                                <MudStack Row="true" Justify="Justify.SpaceBetween">
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary">Total in Base (@SessionState.DefaultCurrency)</MudText>
+                                    <MudText Typo="Typo.caption" Color="Color.Secondary"><b>@($"{SessionState.DefaultCurrency} {SessionState.FormatNumber(_model.TotalAmount * _model.CurrencyConversion.Value)}")</b></MudText>
+                                </MudStack>
+                            }
                         </MudStack>
                     </MudPaper>
                 </MudItem>
@@ -230,7 +245,7 @@
         }
         catch (Exception ex)
         {
-            Snackbar.Add(ex.Message, Severity.Error);
+            Snackbar.Add(ex.Message, Severity.Warning);
         }
     }
 

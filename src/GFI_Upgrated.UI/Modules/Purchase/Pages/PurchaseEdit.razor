@@ -2,10 +2,12 @@
 @page "/admin/purchase/edit/{Id:long}"
 @using GFI_Upgrated.SharedDto.Purchase
 @using GFI_Upgrated.SharedDto.Store
+@using GFI_Upgrated.SharedDto.Account
 @using GFI_Upgrated.SharedDto.AdminSecurity
 @using GFI_Upgrated.UI.Services
 @using GFI_Upgrated.UI.State
 @inject StoreApiClient ApiClient
+@inject AccountApiClient AccountApiClient
 @inject AdminSecurityApiClient AdminApiClient
 @inject ISnackbar Snackbar
 @inject NavigationManager Navigation
@@ -66,7 +68,17 @@
                 <SearchableSelect T="PurchaseOrderDto" Label="Link PO" Value="@_selectedPO" ValueChanged="OnPoChanged" Variant="Variant.Outlined" Disabled="_isReadOnly" Items="@GetPoSelects()" />
             </MudItem>
 
-           
+            <MudItem xs="12" md="3">
+                <SearchableSelect T="CurrencyDto" Disabled="_isReadOnly" Label="Currency" 
+                                  Value="@(_currencies.FirstOrDefault(c => c.CurrencyID == _model.CurrencyID))" 
+                                  ValueChanged="OnCurrencyChanged" 
+                                  Variant="Variant.Outlined" Items="@GetCurrencySelects()" />
+            </MudItem>
+
+            <MudItem xs="12" md="3">
+                <MudNumericField Disabled="_isReadOnly" @bind-Value="_model.CurrencyConversion" Label="Exchange Rate (to Base)" HideSpinButtons="true" Variant="Variant.Outlined" Min="0.000001" />
+            </MudItem>
+
             <MudItem xs="12" md="6">
                 <MudTextField @bind-Value="_model.Narration" Label="Remarks" Variant="Variant.Outlined" Disabled="_isReadOnly" />
             </MudItem>
@@ -84,10 +96,11 @@
 
                 <MudTable Items="_model.Items" Hover="true" Dense="true" Striped="true" Bordered="true" Elevation="0" Context="itemContext">
                     <HeaderContent>
-                        <MudTh Style="width: 300px;">Item</MudTh>
-                        <MudTh Style="width: 150px;">Qty.</MudTh>
-                        <MudTh Style="width: 120px;">Unit</MudTh>
-                        <MudTh Style="width: 120px;">Price</MudTh>
+                        <MudTh Style="width: 260px;">Item</MudTh>
+                        <MudTh Style="width: 100px;">Qty.</MudTh>
+                        <MudTh Style="width: 100px;">Unit</MudTh>
+                        <MudTh Style="width: 130px;">Unit Price</MudTh>
+                        <MudTh Style="width: 130px;">Total Amount</MudTh>
                         <MudTh>Batch No.</MudTh>
                         <MudTh>Expiry Date</MudTh>
                         <MudTh>Warehouse</MudTh>
@@ -108,7 +121,14 @@
                             }
                         </MudTd>
                         <MudTd DataLabel="Qty">
-                            <MudNumericField @bind-Value="itemContext.Quantity" Variant="Variant.Text" Dense="true" Min="1" Disabled="_isReadOnly" />
+                            @if (_isReadOnly)
+                            {
+                                <MudText Typo="Typo.body2">@itemContext.Quantity</MudText>
+                            }
+                            else
+                            {
+                                <MudNumericField T="double" Value="itemContext.Quantity" ValueChanged="@((double val) => OnQuantityChanged(itemContext, val))" Variant="Variant.Text" Dense="true" Min="0.0001" HideSpinButtons="true" />
+                            }
                         </MudTd>
                         <MudTd DataLabel="Unit">
                             @if (_isReadOnly)
@@ -120,8 +140,25 @@
                                 <SearchableSelect T="long?" Value="@itemContext.UnitId" ValueChanged="@((long? val) => { itemContext.UnitId = val; })" Variant="Variant.Text" Dense="true" Required="true" Items="@GetUnitSelects()" />
                             }
                         </MudTd>
-                        <MudTd DataLabel="Price">
-                            <MudNumericField @bind-Value="itemContext.UnitPrice" Variant="Variant.Text" Dense="true" Format="@($"N{SessionState.DecimalDigits}")" Disabled="_isReadOnly" />
+                        <MudTd DataLabel="Unit Price">
+                            @if (_isReadOnly)
+                            {
+                                <MudText Typo="Typo.body2">@SessionState.FormatNumber(itemContext.UnitPrice)</MudText>
+                            }
+                            else
+                            {
+                                <MudNumericField T="double" Value="itemContext.UnitPrice" ValueChanged="@((double val) => OnUnitPriceChanged(itemContext, val))" Variant="Variant.Text" Dense="true" Format="@($"N{SessionState.DecimalDigits}")" Min="0.0" HideSpinButtons="true" />
+                            }
+                        </MudTd>
+                        <MudTd DataLabel="Total Amount">
+                            @if (_isReadOnly)
+                            {
+                                <MudText Typo="Typo.body2" Style="font-weight: 600;">@SessionState.FormatNumber(itemContext.Amount)</MudText>
+                            }
+                            else
+                            {
+                                <MudNumericField T="double" Value="itemContext.Amount" ValueChanged="@((double val) => OnAmountChanged(itemContext, val))" Variant="Variant.Text" Dense="true" Format="@($"N{SessionState.DecimalDigits}")" Min="0.0" HideSpinButtons="true" />
+                            }
                         </MudTd>
                         <MudTd DataLabel="Batch #">
                             <MudTextField @bind-Value="itemContext.BatchNo" Variant="Variant.Text" Dense="true" Placeholder="AUTO" Disabled="_isReadOnly" />
@@ -169,8 +206,15 @@
                         <MudDivider />
                         <div class="d-flex justify-space-between">
                             <MudText Typo="Typo.h6">Total Amount:</MudText>
-                            <MudText Typo="Typo.h6" Color="Color.Primary">@SessionState.FormatNumber(_totalAmount)</MudText>
+                            <MudText Typo="Typo.h6" Color="Color.Primary">@(_selectedCurrencySymbol ?? SessionState.DefaultCurrency) @SessionState.FormatNumber(_totalAmount)</MudText>
                         </div>
+                        @if (_model.CurrencyConversion.HasValue && _model.CurrencyConversion.Value > 0 && Math.Abs(_model.CurrencyConversion.Value - 1.0) > 0.0001)
+                        {
+                            <div class="d-flex justify-space-between mt-1">
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">Total in Base (@SessionState.DefaultCurrency):</MudText>
+                                <MudText Typo="Typo.caption" Color="Color.Secondary"><b>@SessionState.DefaultCurrency @SessionState.FormatNumber(_totalAmount * _model.CurrencyConversion.Value)</b></MudText>
+                            </div>
+                        }
                     </MudStack>
                 </MudPaper>
             </MudItem>
@@ -194,7 +238,7 @@
 @code {
     [Parameter] public long Id { get; set; }
 
-    private PurchaseDto _model = new() { GoodsRecievedDate = DateTime.UtcNow };
+    private PurchaseDto _model = new() { GoodsRecievedDate = DateTime.Today, CurrencyConversion = 1.0 };
     private AccountLookupDto? _selectedVendor;
     private PurchaseOrderDto? _selectedPO;
     private List<AccountLookupDto> _vendors = new();
@@ -202,10 +246,12 @@
     private List<WarehouseLookupDto> _warehouses = new();
     private List<RawMaterialDto> _allItems = new();
     private List<UnitLookupDto> _units = new();
+    private List<CurrencyDto> _currencies = new();
+    private string? _selectedCurrencySymbol;
     private bool _saving;
     private bool _isReadOnly;
 
-    private double _subtotal => _model.Items.Sum(i => i.Quantity * i.UnitPrice);
+    private double _subtotal => _model.Items.Sum(i => i.Amount > 0 ? i.Amount : (i.Quantity * i.UnitPrice));
     private double _totalAmount => _subtotal + (_model.Taxes ?? 0) + (_model.Shipping ?? 0) - (_model.Discount ?? 0);
 
     private List<PurchaseOrderDto> _allPendingPOs = new();
@@ -229,6 +275,16 @@
         {
             _model.CreatedBy = SessionState.CurrentUserAuditName ?? "System";
             _model.VoucherNumber = $"GRN-{DateTime.UtcNow:yyyyMMdd-HHmm}";
+            var def = _currencies.FirstOrDefault(c => string.Equals(c.CurrencySymbol, SessionState.DefaultCurrency, StringComparison.OrdinalIgnoreCase)) ?? _currencies.FirstOrDefault();
+            if (def != null)
+            {
+                _model.CurrencyID = def.CurrencyID;
+                _selectedCurrencySymbol = def.CurrencySymbol;
+            }
+            else
+            {
+                _selectedCurrencySymbol = SessionState.DefaultCurrency;
+            }
         }
     }
 
@@ -242,6 +298,9 @@
             _warehouses = (await ApiClient.GetWarehousesLookupAsync()).ToList();
             _allItems = (await ApiClient.GetItemsForBomLookupAsync(3)).ToList();
             _units = (await ApiClient.GetUnitsLookupAsync()).ToList();
+
+            var currResult = await AccountApiClient.GetCurrenciesAsync(pageSize: 1000);
+            _currencies = currResult.Items.ToList();
             
             var pos = await ApiClient.GetPurchaseOrdersAsync(null, null, null, 1, 100);
             _allPendingPOs = pos.Items.ToList();
@@ -269,9 +328,23 @@
                 }
 
                 _selectedPO = _pendingPOs.FirstOrDefault(p => p.PurchaseOrderID == _model.PurchaseOrderID);
+
+                if (_model.CurrencyID.HasValue && _model.CurrencyID > 0)
+                {
+                    var matching = _currencies.FirstOrDefault(c => c.CurrencyID == _model.CurrencyID);
+                    _selectedCurrencySymbol = matching?.CurrencySymbol ?? _model.CurrencySymbol ?? SessionState.DefaultCurrency;
+                }
+                else
+                {
+                    _selectedCurrencySymbol = _model.CurrencySymbol ?? SessionState.DefaultCurrency;
+                }
                 
                 foreach (var item in _model.Items)
                 {
+                    if (item.Amount <= 0 && item.Quantity > 0 && item.UnitPrice > 0)
+                    {
+                        item.Amount = Math.Round(item.Quantity * item.UnitPrice, 2);
+                    }
                     if (item.WarehouseId == null || item.WarehouseId == 0)
                     {
                         item.WarehouseId = _warehouses.FirstOrDefault()?.WarehouseId;
@@ -288,6 +361,21 @@
         {
             Snackbar.Add($"Error loading receipt: {ex.Message}", Severity.Error);
         }
+    }
+
+    private void OnCurrencyChanged(CurrencyDto? val)
+    {
+        _model.CurrencyID = val?.CurrencyID;
+        _selectedCurrencySymbol = val?.CurrencySymbol ?? SessionState.DefaultCurrency;
+    }
+
+    private IEnumerable<SearchableSelect<CurrencyDto>.SelectItemDto<CurrencyDto>> GetCurrencySelects()
+    {
+        return (_currencies ?? new List<CurrencyDto>()).Select(x => new SearchableSelect<CurrencyDto>.SelectItemDto<CurrencyDto>
+        {
+            Value = x,
+            Text = $"{x.CurrencySymbol} - {x.CurrencyString}"
+        });
     }
 
     private async Task OnVendorChanged(AccountLookupDto? val)
@@ -466,15 +554,56 @@
                 if (customPrice.HasValue)
                 {
                     row.UnitPrice = customPrice.Value;
+                    row.Amount = Math.Round(row.Quantity * row.UnitPrice, 2);
                 }
             }
         }
     }
 
+    private void OnQuantityChanged(PurchaseItemDto row, double newQty)
+    {
+        if (_isReadOnly) return;
+        row.Quantity = newQty;
+        if (row.UnitPrice > 0)
+        {
+            row.Amount = Math.Round(row.Quantity * row.UnitPrice, 2);
+        }
+        else if (row.Amount > 0 && row.Quantity > 0)
+        {
+            row.UnitPrice = Math.Round(row.Amount / row.Quantity, 4);
+        }
+        StateHasChanged();
+    }
+
+    private void OnUnitPriceChanged(PurchaseItemDto row, double newPrice)
+    {
+        if (_isReadOnly) return;
+        row.UnitPrice = newPrice;
+        row.Amount = Math.Round(row.Quantity * row.UnitPrice, 2);
+        StateHasChanged();
+    }
+
+    private void OnAmountChanged(PurchaseItemDto row, double newAmount)
+    {
+        if (_isReadOnly) return;
+        row.Amount = newAmount;
+        if (row.Quantity > 0)
+        {
+            row.UnitPrice = Math.Round(row.Amount / row.Quantity, 4);
+        }
+        StateHasChanged();
+    }
+
     private void AddRow()
     {
         if (_isReadOnly) return;
-        _model.Items.Add(new PurchaseItemDto { Quantity = 1, WarehouseId = _warehouses.FirstOrDefault()?.WarehouseId });
+        _model.Items.Add(new PurchaseItemDto 
+        { 
+            Quantity = 1, 
+            WarehouseId = _warehouses.FirstOrDefault()?.WarehouseId,
+            UnitPrice = 0,
+            Amount = 0
+        });
     }
 
     private void OnGoodsReceivedDateChanged(DateTime? newDate)
@@ -548,10 +677,17 @@
                 _model.UpdatedBy = auditUser;
             }
             
-            // Calculate item Amount before saving
+            // Ensure item Amount and UnitPrice are consistent before saving
             foreach (var item in _model.Items)
             {
-                item.Amount = item.Quantity * item.UnitPrice;
+                if (item.Amount <= 0 && item.Quantity > 0 && item.UnitPrice > 0)
+                {
+                    item.Amount = Math.Round(item.Quantity * item.UnitPrice, 2);
+                }
+                else if (item.UnitPrice <= 0 && item.Quantity > 0 && item.Amount > 0)
+                {
+                    item.UnitPrice = Math.Round(item.Amount / item.Quantity, 4);
+                }
                 if (item.PurchaseItemID == 0)
                 {
                     item.CreatedBy = auditUser;

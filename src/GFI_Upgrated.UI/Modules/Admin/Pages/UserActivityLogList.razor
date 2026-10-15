@@ -34,18 +34,18 @@
             <MudTh><MudTableSortLabel SortLabel="DT" T="UserActivityLogDto" InitialDirection="SortDirection.Descending">Timestamp</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel SortLabel="UserName" T="UserActivityLogDto">User Name</MudTableSortLabel></MudTh>
             <MudTh><MudTableSortLabel SortLabel="EventName" T="UserActivityLogDto">Event</MudTableSortLabel></MudTh>
-            <MudTh><MudTableSortLabel SortLabel="RefKey" T="UserActivityLogDto">Ref Key</MudTableSortLabel></MudTh>
-            <MudTh><MudTableSortLabel SortLabel="Remarks" T="UserActivityLogDto">Remarks</MudTableSortLabel></MudTh>
-            <MudTh><MudTableSortLabel SortLabel="Url" T="UserActivityLogDto">URL</MudTableSortLabel></MudTh>
-        </HeaderContent>
+@*             <MudTh><MudTableSortLabel SortLabel="RefKey" T="UserActivityLogDto">Ref Key</MudTableSortLabel></MudTh>
+ *@            <MudTh><MudTableSortLabel SortLabel="Remarks" T="UserActivityLogDto">Remarks</MudTableSortLabel></MudTh>
+@*             <MudTh><MudTableSortLabel SortLabel="Url" T="UserActivityLogDto">URL</MudTableSortLabel></MudTh>
+ *@        </HeaderContent>
         <RowTemplate>
-            <MudTd DataLabel="Timestamp">@context.DT?.ToString("dd/MM/yyyy HH:mm:ss")</MudTd>
+            <MudTd DataLabel="Timestamp">@(context.DT?.ToString("MM/dd/yyyy HH:mm"))</MudTd>
             <MudTd DataLabel="User Name">@context.UserName</MudTd>
             <MudTd DataLabel="Event">@context.EventName</MudTd>
-            <MudTd DataLabel="Ref Key">@context.RefKey</MudTd>
-            <MudTd DataLabel="Remarks">@context.Remarks</MudTd>
-            <MudTd DataLabel="URL" Style="word-break: break-all; max-width: 200px;">@context.Url</MudTd>
-        </RowTemplate>
+@*             <MudTd DataLabel="Ref Key">@context.RefKey</MudTd>
+ *@            <MudTd DataLabel="Remarks">@context.Remarks</MudTd>
+@*             <MudTd DataLabel="URL" Style="word-break: break-all; max-width: 200px;">@context.Url</MudTd>
+ *@        </RowTemplate>
         <PagerContent>
             <MudTablePager />
         </PagerContent>
@@ -100,7 +100,7 @@
         }
         catch (Exception ex)
         {
-            Snackbar.Add($"Error: {ex.Message}", Severity.Error);
+            Snackbar.Add(ex.Message, Severity.Warning);
             return new TableData<UserActivityLogDto> { Items = Array.Empty<UserActivityLogDto>(), TotalItems = 0 };
         }
         finally
